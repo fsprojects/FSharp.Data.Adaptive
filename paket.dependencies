@@ -1,0 +1,20 @@
+version 5.215.0
+framework: netstandard2.0, netcoreapp2.2
+source https://api.nuget.org/v3/index.json
+
+nuget FSharp.Core                           ~> 4.6.2
+
+nuget FsUnit                                ~> 3.4.1
+nuget FsUnit.xUnit                          ~> 3.4.1
+nuget FsCheck                               ~> 2.14.0
+nuget FsCheck.Xunit                         ~> 2.14.0
+nuget Microsoft.NET.Test.Sdk                ~> 16.2.0
+nuget xunit                                 ~> 2.4.1
+nuget xunit.runner.visualstudio             ~> 2.4.1
+nuget XunitXml.TestLogger                   
+
+group Build
+source https://api.nuget.org/v3/index.json
+github aardvark-platform/aardvark.fake:v5
+nuget Fake.DotNet.Cli
+nuget FSharp.Core                           ~> 4.6.2

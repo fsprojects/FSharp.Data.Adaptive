@@ -1,0 +1,21 @@
+{
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "bin": true,
+        ".fake": true,
+        ".paket": true,
+        "packages": true,
+        "paket-files": true,
+        "build.cmd": true,
+        ".gitignore": true,
+        "**/obj/": true
+    },
+    "terminal.integrated.env.linux": {
+        "LD_LIBRARY_PATH": "."
+    },
+    "dotnet-test-explorer.testProjectPath": "src/FsIncremental.sln"
+}
