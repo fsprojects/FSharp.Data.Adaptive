@@ -17,5 +17,6 @@
     "terminal.integrated.env.linux": {
         "LD_LIBRARY_PATH": "."
     },
-    "dotnet-test-explorer.testProjectPath": "src/FsIncremental.sln"
+    "dotnet-test-explorer.testProjectPath": "FsIncremental.sln",
+    "FSharp.linter": true
 }

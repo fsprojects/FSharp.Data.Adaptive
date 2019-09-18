@@ -8,6 +8,7 @@ bin/Debug
 /src/*.suo
 /bin/*.nupkg
 /src/.vs
+/.vs
 /paket-files
 /.fake
 /.paket
