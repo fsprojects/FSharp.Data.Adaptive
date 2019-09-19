@@ -6,13 +6,38 @@ open System.IO
 open Fake.Core
 open Fake.Core.TargetOperators
 open Fake.DotNet
+open Fake.IO
+open Fake.IO.Globbing.Operators
+open Fake.Tools
+open System.Text.RegularExpressions
 
 do Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 
 let notes = ReleaseNotes.load "RELEASE_NOTES.md"
 
 Target.create "Clean" (fun _ ->
-    DotNet.exec id "clean" "" |> ignore
+    if Directory.Exists "bin/Debug" then
+        Trace.trace "deleting bin/Debug"
+        Directory.delete "bin/Debug"
+    if Directory.Exists "bin/Release" then
+        Trace.trace "deleting bin/Release"
+        Directory.delete "bin/Release"
+
+    let pkgs = !!"bin/*.nupkg" |> Seq.toList
+    if not (List.isEmpty pkgs) then
+        Trace.tracefn "deleting packages: %s" (pkgs |> Seq.map Path.GetFileNameWithoutExtension |> String.concat ", ")
+        File.deleteAll pkgs
+
+
+    let dirs = Directory.EnumerateDirectories("src", "obj", SearchOption.AllDirectories) |> Seq.toList
+
+    if not (List.isEmpty dirs) then 
+        for d in dirs do    
+            let parent = Path.GetDirectoryName d
+            let proj = Directory.GetFiles(parent, "*.fsproj") |> Seq.isEmpty |> not
+            if proj then
+                Trace.tracefn "deleting %s" d
+                Directory.delete d
 )
 
 Target.create "Compile" (fun _ ->
@@ -26,14 +51,17 @@ Target.create "Compile" (fun _ ->
                 { o.MSBuildParams with 
                     Properties = 
                         [
+                            "GenerateAssemblyInfo", "true"
                             "AssemblyVersion", v
+                            "FileVersion", v
+                            "AssemblyFileVersion", v
+                            "ProductVersion", v
+                            "InformationalVersion", v
                         ] 
                 }
         }
     DotNet.build options "FsIncremental.sln"
 )
-
-
 
 Target.create "Pack" (fun _ ->
     
@@ -50,6 +78,65 @@ Target.create "Pack" (fun _ ->
     )
 )
 
+Target.create "Push" (fun _ ->
+    let packageNameRx = Regex @"^(?<name>[a-zA-Z_0-9\.-]+?)\.(?<version>([0-9]+\.)*[0-9]+.*?)\.nupkg$"
+    
+    if not (Git.Information.isCleanWorkingCopy ".") then
+        Git.Information.showStatus "."
+        failwith "repo not clean"
+
+    
+    if File.exists "deploy.targets" then
+        let packages =
+            !!"bin/*.nupkg"
+            |> Seq.filter (fun path ->
+                let name = Path.GetFileName path
+                let m = packageNameRx.Match name
+                if m.Success then
+                    m.Groups.["version"].Value = notes.NugetVersion
+                else
+                    false
+            )
+
+        let targetsAndKeys =
+            File.ReadAllLines "deploy.targets"
+            |> Array.map (fun l -> l.Split(' '))
+            |> Array.choose (function [|dst; key|] -> Some (dst, key) | _ -> None)
+            |> Array.choose (fun (dst, key) ->
+                let path = 
+                    Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                        ".ssh",
+                        key
+                    )
+                if File.exists path then
+                    let key = File.ReadAllText(path).Trim()
+                    Some (dst, key)
+                else
+                    None
+            )
+            |> Map.ofArray
+
+        for (dst, key) in Map.toSeq targetsAndKeys do
+            Trace.tracefn "%s: %s" dst key
+
+            let options (o : Paket.PaketPushParams) =
+                { o with 
+                    PublishUrl = dst
+                    ApiKey = key 
+                    WorkingDir = "bin"
+                }
+
+            Paket.pushFiles options packages
+
+        let branch = Git.Information.getBranchName "."
+        Git.Branches.tag "." notes.NugetVersion
+        Git.Branches.pushTag "." "origin" notes.NugetVersion
+        Git.Branches.pushBranch "." "origin" branch
+    ()
+)
+
+
 Target.create "Test" (fun _ ->
     let options (o : DotNet.TestOptions) =
         { (o.WithRedirectOutput false) with
@@ -59,20 +146,14 @@ Target.create "Test" (fun _ ->
     DotNet.test options "FsIncremental.sln"
 )
 
-Target.create "Start" (fun _ ->
-    let param (p : DotNet.Options) =
-        { p with WorkingDirectory = Path.Combine("bin", "Release", "netcoreapp2.0") }
-
-    DotNet.exec param "" "FsIncremental.dll" |> ignore
-)
-
-Target.create "Run" (fun _ -> Target.run 1 "Start" [])
-
 Target.create "Default" ignore
 
 
-"Compile" ==> "Test" ==> "Pack"
-"Compile" ==> "Run"
+"Compile" ==> 
+    "Test" ==> 
+    "Pack" ==>
+    "Push"
+
 "Compile" ==> 
     "Test" ==>
     "Default"
