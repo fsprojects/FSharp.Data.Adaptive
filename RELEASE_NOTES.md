@@ -1,3 +1,6 @@
+### 0.0.1-prerelease04
+* yet another test
+
 ### 0.0.1-prerelease03
 * handling of conflicts
 
