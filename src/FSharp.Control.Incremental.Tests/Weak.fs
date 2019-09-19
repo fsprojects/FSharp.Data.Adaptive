@@ -34,7 +34,7 @@ module TestHelpers =
 /// a dummy type failing on GetHashCode/Equals to ensure that
 /// WeakRef/WeakSet only operate on reference-hashes/equality
 type NonEqualObject() as this =    
-    let weak = WeakReference<_>(this :> IAdaptiveObject)
+    let weak = lazy (WeakReference<_>(this :> IAdaptiveObject))
     let outputs = WeakOutputSet()
 
     override x.GetHashCode() = failwith "BrokenEquality.GetHashCode should not be called"
@@ -53,12 +53,12 @@ type NonEqualObject() as this =
         member x.ReaderCount
             with get () = 0
             and set _ = ()
-        member x.Weak = weak
+        member x.Weak = weak.Value
         member x.Outputs = outputs
 
 
 
-let relevantSizes = [0;1;2;4;8;9;20;400]
+let relevantSizes = [0;1;2;4;8;9;20]
 
 [<Fact>]
 let ``[WeakOutputSet] add``() =
