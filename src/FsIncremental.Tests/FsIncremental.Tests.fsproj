@@ -11,7 +11,8 @@
     <OutputPath>..\..\bin\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Basic.fs" />
+    <Compile Include="Helpers.fs" />
+    <Compile Include="Weak.fs" />
     <Content Include="xunit.runner.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

@@ -12,7 +12,7 @@ open Fake.DotNet
 
 do Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 
-DefaultSetup.install ["src/FsIncremental.sln"]
+DefaultSetup.install ["FsIncremental.sln"]
 
 
 Target.create "Test" (fun _ ->
@@ -23,7 +23,7 @@ Target.create "Test" (fun _ ->
             //ListTests = true
             Logger = Some "console;verbosity=normal"
         }
-    DotNet.test options "src/FsIncremental.sln"
+    DotNet.test options "FsIncremental.sln"
 )
 
 Target.create "Start" (fun _ ->
