@@ -8,6 +8,7 @@
     <OutputPath>..\..\bin\Debug\</OutputPath>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>..\..\bin\Debug\FsIncremental.XML</DocumentationFile>
+    <OtherFlags></OtherFlags>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>..\..\bin\Release</OutputPath>

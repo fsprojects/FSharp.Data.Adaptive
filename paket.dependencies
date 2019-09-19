@@ -15,6 +15,8 @@ nuget XunitXml.TestLogger
 
 group Build
 source https://api.nuget.org/v3/index.json
-github aardvark-platform/aardvark.fake:v5
-nuget Fake.DotNet.Cli
-nuget FSharp.Core                           ~> 4.6.2
+nuget fake-cli ~> 5.16.1
+nuget Fake.DotNet.Cli ~> 5.16.1
+nuget Fake.Core.Target ~> 5.16.1
+nuget Fake.DotNet.Paket ~> 5.16.1
+nuget Fake.Core.ReleaseNotes ~> 5.16.1
