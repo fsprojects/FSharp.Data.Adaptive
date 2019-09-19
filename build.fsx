@@ -118,6 +118,10 @@ Target.create "Push" (fun _ ->
             )
             |> Map.ofArray
             
+        
+        Git.CommandHelper.directRunGitCommandAndFail "." "fetch --tags"
+        Git.Branches.tag "." notes.NugetVersion
+
         let branch = Git.Information.getBranchName "."
         Git.Branches.pushBranch "." "origin" branch
 
@@ -138,7 +142,6 @@ Target.create "Push" (fun _ ->
 
             Paket.pushFiles options packages
 
-        Git.Branches.tag "." notes.NugetVersion
         Git.Branches.pushTag "." "origin" notes.NugetVersion
     ()
 )
