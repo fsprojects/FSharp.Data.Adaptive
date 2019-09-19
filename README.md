@@ -2,8 +2,8 @@
 
 | Platform | Status |
 |---------|----|
-| windows | [![Build status](https://ci.appveyor.com/api/projects/status/f892qfvn85vidvi8?svg=true)](https://ci.appveyor.com/project/krauthaufen/fsincremental)  |
-| ubuntu 18.04   | [![Build status](https://ci.appveyor.com/api/projects/status/6n9npcw9jiyv2gxs/branch/master?svg=true)](https://ci.appveyor.com/project/krauthaufen/fsincremental-mlxxd/branch/master)  |
+| windows | [![Build status](https://ci.appveyor.com/api/projects/status/syfprdtumkycdt83/branch/master?svg=true)](https://ci.appveyor.com/project/krauthaufen/fsharp-control-incremental/branch/master) |
+| ubuntu 18.04   | [![Build status](https://ci.appveyor.com/api/projects/status/b5m7h9gdtlt0g3ji/branch/master?svg=true)](https://ci.appveyor.com/project/krauthaufen/fsharp-control-incremental-6s2nb/branch/master)  |
 
 
 aims at making Aardvark.Base.Incremental's functionality available as a standalone library.
