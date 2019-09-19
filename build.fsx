@@ -97,6 +97,7 @@ Target.create "Push" (fun _ ->
                 else
                     false
             )
+            |> Seq.toList
 
         let targetsAndKeys =
             File.ReadAllLines "deploy.targets"
@@ -116,10 +117,18 @@ Target.create "Push" (fun _ ->
                     None
             )
             |> Map.ofArray
+            
+        let branch = Git.Information.getBranchName "."
+        Git.Branches.pushBranch "." "origin" branch
 
+        if List.isEmpty packages then
+            failwith "no packages produced"
+
+        if Map.isEmpty targetsAndKeys then
+            failwith "no deploy targets"
+            
         for (dst, key) in Map.toSeq targetsAndKeys do
-            Trace.tracefn "%s: %s" dst key
-
+            Trace.tracefn "pushing to %s" dst
             let options (o : Paket.PaketPushParams) =
                 { o with 
                     PublishUrl = dst
@@ -129,10 +138,8 @@ Target.create "Push" (fun _ ->
 
             Paket.pushFiles options packages
 
-        let branch = Git.Information.getBranchName "."
         Git.Branches.tag "." notes.NugetVersion
         Git.Branches.pushTag "." "origin" notes.NugetVersion
-        Git.Branches.pushBranch "." "origin" branch
     ()
 )
 
