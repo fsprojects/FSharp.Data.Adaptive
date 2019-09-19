@@ -13,6 +13,7 @@
   <ItemGroup>
     <Compile Include="Helpers.fs" />
     <Compile Include="Weak.fs" />
+    <Compile Include="Program.fs" />
     <Content Include="xunit.runner.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

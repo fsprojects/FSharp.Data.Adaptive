@@ -15,7 +15,13 @@
   </PropertyGroup>
   <ItemGroup>
 
-    <Compile Include="Tools\Weak.fs" />
+    <Compile Include="Utilities.fs" />
+
+    <Compile Include="PriorityQueue.fs" />
+
+    <Compile Include="AdaptiveObject.fs" />
+
+    <Compile Include="Transaction.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

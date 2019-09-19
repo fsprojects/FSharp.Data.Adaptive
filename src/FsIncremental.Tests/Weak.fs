@@ -1,4 +1,4 @@
-﻿module Weak
+﻿module WeakOutputSet
 
 open System
 open FsUnit
@@ -7,80 +7,99 @@ open FsCheck
 open FsCheck.Xunit
 open FsIncremental
 
+[<AutoOpen>]
+module TestHelpers =        
+    /// force garbage collection
+    let ensureGC() =
+        GC.Collect(3, GCCollectionMode.Forced, true, true)
+        GC.WaitForFullGCComplete() |> ignore
+
+    let getRealMemory() =
+    let m0 = GC.GetTotalMemory(true)
+    let arr : byte[] = Array.zeroCreate 1
+    ensureGC()
+    let m0 = GC.GetTotalMemory(true)
+
+    let mutable m1 = m0
+
+    let mutable size = 0L
+    let mutable res = []
+    while m0 < m1 do
+        let arr : byte[] = Array.zeroCreate (32 - 24)
+        size <- size + 32L + 56L
+        res <- arr :: res
+        m1 <- GC.GetTotalMemory(true)
+    m0 - size
+
 /// a dummy type failing on GetHashCode/Equals to ensure that
 /// WeakRef/WeakSet only operate on reference-hashes/equality
-type BrokenEquality() =    
+type NonEqualObject() as this =    
+    let weak = WeakReference<_>(this :> IAdaptiveObject)
+    let outputs = WeakOutputSet()
+
     override x.GetHashCode() = failwith "BrokenEquality.GetHashCode should not be called"
     override x.Equals _o = failwith "BrokenEquality.Equals should not be called"
 
-/// force garbage collection
-let ensureGC() =
-    GC.Collect(3, GCCollectionMode.Forced, true, true)
-    GC.WaitForFullGCComplete() |> ignore
+    interface IAdaptiveObject with
+        member x.AllInputsProcessed _ = ()
+        member x.InputChanged(_,_) = ()
+        member x.Level
+            with get () = 0
+            and set _ = ()
+        member x.Mark() = true
+        member x.OutOfDate
+            with get () = true
+            and set _ = ()
+        member x.ReaderCount
+            with get () = 0
+            and set _ = ()
+        member x.Weak = weak
+        member x.Outputs = outputs
+
+
+
+let relevantSizes = [0;1;2;4;8;9;20;400]
 
 [<Fact>]
-let ``[WeakRef] equality``() =
-
-    let deadWeaks() =
-        let a = BrokenEquality()
-        WeakRef a, WeakRef a
-
-    let a = BrokenEquality()
-    let b = BrokenEquality()
-
-    let wa  = WeakRef a
-    let wa' = WeakRef a
-    let wb  = WeakRef b
-    let wb' = WeakRef b
-    let wd, wd' = deadWeaks()
-    ensureGC()
+let ``[WeakOutputSet] add``() =
+    relevantSizes |> List.iter (fun cnt ->
+        let set = WeakOutputSet()
     
-    // WeakRefs maintain equality
-    wa |> should equal wa'
-    wb |> should equal wb'
-    wd |> should equal wd'
-    wa |> should not' (equal wb)
-    wa |> should not' (equal wd)
-    wb |> should not' (equal wd)
+        let many = Array.init cnt (fun _ -> NonEqualObject())
+        for m in many do
+            set.Add m |> should be True
 
-    // WeakRefs are actually weak
-    wd.Object |> should equal None
-    wd'.Object |> should equal None
+        let all = set.Consume()
+        all.Length |> should equal many.Length
 
-    // WeakRefs hold correct values
-    wa.Object.Value |> should refequal a
-    wb.Object.Value |> should refequal b
-    wa'.Object.Value |> should refequal a
-    wb'.Object.Value |> should refequal b
+        for a in all do
+            many |> Array.exists (fun m -> Object.ReferenceEquals(m, a)) |> should be True
+    )
 
 [<Fact>]
-let ``[WeakSet] add``() =
-    let set = WeakSet<BrokenEquality>()
+let ``[WeakOutputSet] remove``() =
+    relevantSizes |> List.iter (fun cnt ->
+        let set = WeakOutputSet()
+    
+        let many = Array.init cnt (fun _ -> NonEqualObject())
+        for m in many do set.Add m |> should be True
+        for m in many do set.Remove m |> should be True
 
-    let a = BrokenEquality()
-    set.Add a |> should be True
-    set.Add a |> should be False
+        let all = set.Consume()
+        all |> should be Empty
+    )
 
-    let addDead() =
-        let a = BrokenEquality()
-        set.Add a |> should be True
-
-    for _i in 1 .. 10 do addDead()
-    ensureGC()
-    match Seq.toList set with
-    | [v] -> v |> should refequal a
-    | _ -> failwith "inconsistent WeakSet length"
 
 [<Fact>]
-let ``[WeakSet] remove``() =
-    let set = WeakSet<BrokenEquality>()
-    let a = BrokenEquality()
-    set.Add a |> ignore
-    set.Remove a |> should be True
-    set |> Seq.isEmpty |> should be True
+let ``[WeakOutputSet] actually weak``() =
+    relevantSizes |> List.iter (fun cnt ->
+        let set = WeakOutputSet()
+        let addDead() =
+            let many = Array.init cnt (fun _ -> NonEqualObject())
+            for m in many do
+                set.Add m |> should be True
 
-
-
-
-
-
+        addDead()
+        ensureGC()
+        set.Consume() |> should be Empty
+    )
