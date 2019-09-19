@@ -5,7 +5,7 @@ open FsUnit
 open Xunit
 open FsCheck
 open FsCheck.Xunit
-open FsIncremental
+open FSharp.Control.Incremental
 
 [<AutoOpen>]
 module TestHelpers =        
@@ -15,21 +15,21 @@ module TestHelpers =
         GC.WaitForFullGCComplete() |> ignore
 
     let getRealMemory() =
-    let m0 = GC.GetTotalMemory(true)
-    let arr : byte[] = Array.zeroCreate 1
-    ensureGC()
-    let m0 = GC.GetTotalMemory(true)
+        let m0 = GC.GetTotalMemory(true)
+        let arr : byte[] = Array.zeroCreate 1
+        ensureGC()
+        let m0 = GC.GetTotalMemory(true)
 
-    let mutable m1 = m0
+        let mutable m1 = m0
 
-    let mutable size = 0L
-    let mutable res = []
-    while m0 < m1 do
-        let arr : byte[] = Array.zeroCreate (32 - 24)
-        size <- size + 32L + 56L
-        res <- arr :: res
-        m1 <- GC.GetTotalMemory(true)
-    m0 - size
+        let mutable size = 0L
+        let mutable res = []
+        while m0 < m1 do
+            let arr : byte[] = Array.zeroCreate (32 - 24)
+            size <- size + 32L + 56L
+            res <- arr :: res
+            m1 <- GC.GetTotalMemory(true)
+        m0 - size
 
 /// a dummy type failing on GetHashCode/Equals to ensure that
 /// WeakRef/WeakSet only operate on reference-hashes/equality

@@ -1,4 +1,4 @@
-﻿namespace FsIncremental
+﻿namespace FSharp.Control.Incremental
 
 open System.Collections.Generic
 
