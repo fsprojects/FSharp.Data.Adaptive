@@ -13,7 +13,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Helpers.fs" />
-    <Compile Include="Weak.fs" />
+    <Compile Include="PriorityQueue.fs" />
+    <Compile Include="WeakOutputSet.fs" />
     <Compile Include="Program.fs" />
     <Content Include="xunit.runner.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

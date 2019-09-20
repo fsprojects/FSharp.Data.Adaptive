@@ -93,6 +93,67 @@ and WeakOutputSet() =
     let mutable data = Unchecked.defaultof<VolatileSetData>
     let mutable setOps = 0
 
+    let add (obj : IAdaptiveObject) =
+        let mutable value = Unchecked.defaultof<IAdaptiveObject>
+        let weakObj = obj.Weak
+        match data.Tag with
+        | 0 ->  
+            if isNull data.Single then 
+                data.Single <- weakObj
+                true
+            elif data.Single = weakObj then
+                false
+            elif data.Single.TryGetTarget(&value) then
+                if Object.ReferenceEquals(value, obj) then
+                    false
+                else
+                    let arr = Array.zeroCreate 8
+                    arr.[0] <- data.Single
+                    arr.[1] <- weakObj
+                    data.Tag <- 1
+                    data.Array <- arr
+                    true
+            else
+                data.Single <- weakObj
+                true
+        | 1 ->
+            let mutable freeIndex = -1
+            let mutable i = 0
+            let len = data.Array.Length
+            while i < len do
+                if isNull data.Array.[i] then
+                    if freeIndex < 0 then freeIndex <- i
+                elif data.Array.[i] = weakObj then
+                    freeIndex <- -2
+                    i <- len
+                else
+                    if data.Array.[i].TryGetTarget(&value) then
+                        if Object.ReferenceEquals(value, obj) then
+                            freeIndex <- -2
+                            i <- len
+                    else
+                        if freeIndex < 0 then freeIndex <- i
+                i <- i + 1
+
+            if freeIndex = -2 then
+                false
+            elif freeIndex >= 0 then
+                data.Array.[freeIndex] <- weakObj
+                true
+            else
+                // r cannot be null here (empty index would have been found)
+                let all = data.Array |> Array.choose (fun r -> if r.TryGetTarget(&value) then Some r else None)
+                let set = HashSet all
+                let res = set.Add weakObj
+                data.Tag <- 2
+                data.Set <- set
+                res
+        | _ ->
+            if data.Set.Add weakObj then
+                true
+            else
+                false
+
     /// used interally to get rid of leaking WeakReferences
     member x.Cleanup() =
         lock x (fun () ->
@@ -100,75 +161,19 @@ and WeakOutputSet() =
             if setOps > 100 then
                 setOps <- 0
                 let all = x.Consume()
-                for a in all do x.Add a |> ignore
+                for a in all do add a |> ignore
         )
 
     /// adds a weak reference to the given AdaptiveObject to the set
     /// and returns a boolean indicating whether the obj was new.
     member x.Add(obj : IAdaptiveObject) =
         lock x (fun () ->
-            let mutable value = Unchecked.defaultof<IAdaptiveObject>
-
-            let weakObj = obj.Weak
-            match data.Tag with
-            | 0 ->  
-                if isNull data.Single then 
-                    data.Single <- weakObj
-                    true
-                elif data.Single = weakObj then
-                    false
-                elif data.Single.TryGetTarget(&value) then
-                    if Object.ReferenceEquals(value, obj) then
-                        false
-                    else
-                        let arr = Array.zeroCreate 8
-                        arr.[0] <- data.Single
-                        arr.[1] <- weakObj
-                        data.Tag <- 1
-                        data.Array <- arr
-                        true
-                else
-                    data.Single <- weakObj
-                    true
-            | 1 ->
-                let mutable freeIndex = -1
-                let mutable i = 0
-                let len = data.Array.Length
-                while i < len do
-                    if isNull data.Array.[i] then
-                        if freeIndex < 0 then freeIndex <- i
-                    elif data.Array.[i] = weakObj then
-                        freeIndex <- -2
-                        i <- len
-                    else
-                        if data.Array.[i].TryGetTarget(&value) then
-                            if Object.ReferenceEquals(value, obj) then
-                                freeIndex <- -2
-                                i <- len
-                        else
-                            if freeIndex < 0 then freeIndex <- i
-                    i <- i + 1
-
-                if freeIndex = -2 then
-                    false
-                elif freeIndex >= 0 then
-                    data.Array.[freeIndex] <- weakObj
-                    true
-                else
-                    // r cannot be null here (empty index would have been found)
-                    let all = data.Array |> Array.choose (fun r -> if r.TryGetTarget(&value) then Some r else None)
-                    let set = HashSet all
-                    let res = set.Add weakObj
-                    data.Tag <- 2
-                    data.Set <- set
-                    res
-            | _ ->
-                if data.Set.Add weakObj then
-                    setOps <- setOps + 1
-                    x.Cleanup()
-                    true
-                else
-                    false
+            if add obj then
+                setOps <- setOps + 1
+                x.Cleanup()
+                true
+            else
+                false
         )
         
     /// removes the reference to the given AdaptiveObject from the set

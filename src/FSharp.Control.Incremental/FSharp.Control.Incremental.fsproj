@@ -19,7 +19,7 @@
     <Compile Include="Core.fs" />
     <Compile Include="Transaction.fs" />
     <Compile Include="AdaptiveToken.fs" />
-    <Compile Include="AdaptiveObject.fs" />
+    <Compile Include="AssemblyInfo.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

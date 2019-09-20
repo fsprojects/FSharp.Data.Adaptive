@@ -2,5 +2,5 @@
 
 [<EntryPoint>]
 let main args =
-    WeakOutputSet.``[WeakOutputSet] remove``()
+    WeakOutputSet.``[WeakOutputSet] actually weak``()
     0
