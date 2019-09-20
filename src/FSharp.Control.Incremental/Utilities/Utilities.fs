@@ -107,13 +107,13 @@ module internal InterlockedExtensions =
         /// NOTE that the function might be evaluated multiple times.
         static member Change(location: byref<'T>, f: 'T -> 'T * 'U) =
             let mutable initial = location
-            let (n,r) = f initial
+            let (n, r) = f initial
             let mutable computed = n
             let mutable result = r
 
             while Interlocked.CompareExchange(&location, computed, initial) != initial do
                 initial <- location
-                let (n,r) = f initial
+                let (n, r) = f initial
                 computed <- n
                 result <- r
 
@@ -136,13 +136,13 @@ module internal InterlockedExtensions =
         /// NOTE that the function might be evaluated multiple times.
         static member Change(location: byref<int>, f: int -> int * 'U) =
             let mutable initial = location
-            let (n,r) = f initial
+            let (n, r) = f initial
             let mutable computed = n
             let mutable result = r
 
             while Interlocked.CompareExchange(&location, computed, initial) <> initial do
                 initial <- location
-                let (n,r) = f initial
+                let (n, r) = f initial
                 computed <- n
                 result <- r
 
@@ -164,13 +164,13 @@ module internal InterlockedExtensions =
         /// NOTE that the function might be evaluated multiple times.
         static member Change(location: byref<int64>, f: int64 -> int64 * 'U) =
             let mutable initial = location
-            let (n,r) = f initial
+            let (n, r) = f initial
             let mutable computed = n
             let mutable result = r
 
             while Interlocked.CompareExchange(&location, computed, initial) <> initial do
                 initial <- location
-                let (n,r) = f initial
+                let (n, r) = f initial
                 computed <- n
                 result <- r
 
