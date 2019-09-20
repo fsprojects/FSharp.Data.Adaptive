@@ -1,6 +1,5 @@
 ﻿module PriorityQueue
 
-open System.Linq
 open System.Collections.Generic
 open FSharp.Control.Incremental
 open FsUnit
@@ -50,6 +49,15 @@ let ``[PriorityQueue] enqueue`` (values : array<int>) =
     let queue = PriorityQueue(compare)
     values |> Array.iter queue.Enqueue
     queue.Count |> should equal values.Length
+    
+[<Property>]
+let ``[PriorityQueue] sorting`` (values : array<int>) =
+    let queue = PriorityQueue(compare)
+    values |> Array.iter queue.Enqueue
+    let sorted = List.sort (Array.toList values)
+    let heap = List.init queue.Count (fun _ -> queue.Dequeue())
+    heap |> should equal sorted
+
 
 [<Property>]
 let ``[DuplicatePriorityQueue] enqueue`` (values : array<int>) =
@@ -57,4 +65,12 @@ let ``[DuplicatePriorityQueue] enqueue`` (values : array<int>) =
     values |> Array.iter queue.Enqueue
     queue.Count |> should equal values.Length
 
-
+        
+[<Property>]
+let ``[DuplicatePriorityQueue] sorting`` (values : array<int>) =
+    let queue = DuplicatePriorityQueue(id)
+    values |> Array.iter queue.Enqueue
+    let sorted = List.sort (Array.toList values)
+    let mutable foo = 0
+    let heap = List.init queue.Count (fun _ -> queue.Dequeue(&foo))
+    heap |> should equal sorted
