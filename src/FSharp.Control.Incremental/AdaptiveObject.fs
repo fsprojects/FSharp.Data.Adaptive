@@ -1,0 +1,154 @@
+﻿namespace FSharp.Control.Incremental
+
+open System
+
+[<AllowNullLiteral>]
+type AdaptiveObject =
+    
+    [<DefaultValue; ThreadStatic>]
+    static val mutable private CurrentEvaluationDepth : int
+
+    val mutable private outOfDate : bool
+    val mutable private level: int 
+    val mutable private outputs : WeakOutputSet
+    val mutable private weak : WeakReference<IAdaptiveObject>
+    val mutable private readerCount : int
+
+    
+    /// used for resetting EvaluationDepth in eager evaluation
+    static member internal UnsafeEvaluationDepth
+        with get() = AdaptiveObject.CurrentEvaluationDepth
+        and set v = AdaptiveObject.CurrentEvaluationDepth <- v
+        
+
+    /// utility function for evaluating an object even if it
+    /// is not marked as outOfDate.
+    /// Note that this function takes care of appropriate locking
+    member x.EvaluateAlways (token : AdaptiveToken) (f : AdaptiveToken -> 'a) =
+        let caller = token.Caller
+        let depth = AdaptiveObject.CurrentEvaluationDepth
+
+        let mutable res = Unchecked.defaultof<_>
+        token.EnterRead x
+
+        try
+            AdaptiveObject.CurrentEvaluationDepth <- depth + 1
+
+            // this evaluation is performed optimistically
+            // meaning that the "top-level" object needs to be allowed to
+            // pull at least one value on every path.
+            // This property must therefore be maintained for every
+            // path in the entire system.
+            let r = f(token.WithCaller x)
+            x.OutOfDate <- false
+
+            // if the object's level just got greater than or equal to
+            // the level of the running transaction (if any)
+            // we raise an exception since the evaluation
+            // could be inconsistent atm.
+            // the only exception to that is the top-level object itself
+            let maxAllowedLevel =
+                if depth > 1 then Transaction.RunningLevel - 1
+                else Transaction.RunningLevel
+
+            if x.Level > maxAllowedLevel then
+                //printfn "%A tried to pull from level %A but has level %A" top.Id level top.Level
+                // all greater pulls would be from the future
+                raise <| LevelChangedException(x, x.Level, depth - 1)
+                                                                     
+            res <- r
+
+
+            if not (isNull caller) then
+                x.outputs.Add caller |> ignore
+                caller.Level <- max caller.Level (x.Level + 1)
+
+        with _ ->
+            AdaptiveObject.CurrentEvaluationDepth <- depth
+            token.ExitFaultedRead x
+            reraise()
+                
+        AdaptiveObject.CurrentEvaluationDepth <- depth
+        // downgrade to read
+        token.Downgrade x
+
+        if isNull caller then
+            token.Release()
+
+        res
+
+
+    /// utility function for evaluating an object if
+    /// it is marked as outOfDate. If the object is actually
+    /// outOfDate the given function is executed and otherwise
+    /// the given default value is returned.
+    /// Note that this function takes care of appropriate locking
+    member inline x.EvaluateIfNeeded (token : AdaptiveToken) (otherwise : 'a) (f : AdaptiveToken -> 'a) =
+        x.EvaluateAlways token (fun token ->
+            if x.OutOfDate then 
+                f token
+            else
+                otherwise
+        )
+
+    member x.Weak =
+        // Note that we accept the race conditon here since locking the object
+        // would potentially cause deadlocks and the worst case is, that we
+        // create two different WeakReferences for the same object
+        let w = x.weak
+        if isNull w then
+            let w = WeakReference<_>(x :> IAdaptiveObject)
+            x.weak <- w
+            w
+        else
+            w
+
+    member x.OutOfDate
+        with get() = x.outOfDate
+        and set o = x.outOfDate <- o
+
+    member x.Level
+        with get() = x.level
+        and set l = x.level <- l
+        
+    member x.ReaderCount
+        with get() = x.readerCount
+        and set l = x.readerCount <- l
+    member x.Outputs = x.outputs
+
+    abstract Mark : unit -> bool
+    default x.Mark() = true
+
+    abstract AllInputsProcessed : obj -> unit
+    default x.AllInputsProcessed _ = ()
+    
+    abstract InputChanged : obj * IAdaptiveObject -> unit
+    default x.InputChanged(_,_) = ()
+
+    interface IAdaptiveObject with
+        member x.Weak = x.Weak
+        member x.Outputs = x.Outputs
+        member x.Mark() = x.Mark()
+        member x.AllInputsProcessed(t) = x.AllInputsProcessed(t)
+        member x.InputChanged(t, o) = x.InputChanged(t, o)
+
+        member x.OutOfDate
+            with get() = x.OutOfDate
+            and set o = x.OutOfDate <- o
+
+        member x.Level
+            with get() = x.Level
+            and set l = x.Level <- l
+            
+        member x.ReaderCount
+            with get() = x.ReaderCount
+            and set c = x.ReaderCount <- c
+
+    new() =
+        { 
+            outOfDate = true
+            level = 0
+            outputs = WeakOutputSet()
+            weak = null
+            readerCount = 0
+        }

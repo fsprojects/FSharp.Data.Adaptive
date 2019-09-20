@@ -14,12 +14,13 @@
     <OutputPath>..\..\bin\Release</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Utilities\Utilities.fs" />
     <Compile Include="Utilities\PriorityQueue.fs" />
     <Compile Include="Core.fs" />
     <Compile Include="Transaction.fs" />
     <Compile Include="AdaptiveToken.fs" />
-    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="AdaptiveObject.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
