@@ -1,8 +1,9 @@
 type project
 authors Aardvark Platform Team
 owners Aardvark Platform Team
-projectUrl http://github.com/krauthaufen/FsIncremental
-licenseUrl http://www.apache.org/licenses/LICENSE-2.0.txt
+projectUrl https://github.com/fsprojects/FSharp.Control.Incremental
+licenseUrl https://raw.githubusercontent.com/fsprojects/FSharp.Control.Incremental/master/LICENSE
 description
-    Aardvark is an open-source platform for visual computing, real-time graphics and visualization.
+    FSharp.Control.Incremental provides an incremental evaluation system inspired by Adapton, DeltaML and many others
+	for FSharp. The implementation provides incremental datastructures for refs/sets/lists/maps.
 include-pdbs true
