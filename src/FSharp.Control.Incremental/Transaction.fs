@@ -4,13 +4,36 @@ open System
 open System.Threading
 open System.Collections.Generic
 
-/// <summary>
+[<AutoOpen>]
+module internal LockingExtensions =
+    type IAdaptiveObject with
+        /// acquires a write-lock to an AdaptiveObject
+        member inline o.EnterWrite() =
+            Monitor.Enter o
+            while o.ReaderCount > 0 do
+                Monitor.Wait o |> ignore
+            
+        /// releases the write-lock to the AdaptiveObject
+        member inline o.ExitWrite() =
+            Monitor.Exit o
+        
+        /// determines whether the object is locked and out-of-date
+        member inline o.IsOutdatedCaller() =
+            Monitor.IsEntered o && o.OutOfDate
+
+/// when evaluating AdaptiveObjects inside a Transaction 
+/// (aka eager evaluation) their level might be inconsistent when
+/// attempting to evaluate. Therefore the evaluation may raise
+/// this exception causing the evaluation to be delayed to a later
+/// time in the Transaction.
+exception LevelChangedException of IAdaptiveObject * int * int
+
+
 /// Transaction holds a set of adaptive objects which
 /// have been changed and shall therefore be marked as outOfDate.
 /// Commit "propagates" these changes into the dependency-graph, takes
 /// care of the correct execution-order and acquires appropriate locks
 /// for all objects affected.
-/// </summary>
 type Transaction() =
     // each thread may have its own running transaction
     [<ThreadStatic; DefaultValue>]
@@ -19,7 +42,7 @@ type Transaction() =
     [<ThreadStatic; DefaultValue>]
     static val mutable private CurrentTransaction : Option<Transaction>
 
-    // we use a duplicate-queue here since we expect levels to be very similar 
+    // we use a duplicate-queue here since we expect levels to be identical quite often
     let q = DuplicatePriorityQueue<IAdaptiveObject, int>(fun o -> o.Level)
 
     // the contained set is useful for determinig if an element has
@@ -38,43 +61,44 @@ type Transaction() =
 
     member x.IsContained e = contained.Contains e
 
+    /// returns the Transaction currently running (if any)
     static member Running
         with get() = Transaction.RunningTransaction
-        and set r = Transaction.RunningTransaction <- r
+        and internal set r = Transaction.RunningTransaction <- r
 
+    /// returns the Transaction currently being build (via transact (fun () -> ...))
     static member Current
         with get() = Transaction.CurrentTransaction
-        and set r = Transaction.CurrentTransaction <- r
+        and internal set r = Transaction.CurrentTransaction <- r
 
+    /// returns true when called inside a running Transaction
     static member HasRunning =
         Transaction.RunningTransaction.IsSome
        
+    /// returns the level of the currently running Transaction or
+    /// Int32.MaxValue when no Transaction is running
     static member RunningLevel =
         match Transaction.RunningTransaction with
             | Some t -> t.CurrentLevel
             | _ -> Int32.MaxValue - 1
 
-
+    /// gets the current Level the Transaction operates on
     member x.CurrentLevel = currentLevel
 
-    /// <summary>
     /// enqueues an adaptive object for marking
-    /// </summary>
     member x.Enqueue(e : IAdaptiveObject) =
         if contained.Add e then
             q.Enqueue e
 
-
+    /// gets the current AdaptiveObject being marked
     member x.CurrentAdapiveObject = 
         if isNull current then None
         else Some current
         
 
-    /// <summary>
     /// performs the entire marking process causing
     /// all affected objects to be made consistent with
     /// the enqueued changes.
-    /// </summary>
     member x.Commit() =
 
         // cache the currently running transaction (if any)
@@ -168,7 +192,7 @@ type Transaction() =
         Transaction.RunningTransaction <- old
         currentLevel <- 0
 
-
+    /// disposes the Transaction running all of its "Finalizers"
     member x.Dispose() = 
         runFinalizers()
 
