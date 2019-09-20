@@ -9,82 +9,62 @@ open System.Collections.Generic
 
 #nowarn "9"
 
-
-/// IAdaptiveObject represents the core interface for all
-/// adaptive objects and contains everything necessary for
-/// tracking OutOfDate flags and managing in-/outputs in the
-/// dependency tree.
-///
-/// Since eager evalutation might be desirable in some scenarios
-/// the interface also contains a Level representing the execution
-/// order when evaluating inside a transaction and a function called
-/// Mark allowing implementations to actually perform the evaluation.
-/// Mark returns a bool since eager evaluation might cause the change
-/// propagation process to exit early (if the actual value was unchanged)
+/// Represents the core interface for all adaptive objects.
+/// Contains support for tracking OutOfDate flags, managing in-/outputs 
+/// and lazy/eager evaluation in the dependency tree.
 [<AllowNullLiteral>]
 type IAdaptiveObject =
-    /// since the system internally needs WeakReferences to IAdaptiveObjects
-    /// every object can cache a WeakReference pointing to itself.
-    abstract member Weak : WeakReference<IAdaptiveObject>
+    /// Each object can cache a WeakReference pointing to itself.
+    /// This is because the system internally needs WeakReferences to IAdaptiveObjects
+    abstract member Weak: WeakReference<IAdaptiveObject>
 
-    /// the level for an adaptive object represents the
-    /// maximal distance from an input cell in the depdency graph
-    /// Note that this level is entirely managed by the system 
-    /// and shall not be accessed directly by users of the system.
-    abstract member Level : int with get, set
+    /// Used internally to represent the maximal distance from an input
+    /// cell in the dependency graph when evaluating inside a transaction.
+    abstract member Level: int with get, set
 
-    /// the ReaderCount is used by the system internally to 
-    /// ensure that AdaptiveObjects are not marked while their value
+    /// Used internally to ensure that AdaptiveObjects are not marked while their value
     /// is still needed by an evaluation.
-    /// it should not be accessed directly by users of the system.
-    abstract member ReaderCount : int with get, set
+    abstract member ReaderCount: int with get, set
 
-    /// Mark allows a specific implementation to
-    /// evaluate the cell during the change propagation process.
-    abstract member Mark : unit -> bool
+    /// Allows a specific implementation to evaluate the cell during the change propagation process.
+    abstract member Mark: unit -> bool
 
-    /// the outOfDate flag for the object is true
-    /// whenever the object has been marked and shall
-    /// be set to false by specific implementations.
-    /// Note that this flag shall only be accessed when holding
-    /// a lock on the adaptive object (allowing for concurrency)
-    abstract member OutOfDate : bool with get, set
+    /// Indicates whether the object has been marked. This flag should only be accessed when holding
+    /// a lock on the adaptive object.
+    abstract member OutOfDate: bool with get, set
 
-    /// the adaptive outputs for the object which are recommended
-    /// to be represented by Weak references in order to allow for
+    /// The adaptive outputs for the object. Represented by Weak references to allow for
     /// unused parts of the graph to be garbage collected.
-    abstract member Outputs : WeakOutputSet
+    abstract member Outputs: WeakOutputSet
 
-    /// gets called whenever a current input of the object gets marked
+    /// Gets called whenever a current input of the object gets marked
     /// out of date. The first argument represents the Transaction that
     /// causes the object to be marked
-    abstract member InputChanged : obj * IAdaptiveObject -> unit
+    abstract member InputChanged: obj * IAdaptiveObject -> unit
 
-
-    /// gets called after all inputs of the object have been processed
+    /// Gets called after all inputs of the object have been processed
     /// and directly before the object will be marked
-    abstract member AllInputsProcessed : obj -> unit
+    abstract member AllInputsProcessed: obj -> unit
 
 
-
-
-/// datastructure for zero-cost casts. 
-/// we actually did experiments and for huge
+/// Datastructure for zero-cost casts between different possible representations for WeakOutputSet.
+/// We actually did experiments and for huge
 /// dependency graphs transactions were ~10% faster 
 /// than they were when using unbox
-and [<StructLayout(LayoutKind.Explicit)>] private VolatileSetData =
-    struct
-        [<FieldOffset(0)>]
-        val mutable public Single : WeakReference<IAdaptiveObject>
-        [<FieldOffset(0)>]
-        val mutable public Array : WeakReference<IAdaptiveObject>[]
-        [<FieldOffset(0)>]
-        val mutable public Set : HashSet<WeakReference<IAdaptiveObject>>
-        [<FieldOffset(8)>]
-        val mutable public Tag : int
-    end
+and [<Struct; StructLayout(LayoutKind.Explicit)>] private VolatileSetData =
+    [<FieldOffset(0)>]
+    val mutable public Single: WeakReference<IAdaptiveObject>
 
-/// Represents a set ouf Outputs for an AdaptiveObject.
+    [<FieldOffset(0)>]
+    val mutable public Array: WeakReference<IAdaptiveObject>[]
+
+    [<FieldOffset(0)>]
+    val mutable public Set: HashSet<WeakReference<IAdaptiveObject>>
+
+    [<FieldOffset(8)>]
+    val mutable public Tag: int
+
+/// Represents a set of outputs for an AdaptiveObject.
 /// The references to all contained elements are weak and the 
 /// datastructure allows to add/remove entries.
 /// The only other functionality is Consume which returns all the
@@ -93,7 +73,7 @@ and WeakOutputSet() =
     let mutable data = Unchecked.defaultof<VolatileSetData>
     let mutable setOps = 0
 
-    let add (obj : IAdaptiveObject) =
+    let add (obj: IAdaptiveObject) =
         let mutable value = Unchecked.defaultof<IAdaptiveObject>
         let weakObj = obj.Weak
         match data.Tag with
@@ -166,7 +146,7 @@ and WeakOutputSet() =
 
     /// adds a weak reference to the given AdaptiveObject to the set
     /// and returns a boolean indicating whether the obj was new.
-    member x.Add(obj : IAdaptiveObject) =
+    member x.Add(obj: IAdaptiveObject) =
         lock x (fun () ->
             if add obj then
                 setOps <- setOps + 1
@@ -178,7 +158,7 @@ and WeakOutputSet() =
         
     /// removes the reference to the given AdaptiveObject from the set
     /// and returns a boolean indicating whether the obj was removed.
-    member x.Remove(obj : IAdaptiveObject) =
+    member x.Remove(obj: IAdaptiveObject) =
         lock x (fun () ->
             //let obj = obj.WeakSelf
             let mutable old = Unchecked.defaultof<IAdaptiveObject>
@@ -237,7 +217,7 @@ and WeakOutputSet() =
 
     /// returns all currenty living entries from the set
     /// and clears its content.
-    member x.Consume() : IAdaptiveObject[] =
+    member x.Consume(): IAdaptiveObject[] =
         lock x (fun () ->
             let n = data
             data <- Unchecked.defaultof<_>
@@ -270,22 +250,18 @@ and WeakOutputSet() =
                 arr
         )
 
-/// Represents a set ouf Outputs for an AdaptiveObject.
-/// The references to all contained elements are weak and the 
-/// datastructure allows to add/remove entries.
-/// The only other functionality is Consume which returns all the
-/// (currenlty living) entries and clears the set.
+/// Supporting operations for the WeakOutputSet type.
 module WeakOutputSet =
-    /// creates a new empty WeakOutputSet
+    /// Creates a new empty WeakOutputSet
     let inline create () = WeakOutputSet()
 
-    /// adds a weak reference to the given AdaptiveObject to the set
+    /// Adds a weak reference to the given AdaptiveObject to the set
     /// and returns a boolean indicating whether the obj was new.
-    let inline add (o : IAdaptiveObject) (set : WeakOutputSet) =
+    let inline add (o: IAdaptiveObject) (set: WeakOutputSet) =
         set.Add o
 
-    /// removes the reference to the given AdaptiveObject from the set
+    /// Removes the reference to the given AdaptiveObject from the set
     /// and returns a boolean indicating whether the obj was removed.
-    let inline remove (o : IAdaptiveObject) (set : WeakOutputSet) =
+    let inline remove (o: IAdaptiveObject) (set: WeakOutputSet) =
         set.Remove o
 
