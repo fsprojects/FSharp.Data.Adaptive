@@ -160,7 +160,7 @@ type Transaction() =
                                     // if Mark told us not to continue we're done here
                                     ()
 
-                            with LevelChangedException(obj, objLevel, distance) ->
+                            with LevelChangedException(_obj, objLevel, distance) ->
                                 // if the level was changed either by a callback
                                 // or Mark we re-enqueue the object with the new level and
                                 // mark it upToDate again (since it would otherwise not be processed again)
@@ -177,7 +177,7 @@ type Transaction() =
                 // finally we enqueue all returned outputs
                 for i in 0 .. outputs.Length - 1 do
                     let o = outputs.[i]
-                    o.InputChanged(x,e)
+                    o.InputChanged(x, e)
                     x.Enqueue o
 
             contained.Remove e |> ignore
