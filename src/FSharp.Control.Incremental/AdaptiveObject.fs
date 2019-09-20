@@ -10,7 +10,6 @@ open System.Collections.Generic
 #nowarn "9"
 
 
-/// <summary>
 /// IAdaptiveObject represents the core interface for all
 /// adaptive objects and contains everything necessary for
 /// tracking OutOfDate flags and managing in-/outputs in the
@@ -22,49 +21,57 @@ open System.Collections.Generic
 /// Mark allowing implementations to actually perform the evaluation.
 /// Mark returns a bool since eager evaluation might cause the change
 /// propagation process to exit early (if the actual value was unchanged)
-/// In order to make adaptive objects easily identifiable all adaptive
-/// objects must also provide a globally unique id (Id)
-/// </summary>
 [<AllowNullLiteral>]
 type IAdaptiveObject =
+    /// since the system internally needs WeakReferences to IAdaptiveObjects
+    /// every object can cache a WeakReference pointing to itself.
     abstract member Weak : WeakReference<IAdaptiveObject>
-    /// <summary>
+
     /// the level for an adaptive object represents the
     /// maximal distance from an input cell in the depdency graph
     /// Note that this level is entirely managed by the system 
     /// and shall not be accessed directly by users of the system.
-    /// </summary>
     abstract member Level : int with get, set
 
-    /// <summary>
+    /// the ReaderCount is used by the system internally to 
+    /// ensure that AdaptiveObjects are not marked while their value
+    /// is still needed by an evaluation.
+    /// it should not be accessed directly by users of the system.
+    abstract member ReaderCount : int with get, set
+
     /// Mark allows a specific implementation to
     /// evaluate the cell during the change propagation process.
-    /// </summary>
     abstract member Mark : unit -> bool
 
-    /// <summary>
     /// the outOfDate flag for the object is true
     /// whenever the object has been marked and shall
     /// be set to false by specific implementations.
     /// Note that this flag shall only be accessed when holding
     /// a lock on the adaptive object (allowing for concurrency)
-    /// </summary>
     abstract member OutOfDate : bool with get, set
 
-    /// <summary>
     /// the adaptive outputs for the object which are recommended
     /// to be represented by Weak references in order to allow for
     /// unused parts of the graph to be garbage collected.
-    /// </summary>
     abstract member Outputs : WeakOutputSet
 
-
+    /// gets called whenever a current input of the object gets marked
+    /// out of date. The first argument represents the Transaction that
+    /// causes the object to be marked
     abstract member InputChanged : obj * IAdaptiveObject -> unit
+
+
+    /// gets called after all inputs of the object have been processed
+    /// and directly before the object will be marked
     abstract member AllInputsProcessed : obj -> unit
-    abstract member ReaderCount : int with get, set
 
 
 
+
+/// datastructure for zero-cost casts. 
+/// we actually did experiments and for huge
+/// dependency graphs transactions were ~10% faster 
+/// than they were when using unbox
 and [<StructLayout(LayoutKind.Explicit)>] private VolatileSetData =
     struct
         [<FieldOffset(0)>]
@@ -77,19 +84,27 @@ and [<StructLayout(LayoutKind.Explicit)>] private VolatileSetData =
         val mutable public Tag : int
     end
 
+/// Represents a set ouf Outputs for an AdaptiveObject.
+/// The references to all contained elements are weak and the 
+/// datastructure allows to add/remove entries.
+/// The only other functionality is Consume which returns all the
+/// (currenlty living) entries and clears the set.
 and WeakOutputSet() =
-    
     let mutable data = Unchecked.defaultof<VolatileSetData>
     let mutable setOps = 0
 
+    /// used interally to get rid of leaking WeakReferences
     member x.Cleanup() =
         lock x (fun () ->
+            // TODO: better heuristic?
             if setOps > 100 then
                 setOps <- 0
                 let all = x.Consume()
                 for a in all do x.Add a |> ignore
         )
 
+    /// adds a weak reference to the given AdaptiveObject to the set
+    /// and returns a boolean indicating whether the obj was new.
     member x.Add(obj : IAdaptiveObject) =
         lock x (fun () ->
             let mutable value = Unchecked.defaultof<IAdaptiveObject>
@@ -155,7 +170,9 @@ and WeakOutputSet() =
                 else
                     false
         )
-
+        
+    /// removes the reference to the given AdaptiveObject from the set
+    /// and returns a boolean indicating whether the obj was removed.
     member x.Remove(obj : IAdaptiveObject) =
         lock x (fun () ->
             //let obj = obj.WeakSelf
@@ -213,6 +230,8 @@ and WeakOutputSet() =
                     false
         )
 
+    /// returns all currenty living entries from the set
+    /// and clears its content.
     member x.Consume() : IAdaptiveObject[] =
         lock x (fun () ->
             let n = data
@@ -246,15 +265,30 @@ and WeakOutputSet() =
                 arr
         )
 
+/// Represents a set ouf Outputs for an AdaptiveObject.
+/// The references to all contained elements are weak and the 
+/// datastructure allows to add/remove entries.
+/// The only other functionality is Consume which returns all the
+/// (currenlty living) entries and clears the set.
 module WeakOutputSet =
+    /// creates a new empty WeakOutputSet
     let inline create () = WeakOutputSet()
 
+    /// adds a weak reference to the given AdaptiveObject to the set
+    /// and returns a boolean indicating whether the obj was new.
     let inline add (o : IAdaptiveObject) (set : WeakOutputSet) =
         set.Add o
 
+    /// removes the reference to the given AdaptiveObject from the set
+    /// and returns a boolean indicating whether the obj was removed.
     let inline remove (o : IAdaptiveObject) (set : WeakOutputSet) =
         set.Remove o
 
+/// when evaluating AdaptiveObjects inside a Transaction 
+/// (aka eager evaluation) their level might be inconsistent when
+/// attempting to evaluate. Therefore the evaluation may raise
+/// this exception causing the evaluation to be delayed to a later
+/// time in the Transaction.
 exception LevelChangedException of IAdaptiveObject * int * int
 
 [<AutoOpen>]

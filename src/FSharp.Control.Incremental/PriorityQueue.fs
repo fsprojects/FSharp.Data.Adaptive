@@ -11,7 +11,7 @@ type PriorityQueue<'a>(cmp : 'a -> 'a -> int) =
     // to ensure that all compare-functions used are identical
     // we wrap the base implementation in PriorityQueue.
     let store = List<'a>()
-    let cmpFun = System.Func<'a,'a, int>(cmp)
+    let cmpFun = OptimizedClosures.FSharpFunc<'a, 'a, int>.Adapt(cmp)
 
     /// <summary>
     /// enqueues a new element
