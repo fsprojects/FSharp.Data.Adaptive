@@ -2,59 +2,53 @@
 
 open System.Collections.Generic
 
-/// represents a simple priority queue using user-given compare function
-type internal PriorityQueue<'a>(cmp : 'a -> 'a -> int) =
+/// Implements a simple priority queue using user-given compare function
+type internal PriorityQueue<'T>(cmp: 'T -> 'T -> int) =
 
-    // we simply use the Aardvark.Base implementation here.
-    // to ensure that all compare-functions used are identical
-    // we wrap the base implementation in PriorityQueue.
-    let store = List<'a>()
-    let cmpFun = OptimizedClosures.FSharpFunc<'a, 'a, int>.Adapt(cmp)
+    let store = List<'T>()
+    let cmpFun = OptimizedClosures.FSharpFunc<'T, 'T, int>.Adapt(cmp)
 
-    /// enqueues a new element
-    member x.Enqueue (v : 'a) =
+    /// Enqueues a new element
+    member x.Enqueue (v: 'T) =
         store.HeapEnqueue(cmpFun, v)
 
-    /// dequeues the min element from the queue and
-    /// fails if the queue is empty
+    /// Dequeues the min element from the queue and fails if the queue is empty
     member x.Dequeue() =
         store.HeapDequeue(cmpFun)
 
-    /// returns the number of elements currently contained in the queue
+    /// Gets the number of elements currently contained in the queue
     member x.Count =
         store.Count
 
-    /// returns the current minimal value (according to cmp) contained
+    /// Gets the current minimal value (according to cmp) contained
     /// and fails if the queue is empty.
     member x.Min = store.[0]
 
-/// implements a queue with "uncomparable" duplicates. 
+/// Implements a queue with "incomparable" duplicates. 
 /// This is helpful since regular heap implementation cannot
 /// deal with a large number of duplicated keys efficiently.
 /// Note: the duplicated values will be returned in the order they were enqueued
-type internal DuplicatePriorityQueue<'a, 'k when 'k : comparison>(extract : 'a -> 'k) =
-    let q = PriorityQueue<'k> compare
-    let values = Dictionary<'k, Queue<'a>>()
+type internal DuplicatePriorityQueue<'T, 'Key when 'Key: comparison>(extract: 'T -> 'Key) =
+    let q = PriorityQueue<'Key> compare
+    let values = Dictionary<'Key, Queue<'T>>()
     let mutable count = 0
     let mutable currentQueue = Unchecked.defaultof<_>
 
     /// enqueues a new element
-    member x.Enqueue(v : 'a) =
+    member x.Enqueue(v: 'T) =
         let k = extract v
         count <- count + 1
 
         if values.TryGetValue(k, &currentQueue) then
             currentQueue.Enqueue v
         else
-            let inner = Queue<'a>()
+            let inner = Queue<'T>()
             inner.Enqueue v
             values.[k] <- inner
             q.Enqueue k
-
              
-    /// dequeues the current minimal value (and its key)
-    /// </summary>   
-    member x.Dequeue(key : byref<'k>) =
+    /// Dequeues the current minimal value (and its key)
+    member x.Dequeue(key: byref<'Key>) =
         let k = q.Min
 
         if values.TryGetValue(k, &currentQueue) then
@@ -69,7 +63,7 @@ type internal DuplicatePriorityQueue<'a, 'k when 'k : comparison>(extract : 'a -
         else
             failwith "inconsistent state in DuplicatePriorityQueue"
 
-    /// returns the number of elements currently contained in the queue
+    /// Gets the number of elements currently contained in the queue
     member x.Count =
         count
 
