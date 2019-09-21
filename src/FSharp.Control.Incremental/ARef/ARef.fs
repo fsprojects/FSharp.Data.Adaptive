@@ -6,7 +6,7 @@ type aref<'T> =
     inherit IAdaptiveObject
     abstract member GetValue : AdaptiveToken -> 'T
 
-[<Sealed>]
+[<Sealed; StructuredFormatDisplay("{AsString}")>]
 type cref<'T> =
     inherit AdaptiveObject
     val mutable private value : 'T
@@ -26,13 +26,16 @@ type cref<'T> =
     interface aref<'T> with
         member x.GetValue t = x.GetValue t
         
+    member private x.AsString = sprintf "cref(%A)" x.Value
+    override x.ToString() = String.Format("cref({0})", x.Value)
+
     new(value : 'T) = { value = value }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ARef =
 
     /// base class for standard arefs
-    [<AbstractClass>]
+    [<AbstractClass; StructuredFormatDisplay("{AsString}")>]
     type AbstractRef<'a>() =
         inherit AdaptiveObject()
 
@@ -50,6 +53,14 @@ module ARef =
                     cache                
             )
 
+        member private x.AsString =
+            if x.OutOfDate then sprintf "aref*(%A)" cache
+            else sprintf "aref(%A)" cache
+
+        override x.ToString() =
+            if x.OutOfDate then String.Format("aref*({0})", cache)
+            else String.Format("aref({0})", cache)
+
         interface aref<'a> with
             member x.GetValue t = x.GetValue t  
             
@@ -63,11 +74,12 @@ module ARef =
         new(create : unit -> 'a) = { Create = create; Value = Unchecked.defaultof<_>; IsValue = false }
         
     /// a constant ref that can either be a value or a lazy computation
+    [<StructuredFormatDisplay("{AsString}")>]
     type ConstantRef<'a> private(data : LazyOrValue<'a>) =
         inherit ConstantObject()
         let mutable data = data
 
-        member x.GetValue(_token : AdaptiveToken) : 'a = 
+        member private x.GetValue() : 'a =
             if data.IsValue then 
                 data.Value
             else
@@ -77,6 +89,9 @@ module ARef =
                 data.Create <- Unchecked.defaultof<_>
                 v
 
+        member x.GetValue(_token : AdaptiveToken) : 'a = 
+            x.GetValue()
+
         interface aref<'a> with
             member x.GetValue t = x.GetValue t    
 
@@ -85,6 +100,26 @@ module ARef =
 
         static member Value (value : 'a) =
             ConstantRef<'a>(LazyOrValue<'a> value) :> aref<_>
+
+        member private x.AsString =
+            sprintf "constref(%A)" (x.GetValue())
+            
+        override x.ToString() =
+            String.Format("constref({0})", x.GetValue())
+
+        override x.GetHashCode() =
+            let value = x.GetValue()
+            cheapHash value
+
+        override x.Equals o =
+            match o with
+            | :? ConstantRef<'a> as o -> 
+                let xv = x.GetValue()
+                let ov = o.GetValue()
+                cheapEqual xv ov
+            | _ ->
+                false
+
 
     /// ref for mapping a single value
     type MapRef<'a, 'b>(mapping : 'a -> 'b, input : aref<'a>) =
