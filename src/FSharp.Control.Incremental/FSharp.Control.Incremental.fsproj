@@ -25,13 +25,13 @@
 	<Compile Include="Core\AdaptiveToken.fs" />
 	<Compile Include="Core\AdaptiveObject.fs" />
 	<Compile Include="Core\Callbacks.fs" />
+	<Compile Include="ARef\ARef.fsi" />
+	<Compile Include="ARef\ARef.fs" />
 	<Compile Include="Traceable\Traceable.fs" />
 	<Compile Include="Traceable\History.fs" />
 	<Compile Include="Traceable\Operations.fs" />
 	<Compile Include="Traceable\DHashSet.fs" />
 	<Compile Include="Traceable\CountingHashSet.fs" />
-	<Compile Include="ARef\ARef.fsi" />
-	<Compile Include="ARef\ARef.fs" />
 	</ItemGroup>
 	<Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

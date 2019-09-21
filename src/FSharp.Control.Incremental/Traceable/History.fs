@@ -1,12 +1,7 @@
 ﻿namespace FSharp.Control.Traceable
 
 open System
-open System.Runtime.CompilerServices
-open System.Threading
-open System.Collections
-open System.Collections.Generic
 open FSharp.Control.Incremental
-
 
 type IOpReader<'ops> =
     inherit IAdaptiveObject
@@ -100,9 +95,8 @@ type AbstractDirtyReader<'t, 'ops when 't :> IAdaptiveObject>(t : Monoid<'ops>) 
     interface IOpReader<'ops> with
         member x.GetOperations c = x.GetOperations c
 
-
 [<AllowNullLiteral>]
-type RelevantNode<'s, 'a> =
+type internal RelevantNode<'s, 'a> =
     class
         val mutable public Prev : WeakReference<RelevantNode<'s, 'a>>
         val mutable public Next : RelevantNode<'s, 'a>
@@ -113,12 +107,15 @@ type RelevantNode<'s, 'a> =
         new(p, s, v, n) = { Prev = p; Next = n; RefCount = 0; BaseState = s; Value = v }
     end
 
-[<AllowNullLiteral>]
 type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceable<'s, 'op>, finalize : 'op -> unit) =
     inherit AdaptiveObject()
 
     let mutable state   : 's = t.tempty
     let mutable last    : WeakReference<RelevantNode<'s, 'op>> = null
+
+    // TODO: find a way to collapse things again
+    // tracking Weak first does not do the trick since it may die
+    // while intermediate nodes still live
 
     let append (op : 'op) =
         // only append non-empty ops
@@ -171,28 +168,31 @@ type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceabl
                 n.RefCount <- 1
                 n
               
-    let mergeIntoLast (node : RelevantNode<'s, 'op>) =
+    let mergeIntoPrev (node : RelevantNode<'s, 'op>) =
         if node.RefCount = 1 then
             let res = node.Value
             let next = node.Next
             let prev = node.Prev
             
+            // kill the node
             finalize node.Value
             node.Value <- Unchecked.defaultof<_>
             node.Prev <- null
             node.Next <- null
             node.RefCount <- -1
 
+            // detach ourselves
             if isNull next then last <- prev
             else next.Prev <- prev
-
             let mutable prevValue = null
-            if isNull prev || not (prev.TryGetTarget(&prevValue)) then 
-                res, next
-            else 
+            if not (isNull prev) && prev.TryGetTarget(&prevValue) then
+                // if prev is still relevant we merge our ops into it.
+                // this is sound since the reader holding it would have seen the
+                // operations anyway.
                 prevValue.Next <- next
                 prevValue.Value <- t.tmonoid.mappend prevValue.Value res
-                res, next
+
+            res, next
 
         else
             node.RefCount <- node.RefCount - 1
@@ -200,9 +200,6 @@ type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceabl
 
     let isInvalid (node : RelevantNode<'s, 'op>) =
         isNull node || node.RefCount < 0
-
-    let isValid (node : RelevantNode<'s, 'op>) =
-        not (isNull node) && node.RefCount >= 0
 
     member private x.Update (self : AdaptiveToken) =
         if x.OutOfDate then
@@ -218,19 +215,14 @@ type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceabl
     member x.Trace = t
 
     member x.Perform(op : 'op) =
-        lock x (fun () ->
-            let changed = append op
-            if changed then x.MarkOutdated()
-            changed
-        )
+        let changed = lock x (fun () -> append op)
+        if changed then
+            x.MarkOutdated()
+            true
+        else
+            false
 
-    member x.Remove(token : RelevantNode<'s, 'op>) =
-        lock x (fun () ->
-            if isValid token then
-                mergeIntoLast token |> ignore
-        )
-
-    member x.Read(token : AdaptiveToken, old : RelevantNode<'s, 'op>, oldState : 's) =
+    member internal x.Read(token : AdaptiveToken, old : RelevantNode<'s, 'op>, oldState : 's) =
         x.EvaluateAlways token (fun token ->
             x.Update token
 
@@ -244,7 +236,7 @@ type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceabl
                 let mutable current = old
 
                 while not (isNull current) do
-                    let (o,c) = mergeIntoLast current
+                    let (o,c) = mergeIntoPrev current
                     res <- t.tmonoid.mappend res o
                     current <- c
 
@@ -261,21 +253,23 @@ type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceabl
     member x.NewReader() =
         new HistoryReader<'s, 'op>(x) :> IOpReader<'s, 'op>
 
+    interface aref<'s> with
+        member x.GetValue t = x.GetValue t
+
     new (t : Traceable<'s, 'op>, finalize : 'op -> unit) = History<'s, 'op>(None, t, finalize)
     new (input : unit -> IOpReader<'op>, t : Traceable<'s, 'op>, finalize : 'op -> unit) = History<'s, 'op>(Some (lazy (input())), t, finalize)
     new (t : Traceable<'s, 'op>) = History<'s, 'op>(None, t, ignore)
     new (input : unit -> IOpReader<'op>, t : Traceable<'s, 'op>) = History<'s, 'op>(Some (lazy (input())), t, ignore)
 
-and HistoryReader<'s, 'op>(h : History<'s, 'op>) =
+and internal HistoryReader<'s, 'op>(h : History<'s, 'op>) =
     inherit AdaptiveObject()
-    let mutable h = h
     let trace = h.Trace
     let mutable node : RelevantNode<'s, 'op> = null
     let mutable state = trace.tempty
 
     member x.GetOperations(token : AdaptiveToken) =
         x.EvaluateAlways token (fun token ->
-            if x.OutOfDate && not (h |> isNull) then
+            if x.OutOfDate then
                 let nt, ops = h.Read(token, node, state)
                 node <- nt
                 state <- h.State
@@ -283,26 +277,6 @@ and HistoryReader<'s, 'op>(h : History<'s, 'op>) =
             else
                 trace.tmonoid.mempty
         )
-
-    //member private x.Dispose(disposing : bool) =
-    //    if disposing then GC.SuppressFinalize x
-    //    let h = Interlocked.Exchange(&h,null)
-    //    if not (h |> isNull) then
-    //        lock h (fun () ->
-    //            h.Outputs.Remove x |> ignore
-    //            h.Remove node
-    //        )
-    //        node <- null
-    //        state <- trace.tempty
-    //    else ()
-                  
-    //override x.Finalize() =
-    //    DisposeThread.Dispose {
-    //        new IDisposable with
-    //            member __.Dispose() = x.Dispose false
-    //    }
-
-    //member x.Dispose() = x.Dispose true
 
     interface IOpReader<'op> with
         member x.GetOperations c = x.GetOperations c
