@@ -15,12 +15,14 @@
     <Compile Include="Helpers.fs" />
     <Compile Include="PriorityQueue.fs" />
     <Compile Include="WeakOutputSet.fs" />
+    <Compile Include="ARef.fs" />
     <Compile Include="Program.fs" />
     <Content Include="xunit.runner.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\FSharp.Control.Incremental.Reference\FSharp.Control.Incremental.Reference.fsproj" />
     <ProjectReference Include="..\FSharp.Control.Incremental\FSharp.Control.Incremental.fsproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
