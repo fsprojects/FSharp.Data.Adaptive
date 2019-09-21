@@ -552,12 +552,12 @@ type HashMap<'k, [<EqualityConditionalOn>] 'v> internal(cnt : int, store : intma
     /// creates a seq holding all tuples contained in the map.
     /// `O(N)`
     member x.ToSeq() =
-        store |> IntMap.toSeq |> Seq.collect snd 
+        store |> IntMap.toSeq |> Seq.collect (fun (_,l) -> l |> Seq.map (fun struct(k,v) -> (k,v)))
         
     /// creates a list holding all tuples contained in the map.
     /// `O(N)`
     member x.ToList() =
-        store |> IntMap.toList |> List.collect snd 
+        store |> IntMap.toList |> List.collect (fun (_,l) -> l |> List.map (fun struct(k,v) -> (k,v)))
         
     /// creates a list holding all tuples contained in the map.
     /// `O(N)`
@@ -565,8 +565,8 @@ type HashMap<'k, [<EqualityConditionalOn>] 'v> internal(cnt : int, store : intma
         let result = Array.zeroCreate x.Count
         let mutable i = 0
         for (_hash, kvps) in IntMap.toSeq store do
-            for kvp in kvps do
-                result.[i] <- kvp
+            for struct(k,v) in kvps do
+                result.[i] <- (k, v)
                 i <- i + 1
         result
 
@@ -609,9 +609,12 @@ type HashMap<'k, [<EqualityConditionalOn>] 'v> internal(cnt : int, store : intma
             | Nil -> 0
             | _ -> 
                 (0, store) ||> Seq.fold (fun s (h,vs) ->
-                    (h, vs) ||> List.fold (fun s struct (_,v) -> 
-                        HashMapList.combineHash s (Unchecked.hash v)
-                    )
+                    let listHash = 
+                        (0, vs) ||> List.fold (fun s struct (_,v) -> 
+                            /// need unordered hash combine here
+                            s ^^^ (Unchecked.hash v)
+                        )
+                    HashMapList.combineHash h listHash
                 )
 
     override x.Equals o =
