@@ -17,6 +17,7 @@
     <Compile Include="HashMap.fs" />
     <Compile Include="PriorityQueue.fs" />
     <Compile Include="WeakOutputSet.fs" />
+    <Compile Include="History.fs" />
     <Compile Include="ARef.fs" />
     <Compile Include="Program.fs" />
     <Content Include="xunit.runner.json">

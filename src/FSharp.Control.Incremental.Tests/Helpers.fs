@@ -10,7 +10,19 @@ module Helpers =
                 System.Object.ReferenceEquals(o, expected)
         }
 
-   
+    let setequal (expected : seq<'a>) =
+        { new NHamcrest.Core.IsEqualMatcher<obj>(expected) with
+            override x.Matches o =
+                match o with
+                | :? seq<'a> as o -> 
+                    let should = System.Collections.Generic.HashSet expected
+                    let is = System.Collections.Generic.HashSet o
+                    should.SetEquals is
+                | _ -> 
+                    false
+        }
+
+
     /// force garbage collection
     let ensureGC() =
         GC.Collect(3, GCCollectionMode.Forced, true, true)

@@ -18,10 +18,6 @@
 	<Compile Include="Datastructures\IntMap.fs" />
 	<Compile Include="Datastructures\HashSet.fs" />
 	<Compile Include="Datastructures\HashMap.fs" />
-	<Compile Include="Traceable\Traceable.fs" />
-	<Compile Include="Traceable\Operations.fs" />
-	<Compile Include="Traceable\DHashSet.fs" />
-	<Compile Include="Traceable\CountingHashSet.fs" />
 	<Compile Include="Utilities\Utilities.fs" />
 	<Compile Include="Utilities\PriorityQueue.fs" />
 	<Compile Include="Core\Core.fs" />
@@ -29,6 +25,11 @@
 	<Compile Include="Core\AdaptiveToken.fs" />
 	<Compile Include="Core\AdaptiveObject.fs" />
 	<Compile Include="Core\Callbacks.fs" />
+	<Compile Include="Traceable\Traceable.fs" />
+	<Compile Include="Traceable\History.fs" />
+	<Compile Include="Traceable\Operations.fs" />
+	<Compile Include="Traceable\DHashSet.fs" />
+	<Compile Include="Traceable\CountingHashSet.fs" />
 	<Compile Include="ARef\ARef.fsi" />
 	<Compile Include="ARef\ARef.fs" />
 	</ItemGroup>
