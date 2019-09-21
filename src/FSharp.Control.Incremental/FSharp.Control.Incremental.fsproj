@@ -21,6 +21,7 @@
     <Compile Include="Transaction.fs" />
     <Compile Include="AdaptiveToken.fs" />
     <Compile Include="AdaptiveObject.fs" />
+    <Compile Include="Callbacks.fs" />
     <Compile Include="ARef.fsi" />
     <Compile Include="ARef.fs" />
   </ItemGroup>
