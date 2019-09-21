@@ -3,10 +3,11 @@
 
 open System.Collections
 open System.Collections.Generic
+open FSharp.Control.Incremental
 
 /// helper functions for hash-collision lists.
 /// most members have bad runtime, but the lists should be quite small when using appropriate hashCodes.
-module private HashMapList =
+module internal HashMapList =
 
     let inline combineHash (a : int) (b : int) =
         uint32 a ^^^ uint32 b + 0x9e3779b9u + ((uint32 a) <<< 6) + ((uint32 a) >>> 2) |> int
@@ -162,14 +163,14 @@ module private HashMapList =
                     | None -> None
                 
                 match f lk (Some lv) other with
-                    | Some r -> Some (lk, r)
+                    | Some r -> Some (struct (lk, r))
                     | None -> None
             )
         let newR =
             r |> List.choose (fun struct (rk, rv) ->
                 if l |> List.forall (fun struct(lk,_) -> not (Unchecked.equals lk rk)) then
                     match f rk None (Some rv) with
-                        | Some r -> Some(rk, r)
+                        | Some r -> Some (struct (rk, r))
                         | None -> None
                 else 
                     None
@@ -570,6 +571,15 @@ type HashMap<'k, [<EqualityConditionalOn>] 'v> internal(cnt : int, store : intma
                 i <- i + 1
         result
 
+    /// creates a HashSet holding all keys from the map.
+    /// `O(N)`
+    member x.GetKeys() =
+        let setStore =
+            store |> IntMap.map (
+                List.map (fun struct(k,_v) -> k)
+            )
+        HashSet(cnt, setStore)
+
     /// creates a map with a single entry.
     /// `O(1)`
     static member Single (k : 'k) (v : 'v) =
@@ -862,3 +872,7 @@ module HashMap =
     
     /// is the map empty? `O(1)`
     let inline isEmpty (map : HashMap<'k, 'v>) = map.IsEmpty
+
+    /// creates a HashSet holding all keys from the map.
+    /// `O(N)`
+    let inline keys (map : HashMap<'k, 'v>) = map.GetKeys()

@@ -84,14 +84,14 @@ module internal HashSetList =
                 let other = r |> List.exists (fun rk -> Unchecked.equals rk lk)
  
                 match f lk true other with
-                    | Some r -> Some (lk, r)
+                    | Some r -> Some (struct (lk, r))
                     | None -> None
             )
         let newR =
             r |> List.choose (fun rk ->
                 if l |> List.forall (fun lk -> not (Unchecked.equals lk rk)) then
                     match f rk false true with
-                        | Some r -> Some(rk, r)
+                        | Some r -> Some (struct (rk, r))
                         | None -> None
                 else 
                     None
