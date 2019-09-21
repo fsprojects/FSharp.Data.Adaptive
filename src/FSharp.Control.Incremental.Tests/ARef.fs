@@ -64,7 +64,12 @@ module ARef =
         create
             (Incremental.ARef.bind (fun v -> mapping(v).Adaptive) r.Adaptive)
             (Reference.ARef.bind (fun v -> mapping(v).Reference) r.Reference)
-    
+
+    let bind2 (mapping : 'a -> 'b -> aref<'c>) (r1 : aref<'a>) (r2 : aref<'b>) =
+        create
+            (Incremental.ARef.bind2 (fun va vb -> (mapping va vb).Adaptive) r1.Adaptive r2.Adaptive)
+            (Reference.ARef.bind2 (fun va vb -> (mapping va vb).Reference) r1.Reference r2.Reference)
+        
   
 module List =
     let cross (a : list<'a>) (b : list<'b>) =
@@ -187,8 +192,48 @@ let ``[ARef] bind working`` (values : list<obj>) =
         )
         check test
 
+[<Fact>]
+let ``[ARef] bind constant`` () =
+    let a = ARef.constant 10
+    let b = ARef.init "b" |> ARef.map id
+    let c = ARef.init "c" |> ARef.map id
 
+    let test =
+        a |> ARef.bind (fun va ->
+            if va = 10 then b
+            else c
+        )
 
+    check test
+    test.Adaptive |> should equal b.Adaptive
+ 
+[<Property>]
+let ``[ARef] bind2 working`` (values : list<obj>) =
+    let ref1 = ARef.init (obj())
+    let ref2 = ARef.init (obj())
+    let a = ARef.init (obj())
+    let b = ARef.init (obj())
+
+    let test = 
+        ARef.bind2 (fun v1 v2 -> 
+            let hash = Unchecked.hash v1 - Unchecked.hash v2
+            if hash % 2 = 0 then a :> aref<_>
+            else b :> aref<_>
+        ) ref1 ref2
+
+    check test
+
+    for v in values do
+        transact (fun () -> 
+            let hash = Unchecked.hash v |> abs
+
+            if hash % 3 <= 1 then ref1.Value <- v
+            if hash % 11 <= 6 then ref2.Value <- v
+            if hash % 5 <= 3 then a.Value <- v
+            if hash % 7 <= 4 then b.Value <- v
+
+        )
+        check test
 
 
 

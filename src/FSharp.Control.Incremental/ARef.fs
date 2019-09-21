@@ -30,6 +30,30 @@ type cref<'T> =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ARef =
+
+    /// base class for standard arefs
+    [<AbstractClass>]
+    type AbstractRef<'a>() =
+        inherit AdaptiveObject()
+
+        let mutable cache = Unchecked.defaultof<'a>
+
+        abstract member Compute : AdaptiveToken -> 'a
+
+        member x.GetValue(token : AdaptiveToken) =
+            x.EvaluateAlways token (fun token ->
+                if x.OutOfDate then
+                    let v = x.Compute token
+                    cache <- v
+                    v
+                else
+                    cache                
+            )
+
+        interface aref<'a> with
+            member x.GetValue t = x.GetValue t  
+            
+    /// lazy without locking
     type LazyOrValue<'a> =
         val mutable public Create   : unit -> 'a
         val mutable public Value    : 'a
@@ -38,6 +62,7 @@ module ARef =
         new(value : 'a) = { Create = Unchecked.defaultof<_>; Value = value; IsValue = true }
         new(create : unit -> 'a) = { Create = create; Value = Unchecked.defaultof<_>; IsValue = false }
         
+    /// a constant ref that can either be a value or a lazy computation
     type ConstantRef<'a> private(data : LazyOrValue<'a>) =
         inherit ConstantObject()
         let mutable data = data
@@ -61,85 +86,67 @@ module ARef =
         static member Value (value : 'a) =
             ConstantRef<'a>(LazyOrValue<'a> value) :> aref<_>
 
-    [<AbstractClass>]
-    type AbstractRef<'a>() =
-        inherit AdaptiveObject()
-
-        let mutable cache = Unchecked.defaultof<'a>
-
-        abstract member Compute : AdaptiveToken -> 'a
-
-        member x.GetValue(token : AdaptiveToken) =
-            x.EvaluateAlways token (fun token ->
-                if x.OutOfDate then
-                    let v = x.Compute token
-                    cache <- v
-                    v
-                else
-                    cache                
-            )
-
-        interface aref<'a> with
-            member x.GetValue t = x.GetValue t        
-
+    /// ref for mapping a single value
     type MapRef<'a, 'b>(mapping : 'a -> 'b, input : aref<'a>) =
         inherit AbstractRef<'b>()
 
         // can we avoid double caching (here and in AbstractRef)
-        let mutable cache : Option<'a * 'b> = None
+        let mutable cache : ValueOption<struct ('a * 'b)> = ValueNone
 
         override x.Compute(token : AdaptiveToken) =
             let i = input.GetValue token
             match cache with
-            | Some (a, b) when cheapEqual a i ->
+            | ValueSome (struct (a, b)) when cheapEqual a i ->
                 b
             | _ ->
                 let b = mapping i
-                cache <- Some (i, b)
+                cache <- ValueSome(struct (i, b))
                 b
 
         interface aref<'b> with
             member x.GetValue t = x.GetValue t
 
+    /// ref for mapping 2 values in 'parallel'
     type Map2Ref<'a, 'b, 'c>(mapping : 'a -> 'b -> 'c, a : aref<'a>, b : aref<'b>) =
         inherit AbstractRef<'c>()
 
         let mapping = OptimizedClosures.FSharpFunc<'a, 'b, 'c>.Adapt(mapping)
-        let mutable cache : Option<'a * 'b * 'c> = None
+        let mutable cache : ValueOption<struct ('a * 'b * 'c)> = ValueNone
 
         override x.Compute (token : AdaptiveToken) =
             let a = a.GetValue token
             let b = b.GetValue token
             match cache with
-            | Some (oa, ob, oc) when cheapEqual oa a && cheapEqual ob b ->
+            | ValueSome(struct (oa, ob, oc)) when cheapEqual oa a && cheapEqual ob b ->
                 oc
             | _ ->
                 let c = mapping.Invoke (a, b)
-                cache <- Some (a, b, c)
+                cache <- ValueSome(struct (a, b, c))
                 c
 
+    /// ref for mapping 3 values in 'parallel'
     type Map3Ref<'a, 'b, 'c, 'd>(mapping : 'a -> 'b -> 'c -> 'd, a : aref<'a>, b : aref<'b>, c : aref<'c>) =
         inherit AbstractRef<'d>()
 
         let mapping = OptimizedClosures.FSharpFunc<'a, 'b, 'c, 'd>.Adapt(mapping)
-        let mutable cache : Option<'a * 'b * 'c * 'd> = None
+        let mutable cache : ValueOption<struct ('a * 'b * 'c * 'd)> = ValueNone
 
         override x.Compute (token : AdaptiveToken) =
             let a = a.GetValue token
             let b = b.GetValue token
             let c = c.GetValue token
             match cache with
-            | Some (oa, ob, oc, od) when cheapEqual oa a && cheapEqual ob b && cheapEqual oc c ->
+            | ValueSome (struct (oa, ob, oc, od)) when cheapEqual oa a && cheapEqual ob b && cheapEqual oc c ->
                 od
             | _ ->
                 let d = mapping.Invoke (a, b, c)
-                cache <- Some (a, b, c, d)
+                cache <- ValueSome (struct (a, b, c, d))
                 d
 
     type BindRef<'a, 'b>(mapping : 'a -> aref<'b>, input : aref<'a>) =
         inherit AbstractRef<'b>()
 
-        let mutable inner : Option<'a * aref<'b>> = None
+        let mutable inner : ValueOption< struct ('a * aref<'b>) > = ValueNone
         let mutable inputDirty = 1
 
         override x.InputChanged(_, o) =
@@ -147,21 +154,53 @@ module ARef =
                 inputDirty <- 1
 
         override x.Compute(token : AdaptiveToken) =
+            let va = input.GetValue token
             let inputDirty = System.Threading.Interlocked.Exchange(&inputDirty, 0) <> 0
-            let value = input.GetValue token
 
             match inner with
-            | Some (a, res) when not inputDirty -> // || cheapEqual a value ->
-                res.GetValue token
-            | _ ->
-                let ref = mapping value
-                match inner with
-                | Some (_, old) when old <> ref ->
-                    old.Outputs.Remove x |> ignore
-                | _ ->
-                    ()
+            | ValueNone ->
+                let result = mapping va
+                inner <- ValueSome (struct (va, result))
+                result.GetValue token   
+                
+            | ValueSome(struct (oa, oldResult)) when not inputDirty || cheapEqual oa va ->
+                oldResult.GetValue token
 
-                inner <- Some (value, ref)  
+            | ValueSome(struct (_, old)) ->
+                old.Outputs.Remove x |> ignore
+                let result = mapping va
+                inner <- ValueSome (struct (va, result))
+                result.GetValue token     
+
+    type Bind2Ref<'a, 'b, 'c>(mapping : 'a -> 'b -> aref<'c>, ref1 : aref<'a>, ref2 : aref<'b>) =
+        inherit AbstractRef<'c>()
+
+        let mapping = OptimizedClosures.FSharpFunc<'a, 'b, aref<'c>>.Adapt(mapping)
+        let mutable inner : ValueOption< struct ('a * 'b * aref<'c>) > = ValueNone
+        let mutable inputDirty = 1
+
+        override x.InputChanged(_, o) =
+            if Object.ReferenceEquals(o, ref1) || Object.ReferenceEquals(o, ref2) then 
+                inputDirty <- 1
+
+        override x.Compute(token : AdaptiveToken) =
+            let va = ref1.GetValue token
+            let vb = ref2.GetValue token
+            let inputDirty = System.Threading.Interlocked.Exchange(&inputDirty, 0) <> 0
+
+            match inner with
+            | ValueNone ->
+                let ref = mapping.Invoke (va, vb)
+                inner <- ValueSome (struct (va, vb, ref))
+                ref.GetValue token  
+
+            | ValueSome(struct (oa, ob, res)) when not inputDirty || (cheapEqual oa va && cheapEqual ob vb) ->
+                res.GetValue token
+
+            | ValueSome(struct (_, _, old)) ->
+                old.Outputs.Remove x |> ignore
+                let ref = mapping.Invoke (va, vb)
+                inner <- ValueSome (struct (va, vb, ref))
                 ref.GetValue token     
 
     let inline force (ref : aref<'a>) =
@@ -221,4 +260,17 @@ module ARef =
         if ref.IsConstant then
             ref |> force |> mapping
         else
-            BindRef<'a, 'b>(mapping, ref) :> aref<_>            
+            BindRef<'a, 'b>(mapping, ref) :> aref<_>       
+    
+    
+    let bind2 (mapping : 'a -> 'b -> aref<'c>) (ref1 : aref<'a>) (ref2 : aref<'b>) =
+        if ref1.IsConstant && ref2.IsConstant then
+            mapping (force ref1) (force ref2)
+        elif ref1.IsConstant then
+            let a = force ref1
+            bind (fun b -> mapping a b) ref2
+        elif ref2.IsConstant then
+            let b = force ref2
+            bind (fun a -> mapping a b) ref1
+        else
+            Bind2Ref<'a, 'b, 'c>(mapping, ref1, ref2) :> aref<_>       

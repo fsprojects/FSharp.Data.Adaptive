@@ -48,3 +48,9 @@ module ARef =
                 input.GetValue() |> mapping |> force
         }
     
+    let bind2 (mapping : 'a -> 'b -> aref<'c>) (ref1 : aref<'a>) (ref2 : aref<'b>) =
+        { new aref<'c> with
+            member x.GetValue() =
+                mapping (force ref1) (force ref2) |> force
+        }
+    
