@@ -66,3 +66,7 @@ module ARef =
     /// adaptively depends on the aref<'C> returned by mapping.
     /// the resulting aref<'C> will hold the latest value of the aref returned by mapping.
     val bind2 : mapping : ('A -> 'B -> aref<'C>) -> ref1 : aref<'A> -> ref2 : aref<'B> -> aref<'C>
+
+    /// creates a custom aref using the given computation.
+    /// note that users need to take care of removing inputs that are no longer needed themself.
+    val custom : compute : (AdaptiveToken -> 'A) -> aref<'A>

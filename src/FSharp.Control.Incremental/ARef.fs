@@ -143,6 +143,7 @@ module ARef =
                 cache <- ValueSome (struct (a, b, c, d))
                 d
 
+    /// ref for binding a single value
     type BindRef<'a, 'b>(mapping : 'a -> aref<'b>, input : aref<'a>) =
         inherit AbstractRef<'b>()
 
@@ -172,6 +173,7 @@ module ARef =
                 inner <- ValueSome (struct (va, result))
                 result.GetValue token     
 
+    /// ref for binding two values in 'parallel'
     type Bind2Ref<'a, 'b, 'c>(mapping : 'a -> 'b -> aref<'c>, ref1 : aref<'a>, ref2 : aref<'b>) =
         inherit AbstractRef<'c>()
 
@@ -202,6 +204,14 @@ module ARef =
                 let ref = mapping.Invoke (va, vb)
                 inner <- ValueSome (struct (va, vb, ref))
                 ref.GetValue token     
+
+    /// ref for custom computations
+    type CustomRef<'a>(compute : AdaptiveToken -> 'a) =
+        inherit AbstractRef<'a>()
+
+        override x.Compute(token : AdaptiveToken) =
+            compute token
+
 
     let inline force (ref : aref<'a>) =
         ref.GetValue AdaptiveToken.Top
@@ -261,16 +271,21 @@ module ARef =
             ref |> force |> mapping
         else
             BindRef<'a, 'b>(mapping, ref) :> aref<_>       
-    
-    
+
     let bind2 (mapping : 'a -> 'b -> aref<'c>) (ref1 : aref<'a>) (ref2 : aref<'b>) =
         if ref1.IsConstant && ref2.IsConstant then
             mapping (force ref1) (force ref2)
+
         elif ref1.IsConstant then
             let a = force ref1
             bind (fun b -> mapping a b) ref2
+
         elif ref2.IsConstant then
             let b = force ref2
             bind (fun a -> mapping a b) ref1
+
         else
             Bind2Ref<'a, 'b, 'c>(mapping, ref1, ref2) :> aref<_>       
+
+    let custom (compute : AdaptiveToken -> 'a) =
+        CustomRef compute :> aref<_>
