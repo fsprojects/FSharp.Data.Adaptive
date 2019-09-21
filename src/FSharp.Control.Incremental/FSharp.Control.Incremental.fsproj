@@ -17,11 +17,11 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Utilities\Utilities.fs" />
     <Compile Include="Utilities\PriorityQueue.fs" />
-    <Compile Include="Core.fs" />
-    <Compile Include="Transaction.fs" />
-    <Compile Include="AdaptiveToken.fs" />
-    <Compile Include="AdaptiveObject.fs" />
-    <Compile Include="Callbacks.fs" />
+    <Compile Include="Core\Core.fs" />
+    <Compile Include="Core\Transaction.fs" />
+    <Compile Include="Core\AdaptiveToken.fs" />
+    <Compile Include="Core\AdaptiveObject.fs" />
+    <Compile Include="Core\Callbacks.fs" />
     <Compile Include="ARef\ARef.fsi" />
     <Compile Include="ARef\ARef.fs" />
   </ItemGroup>
