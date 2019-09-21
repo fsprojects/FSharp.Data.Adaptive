@@ -32,6 +32,16 @@ module ARef =
             member x.GetValue() = input.GetValue() |> mapping
         }
 
+    let map2 (mapping : 'a -> 'b -> 'c) (ref1 : aref<'a>) (ref2 : aref<'b>) =
+        { new aref<'c> with
+            member x.GetValue() = mapping (ref1.GetValue()) (ref2.GetValue())
+        }
+
+    let map3 (mapping : 'a -> 'b -> 'c -> 'd) (ref1 : aref<'a>) (ref2 : aref<'b>) (ref3 : aref<'c>) =
+        { new aref<'d> with
+            member x.GetValue() = mapping (ref1.GetValue()) (ref2.GetValue()) (ref3.GetValue())
+        }
+
     let bind (mapping : 'a -> aref<'b>) (input : aref<'a>) =
         { new aref<'b> with
             member x.GetValue() =

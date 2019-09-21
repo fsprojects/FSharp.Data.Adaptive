@@ -48,6 +48,15 @@ module ARef =
     /// a new aref<'B> holding the result of the computation.
     val map : mapping : ('A -> 'B) -> ref : aref<'A> -> aref<'B>
 
+    /// adaptively applies the mapping function to the given arefs and returns
+    /// a new aref<'C> holding the result of the computation.
+    val map2 : mapping : ('A -> 'B -> 'C) -> ref1 : aref<'A> -> ref2 : aref<'B> -> aref<'C>
+    
+    /// adaptively applies the mapping function to the given arefs and returns
+    /// a new aref<'C> holding the result of the computation.
+    val map3 : mapping : ('A -> 'B -> 'C -> 'D) -> ref1 : aref<'A> -> ref2 : aref<'B> -> ref3 : aref<'C> -> aref<'D>
+
+
     /// adaptively applies the mapping function to the given aref<'A> and also
     /// adaptively depends on the aref<'B> returned by mapping.
     /// the resulting aref<'B> will hold the latest value of the aref<'B> returned by mapping.

@@ -46,7 +46,7 @@ module ARef =
             if data.IsValue then 
                 data.Value
             else
-                let v = Unchecked.defaultof<'a> //data.Create()
+                let v = data.Create()
                 data.IsValue <- true
                 data.Value <- v
                 data.Create <- Unchecked.defaultof<_>
@@ -101,6 +101,41 @@ module ARef =
         interface aref<'b> with
             member x.GetValue t = x.GetValue t
 
+    type Map2Ref<'a, 'b, 'c>(mapping : 'a -> 'b -> 'c, a : aref<'a>, b : aref<'b>) =
+        inherit AbstractRef<'c>()
+
+        let mapping = OptimizedClosures.FSharpFunc<'a, 'b, 'c>.Adapt(mapping)
+        let mutable cache : Option<'a * 'b * 'c> = None
+
+        override x.Compute (token : AdaptiveToken) =
+            let a = a.GetValue token
+            let b = b.GetValue token
+            match cache with
+            | Some (oa, ob, oc) when cheapEqual oa a && cheapEqual ob b ->
+                oc
+            | _ ->
+                let c = mapping.Invoke (a, b)
+                cache <- Some (a, b, c)
+                c
+
+    type Map3Ref<'a, 'b, 'c, 'd>(mapping : 'a -> 'b -> 'c -> 'd, a : aref<'a>, b : aref<'b>, c : aref<'c>) =
+        inherit AbstractRef<'d>()
+
+        let mapping = OptimizedClosures.FSharpFunc<'a, 'b, 'c, 'd>.Adapt(mapping)
+        let mutable cache : Option<'a * 'b * 'c * 'd> = None
+
+        override x.Compute (token : AdaptiveToken) =
+            let a = a.GetValue token
+            let b = b.GetValue token
+            let c = c.GetValue token
+            match cache with
+            | Some (oa, ob, oc, od) when cheapEqual oa a && cheapEqual ob b && cheapEqual oc c ->
+                od
+            | _ ->
+                let d = mapping.Invoke (a, b, c)
+                cache <- Some (a, b, c, d)
+                d
+
     type BindRef<'a, 'b>(mapping : 'a -> aref<'b>, input : aref<'a>) =
         inherit AbstractRef<'b>()
 
@@ -144,6 +179,44 @@ module ARef =
         else
             MapRef(mapping, ref) :> aref<_>
             
+    let map2 (mapping : 'a -> 'b -> 'c) (ref1 : aref<'a>) (ref2 : aref<'b>) =
+        if ref1.IsConstant && ref2.IsConstant then 
+            ConstantRef.Lazy (fun () -> 
+                mapping (force ref1) (force ref2)
+            )
+
+        elif ref1.IsConstant then
+            let a = force ref1
+            map (fun b -> mapping a b) ref2
+
+        elif ref2.IsConstant then
+            let b = force ref2
+            map (fun a -> mapping a b) ref1
+
+        else
+            Map2Ref(mapping, ref1, ref2) :> aref<_>
+            
+    let map3 (mapping : 'a -> 'b -> 'c -> 'd) (ref1 : aref<'a>) (ref2 : aref<'b>) (ref3 : aref<'c>) =
+        if ref1.IsConstant && ref2.IsConstant && ref3.IsConstant then 
+            ConstantRef.Lazy (fun () -> 
+                mapping (force ref1) (force ref2) (force ref3)
+            )
+
+        elif ref1.IsConstant then
+            let a = force ref1
+            map2 (fun b c -> mapping a b c) ref2 ref3
+
+        elif ref2.IsConstant then
+            let b = force ref2
+            map2 (fun a c -> mapping a b c) ref1 ref3
+
+        elif ref3.IsConstant then
+            let c = force ref3
+            map2 (fun a b -> mapping a b c) ref1 ref2
+
+        else
+            Map3Ref(mapping, ref1, ref2, ref3) :> aref<_>
+              
     let bind (mapping : 'a -> aref<'b>) (ref : aref<'a>) =
         if ref.IsConstant then
             ref |> force |> mapping
