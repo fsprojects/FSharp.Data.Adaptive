@@ -6,6 +6,8 @@ open FsUnit.Xunit
 open FsCheck.Xunit
 open Xunit
 
+type Record<'a> = { value : 'a }
+
 [<AutoOpen>]
 module ARefTestImplementation =
 
@@ -84,6 +86,24 @@ module ARefTestImplementation =
         let (a, r) = ARef.force r
         a |> should equal r
 
+[<Property>]
+let ``[ARef] constant equality`` (value : obj) =
+    let a = ARef.constant value
+    let b = ARef.constant value
+    a.Adaptive |> should equal b.Adaptive
+
+    let a = ARef.constant { value = value }
+    let b = ARef.constant { value = value }
+    a.Adaptive |> should equal b.Adaptive
+
+    
+    let a = ARef.constant { value = 1 }
+    let b = ARef.constant { value = 2 }
+    a.Adaptive |> should not' (equal b.Adaptive)
+
+    let a = ARef.constant null
+    let b = ARef.constant null
+    a.Adaptive |> should equal b.Adaptive
 
 [<Property>]
 let ``[CRef] can change`` (values : list<obj>) =
