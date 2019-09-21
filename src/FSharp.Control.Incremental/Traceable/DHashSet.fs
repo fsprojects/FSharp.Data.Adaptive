@@ -5,10 +5,14 @@ open System.Collections
 open System.Collections.Generic
 open FSharp.Control.Incremental
 
+/// represents the difference of two HashSets.
+/// internally uses reference counts to represent deltas and provides 
+/// convenient combine functions.
 [<Struct; CustomEquality; NoComparison>]
 [<StructuredFormatDisplay("{AsString}")>]
 type DHashSet<'a>(store : HashMap<'a, int>) =
 
+    /// the monoid instance for DHashSet
     static let monoid =
         {
             mempty = DHashSet<'a>(HashMap.empty)
@@ -16,16 +20,22 @@ type DHashSet<'a>(store : HashMap<'a, int>) =
             misEmpty = fun s -> s.IsEmpty
         }
 
+    /// the empty set.
     static member Empty = DHashSet<'a>(HashMap.empty)
     
+    /// the monoid instance for DHashSet
     static member Monoid = monoid
 
+    /// the internal store used by the DHashSet.
     member internal x.Store = store
 
+    /// the number of operations contained in the DHashSet.
     member x.Count = store.Count
 
+    /// is the set empty?
     member x.IsEmpty = store.IsEmpty
 
+    /// adds a SetOperation to the DHashSet.
     member x.Add (op : SetOperation<'a>) =
         if op.Count <> 0 then
             store |> HashMap.alter op.Value (fun o ->
@@ -37,14 +47,19 @@ type DHashSet<'a>(store : HashMap<'a, int>) =
         else
             x
 
+    /// removes a SetOperation from the DHashSet.
     member x.Remove (op : SetOperation<'a>) =
         x.Add op.Inverse
 
+    /// combines two DHashSets to one using a reference counting implementation.
     member x.Combine (other : DHashSet<'a>) =
         if store.IsEmpty then 
             other
+
         elif other.IsEmpty then 
             x
+
+        // factor 5 heuristically determined
         elif store.Count * 5 < other.Count then
             let mutable big = other
             for d in x do
@@ -65,12 +80,14 @@ type DHashSet<'a>(store : HashMap<'a, int>) =
             ) store other.Store
             |> DHashSet
 
-    member x.Map (f : SetOperation<'a> -> SetOperation<'b>) =
+    /// applies the mapping function to all operations in the set.
+    member x.Map (mapping : SetOperation<'a> -> SetOperation<'b>) =
         let mutable res = DHashSet<'b>.Empty
         for (k,v) in store do
-            res <- res.Add (f (SetOperation(k,v)))
+            res <- res.Add (mapping (SetOperation(k,v)))
         res
-
+        
+    /// applies the mapping function to all operations in the set.
     member x.Choose (f : SetOperation<'a> -> Option<SetOperation<'b>>) =
         let mutable res = DHashSet<'b>.Empty
         for (k,v) in store do
@@ -78,58 +95,72 @@ type DHashSet<'a>(store : HashMap<'a, int>) =
                 | Some r -> res <- res.Add r
                 | _ -> ()
         res
-
+        
+    /// filters the operations contains using the given predicate.
     member x.Filter (f : SetOperation<'a> -> bool) =
         store |> HashMap.filter (fun k v -> SetOperation(k,v) |> f) |> DHashSet
 
+        
+    /// applies the mapping function to all operations in the set and combines all the results.
     member x.Collect (f : SetOperation<'a> -> DHashSet<'b>) =
         let mutable res = DHashSet<'b>.Empty
         for (k,v) in store do
             res <- res.Combine (f (SetOperation(k,v)))
         res
 
-
+    /// iterates over all operations in the set.
     member x.Iter (f : SetOperation<'a> -> unit) =
         store |> HashMap.iter (fun k v ->
             f (SetOperation(k,v))
         )
 
+    /// folds over the set.
     member x.Fold (seed : 's, f : 's -> SetOperation<'a> -> 's) =
         store |> HashMap.fold (fun s k v ->
             f s (SetOperation(k,v))
         ) seed
 
+    /// checks whether a entry fulfilling the predicate exists.
     member x.Exists (f : SetOperation<'a> -> bool) =
         store |> HashMap.exists (fun k v -> f (SetOperation(k,v)))
         
+    /// checks whether all entries fulfill the predicate exists.
     member x.Forall (f : SetOperation<'a> -> bool) =
         store |> HashMap.forall (fun k v -> f (SetOperation(k,v)))
 
-
+    /// creates a seq containing all operations from the set.
     member x.ToSeq() =
         store.Store |> IntMap.toSeq |> Seq.collect (fun (_hash, values) ->
             values |> Seq.map (fun struct(k,v) -> SetOperation(k,v))
         )
 
+    /// creates a list containing all operations from the set.
     member x.ToList() =
         store.Store |> IntMap.toList |> List.collect (fun (_hash, values) ->
             values |> List.map (fun struct(k,v) -> SetOperation(k,v))
         )
-
+        
+    /// creates an array containing all operations from the set.
     member x.ToArray() =
         store |> HashMap.toArray |> Array.map SetOperation
 
+    
+    /// creates a HashMap containing all operations from the set.
+    /// note that this works in O(1).
     member x.ToMap() = store
 
+    /// creates a DHashSet using the given operations.
     static member OfSeq (seq : seq<SetOperation<'a>>) =
         let mutable res = DHashSet<'a>.Empty
         for e in seq do
             res <- res.Add e
         res
-
+        
+    /// creates a DHashSet using the given operations.
     static member OfList (list : list<SetOperation<'a>>) =
         list |> DHashSet.OfSeq
-
+        
+    /// creates a DHashSet using the given operations.
     static member OfArray (arr : array<SetOperation<'a>>) =
         arr |> DHashSet.OfSeq
         
@@ -159,6 +190,7 @@ type DHashSet<'a>(store : HashMap<'a, int>) =
     interface IEnumerable<SetOperation<'a>> with
         member x.GetEnumerator() = new DHashSetEnumerator<_>(store) :> _
 
+/// special enumerator for DHashSet.
 and private DHashSetEnumerator<'a>(store : HashMap<'a, int>) =
     let e = (store :> seq<_>).GetEnumerator()
 
@@ -175,6 +207,7 @@ and private DHashSetEnumerator<'a>(store : HashMap<'a, int>) =
         member x.Dispose() = e.Dispose()
         member x.Current = x.Current
 
+/// functional operators for DHashSet.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module DHashSet =
     let inline monoid<'a> = DHashSet<'a>.Monoid
@@ -251,7 +284,8 @@ module DHashSet =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module HashSet =
-
+    /// determines the operations needed to transform l into r.
+    /// returns a DHashSet containing all the needed operations.
     let differentiate (l : HashSet<'a>) (r : HashSet<'a>) =
         // O(1)
         if Object.ReferenceEquals(l.Store, r.Store) then
@@ -289,7 +323,9 @@ module HashSet =
 
             let store = IntMap.computeDelta both (IntMap.map del) (IntMap.map add) l.Store r.Store
             DHashSet(HashMap(cnt, store))
-
+            
+    /// applies the given operations to the set. 
+    /// returns the new set and the 'effective' operations.
     let integrate (value : HashSet<'a>) (delta : DHashSet<'a>) =
         // O(1)
         if delta.IsEmpty then
@@ -343,5 +379,6 @@ module HashSet =
             }
         static member Instance = trace
 
+    /// the traceable instance for HashSet.
     let trace<'a> = Traceable<'a>.Instance
      

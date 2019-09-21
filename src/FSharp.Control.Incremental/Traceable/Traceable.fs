@@ -1,5 +1,6 @@
 ﻿namespace FSharp.Control.Traceable
 
+/// function table for a monoid instance
 type Monoid<'a> =
     {
         /// determines whether the given value is empty
@@ -12,6 +13,7 @@ type Monoid<'a> =
         mappend : 'a -> 'a -> 'a
     }
 
+/// function table for a traceable instance
 type Traceable<'s, 'ops> =
     {
         /// the monoid instance for 'ops
@@ -27,10 +29,10 @@ type Traceable<'s, 'ops> =
         /// differentiates two states and returns the needed ops
         tdifferentiate : 's -> 's -> 'ops
 
-        /// determines whether or not a history should be pruned although it is still referntiable.
-        /// the first argument is the base-state for that history and the second argument is the number
-        /// of ops that would need to be applied.
+        /// determines whether or not a history should be pruned although it is still referentiable.
+        /// the first argument is the base-state for that history and the second argument are the ops that would need to be applied.
         /// when returning true the history implementation will discard the history and reproduce it on demand using
         /// the above compute function.
+        /// WARNING: currently ignored TODO
         tcollapse    : 's -> 'ops -> bool
     }
