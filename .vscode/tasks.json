@@ -5,9 +5,12 @@
     "tasks": [
         {
             "label": "build",
-            "command": "dotnet build src/FsIncremental.sln",
+            "command": "dotnet build FSharp.Control.Incremental.sln",
             "type": "shell",
-            "group": "build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
             "presentation": {
                 "reveal": "silent"
             },

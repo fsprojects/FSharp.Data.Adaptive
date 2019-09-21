@@ -153,10 +153,7 @@ and internal WeakOutputSet() =
                 data.Set <- set
                 res
         | _ ->
-            if data.Set.Add weakObj then
-                true
-            else
-                false
+            data.Set.Add weakObj
 
     /// used interally to get rid of leaking WeakReferences
     member x.Cleanup() =

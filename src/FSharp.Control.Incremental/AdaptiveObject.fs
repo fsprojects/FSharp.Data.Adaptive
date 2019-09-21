@@ -12,7 +12,6 @@ type AdaptiveObject =
     val mutable private level: int 
     val mutable private outputs : WeakOutputSet
     val mutable private weak : WeakReference<IAdaptiveObject>
-    val mutable private readerCount : int
 
     
     /// used for resetting EvaluationDepth in eager evaluation
@@ -111,9 +110,6 @@ type AdaptiveObject =
         with get() = x.level
         and set l = x.level <- l
         
-    member x.ReaderCount
-        with get() = x.readerCount
-        and set l = x.readerCount <- l
     member x.Outputs = x.outputs :> IWeakOutputSet
 
     abstract Mark : unit -> bool
@@ -147,7 +143,6 @@ type AdaptiveObject =
             level = 0
             outputs = WeakOutputSet()
             weak = null
-            readerCount = 0
         }
 
 [<AllowNullLiteral>]

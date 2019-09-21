@@ -25,6 +25,7 @@ type cref<'T> =
         
     new(value : 'T) = { value = value }
 
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ARef =
     type internal MapRef<'a, 'b>(mapping : 'a -> 'b, input : aref<'a>) =
         inherit AdaptiveObject()
