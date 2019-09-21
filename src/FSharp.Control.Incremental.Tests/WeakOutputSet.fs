@@ -10,32 +10,10 @@ open FSharp.Control.Incremental
 
 /// a dummy type failing on GetHashCode/Equals to ensure that
 /// WeakRef/WeakSet only operate on reference-hashes/equality
-type NonEqualObject() =    
-    let mutable weak : WeakReference<IAdaptiveObject> = null 
-
+type NonEqualObject() =
+    inherit AdaptiveObject()
     override x.GetHashCode() = failwith "BrokenEquality.GetHashCode should not be called"
     override x.Equals _o = failwith "BrokenEquality.Equals should not be called"
-
-    interface IAdaptiveObject with
-        member x.AllInputsProcessed _ = ()
-        member x.InputChanged(_,_) = ()
-        member x.Level
-            with get () = 0
-            and set _ = ()
-        member x.Mark() = true
-        member x.OutOfDate
-            with get () = true
-            and set _ = ()
-        member x.ReaderCount
-            with get () = 0
-            and set _ = ()
-        member x.Weak =
-            lock x (fun () ->
-                if isNull weak then
-                    weak <- WeakReference<_>(x :> IAdaptiveObject)
-                weak
-            )
-        member x.Outputs = failwith "not needed here"
 
 let relevantSizes = [0;1;2;4;8;9;20]
 

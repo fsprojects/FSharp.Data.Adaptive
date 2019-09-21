@@ -12,7 +12,7 @@ open System.Collections.Generic
 [<Struct>]
 type AdaptiveToken =
     val mutable public Caller : IAdaptiveObject
-    val mutable public Locked : HashSet<IAdaptiveObject>
+    //val mutable public Locked : HashSet<IAdaptiveObject>
 
     member inline internal x.EnterRead(o : IAdaptiveObject) =
         Monitor.Enter o
@@ -21,34 +21,35 @@ type AdaptiveToken =
         Monitor.Exit o
 
     member inline internal x.Downgrade(o : IAdaptiveObject) =
-        if x.Locked.Add o then
-            o.ReaderCount <- o.ReaderCount + 1
+        //if x.Locked.Add o then
+        //    o.ReaderCount <- o.ReaderCount + 1
         Monitor.Exit o
 
     member inline internal x.ExitRead(o : IAdaptiveObject) =
-        if x.Locked.Remove o then
-            lock o (fun () ->
-                let rc = o.ReaderCount - 1
-                o.ReaderCount <- rc
-                if rc = 0 then Monitor.PulseAll o
-            )
+        //if x.Locked.Remove o then
+        //    lock o (fun () ->
+        //        let rc = o.ReaderCount - 1
+        //        o.ReaderCount <- rc
+        //        if rc = 0 then Monitor.PulseAll o
+        //    )
+        Monitor.Exit o
 
     member inline internal x.Release() =
-        for o in x.Locked do
-            lock o (fun () ->
-                let rc = o.ReaderCount - 1
-                o.ReaderCount <- rc
-                if rc = 0 then Monitor.PulseAll o
-            )
-        x.Locked.Clear()
+        //for o in x.Locked do
+        //    lock o (fun () ->
+        //        let rc = o.ReaderCount - 1
+        //        o.ReaderCount <- rc
+        //        if rc = 0 then Monitor.PulseAll o
+        //    )
+        //x.Locked.Clear()
+        ()
 
     member inline internal x.WithCaller (c : IAdaptiveObject) =
-        AdaptiveToken(c, x.Locked)
+        AdaptiveToken(c)
 
-    static member Top = AdaptiveToken(null, HashSet())
+    static member Top = AdaptiveToken(null)
 
-    internal new(caller : IAdaptiveObject, locked : HashSet<IAdaptiveObject>) =
+    internal new(caller : IAdaptiveObject) =
         {
             Caller = caller
-            Locked = locked
         }

@@ -3,6 +3,7 @@
 open System
 open System.Threading
 open System.Collections.Generic
+open System.Runtime.CompilerServices
 
 [<AutoOpen>]
 module internal LockingExtensions =
@@ -10,8 +11,8 @@ module internal LockingExtensions =
         /// Acquires a write-lock to an AdaptiveObject
         member inline o.EnterWrite() =
             Monitor.Enter o
-            while o.ReaderCount > 0 do
-                Monitor.Wait o |> ignore
+            //while o.ReaderCount > 0 do
+            //    Monitor.Wait o |> ignore
             
         /// Releases the write-lock to the AdaptiveObject
         member inline o.ExitWrite() =
@@ -194,3 +195,63 @@ type Transaction() =
 
     interface IDisposable with
         member x.Dispose() = x.Dispose()
+
+
+[<AutoOpen>]
+module Transaction =
+    /// returns the currently running transaction or (if none)
+    /// the current transaction for the calling thread
+    let getCurrentTransaction() =
+        match Transaction.Running with
+            | Some r -> Some r
+            | None ->
+                match Transaction.Current with
+                    | Some c -> Some c
+                    | None -> None
+
+    let inline internal setCurrentTransaction t =
+        Transaction.Current <- t
+
+    /// executes a function "inside" a newly created
+    /// transaction and commits the transaction
+    let transact (f : unit -> 'a) =
+        use t = new Transaction()
+        let old = Transaction.Current
+        Transaction.Current <- Some t
+        let r = f()
+        Transaction.Current <- old
+        t.Commit()
+        r
+    
+
+    // defines some extension utilites for
+    // IAdaptiveObjects
+    type IAdaptiveObject with
+        /// utility for marking adaptive object as outOfDate.
+        /// Note that this function will actually enqueue the
+        /// object to the current transaction and will fail if
+        /// no current transaction can be found.
+        /// However objects which are already outOfDate might
+        /// also be "marked" when not having a current transaction.
+        member x.MarkOutdated () =
+            match getCurrentTransaction() with
+                | Some t -> t.Enqueue(x)
+                | None -> 
+                    lock x (fun () -> 
+                        if x.OutOfDate then ()
+                        elif x.Outputs.IsEmpty then x.OutOfDate <- true
+                        else failwith "cannot mark object without transaction"
+                    )
+
+        member x.MarkOutdated (fin : unit -> unit) =
+            match getCurrentTransaction() with
+                | Some t -> 
+                    t.Enqueue(x)
+                    t.AddFinalizer(fin)
+                | None -> 
+                    lock x (fun () -> 
+                        if x.OutOfDate then ()
+                        elif x.Outputs.IsEmpty then x.OutOfDate <- true
+                        else failwith "cannot mark object without transaction"
+                    )
+                    fin()

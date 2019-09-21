@@ -23,7 +23,7 @@ type AdaptiveObject =
 
     /// utility function for evaluating an object even if it
     /// is not marked as outOfDate.
-    /// Note that this function takes care of appropriate locking
+    /// this method takes care of appropriate locking
     member x.EvaluateAlways (token : AdaptiveToken) (f : AdaptiveToken -> 'a) =
         let caller = token.Caller
         let depth = AdaptiveObject.CurrentEvaluationDepth
@@ -82,7 +82,7 @@ type AdaptiveObject =
     /// it is marked as outOfDate. If the object is actually
     /// outOfDate the given function is executed and otherwise
     /// the given default value is returned.
-    /// Note that this function takes care of appropriate locking
+    /// this method takes care of appropriate locking
     member inline x.EvaluateIfNeeded (token : AdaptiveToken) (otherwise : 'a) (f : AdaptiveToken -> 'a) =
         x.EvaluateAlways token (fun token ->
             if x.OutOfDate then 
@@ -114,7 +114,7 @@ type AdaptiveObject =
     member x.ReaderCount
         with get() = x.readerCount
         and set l = x.readerCount <- l
-    member x.Outputs = x.outputs
+    member x.Outputs = x.outputs :> IWeakOutputSet
 
     abstract Mark : unit -> bool
     default x.Mark() = true
@@ -126,6 +126,7 @@ type AdaptiveObject =
     default x.InputChanged(_,_) = ()
 
     interface IAdaptiveObject with
+        member x.IsConstant = false
         member x.Weak = x.Weak
         member x.Outputs = x.Outputs
         member x.Mark() = x.Mark()
@@ -140,10 +141,6 @@ type AdaptiveObject =
             with get() = x.Level
             and set l = x.Level <- l
             
-        member x.ReaderCount
-            with get() = x.ReaderCount
-            and set c = x.ReaderCount <- c
-
     new() =
         { 
             outOfDate = true
@@ -152,3 +149,34 @@ type AdaptiveObject =
             weak = null
             readerCount = 0
         }
+
+[<AllowNullLiteral>]
+type ConstantObject() =
+    let mutable weak : WeakReference<IAdaptiveObject> = null
+    static let outputs = EmptyOutputSet() :> IWeakOutputSet
+
+    interface IAdaptiveObject with
+        member x.IsConstant = true
+        member x.Weak =
+            // Note that we accept the race conditon here since locking the object
+            // would potentially cause deadlocks and the worst case is, that we
+            // create two different WeakReferences for the same object
+            let w = weak
+            if isNull w then
+                let w = WeakReference<_>(x :> IAdaptiveObject)
+                weak <- w
+                w
+            else
+                w
+        member x.Outputs = outputs
+        member x.Mark() = false
+        member x.AllInputsProcessed(_) = ()
+        member x.InputChanged(_, _) = ()
+
+        member x.OutOfDate
+            with get() = false
+            and set o = ()
+
+        member x.Level
+            with get() = 0
+            and set l = ()

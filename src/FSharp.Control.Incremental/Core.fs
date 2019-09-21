@@ -22,9 +22,9 @@ type IAdaptiveObject =
     /// cell in the dependency graph when evaluating inside a transaction.
     abstract member Level: int with get, set
 
-    /// Used internally to ensure that AdaptiveObjects are not marked while their value
-    /// is still needed by an evaluation.
-    abstract member ReaderCount: int with get, set
+    ///// Used internally to ensure that AdaptiveObjects are not marked while their value
+    ///// is still needed by an evaluation.
+    //abstract member ReaderCount: int with get, set
 
     /// Allows a specific implementation to evaluate the cell during the change propagation process.
     abstract member Mark: unit -> bool
@@ -35,7 +35,7 @@ type IAdaptiveObject =
 
     /// The adaptive outputs for the object. Represented by Weak references to allow for
     /// unused parts of the graph to be garbage collected.
-    abstract member Outputs: WeakOutputSet
+    abstract member Outputs: IWeakOutputSet
 
     /// Gets called whenever a current input of the object gets marked
     /// out of date. The first argument represents the Transaction that
@@ -46,6 +46,8 @@ type IAdaptiveObject =
     /// and directly before the object will be marked
     abstract member AllInputsProcessed: obj -> unit
 
+    /// Indicates whether the IAdaptiveObject is constant
+    abstract member IsConstant : bool
 
 /// Datastructure for zero-cost casts between different possible representations for WeakOutputSet.
 /// We actually did experiments and for huge
@@ -69,7 +71,29 @@ and [<Struct; StructLayout(LayoutKind.Explicit)>] private VolatileSetData =
 /// datastructure allows to add/remove entries.
 /// The only other functionality is Consume which returns all the
 /// (currenlty living) entries and clears the set.
-and WeakOutputSet() =
+and IWeakOutputSet =
+
+    /// indicates whether the set is (conservatively) known to be empty.
+    abstract member IsEmpty : bool
+
+    /// adds a weak reference to the given AdaptiveObject to the set
+    /// and returns a boolean indicating whether the obj was new.
+    abstract member Add : IAdaptiveObject -> bool
+
+    /// removes the reference to the given AdaptiveObject from the set
+    /// and returns a boolean indicating whether the obj was removed.
+    abstract member Remove : IAdaptiveObject -> bool
+
+    /// returns all currenty living entries from the set
+    /// and clears its content.
+    abstract member Consume : unit -> IAdaptiveObject[]
+
+/// Represents a set of outputs for an AdaptiveObject.
+/// The references to all contained elements are weak and the 
+/// datastructure allows to add/remove entries.
+/// The only other functionality is Consume which returns all the
+/// (currenlty living) entries and clears the set.
+and internal WeakOutputSet() =
     let mutable data = Unchecked.defaultof<VolatileSetData>
     let mutable setOps = 0
 
@@ -147,73 +171,79 @@ and WeakOutputSet() =
     /// adds a weak reference to the given AdaptiveObject to the set
     /// and returns a boolean indicating whether the obj was new.
     member x.Add(obj: IAdaptiveObject) =
-        lock x (fun () ->
-            if add obj then
-                setOps <- setOps + 1
-                x.Cleanup()
-                true
-            else
-                false
-        )
-        
-    /// removes the reference to the given AdaptiveObject from the set
-    /// and returns a boolean indicating whether the obj was removed.
-    member x.Remove(obj: IAdaptiveObject) =
-        lock x (fun () ->
-            //let obj = obj.WeakSelf
-            let mutable old = Unchecked.defaultof<IAdaptiveObject>
-
-            match data.Tag with
-            | 0 ->  
-                if isNull data.Single then
-                    false
-                else
-                    if data.Single.TryGetTarget(&old) then
-                        if Object.ReferenceEquals(old, obj) then
-                            data.Single <- null
-                            true
-                        else
-                            false
-                    else
-                        data.Single <- null
-                        false
-            | 1 ->
-                let mutable found = false
-                let mutable i = 0
-                let len = data.Array.Length
-                let mutable count = 0
-                let mutable living = null
-                while i < len do
-                    if not (isNull data.Array.[i]) then
-                        let ref = data.Array.[i]
-                        if ref.TryGetTarget(&old) then
-                            if Object.ReferenceEquals(old, obj) then
-                                data.Array.[i] <- null
-                                found <- true
-                            else
-                                count <- count + 1
-                                living <- ref
-                        else
-                            data.Array.[i] <- null
-                    i <- i + 1
-
-                if count = 0 then
-                    data.Tag <- 0
-                    data.Single <- null
-                elif count = 1 then
-                    data.Tag <- 0
-                    data.Single <- living
-
-                found
-     
-            | _ ->  
-                if data.Set.Remove obj.Weak then
+        if not obj.IsConstant then
+            lock x (fun () ->
+                if add obj then
                     setOps <- setOps + 1
                     x.Cleanup()
                     true
                 else
                     false
-        )
+            )
+        else
+            false
+        
+    /// removes the reference to the given AdaptiveObject from the set
+    /// and returns a boolean indicating whether the obj was removed.
+    member x.Remove(obj: IAdaptiveObject) =
+        if not obj.IsConstant then
+            lock x (fun () ->
+                //let obj = obj.WeakSelf
+                let mutable old = Unchecked.defaultof<IAdaptiveObject>
+
+                match data.Tag with
+                | 0 ->  
+                    if isNull data.Single then
+                        false
+                    else
+                        if data.Single.TryGetTarget(&old) then
+                            if Object.ReferenceEquals(old, obj) then
+                                data.Single <- null
+                                true
+                            else
+                                false
+                        else
+                            data.Single <- null
+                            false
+                | 1 ->
+                    let mutable found = false
+                    let mutable i = 0
+                    let len = data.Array.Length
+                    let mutable count = 0
+                    let mutable living = null
+                    while i < len do
+                        if not (isNull data.Array.[i]) then
+                            let ref = data.Array.[i]
+                            if ref.TryGetTarget(&old) then
+                                if Object.ReferenceEquals(old, obj) then
+                                    data.Array.[i] <- null
+                                    found <- true
+                                else
+                                    count <- count + 1
+                                    living <- ref
+                            else
+                                data.Array.[i] <- null
+                        i <- i + 1
+
+                    if count = 0 then
+                        data.Tag <- 0
+                        data.Single <- null
+                    elif count = 1 then
+                        data.Tag <- 0
+                        data.Single <- living
+
+                    found
+     
+                | _ ->  
+                    if data.Set.Remove obj.Weak then
+                        setOps <- setOps + 1
+                        x.Cleanup()
+                        true
+                    else
+                        false
+            )
+        else
+            false
 
     /// returns all currenty living entries from the set
     /// and clears its content.
@@ -250,8 +280,30 @@ and WeakOutputSet() =
                 arr
         )
 
+    /// indicates whether the set is (conservatively) known to be empty.
+    /// note that we don't dereference any WeakReferences here.
+    member x.IsEmpty =
+        match data.Tag with
+        | 0 -> isNull data.Single
+        | _ -> false
+
+    interface IWeakOutputSet with
+        member x.IsEmpty = x.IsEmpty
+        member x.Add o = x.Add o
+        member x.Remove o = x.Remove o
+        member x.Consume() = x.Consume()
+
+and internal EmptyOutputSet() =
+    static let emptyArray : IAdaptiveObject[] = Array.zeroCreate 0
+    interface IWeakOutputSet with
+        member x.IsEmpty = true
+        member x.Add _ = false
+        member x.Remove _ = false
+        member x.Consume() = emptyArray
+    
+
 /// Supporting operations for the WeakOutputSet type.
-module WeakOutputSet =
+module internal WeakOutputSet =
     /// Creates a new empty WeakOutputSet
     let inline create () = WeakOutputSet()
 
