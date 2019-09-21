@@ -2,6 +2,8 @@
 
 open System
 
+/// core implementation of IAdaptiveObject containing tools
+/// for evaluation and locking
 [<AllowNullLiteral>]
 type AdaptiveObject =
     
@@ -90,6 +92,7 @@ type AdaptiveObject =
                 otherwise
         )
 
+    /// see IAdaptiveObject.Weak
     member x.Weak =
         // Note that we accept the race conditon here since locking the object
         // would potentially cause deadlocks and the worst case is, that we
@@ -101,23 +104,29 @@ type AdaptiveObject =
             w
         else
             w
-
+            
+    /// see IAdaptiveObject.OutOfDate
     member x.OutOfDate
         with get() = x.outOfDate
         and set o = x.outOfDate <- o
-
+        
+    /// see IAdaptiveObject.Level
     member x.Level
         with get() = x.level
         and set l = x.level <- l
         
+    /// see IAdaptiveObject.Outputs
     member x.Outputs = x.outputs :> IWeakOutputSet
-
+    
+    /// see IAdaptiveObject.Mark()
     abstract Mark : unit -> bool
     default x.Mark() = true
-
+    
+    /// see IAdaptiveObject.AllInputsProcessed(transaction)
     abstract AllInputsProcessed : obj -> unit
     default x.AllInputsProcessed _ = ()
     
+    /// see IAdaptiveObject.InputChanged(transaction, object)
     abstract InputChanged : obj * IAdaptiveObject -> unit
     default x.InputChanged(_,_) = ()
 
@@ -136,7 +145,8 @@ type AdaptiveObject =
         member x.Level
             with get() = x.Level
             and set l = x.Level <- l
-            
+        
+    /// creates a new (out-of-date) AdaptiveObject
     new() =
         { 
             outOfDate = true
@@ -145,6 +155,8 @@ type AdaptiveObject =
             weak = null
         }
 
+/// core implementation of IAdaptiveObject for constant objects.
+/// the main goal of this implementation is to save memory when IAdaptiveObjects are known to be constant.
 [<AllowNullLiteral>]
 type ConstantObject() =
     let mutable weak : WeakReference<IAdaptiveObject> = null

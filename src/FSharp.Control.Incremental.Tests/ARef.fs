@@ -5,8 +5,6 @@ open FSharp.Control.Incremental
 open FsUnit.Xunit
 open FsCheck.Xunit
 
-
-
 type aref<'a> =
     abstract member Adaptive : Incremental.aref<'a>
     abstract member Reference : Reference.aref<'a>

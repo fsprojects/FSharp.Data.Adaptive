@@ -1,7 +1,6 @@
 ﻿namespace FSharp.Control.Incremental
 
 open System.Threading
-open System.Collections.Generic
 
 /// AdaptiveToken represents a token that can be passed to
 /// inner AdaptiveObjects for evaluation.
@@ -11,20 +10,24 @@ open System.Collections.Generic
 /// be marked.
 [<Struct>]
 type AdaptiveToken =
+    /// represents the calling IAdaptiveObject or null if none
     val mutable public Caller : IAdaptiveObject
-    //val mutable public Locked : HashSet<IAdaptiveObject>
 
+    /// enters the read-lock on the given object
     member inline internal x.EnterRead(o : IAdaptiveObject) =
         Monitor.Enter o
                 
+    /// exits the read-lock on the given object when evaluation faulted
     member inline internal x.ExitFaultedRead(o : IAdaptiveObject) =
         Monitor.Exit o
 
+    /// exits the read-lock on the given object downgrading it to a weak-lock
     member inline internal x.Downgrade(o : IAdaptiveObject) =
         //if x.Locked.Add o then
         //    o.ReaderCount <- o.ReaderCount + 1
         Monitor.Exit o
 
+    /// exits the read-lock on the given object
     member inline internal x.ExitRead(o : IAdaptiveObject) =
         //if x.Locked.Remove o then
         //    lock o (fun () ->
@@ -34,6 +37,7 @@ type AdaptiveToken =
         //    )
         Monitor.Exit o
 
+    /// releases all held weak-locks
     member inline internal x.Release() =
         //for o in x.Locked do
         //    lock o (fun () ->
@@ -44,11 +48,14 @@ type AdaptiveToken =
         //x.Locked.Clear()
         ()
 
+    /// creates a new AdaptiveToken with the given caller
     member inline internal x.WithCaller (c : IAdaptiveObject) =
         AdaptiveToken(c)
 
+    /// the top-level AdaptiveToken without a calling IAdaptiveObject
     static member Top = AdaptiveToken(null)
 
+    /// creates a new AdaptiveToken using the given caller
     internal new(caller : IAdaptiveObject) =
         {
             Caller = caller

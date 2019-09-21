@@ -6,6 +6,7 @@ type aref<'T> =
     inherit IAdaptiveObject
     abstract member GetValue : AdaptiveToken -> 'T
 
+[<Sealed>]
 type cref<'T> =
     inherit AdaptiveObject
     val mutable private value : 'T
@@ -29,22 +30,39 @@ type cref<'T> =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ARef =
-    type internal ConstantRef<'a>(value : Choice<'a, Lazy<'a>>) =
-        inherit ConstantObject()
+    type LazyOrValue<'a> =
+        val mutable public Create   : unit -> 'a
+        val mutable public Value    : 'a
+        val mutable public IsValue  : bool
 
-        member x.GetValue(_token : AdaptiveToken) = 
-            match value with
-            | Choice1Of2 v -> v
-            | Choice2Of2 l -> l.Value
+        new(value : 'a) = { Create = Unchecked.defaultof<_>; Value = value; IsValue = true }
+        new(create : unit -> 'a) = { Create = create; Value = Unchecked.defaultof<_>; IsValue = false }
+        
+    type ConstantRef<'a> private(data : LazyOrValue<'a>) =
+        inherit ConstantObject()
+        let mutable data = data
+
+        member x.GetValue(_token : AdaptiveToken) : 'a = 
+            if data.IsValue then 
+                data.Value
+            else
+                let v = Unchecked.defaultof<'a> //data.Create()
+                data.IsValue <- true
+                data.Value <- v
+                data.Create <- Unchecked.defaultof<_>
+                v
 
         interface aref<'a> with
             member x.GetValue t = x.GetValue t    
 
-        new (value : 'a) = ConstantRef<'a>(Choice1Of2 value)      
-        new (value : Lazy<'a>) = ConstantRef<'a>(Choice2Of2 value)        
+        static member Lazy (create : unit -> 'a) =
+            ConstantRef<'a>(LazyOrValue<'a> create) :> aref<_>
+
+        static member Value (value : 'a) =
+            ConstantRef<'a>(LazyOrValue<'a> value) :> aref<_>
 
     [<AbstractClass>]
-    type internal AbstractRef<'a>() =
+    type AbstractRef<'a>() =
         inherit AdaptiveObject()
 
         let mutable cache = Unchecked.defaultof<'a>
@@ -64,7 +82,7 @@ module ARef =
         interface aref<'a> with
             member x.GetValue t = x.GetValue t        
 
-    type internal MapRef<'a, 'b>(mapping : 'a -> 'b, input : aref<'a>) =
+    type MapRef<'a, 'b>(mapping : 'a -> 'b, input : aref<'a>) =
         inherit AbstractRef<'b>()
 
         // can we avoid double caching (here and in AbstractRef)
@@ -83,7 +101,7 @@ module ARef =
         interface aref<'b> with
             member x.GetValue t = x.GetValue t
 
-    type internal BindRef<'a, 'b>(mapping : 'a -> aref<'b>, input : aref<'a>) =
+    type BindRef<'a, 'b>(mapping : 'a -> aref<'b>, input : aref<'a>) =
         inherit AbstractRef<'b>()
 
         let mutable inner : Option<'a * aref<'b>> = None
@@ -111,7 +129,6 @@ module ARef =
                 inner <- Some (value, ref)  
                 ref.GetValue token     
 
-
     let inline force (ref : aref<'a>) =
         ref.GetValue AdaptiveToken.Top
 
@@ -119,14 +136,14 @@ module ARef =
         cref value
 
     let constant (value : 'a) =
-        ConstantRef<'a>(value) :> aref<_>
+        ConstantRef.Value value
 
     let map (mapping : 'a -> 'b) (ref : aref<'a>) =
         if ref.IsConstant then 
-            ConstantRef<'b>(lazy (ref |> force |> mapping)) :> aref<_>
+            ConstantRef.Lazy (fun () -> ref |> force |> mapping)
         else
             MapRef(mapping, ref) :> aref<_>
-
+            
     let bind (mapping : 'a -> aref<'b>) (ref : aref<'a>) =
         if ref.IsConstant then
             ref |> force |> mapping
