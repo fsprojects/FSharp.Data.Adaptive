@@ -13,6 +13,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Helpers.fs" />
+    <Compile Include="IntMap.fs" />
     <Compile Include="PriorityQueue.fs" />
     <Compile Include="WeakOutputSet.fs" />
     <Compile Include="ARef.fs" />

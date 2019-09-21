@@ -16,6 +16,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
 	<Compile Include="Datastructures\IntMap.fs" />
+	<Compile Include="Datastructures\HashMap.fs" />
     <Compile Include="Utilities\Utilities.fs" />
     <Compile Include="Utilities\PriorityQueue.fs" />
     <Compile Include="Core\Core.fs" />

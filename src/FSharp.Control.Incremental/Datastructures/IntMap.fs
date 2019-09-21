@@ -797,7 +797,7 @@ module internal IntMap =
     let keys m = foldBackWithKey (fun k _ ks -> k :: ks) [] m
 
     ///O(n). Convert the map to a list of key/value pairs. Credit: Haskell.org
-    let inline toList (m: _ intmap) = m.ToList()
+    let toList (m: _ intmap) = m.ToList()
 
     ///O(n). Convert the map to a seq of key/value pairs. Credit: Haskell.org
     let toSeq (m : intmap<'a>) = m.ToSeq()
