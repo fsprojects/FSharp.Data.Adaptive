@@ -6,80 +6,83 @@ open FsUnit.Xunit
 open FsCheck.Xunit
 open Xunit
 
-type aref<'a> =
-    abstract member Adaptive : Incremental.aref<'a>
-    abstract member Reference : Reference.aref<'a>
+[<AutoOpen>]
+module ARefTestImplementation =
 
-type cref<'a>(value : 'a) = 
-    let adaptive = Incremental.cref value
-    let reference = Reference.cref value
+    type aref<'a> =
+        abstract member Adaptive : Incremental.aref<'a>
+        abstract member Reference : Reference.aref<'a>
 
-    member x.Value 
-        with get() = reference.Value
-        and set v =
-            reference.Value <- v
-            adaptive.Value <- v
+    type cref<'a>(value : 'a) = 
+        let adaptive = Incremental.cref value
+        let reference = Reference.cref value
 
-    interface aref<'a> with
-        member x.Adaptive = adaptive :> Incremental.aref<_>
-        member x.Reference = reference :> Reference.aref<_>
+        member x.Value 
+            with get() = reference.Value
+            and set v =
+                reference.Value <- v
+                adaptive.Value <- v
 
-module ARef =
+        interface aref<'a> with
+            member x.Adaptive = adaptive :> Incremental.aref<_>
+            member x.Reference = reference :> Reference.aref<_>
 
-    let create (adaptive : Incremental.aref<'a>) (reference : Reference.aref<'a>) =
-        { new aref<'a> with
-            member x.Adaptive = adaptive
-            member x.Reference = reference
-        }
+    module ARef =
 
-    let force (ref : aref<'a>) =
-        let adaptive = Incremental.ARef.force ref.Adaptive
-        let reference = Reference.ARef.force ref.Reference
-        (adaptive, reference)
+        let create (adaptive : Incremental.aref<'a>) (reference : Reference.aref<'a>) =
+            { new aref<'a> with
+                member x.Adaptive = adaptive
+                member x.Reference = reference
+            }
 
-    let init (value : 'a) =
-        cref<'a>(value)
+        let force (ref : aref<'a>) =
+            let adaptive = Incremental.ARef.force ref.Adaptive
+            let reference = Reference.ARef.force ref.Reference
+            (adaptive, reference)
 
-    let constant (value : 'a) =
-        create 
-            (Incremental.ARef.constant value)
-            (Reference.ARef.constant value)
+        let init (value : 'a) =
+            cref<'a>(value)
 
-    let map (mapping : 'a -> 'b) (r : aref<'a>) =
-        create
-            (Incremental.ARef.map mapping r.Adaptive)
-            (Reference.ARef.map mapping r.Reference)
+        let constant (value : 'a) =
+            create 
+                (Incremental.ARef.constant value)
+                (Reference.ARef.constant value)
+
+        let map (mapping : 'a -> 'b) (r : aref<'a>) =
+            create
+                (Incremental.ARef.map mapping r.Adaptive)
+                (Reference.ARef.map mapping r.Reference)
  
-    let map2 (mapping : 'a -> 'b -> 'c) (ref1 : aref<'a>) (ref2 : aref<'b>) =
-        create
-            (Incremental.ARef.map2 mapping ref1.Adaptive ref2.Adaptive)
-            (Reference.ARef.map2 mapping ref1.Reference ref2.Reference)
+        let map2 (mapping : 'a -> 'b -> 'c) (ref1 : aref<'a>) (ref2 : aref<'b>) =
+            create
+                (Incremental.ARef.map2 mapping ref1.Adaptive ref2.Adaptive)
+                (Reference.ARef.map2 mapping ref1.Reference ref2.Reference)
  
-    let map3 (mapping : 'a -> 'b -> 'c -> 'd) (ref1 : aref<'a>) (ref2 : aref<'b>) (ref3 : aref<'c>) =
-        create
-            (Incremental.ARef.map3 mapping ref1.Adaptive ref2.Adaptive ref3.Adaptive)
-            (Reference.ARef.map3 mapping ref1.Reference ref2.Reference ref3.Reference)
+        let map3 (mapping : 'a -> 'b -> 'c -> 'd) (ref1 : aref<'a>) (ref2 : aref<'b>) (ref3 : aref<'c>) =
+            create
+                (Incremental.ARef.map3 mapping ref1.Adaptive ref2.Adaptive ref3.Adaptive)
+                (Reference.ARef.map3 mapping ref1.Reference ref2.Reference ref3.Reference)
  
-    let bind (mapping : 'a -> aref<'b>) (r : aref<'a>) =
-        create
-            (Incremental.ARef.bind (fun v -> mapping(v).Adaptive) r.Adaptive)
-            (Reference.ARef.bind (fun v -> mapping(v).Reference) r.Reference)
+        let bind (mapping : 'a -> aref<'b>) (r : aref<'a>) =
+            create
+                (Incremental.ARef.bind (fun v -> mapping(v).Adaptive) r.Adaptive)
+                (Reference.ARef.bind (fun v -> mapping(v).Reference) r.Reference)
 
-    let bind2 (mapping : 'a -> 'b -> aref<'c>) (r1 : aref<'a>) (r2 : aref<'b>) =
-        create
-            (Incremental.ARef.bind2 (fun va vb -> (mapping va vb).Adaptive) r1.Adaptive r2.Adaptive)
-            (Reference.ARef.bind2 (fun va vb -> (mapping va vb).Reference) r1.Reference r2.Reference)
+        let bind2 (mapping : 'a -> 'b -> aref<'c>) (r1 : aref<'a>) (r2 : aref<'b>) =
+            create
+                (Incremental.ARef.bind2 (fun va vb -> (mapping va vb).Adaptive) r1.Adaptive r2.Adaptive)
+                (Reference.ARef.bind2 (fun va vb -> (mapping va vb).Reference) r1.Reference r2.Reference)
         
   
-module List =
-    let cross (a : list<'a>) (b : list<'b>) =
-        a |> List.collect (fun va ->
-            b |> List.map (fun vb -> (va, vb))
-        )
+    module List =
+        let cross (a : list<'a>) (b : list<'b>) =
+            a |> List.collect (fun va ->
+                b |> List.map (fun vb -> (va, vb))
+            )
 
-let inline check (r : aref<'a>) =
-    let (a, r) = ARef.force r
-    a |> should equal r
+    let inline check (r : aref<'a>) =
+        let (a, r) = ARef.force r
+        a |> should equal r
 
 
 [<Property>]
@@ -93,7 +96,7 @@ let ``[CRef] can change`` (values : list<obj>) =
         check ref
 
 [<Property>]
-let ``[ARef] map working`` (values : list<obj>) =
+let ``[ARef] map validation`` (values : list<obj>) =
     let values = obj() :: values
     let input = ARef.init (obj())
     let test = input |> ARef.map (fun v -> v, Unchecked.hash v)
@@ -112,7 +115,7 @@ let ``[ARef] map constant`` () =
     b.Adaptive.IsConstant |> should be True
   
 [<Property>]
-let ``[ARef] map2 working`` (va : list<obj>) (vb : list<obj>)  =
+let ``[ARef] map2 validation`` (va : list<obj>) (vb : list<obj>)  =
     let va = obj() :: va
     let vb = obj() :: vb
     let ra = ARef.init (obj())
@@ -137,7 +140,7 @@ let ``[ARef] map2 constant`` () =
     test.Adaptive.IsConstant |> should be True
 
 [<Property>]
-let ``[ARef] map3 working`` (va : list<obj>) (vb : list<obj>) (vc : list<obj>)  =
+let ``[ARef] map3 validation`` (va : list<obj>) (vb : list<obj>) (vc : list<obj>)  =
     let va = obj() :: va
     let vb = obj() :: vb
     let vc = obj() :: vc
@@ -167,7 +170,7 @@ let ``[ARef] map3 constant`` () =
     test.Adaptive.IsConstant |> should be True
 
 [<Property>]
-let ``[ARef] bind working`` (values : list<obj>) =
+let ``[ARef] bind validation`` (values : list<obj>) =
     let input = ARef.init (obj())
     let a = ARef.init (obj())
     let b = ARef.init (obj())
@@ -208,7 +211,7 @@ let ``[ARef] bind constant`` () =
     test.Adaptive |> should equal b.Adaptive
  
 [<Property>]
-let ``[ARef] bind2 working`` (values : list<obj>) =
+let ``[ARef] bind2 validation`` (values : list<obj>) =
     let ref1 = ARef.init (obj())
     let ref2 = ARef.init (obj())
     let a = ARef.init (obj())
