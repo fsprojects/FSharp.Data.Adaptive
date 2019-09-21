@@ -175,3 +175,39 @@ module internal InterlockedExtensions =
                 result <- r
 
             result
+
+[<AutoOpen>]
+module internal CheapEquality =
+    open System.Collections.Generic
+    open System.Runtime.CompilerServices
+
+    type private CheapEquality<'a> private() =
+
+        static let comparer =
+            let typ = typeof<'a>
+
+            if typ.IsValueType then 
+                EqualityComparer<'a>.Default
+
+            elif typ.IsArray then 
+                { new EqualityComparer<'a>() with 
+                    member x.GetHashCode(o : 'a) = RuntimeHelpers.GetHashCode o
+                    member x.Equals(a : 'a, b : 'a) = Object.ReferenceEquals(a, b)
+                }
+
+            else
+                { new EqualityComparer<'a>() with 
+                    member x.GetHashCode(o : 'a) = Unchecked.hash o
+                    member x.Equals(a : 'a, b : 'a) = Object.ReferenceEquals(a, b) || Unchecked.equals a b
+                }
+
+        static member Comparer = comparer
+
+    let cheapComparer<'a> : EqualityComparer<'a> = CheapEquality<'a>.Comparer
+
+    let cheapHash (a : 'a) = CheapEquality<'a>.Comparer.GetHashCode a
+    let cheapEqual (a : 'a) (b : 'a) = CheapEquality<'a>.Comparer.Equals(a, b)
+
+
+
+

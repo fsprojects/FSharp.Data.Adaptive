@@ -105,12 +105,11 @@ type Transaction() =
         let old = Transaction.RunningTransaction
         Transaction.RunningTransaction <- Some x
         let mutable level = 0
-        let myCauses = ref null
         
         let mutable markCount = 0
         let mutable traverseCount = 0
         let mutable levelChangeCount = 0
-        let mutable outputs = Array.zeroCreate 8
+        let mutable outputs = [||]
         while q.Count > 0 do
             // dequeue the next element (having the minimal level)
             let e = q.Dequeue(&currentLevel)
@@ -158,6 +157,7 @@ type Transaction() =
                                     outputs <- e.Outputs.Consume()
 
                                 else
+                                    outputs <- [||]
                                     // if Mark told us not to continue we're done here
                                     ()
 
