@@ -16,8 +16,11 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
 	<Compile Include="Datastructures\IntMap.fs" />
-	<Compile Include="Datastructures\HashSet.fs" />
 	<Compile Include="Datastructures\HashMap.fs" />
+	<Compile Include="Datastructures\HashSet.fs" />
+	<Compile Include="Datastructures\Operations.fs" />
+	<Compile Include="Datastructures\DHashSet.fs" />
+	<Compile Include="Datastructures\Extensions.fs" />
 	<Compile Include="Utilities\Utilities.fs" />
 	<Compile Include="Utilities\PriorityQueue.fs" />
 	<Compile Include="Utilities\Cache.fs" />
@@ -29,9 +32,8 @@
 	<Compile Include="ARef\ARef.fsi" />
 	<Compile Include="ARef\ARef.fs" />
 	<Compile Include="Traceable\Traceable.fs" />
+	<Compile Include="Traceable\Instances.fs" />
 	<Compile Include="Traceable\History.fs" />
-	<Compile Include="Traceable\Operations.fs" />
-	<Compile Include="Traceable\DHashSet.fs" />
 	<Compile Include="Traceable\CountingHashSet.fs" />
 	<Compile Include="ASet\ASet.fsi" />
 	<Compile Include="ASet\ASet.fs" />

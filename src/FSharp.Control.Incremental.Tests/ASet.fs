@@ -141,7 +141,7 @@ module ASetTestImplementation =
         a |> should setequal r
         r
 
-let emptyDelta = FSharp.Control.Traceable.DHashSet.empty<int>
+let emptyDelta = DHashSet.empty<int>
 
 [<Fact>]
 let ``[CSet] reader add/remove/clear/union/except`` () =

@@ -571,15 +571,6 @@ type HashMap<'k, [<EqualityConditionalOn>] 'v> internal(cnt : int, store : intma
                 i <- i + 1
         result
 
-    /// creates a HashSet holding all keys from the map.
-    /// `O(N)`
-    member x.GetKeys() =
-        let setStore =
-            store |> IntMap.map (
-                List.map (fun struct(k,_v) -> k)
-            )
-        HashSet(cnt, setStore)
-
     /// creates a map with a single entry.
     /// `O(1)`
     static member Single (k : 'k) (v : 'v) =
@@ -873,6 +864,3 @@ module HashMap =
     /// is the map empty? `O(1)`
     let inline isEmpty (map : HashMap<'k, 'v>) = map.IsEmpty
 
-    /// creates a HashSet holding all keys from the map.
-    /// `O(N)`
-    let inline keys (map : HashMap<'k, 'v>) = map.GetKeys()

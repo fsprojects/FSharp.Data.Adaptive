@@ -18,7 +18,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
     
     static let trace =
         {
-            tmonoid = DHashSet<'a>.Monoid
+            tmonoid = DHashSet.monoid
             tempty = CountingHashSet<'a>(HashMap.empty)
             tintegrate = fun s d -> s.ApplyDelta d
             tdifferentiate = fun l r -> l.ComputeDelta r
@@ -28,7 +28,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
 
     static let traceNoRefCount =
         {
-            tmonoid = DHashSet<'a>.Monoid
+            tmonoid = DHashSet.monoid
             tempty = CountingHashSet<'a>(HashMap.empty)
             tintegrate = fun s d -> s.ApplyDeltaNoRefCount d
             tdifferentiate = fun l r -> l.ComputeDelta r
