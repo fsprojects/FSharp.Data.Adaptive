@@ -153,7 +153,7 @@ module DifferentiationExtensions =
         /// applies the given operations to the map. 
         /// returns the new map and the 'effective' operations.
         let integrate (m : HashMap<'k, 'v>) (delta : DHashMap<'k, 'v>) =
-            if delta.Count = 0 then
+            if delta.Store.Count = 0 then
                 m, delta
             elif m.Count = 0 then
                 let state, delta = 

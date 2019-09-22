@@ -28,7 +28,7 @@ module DHashMap =
             {
                 mempty = DHashMap.empty<'k, 'v>
                 mappend = fun l r -> l.Combine r
-                misEmpty = fun s -> s.IsEmpty
+                misEmpty = fun s -> s.Store.IsEmpty
             }
         static member Instance = monoid
 
@@ -70,7 +70,7 @@ module HashMap =
                 tintegrate = HashMap.integrate
                 tmonoid = DHashMap.monoid
                 tprune = None
-                tsize = fun s -> s.Count
+                tsize = fun s -> s.Store.Count
             }
         static member Instance = trace
 

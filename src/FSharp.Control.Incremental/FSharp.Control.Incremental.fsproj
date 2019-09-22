@@ -7,7 +7,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\..\bin\Debug\</OutputPath>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>..\..\bin\Debug\FSharp.Control.Incremental.XML</DocumentationFile>
+    <DocumentationFile>..\..\bin\Debug\netstandard2.0\FSharp.Control.Incremental.XML</DocumentationFile>
     <OtherFlags></OtherFlags>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
