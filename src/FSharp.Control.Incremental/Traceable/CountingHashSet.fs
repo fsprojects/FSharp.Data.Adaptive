@@ -22,7 +22,8 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
             tempty = CountingHashSet<'a>(HashMap.empty)
             tintegrate = fun s d -> s.ApplyDelta d
             tdifferentiate = fun l r -> l.ComputeDelta r
-            tcollapse = fun _ _ -> false
+            tprune = None
+            tsize = fun s -> s.Count
         }
 
     static let traceNoRefCount =
@@ -31,7 +32,8 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
             tempty = CountingHashSet<'a>(HashMap.empty)
             tintegrate = fun s d -> s.ApplyDeltaNoRefCount d
             tdifferentiate = fun l r -> l.ComputeDelta r
-            tcollapse = fun _ _ -> false
+            tprune = None
+            tsize = fun s -> s.Count
         }
 
     static member Empty = CountingHashSet<'a>(HashMap.empty)

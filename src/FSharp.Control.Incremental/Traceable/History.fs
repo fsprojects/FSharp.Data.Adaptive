@@ -129,10 +129,63 @@ type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceabl
 
     /// the (weak) latest version known in the history
     let mutable last    : WeakReference<RelevantNode<'s, 'op>> = null
+    
+    let mutable appendCounter = 0
 
-    // TODO: find a way to collapse things again
-    // tracking Weak first does not do the trick since it may die
-    // while intermediate nodes still live
+    /// gets the predecessor for a given node (null if none).
+    let getPrev (node : RelevantNode<'s, 'op>) =
+        if isNull node || isNull node.Prev then 
+            null
+        else
+            match node.Prev.TryGetTarget() with
+            | (true, prev) -> prev
+            | _ -> null
+
+    /// gets the first living node and the accumulated operation-size.
+    let getFirstAndSize() =
+        let mutable first = null
+        if not (isNull last) && last.TryGetTarget(&first) then
+            let mutable size = t.tsize first.Value
+            let mutable prev = getPrev first
+            while not (isNull prev) do
+                size <- size + t.tsize prev.Value
+                first <- prev
+                prev <- getPrev first
+
+            struct (first, size)
+        else
+            struct (null, 0)
+
+    /// destroys nodes recursicely until shouldPrune returns false or the history is empty.
+    let rec pruneNode (shouldPrune : 's -> int -> bool) (totalDeltaSize : int) (first : RelevantNode<'s, 'op>) =
+        if not (isNull first) && shouldPrune first.BaseState totalDeltaSize then
+            let size = t.tsize first.Value
+            let next = first.Next
+
+            // destroy the node
+            first.RefCount <- -1
+            if isNull first.Next then last <- null
+            else first.Next.Prev <- null
+            first.Next <- null
+            first.Prev <- null
+            first.BaseState <- Unchecked.defaultof<_>
+            first.Value <- Unchecked.defaultof<_>
+
+            // continue
+            pruneNode shouldPrune (totalDeltaSize - size) next
+
+    /// prunes the history if needed
+    let prune () =
+        if appendCounter > 100 then
+            appendCounter <- 0
+            match t.tprune with
+            | Some shouldPrune ->
+                let struct (first, totalDeltaSize) = getFirstAndSize()
+                pruneNode shouldPrune totalDeltaSize first
+            | None ->
+                ()
+        else
+            appendCounter <- appendCounter + 1
 
     /// appends operations to the history and updates the state
     /// returns whether or not the operation effectively changed the state
@@ -156,6 +209,7 @@ type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceabl
                     last <- null
                     finalize op
 
+                prune()
                 true
 
             else
@@ -285,7 +339,8 @@ type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceabl
 
     /// creates a new reader on the history
     member x.NewReader() =
-        new HistoryReader<'s, 'op>(x) :> IOpReader<'s, 'op>
+        let reader = new HistoryReader<'s, 'op>(x) 
+        reader :> IOpReader<'s, 'op>
 
     interface aref<'s> with
         member x.GetValue t = x.GetValue t
@@ -301,6 +356,12 @@ and internal HistoryReader<'s, 'op>(h : History<'s, 'op>) =
     let trace = h.Trace
     let mutable node : RelevantNode<'s, 'op> = null
     let mutable state = trace.tempty
+
+    member x.RelevantNode = 
+        node
+
+    member x.DestroyRelevantNode() =
+        node <- null
 
     member x.GetOperations(token : AdaptiveToken) =
         x.EvaluateAlways token (fun token ->

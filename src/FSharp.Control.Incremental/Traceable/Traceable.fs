@@ -29,10 +29,12 @@ type Traceable<'s, 'ops> =
         /// differentiates two states and returns the needed ops
         tdifferentiate : 's -> 's -> 'ops
 
+        /// determines the size of an operation
+        tsize : 'ops -> int
+
         /// determines whether or not a history should be pruned although it is still referentiable.
-        /// the first argument is the base-state for that history and the second argument are the ops that would need to be applied.
-        /// when returning true the history implementation will discard the history and reproduce it on demand using
-        /// the above compute function.
-        /// WARNING: currently ignored TODO
-        tcollapse    : 's -> 'ops -> bool
+        /// the first argument is the base-state for that history and the second argument is the size of the operaton that would need to be applied.
+        /// when returning true the history implementation will discard the history and reproduce it on demand using tdifferentiate.
+        /// WARNING: current implementation is quite costly.
+        tprune    : Option<'s -> int -> bool>
     }

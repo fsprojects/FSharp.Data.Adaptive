@@ -439,7 +439,8 @@ module HashSet =
                 tdifferentiate = differentiate
                 tintegrate = integrate
                 tmonoid = DHashSet.monoid
-                tcollapse = fun _set _delta -> false
+                tprune = None
+                tsize = fun s -> s.Count
             }
         static member Instance = trace
 
