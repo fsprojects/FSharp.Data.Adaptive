@@ -209,5 +209,9 @@ module internal CheapEquality =
     let cheapEqual (a : 'a) (b : 'a) = CheapEquality<'a>.Comparer.Equals(a, b)
 
 
+[<AutoOpen>]
+module Failures =
+    let inline unexpected() = failwith "[Incremental] encountered an invalid state"
+
 
 

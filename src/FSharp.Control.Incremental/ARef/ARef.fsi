@@ -43,6 +43,10 @@ module ARef =
     /// creates an unchangable aref<'T> always holding the given value.
     /// note that the system internally propagates constants.
     val constant : value : 'T -> aref<'T>
+    
+    /// creates an unchangable aref<'T> using the given create function.
+    /// note that the system internally propagates constants.
+    val delay : create : (unit -> 'T) -> aref<'T>
 
     /// adaptively applies the mapping function to the given aref<'A> and returns
     /// a new aref<'B> holding the result of the computation.

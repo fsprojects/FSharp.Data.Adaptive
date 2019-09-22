@@ -20,6 +20,7 @@
 	<Compile Include="Datastructures\HashMap.fs" />
 	<Compile Include="Utilities\Utilities.fs" />
 	<Compile Include="Utilities\PriorityQueue.fs" />
+	<Compile Include="Utilities\Cache.fs" />
 	<Compile Include="Core\Core.fs" />
 	<Compile Include="Core\Transaction.fs" />
 	<Compile Include="Core\AdaptiveToken.fs" />
@@ -32,6 +33,10 @@
 	<Compile Include="Traceable\Operations.fs" />
 	<Compile Include="Traceable\DHashSet.fs" />
 	<Compile Include="Traceable\CountingHashSet.fs" />
+	<Compile Include="ASet\ASet.fsi" />
+	<Compile Include="ASet\ASet.fs" />
+	<Compile Include="ASet\CSet.fsi" />
+	<Compile Include="ASet\CSet.fs" />
 	</ItemGroup>
 	<Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

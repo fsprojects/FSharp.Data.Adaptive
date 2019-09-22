@@ -257,6 +257,11 @@ module ARef =
     let constant (value : 'a) =
         ConstantRef.Value value
 
+        
+    let delay (value : unit -> 'a) =
+        ConstantRef.Lazy value
+
+
     let map (mapping : 'a -> 'b) (ref : aref<'a>) =
         if ref.IsConstant then 
             ConstantRef.Lazy (fun () -> ref |> force |> mapping)

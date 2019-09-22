@@ -23,7 +23,6 @@ type IOpReader<'s, 'ops> =
 type AbstractReader<'ops>(t : Monoid<'ops>) =
     inherit AdaptiveObject()
 
-    abstract member Release : unit -> unit
     abstract member Compute : AdaptiveToken -> 'ops
 
     abstract member Apply : 'ops -> 'ops
@@ -36,13 +35,6 @@ type AbstractReader<'ops>(t : Monoid<'ops>) =
             else
                 t.mempty
         )   
-
-    member x.Dispose() =
-        x.Release()
-        x.Outputs.Consume() |> ignore
-
-    interface IDisposable with
-        member x.Dispose() = x.Dispose()
 
     interface IOpReader<'ops> with
         member x.GetOperations c = x.GetOperations c
@@ -388,7 +380,7 @@ module History =
             inherit ConstantObject()
 
             interface IOpReader<'ops> with
-                member x.GetOperations(caller) = t.tmonoid.mempty
+                member x.GetOperations(_caller) = t.tmonoid.mempty
     
             interface IOpReader<'s, 'ops> with
                 member x.State = t.tempty

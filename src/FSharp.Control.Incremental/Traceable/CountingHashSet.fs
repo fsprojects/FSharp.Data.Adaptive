@@ -46,7 +46,11 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
 
     member x.Count = store.Count
 
-    member private x.Store = store
+    member internal x.Store = store
+
+    member x.ToHashSet() =
+        let setStore = store.Store |> IntMap.map (List.map (fun struct(k,_) -> k))
+        HashSet(x.Count, setStore)
 
     member x.Contains (value : 'a) =
         HashMap.containsKey value store
@@ -204,6 +208,10 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
 
     static member OfHashMap (map : HashMap<'a, int>) =
         CountingHashSet map
+
+    static member OfHashSet (set : HashSet<'a>) =
+        let mapStore = set.Store |> IntMap.map (List.map (fun a -> struct(a,1)))
+        CountingHashSet(HashMap(set.Count, mapStore))
 
     member x.ComputeDelta(other : CountingHashSet<'a>) =
         // O(1)
@@ -434,9 +442,14 @@ module CountingHashSet =
     // O(n)
     let inline toArray (set : CountingHashSet<'a>) = set.ToArray()
     
+    let inline toHashSet (set : CountingHashSet<'a>) = set.ToHashSet()
+
 
     // O(1)
     let inline ofHashMap (map : HashMap<'a, int>) = CountingHashSet.OfHashMap map
+    
+    // O(n)
+    let inline ofHashSet (set : HashSet<'a>) = CountingHashSet.OfHashSet set
 
     // O(n)
     let inline ofSeq (seq : seq<'a>) = CountingHashSet.OfSeq seq

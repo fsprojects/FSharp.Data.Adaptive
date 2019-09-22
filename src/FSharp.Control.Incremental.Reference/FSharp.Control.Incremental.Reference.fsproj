@@ -11,6 +11,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ARef.fs" />
+    <Compile Include="ASet.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FSharp.Control.Incremental\FSharp.Control.Incremental.fsproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
