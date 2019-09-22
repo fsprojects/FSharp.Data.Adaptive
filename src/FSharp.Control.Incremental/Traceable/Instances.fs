@@ -3,6 +3,7 @@
 open FSharp.Control.Incremental
 
 
+/// functional operators for DHashSet.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module DHashSet =
     type private Monoid<'a> private() =
@@ -17,7 +18,8 @@ module DHashSet =
     /// the monoid instance for DHashSet
     [<GeneralizableValue>]
     let monoid<'a> = Monoid<'a>.Instance
-    
+   
+/// functional operators for DHashMap.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module DHashMap =
     type private Monoid<'k, 'v> private() =
@@ -34,7 +36,8 @@ module DHashMap =
     [<GeneralizableValue>]
     let monoid<'k, 'v> = Monoid<'k, 'v>.Instance
     
-
+    
+/// functional operators for HashSet.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module HashSet =
 
@@ -54,6 +57,7 @@ module HashSet =
     /// the traceable instance for HashSet.
     let trace<'a> = Traceable<'a>.Instance
  
+/// functional operators for HashMap.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module HashMap =
 

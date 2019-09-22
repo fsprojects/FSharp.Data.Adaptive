@@ -6,6 +6,9 @@ open System.Collections.Generic
 
 [<AutoOpen>]
 module internal HeapExtensions =
+    
+    // TODO: documentation
+
     let inline private swap (heap: List<'T>) (l: int) (r: int) =
         let t = heap.[l]
         heap.[l] <- heap.[r]

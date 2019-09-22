@@ -2,24 +2,21 @@
 
 open System.Collections.Generic
 
-/// <summary>
+
 /// Cache represents a cached function which can be 
 /// invoked and revoked. invoke increments the reference
 /// count for a specific argument (possibly causing the 
 /// function to be executed) whereas revoke decreases the
 /// reference count and removes the cache entry whenever
 /// the reference count is 0.
-/// </summary>
 type internal Cache<'a, 'b>(f : 'a -> 'b) =  
     let cache = Dictionary<obj, 'b * ref<int>>(1)
     let mutable nullCache = None
 
-    /// <summary>
     /// Clear removes all entries from the Cache and
     /// executes a function for all removed cache entries.
     /// this function is helpful if the contained values
     /// are (for example) disposable resources.
-    /// </summary>
     member x.Clear(remove : 'b -> unit) =
         for (KeyValue(_,(v,_))) in cache do 
             remove v
@@ -30,11 +27,9 @@ type internal Cache<'a, 'b>(f : 'a -> 'b) =
                 nullCache <- None
             | None -> ()
 
-    /// <summary>
     /// invoke returns the function value associated
     /// with the given argument (possibly executing the function)
     /// and increases the associated reference count.
-    /// </summary>
     member x.Invoke (v : 'a) =
         if isNull (v :> obj) then
             match nullCache with
@@ -54,10 +49,8 @@ type internal Cache<'a, 'b>(f : 'a -> 'b) =
                     let r = f v
                     cache.[v] <- (r, ref 1)
                     r
-    /// <summary>
     /// revoke returns the function value associated
     /// with the given argument and decreases its reference count.
-    /// </summary>
     member x.RevokeAndGetDeleted (v : 'a) =
         if isNull (v :> obj) then
             match nullCache with
@@ -79,7 +72,9 @@ type internal Cache<'a, 'b>(f : 'a -> 'b) =
                     else
                         (false, r)
                 | _ -> failwithf "cannot revoke unknown value: %A" v
-
+                
+    /// revoke returns the function value associated
+    /// with the given argument and decreases its reference count.
     member x.RevokeAndGetDeletedTotal (v : 'a) =
         if isNull (v :> obj) then
             match nullCache with
@@ -104,8 +99,10 @@ type internal Cache<'a, 'b>(f : 'a -> 'b) =
                 | _ -> 
                     None
 
+    /// revoke the value and return its associated cache value.
     member x.Revoke (v : 'a) =
         x.RevokeAndGetDeleted v |> snd
 
+    /// enumerate over all cache values.
     member x.Values = 
         cache.Values |> Seq.map fst

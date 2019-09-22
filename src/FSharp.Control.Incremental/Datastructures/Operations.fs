@@ -61,6 +61,8 @@ module SetDeltaExtensions =
         if d.Count > 0 then Add(d.Count, d.Value)
         else Rem(-d.Count, d.Value)
 
+/// reprensents a element operation (Set/Remove) without its key.
+/// typically datastructures will hold (key * ElementOperation) tuples.
 [<Struct>]
 type ElementOperation<'a> =
     | Set of 'a

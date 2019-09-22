@@ -242,7 +242,13 @@ module Transaction =
                         elif x.Outputs.IsEmpty then x.OutOfDate <- true
                         else failwith "cannot mark object without transaction"
                     )
-
+                    
+        /// utility for marking adaptive object as outOfDate.
+        /// Note that this function will actually enqueue the
+        /// object to the current transaction and will fail if
+        /// no current transaction can be found.
+        /// However objects which are already outOfDate might
+        /// also be "marked" when not having a current transaction.
         member x.MarkOutdated (fin : unit -> unit) =
             match getCurrentTransaction() with
                 | Some t -> 

@@ -1,5 +1,7 @@
 ﻿namespace FSharp.Control.Incremental
 
+// TODO: documentation
+
 open FSharp.Control.Traceable
 
 [<Sealed>]

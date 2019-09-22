@@ -1,5 +1,7 @@
 ﻿namespace FSharp.Control.Incremental
 
+// TODO: documentation
+
 [<Sealed>]
 type cset<'T> =
     interface aset<'T>

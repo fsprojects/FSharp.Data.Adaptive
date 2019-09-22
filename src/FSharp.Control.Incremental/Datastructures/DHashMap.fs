@@ -1,5 +1,7 @@
 ﻿namespace FSharp.Control.Incremental
 
+// TODO: documentation
+
 open System
 open System.Collections
 open System.Collections.Generic

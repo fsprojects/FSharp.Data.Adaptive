@@ -1,8 +1,10 @@
 ﻿namespace FSharp.Control.Incremental
 
+/// differentiation extensions for several immutable datastructures.
 [<AutoOpen>]
 module DifferentiationExtensions =
 
+    /// Functional programming operators related to the HashSet<_> type.
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module HashSet =
         /// determines the operations needed to transform l into r.
@@ -121,6 +123,7 @@ module DifferentiationExtensions =
 
                 res, effective
 
+    /// Functional programming operators related to the HashMap<_,_> type.
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module HashMap =
     
