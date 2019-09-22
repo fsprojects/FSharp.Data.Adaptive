@@ -524,11 +524,11 @@ module CountingHashSet =
     let inline traceNoRefCount<'a> = CountingHashSet<'a>.TraceNoRefCount
 
     // O(n + m)
-    let inline computeDelta (src : CountingHashSet<'a>) (dst : CountingHashSet<'a>) =
+    let inline differentiate (src : CountingHashSet<'a>) (dst : CountingHashSet<'a>) =
         src.ComputeDelta dst
 
     // O(|delta| * min(32, n))
-    let inline applyDelta (set : CountingHashSet<'a>) (delta : DHashSet<'a>) =
+    let inline integrate (set : CountingHashSet<'a>) (delta : DHashSet<'a>) =
         set.ApplyDelta delta
 
     // O(|delta| * min(32, n))

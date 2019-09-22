@@ -11,7 +11,7 @@ nuget FsCheck.Xunit                         ~> 2.14.0
 nuget Microsoft.NET.Test.Sdk                ~> 16.2.0
 nuget xunit                                 ~> 2.4.1
 nuget xunit.runner.visualstudio             ~> 2.4.1
-nuget XunitXml.TestLogger                   
+nuget BenchmarkDotNet                       ~> 0.11.5
 
 group Build
 source https://api.nuget.org/v3/index.json

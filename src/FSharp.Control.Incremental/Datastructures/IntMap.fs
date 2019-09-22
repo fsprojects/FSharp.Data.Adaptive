@@ -140,6 +140,29 @@ module internal IntMap =
             else None
         | _ -> None
 
+    let rec tryRemove k n =
+        match n with
+        | Bin(p, m, l, r) ->
+            if nomatch k p m then 
+                None
+            elif zero k m then 
+                match tryRemove k l with
+                | Some (v, l') ->
+                    Some (v, bin p m l' r)
+                | None ->
+                    None
+            else    
+                match tryRemove k r with
+                | Some (v, r') ->
+                    Some (v, bin p m l r')
+                | None ->
+                    None
+        | Tip(kx, x) ->
+            if kx = k then Some (x, Nil)
+            else None
+        | _ ->
+            None
+
     ///O(min(n,W)). Is the key a member of the map? Credit: Haskell.org
     let rec exists k =
         function

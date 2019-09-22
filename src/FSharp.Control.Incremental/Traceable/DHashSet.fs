@@ -51,6 +51,10 @@ type DHashSet<'a>(store : HashMap<'a, int>) =
     member x.Remove (op : SetOperation<'a>) =
         x.Add op.Inverse
 
+    /// the inverse operations for the given set.
+    member x.Inverse =
+        store |> HashMap.map (fun _ v -> -v) |> DHashSet
+
     /// combines two DHashSets to one using a reference counting implementation.
     member x.Combine (other : DHashSet<'a>) =
         if store.IsEmpty then 
@@ -120,7 +124,7 @@ type DHashSet<'a>(store : HashMap<'a, int>) =
             f s (SetOperation(k,v))
         ) seed
 
-    /// checks whether a entry fulfilling the predicate exists.
+    /// checks whether an entry fulfilling the predicate exists.
     member x.Exists (f : SetOperation<'a> -> bool) =
         store |> HashMap.exists (fun k v -> f (SetOperation(k,v)))
         
@@ -210,75 +214,102 @@ and private DHashSetEnumerator<'a>(store : HashMap<'a, int>) =
 /// functional operators for DHashSet.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module DHashSet =
+    /// the monoid instance for DHashSet
+    [<GeneralizableValue>]
     let inline monoid<'a> = DHashSet<'a>.Monoid
 
+    /// the empty set.
+    [<GeneralizableValue>]
     let inline empty<'a> = DHashSet<'a>.Empty
 
+    /// the inverse operations for the given set.
+    let inline inverse (set : DHashSet<'a>) = set.Inverse
+
+    /// is the set empty?
     let inline isEmpty (set : DHashSet<'a>) = set.IsEmpty
     
+    /// the number of operations contained in the DHashSet.
     let inline count (set : DHashSet<'a>) = set.Count
 
+    /// creates a set from a single operation.
     let inline single (op : SetOperation<'a>) =
         DHashSet(HashMap.single op.Value op.Count)
 
+    /// creates a DHashSet using the given operations.
     let inline ofSeq (seq : seq<SetOperation<'a>>) =
         DHashSet.OfSeq seq
 
+    /// creates a DHashSet using the given operations.
     let inline ofList (list : list<SetOperation<'a>>) =
         DHashSet.OfList list
 
+    /// creates a DHashSet using the given operations.
     let inline ofArray (arr : array<SetOperation<'a>>) =
         DHashSet.OfArray arr
         
+    /// creates a DHashSet using the given operations.
+    /// note that the values from the map are interpreted as reference-deltas and should therefore not be 0.
     let inline ofHashMap (map : HashMap<'a, int>) =
         DHashSet map
 
-
+    /// creates a seq containing all operations from the set.
     let inline toSeq (set : DHashSet<'a>) =
         set.ToSeq()
 
+    /// creates a list containing all operations from the set.
     let inline toList (set : DHashSet<'a>) =
         set.ToList()
         
+    /// creates an array containing all operations from the set.
     let inline toArray (set : DHashSet<'a>) =
         set.ToArray()
 
+    /// creates a HashMap containing all operations from the set.
+    /// note that this works in O(1).
     let inline toHashMap (set : DHashSet<'a>) =
         set.ToMap()
 
-
+    /// adds a SetOperation to the DHashSet.
     let inline add (value : SetOperation<'a>) (set : DHashSet<'a>) =
         set.Add value
 
+    /// removes a SetOperation from the DHashSet.
     let inline remove (value : SetOperation<'a>) (set : DHashSet<'a>) =
         set.Remove value
 
+    /// combines two DHashSets to one using a reference counting implementation.
     let inline combine (l : DHashSet<'a>) (r : DHashSet<'a>) =
         l.Combine r
 
-
+    /// applies the mapping function to all operations in the set.
     let inline map (f : SetOperation<'a> -> SetOperation<'b>) (set : DHashSet<'a>) =
         set.Map f
 
+    /// applies the mapping function to all operations in the set.
     let inline choose (f : SetOperation<'a> -> Option<SetOperation<'b>>) (set : DHashSet<'a>) =
         set.Choose f
 
+    /// filters the operations contains using the given predicate.
     let inline filter (f : SetOperation<'a> -> bool) (set : DHashSet<'a>) =
         set.Filter f
 
+    /// applies the mapping function to all operations in the set and combines all the results.
     let inline collect (f : SetOperation<'a> -> DHashSet<'b>) (set : DHashSet<'a>) =
         set.Collect f
 
-
+    /// iterates over all operations in the set.
     let inline iter (iterator : SetOperation<'a> -> unit) (set : DHashSet<'a>) =
         set.Iter iterator
 
+    /// checks whether an entry fulfilling the predicate exists.
     let inline exists (predicate : SetOperation<'a> -> bool) (set : DHashSet<'a>) =
         set.Exists predicate
 
+    /// checks whether all entries fulfill the predicate exists.
     let inline forall (predicate : SetOperation<'a> -> bool) (set : DHashSet<'a>) =
         set.Forall predicate
 
+    /// folds over the set.
     let inline fold (folder : 's -> SetOperation<'a> -> 's) (seed : 's) (set : DHashSet<'a>) =
         set.Fold(seed, folder)
 
@@ -303,6 +334,38 @@ module HashSet =
         
         // TODO: |l|*log|r| and |r|*log|l| implementations should exists
         // which will most likely be faster than |l|+|r| when one of the sets is small.
+
+        // O(max |l| |r|*log|l|)
+        elif r.Count * 5 < l.Count then
+            // r is small
+            let mutable lStore = l.Store
+            let mutable cnt = 0
+
+            // O(|r|*log|l|)
+            let deltaR = 
+                r.Store |> IntMap.mapOptionWithKey (fun hash rValues ->
+                    match IntMap.tryRemove hash lStore with
+                    | Some (lValues, rest) ->
+                        lStore <- rest
+                        (lValues, rValues) ||> HashSetList.mergeWithOption (fun _value l r ->
+                            if l && not r then cnt <- cnt + 1; Some -1
+                            elif r && not l then cnt <- cnt + 1; Some 1
+                            else None
+                        )
+
+                    | None ->
+                        rValues
+                        |> List.map (fun v -> cnt <- cnt + 1; struct(v,1))
+                        |> Some
+                )
+            // O(|l|)
+            let deltaL =
+                lStore 
+                |> IntMap.map (List.map (fun v -> cnt <- cnt + 1; struct(v,-1)))
+
+            let deltas = IntMap.append deltaL deltaR
+
+            DHashSet(HashMap(cnt, deltas))
 
         // O(|l| + |r|)
         else
@@ -368,6 +431,7 @@ module HashSet =
 
             res, effective
 
+    /// type for caching the Traceable<_> instance for HashSet<_>
     type private Traceable<'a> private() =
         static let trace : Traceable<HashSet<'a>, DHashSet<'a>> =
             {

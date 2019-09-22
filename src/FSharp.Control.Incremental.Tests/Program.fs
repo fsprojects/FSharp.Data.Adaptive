@@ -1,6 +1,5 @@
 ﻿module Program
 
 [<EntryPoint>]
-let main args =
-    History.``[History] weak``()
+let main _args =
     0
