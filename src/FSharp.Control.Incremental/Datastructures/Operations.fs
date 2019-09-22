@@ -60,3 +60,8 @@ module SetDeltaExtensions =
     let inline (|Add|Rem|) (d : SetOperation<'a>) =
         if d.Count > 0 then Add(d.Count, d.Value)
         else Rem(-d.Count, d.Value)
+
+[<Struct>]
+type ElementOperation<'a> =
+    | Set of 'a
+    | Remove

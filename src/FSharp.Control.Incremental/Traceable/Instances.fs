@@ -17,6 +17,23 @@ module DHashSet =
     /// the monoid instance for DHashSet
     [<GeneralizableValue>]
     let monoid<'a> = Monoid<'a>.Instance
+    
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module DHashMap =
+    type private Monoid<'k, 'v> private() =
+        /// the monoid instance for DHashMap
+        static let monoid =
+            {
+                mempty = DHashMap.empty<'k, 'v>
+                mappend = fun l r -> l.Combine r
+                misEmpty = fun s -> s.IsEmpty
+            }
+        static member Instance = monoid
+
+    /// the monoid instance for DHashMap
+    [<GeneralizableValue>]
+    let monoid<'k, 'v> = Monoid<'k, 'v>.Instance
+    
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module HashSet =
@@ -36,4 +53,23 @@ module HashSet =
 
     /// the traceable instance for HashSet.
     let trace<'a> = Traceable<'a>.Instance
+ 
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module HashMap =
+
+    /// type for caching the Traceable<_> instance for HashMap<_,_>
+    type private TraceableInstance<'k, 'v> private() =
+        static let trace : Traceable<HashMap<'k, 'v>, DHashMap<'k, 'v>> =
+            {
+                tempty = HashMap.empty
+                tdifferentiate = HashMap.differentiate
+                tintegrate = HashMap.integrate
+                tmonoid = DHashMap.monoid
+                tprune = None
+                tsize = fun s -> s.Count
+            }
+        static member Instance = trace
+
+    /// the traceable instance for HashSet.
+    let trace<'k, 'v> = TraceableInstance<'k, 'v>.Instance
      

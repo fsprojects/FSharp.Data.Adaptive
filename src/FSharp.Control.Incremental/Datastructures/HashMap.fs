@@ -308,6 +308,15 @@ type HashMap<'k, [<EqualityConditionalOn>] 'v> internal(cnt : int, store : intma
             | Some l -> l |> List.exists (fun struct (k,_) -> Unchecked.equals k key)
             | None -> false
         
+    /// creates a HashSet holding all keys from the map.
+    /// `O(N)`
+    member x.GetKeys() =
+        let setStore =
+            store |> IntMap.map (
+                List.map (fun struct(k,_v) -> k)
+            )
+        HashSet(cnt, setStore)
+
 
     /// creates a new map (with the same keys) by applying the given function to all entries.
     /// `O(N)`
@@ -857,6 +866,10 @@ module HashMap =
     /// tests if an entry for the given key exists. `O(log N)`
     let inline containsKey (key : 'k) (map : HashMap<'k, 'v>) =
         map.ContainsKey key
+
+    /// creates a HashSet holding all keys from the map.
+    /// `O(N)`
+    let inline keys (map : HashMap<'k, 'v>) = map.GetKeys()
 
     /// the number of elements in the map `O(1)`
     let inline count (map : HashMap<'k, 'v>) = map.Count

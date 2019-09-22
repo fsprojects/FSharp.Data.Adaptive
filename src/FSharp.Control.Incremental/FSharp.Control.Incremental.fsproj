@@ -16,11 +16,12 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
 	<Compile Include="Datastructures\IntMap.fs" />
-	<Compile Include="Datastructures\HashMap.fs" />
 	<Compile Include="Datastructures\HashSet.fs" />
+	<Compile Include="Datastructures\HashMap.fs" />
 	<Compile Include="Datastructures\Operations.fs" />
 	<Compile Include="Datastructures\DHashSet.fs" />
-	<Compile Include="Datastructures\Extensions.fs" />
+	<Compile Include="Datastructures\DHashMap.fs" />
+	<Compile Include="Datastructures\Differentiation.fs" />
 	<Compile Include="Utilities\Utilities.fs" />
 	<Compile Include="Utilities\PriorityQueue.fs" />
 	<Compile Include="Utilities\Cache.fs" />

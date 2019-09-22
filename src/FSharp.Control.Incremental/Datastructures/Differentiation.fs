@@ -1,22 +1,7 @@
 ﻿namespace FSharp.Control.Incremental
 
-open System.Runtime.CompilerServices
-
-[<AbstractClass; Sealed; Extension>]
-type CollectionExtensions private() =
-    /// creates a HashSet holding all keys from the map.
-    /// `O(N)`
-    [<Extension>]
-    static member GetKeys(map : HashMap<'k, 'v>) =
-        let setStore =
-            map.Store |> IntMap.map (
-                List.map (fun struct(k,_v) -> k)
-            )
-        HashSet(map.Count, setStore)
-
-
 [<AutoOpen>]
-module CollectionExtensions =
+module DifferentiationExtensions =
 
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module HashSet =
@@ -136,10 +121,67 @@ module CollectionExtensions =
 
                 res, effective
 
-
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module HashMap =
-        /// creates a HashSet holding all keys from the map.
-        /// `O(N)`
-        let inline keys (map : HashMap<'k, 'v>) = map.GetKeys()
+    
+        /// determines the operations needed to transform l into r.
+        /// returns a DHashMap containing all the needed operations.
+        let differentiate (l : HashMap<'k, 'v>) (r : HashMap<'k, 'v>) : DHashMap<'k, 'v> =
+            if System.Object.ReferenceEquals(l.Store, r.Store) then
+                DHashMap.empty
+            elif l.Count = 0 && r.Count = 0 then
+                DHashMap.empty
+            elif l.Count = 0 then
+                r |> HashMap.map (fun _ v -> Set v) |> DHashMap
+            elif r.Count = 0 then
+                l |> HashMap.map (fun _ _ -> Remove) |> DHashMap
+            else
+                // TODO: one small???
+                let merge (_key : 'k) (l : Option<'v>) (r : Option<'v>) =
+                    match l, r with
+                        | None, None -> None
+                        | Some l, None -> Some Remove
+                        | None, Some r -> Some (Set r)
+                        | Some l, Some r ->
+                            if Unchecked.equals l r then None
+                            else Some (Set r)
+                HashMap.choose2 merge l r |> DHashMap
+                
+        /// applies the given operations to the map. 
+        /// returns the new map and the 'effective' operations.
+        let integrate (m : HashMap<'k, 'v>) (delta : DHashMap<'k, 'v>) =
+            if delta.Count = 0 then
+                m, delta
+            elif m.Count = 0 then
+                let state, delta = 
+                    delta.Store.ChooseTup(fun _ op ->
+                        match op with
+                        | Set v -> Some (v, Set v)
+                        | _ -> None
+                    )
+                state, DHashMap delta
+            else
+                let mutable effective = HashMap.empty
+                let mutable m = m
+                for (k,v) in delta do
+                    m <- m.Alter(k, fun o ->
+                        match o, v with
+                            | Some o, Remove ->
+                                effective <- HashMap.add k Remove effective
+                                None
+                            | None, Remove ->
+                                None
+
+                            | None, Set n ->
+                                effective <- HashMap.add k (Set n) effective
+                                Some n
+
+                            | Some o, Set n ->
+                                if not (Unchecked.equals o n) then
+                                    effective <- HashMap.add k (Set n) effective
+
+                                Some n
+                    )
+
+                m, DHashMap effective
 
