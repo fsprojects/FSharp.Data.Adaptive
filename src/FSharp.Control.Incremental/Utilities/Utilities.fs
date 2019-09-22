@@ -6,14 +6,14 @@ open System.Collections.Generic
 
 [<AutoOpen>]
 module internal HeapExtensions =
-    
-    // TODO: documentation
-
+    /// swaps the given elements inside the list.
     let inline private swap (heap: List<'T>) (l: int) (r: int) =
         let t = heap.[l]
         heap.[l] <- heap.[r]
         heap.[r] <- t
 
+    /// moves an element in the list 'up' in heap-order.
+    /// assumes that the list is in heap-order except for the given element.
     let rec private bubbleUp (heap: List<'T>) (compare: OptimizedClosures.FSharpFunc<'T, 'T, int>) (i: int) (v: 'T) =
         if i > 0 then
             let pi = (i - 1) >>> 1
@@ -22,7 +22,9 @@ module internal HeapExtensions =
             if compare.Invoke(pe, v) > 0 then
                 swap heap pi i
                 bubbleUp heap compare pi v
-
+                
+    /// moves an element in the list 'down' in heap-order.
+    /// assumes that the list is in heap-order except for the given element.
     let rec private pushDown (heap: List<'T>) (compare: OptimizedClosures.FSharpFunc<'T, 'T, int>) (i: int) (v: 'T) =
         let li = (i <<< 1) + 1
         let ri = li + 1
@@ -48,16 +50,18 @@ module internal HeapExtensions =
                 pushDown heap compare ri v
          
     type List<'T> with
-
+        /// enqueues an element  to the list in heap-order.
         member x.HeapEnqueue(compare: OptimizedClosures.FSharpFunc<'T, 'T, int>, value: 'T): unit =
             let index = x.Count
             x.Add value
             bubbleUp x compare index value
             
+        /// enqueues an element to the list in heap-order.
         member x.HeapEnqueue(compare: 'T -> 'T -> int, value: 'T): unit =
             let compare = OptimizedClosures.FSharpFunc<'T, 'T, int>.Adapt(compare)
             x.HeapEnqueue(compare, value)
-
+            
+        /// dequeues the smallest element from the heap-order list.
         member x.HeapDequeue(compare: OptimizedClosures.FSharpFunc<'T, 'T, int>): 'T =
             if x.Count = 0 then raise <| ArgumentException("heap empty")
             let result = x.[0]
@@ -68,6 +72,7 @@ module internal HeapExtensions =
             pushDown x compare 0 l
             result
 
+        /// dequeues the smallest element from the heap-order list.
         member x.HeapDequeue(compare: 'T -> 'T -> int) =
             let compare = OptimizedClosures.FSharpFunc<'T, 'T, int>.Adapt(compare)
             x.HeapDequeue(compare)
