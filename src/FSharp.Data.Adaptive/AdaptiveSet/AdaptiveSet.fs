@@ -673,8 +673,10 @@ module ASet =
     let foldGroup (add : 'S -> 'A -> 'S) (sub : 'S -> 'A -> 'S) (zero : 'S) (s : aset<'A>) =
         foldHalfGroup add (fun a b -> Some (sub a b)) zero s
 
-    let inline sum (set : aset<'T>) =
+    /// adaptively computes the sum all entries in the set.
+    let inline sum (set : aset<'A>) =
         foldGroup (+) (-) LanguagePrimitives.GenericZero set
 
+    /// adaptively computes the product of all entries in the set.
     let inline product (set : aset<'T>) =
         foldGroup (*) (/) LanguagePrimitives.GenericOne set

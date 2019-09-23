@@ -93,12 +93,12 @@ module ASet =
 
     /// adaptively computes the sum all entries in the set.
     val inline sum<'A, 'B 
-                    when ('A or 'B) : (static member (+) : 'A -> 'B -> 'A) 
-                    and ('A or 'B) : (static member (-) : 'A -> 'B -> 'A) 
+                    when ('A or 'B) : (static member (+) : 'B -> 'A -> 'B) 
+                    and ('A or 'B) : (static member (-) : 'B -> 'A -> 'B) 
                     and 'B : (static member Zero : 'B)> : set : aset<'A> -> aref<'B>
 
     /// adaptively computes the product of all entries in the set.
     val inline product<'A, 'B 
-                        when ('A or 'B) : (static member (*) : 'A -> 'B -> 'A) 
-                        and ('A or 'B) : (static member (/) : 'A -> 'B -> 'A) 
+                        when ('A or 'B) : (static member (*) : 'B -> 'A -> 'B) 
+                        and ('A or 'B) : (static member (/) : 'B -> 'A -> 'B) 
                         and 'B : (static member One : 'B)> : set : aset<'A> -> aref<'B>

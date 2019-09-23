@@ -133,7 +133,6 @@ let ``[ASet] filter``(values : list<Set<int>>) =
         reader |> check |> ignore
         i <- i + 1
 
-
 [<Property>]
 let ``[ASet] union``(all : list<list<Set<int>>>) =
     
