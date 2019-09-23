@@ -63,7 +63,7 @@ let ``[IntMap] computeDelta`` (data : list<int>) (value : int) =
     // delta from map to empty
     computeDelta map IntMap.empty 
     |> IntMap.toList |> List.sortBy fst
-    |> should equal (List.map (fun (k,_v) -> k, Option<int>.None) sorted)
+    |> should equal (List.map (fun (k,_v) -> k, option<int>.None) sorted)
 
     // delta for all elements
     computeDelta map map2

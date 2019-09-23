@@ -8,7 +8,7 @@ type IOpReader<'ops> =
     inherit IAdaptiveObject
 
     /// dependency-aware evaluation of the reader
-    abstract member GetOperations : AdaptiveToken -> 'ops
+    abstract member GetOperations: AdaptiveToken -> 'ops
 
 /// an adaptive reader thath allows to get operations and also exposes its current state.
 type IOpReader<'s, 'ops> =
@@ -16,19 +16,19 @@ type IOpReader<'s, 'ops> =
 
     /// the latest state of the Reader.
     /// note that the state gets updated after each evaluation (GetOperations)
-    abstract member State : 's
+    abstract member State: 's
 
 /// abstract base class for implementing IOpReader<_>
 [<AbstractClass>]
-type AbstractReader<'ops>(t : Monoid<'ops>) =
+type AbstractReader<'ops>(t: Monoid<'ops>) =
     inherit AdaptiveObject()
 
-    abstract member Compute : AdaptiveToken -> 'ops
+    abstract member Compute: AdaptiveToken -> 'ops
 
-    abstract member Apply : 'ops -> 'ops
+    abstract member Apply: 'ops -> 'ops
     default x.Apply o = o
 
-    member x.GetOperations(token : AdaptiveToken) =
+    member x.GetOperations(token: AdaptiveToken) =
         x.EvaluateAlways token (fun token ->
             if x.OutOfDate then
                 x.Compute token |> x.Apply
@@ -41,7 +41,7 @@ type AbstractReader<'ops>(t : Monoid<'ops>) =
 
 /// abstract base class for implementing IOpReader<_,_>
 [<AbstractClass>]
-type AbstractReader<'s, 'ops>(t : Traceable<'s, 'ops>) =
+type AbstractReader<'s, 'ops>(t: Traceable<'s, 'ops>) =
     inherit AbstractReader<'ops>(t.tmonoid)
 
     let mutable state = t.tempty
@@ -57,7 +57,7 @@ type AbstractReader<'s, 'ops>(t : Traceable<'s, 'ops>) =
 
 /// abstract base class for implementing IOpReader<_> when dirty inputs are needed on evaluation.
 [<AbstractClass>]
-type AbstractDirtyReader<'t, 'ops when 't :> IAdaptiveObject>(t : Monoid<'ops>) =
+type AbstractDirtyReader<'t, 'ops when 't :> IAdaptiveObject>(t: Monoid<'ops>) =
     inherit AdaptiveObject()
 
     let dirty = ref <| System.Collections.Generic.HashSet<'t>()
@@ -67,12 +67,12 @@ type AbstractDirtyReader<'t, 'ops when 't :> IAdaptiveObject>(t : Monoid<'ops>) 
         | :? 't as o -> lock dirty (fun () -> dirty.Value.Add o |> ignore)
         | _ -> ()
 
-    abstract member Compute : AdaptiveToken * System.Collections.Generic.HashSet<'t> -> 'ops
+    abstract member Compute: AdaptiveToken * System.Collections.Generic.HashSet<'t> -> 'ops
 
-    abstract member Apply : 'ops -> 'ops
+    abstract member Apply: 'ops -> 'ops
     default x.Apply o = o
 
-    member x.GetOperations(token : AdaptiveToken) =
+    member x.GetOperations(token: AdaptiveToken) =
         x.EvaluateAlways token (fun token ->
             if x.OutOfDate then
                 let dirty = 
@@ -93,11 +93,11 @@ type AbstractDirtyReader<'t, 'ops when 't :> IAdaptiveObject>(t : Monoid<'ops>) 
 [<AllowNullLiteral>]
 type internal RelevantNode<'s, 'a> =
     class
-        val mutable public Prev : WeakReference<RelevantNode<'s, 'a>>
-        val mutable public Next : RelevantNode<'s, 'a>
-        val mutable public RefCount : int
-        val mutable public BaseState : 's
-        val mutable public Value : 'a
+        val mutable public Prev: WeakReference<RelevantNode<'s, 'a>>
+        val mutable public Next: RelevantNode<'s, 'a>
+        val mutable public RefCount: int
+        val mutable public BaseState: 's
+        val mutable public Value: 'a
             
         new(p, s, v, n) = { Prev = p; Next = n; RefCount = 0; BaseState = s; Value = v }
     end
@@ -105,19 +105,19 @@ type internal RelevantNode<'s, 'a> =
 /// History and HistoryReader are the central implementation for traceable data-types.
 /// The allow to construct a dependent History (by passing an input-reader) or imperatively
 /// performing operations on the history while keeping track of all output-versions that may exist.
-type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceable<'s, 'op>, finalize : 'op -> unit) =
+type History<'s, 'op> private(input: option<Lazy<IOpReader<'op>>>, t: Traceable<'s, 'op>, finalize: 'op -> unit) =
     inherit AdaptiveObject()
 
     /// the current state of the History
-    let mutable state   : 's = t.tempty
+    let mutable state  : 's = t.tempty
 
     /// the (weak) latest version known in the history
-    let mutable last    : WeakReference<RelevantNode<'s, 'op>> = null
+    let mutable last   : WeakReference<RelevantNode<'s, 'op>> = null
     
     let mutable appendCounter = 0
 
     /// gets the predecessor for a given node (null if none).
-    let getPrev (node : RelevantNode<'s, 'op>) =
+    let getPrev (node: RelevantNode<'s, 'op>) =
         if isNull node || isNull node.Prev then 
             null
         else
@@ -141,7 +141,7 @@ type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceabl
             struct (null, 0)
 
     /// destroys nodes recursicely until shouldPrune returns false or the history is empty.
-    let rec pruneNode (shouldPrune : 's -> int -> bool) (totalDeltaSize : int) (first : RelevantNode<'s, 'op>) =
+    let rec pruneNode (shouldPrune: 's -> int -> bool) (totalDeltaSize: int) (first: RelevantNode<'s, 'op>) =
         if not (isNull first) && shouldPrune first.BaseState totalDeltaSize then
             let size = t.tsize first.Value
             let next = first.Next
@@ -173,7 +173,7 @@ type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceabl
 
     /// appends operations to the history and updates the state
     /// returns whether or not the operation effectively changed the state
-    let append (op : 'op) =
+    let append (op: 'op) =
         // only append non-empty ops
         if not (t.tmonoid.misEmpty op) then
             // apply the op to the state
@@ -229,7 +229,7 @@ type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceabl
               
     /// merges the ops in node into its predecessor (if any) and deletes the node from the History.
     /// returns the next version and the operations from the (deleted) node
-    let mergeIntoPrev (node : RelevantNode<'s, 'op>) =
+    let mergeIntoPrev (node: RelevantNode<'s, 'op>) =
         if node.RefCount = 1 then
             let res = node.Value
             let next = node.Next
@@ -260,11 +260,11 @@ type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceabl
             node.Value, node.Next      
 
     /// determines whether or not the node is invalid
-    let isInvalid (node : RelevantNode<'s, 'op>) =
+    let isInvalid (node: RelevantNode<'s, 'op>) =
         isNull node || node.RefCount < 0
 
     /// used internally to pull the latest deltas from the input and append them to the history
-    member private x.Update (self : AdaptiveToken) =
+    member private x.Update (self: AdaptiveToken) =
         if x.OutOfDate then
             match input with
                 | Some c -> 
@@ -281,7 +281,7 @@ type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceabl
 
     /// imperatively performs operations on the history (similar to ModRef.Value <- ...).
     /// since the history may need to be marked a Transaction needs to be current.
-    member x.Perform(op : 'op) =
+    member x.Perform(op: 'op) =
         let changed = lock x (fun () -> append op)
         if changed then
             x.MarkOutdated()
@@ -292,7 +292,7 @@ type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceabl
     /// used by HistoryReader to pull the operations since the old RelevantNode.
     /// additionaly the reader provides its latest state. 
     /// this way the history can differentiate the state in case it decided to drop the old version.
-    member internal x.Read(token : AdaptiveToken, old : RelevantNode<'s, 'op>, oldState : 's) =
+    member internal x.Read(token: AdaptiveToken, old: RelevantNode<'s, 'op>, oldState: 's) =
         x.EvaluateAlways token (fun token ->
             x.Update token
 
@@ -315,7 +315,7 @@ type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceabl
         )
         
     /// adaptively gets the history's current state
-    member x.GetValue(token : AdaptiveToken) =
+    member x.GetValue(token: AdaptiveToken) =
         x.EvaluateAlways token (fun token ->
             x.Update token
             state
@@ -329,16 +329,16 @@ type History<'s, 'op> private(input : Option<Lazy<IOpReader<'op>>>, t : Traceabl
     interface aref<'s> with
         member x.GetValue t = x.GetValue t
 
-    new (t : Traceable<'s, 'op>, finalize : 'op -> unit) = History<'s, 'op>(None, t, finalize)
-    new (input : unit -> IOpReader<'op>, t : Traceable<'s, 'op>, finalize : 'op -> unit) = History<'s, 'op>(Some (lazy (input())), t, finalize)
-    new (t : Traceable<'s, 'op>) = History<'s, 'op>(None, t, ignore)
-    new (input : unit -> IOpReader<'op>, t : Traceable<'s, 'op>) = History<'s, 'op>(Some (lazy (input())), t, ignore)
+    new (t: Traceable<'s, 'op>, finalize: 'op -> unit) = History<'s, 'op>(None, t, finalize)
+    new (input: unit -> IOpReader<'op>, t: Traceable<'s, 'op>, finalize: 'op -> unit) = History<'s, 'op>(Some (lazy (input())), t, finalize)
+    new (t: Traceable<'s, 'op>) = History<'s, 'op>(None, t, ignore)
+    new (input: unit -> IOpReader<'op>, t: Traceable<'s, 'op>) = History<'s, 'op>(Some (lazy (input())), t, ignore)
 
 /// HistoryReader implements IOpReader<_,_> and takes care of managing versions correctly.
-and internal HistoryReader<'s, 'op>(h : History<'s, 'op>) =
+and internal HistoryReader<'s, 'op>(h: History<'s, 'op>) =
     inherit AdaptiveObject()
     let trace = h.Trace
-    let mutable node : RelevantNode<'s, 'op> = null
+    let mutable node: RelevantNode<'s, 'op> = null
     let mutable state = trace.tempty
 
     member x.RelevantNode = 
@@ -347,7 +347,7 @@ and internal HistoryReader<'s, 'op>(h : History<'s, 'op>) =
     member x.DestroyRelevantNode() =
         node <- null
 
-    member x.GetOperations(token : AdaptiveToken) =
+    member x.GetOperations(token: AdaptiveToken) =
         x.EvaluateAlways token (fun token ->
             if x.OutOfDate then
                 let nt, ops = h.Read(token, node, state)
@@ -368,7 +368,7 @@ and internal HistoryReader<'s, 'op>(h : History<'s, 'op>) =
 module History =
 
     module Readers =
-        type EmptyReader<'s, 'ops>(t : Traceable<'s, 'ops>) =
+        type EmptyReader<'s, 'ops>(t: Traceable<'s, 'ops>) =
             inherit ConstantObject()
 
             interface IOpReader<'ops> with
@@ -377,7 +377,7 @@ module History =
             interface IOpReader<'s, 'ops> with
                 member x.State = t.tempty
 
-        type ConstantReader<'s, 'ops>(t : Traceable<'s, 'ops>, ops : Lazy<'ops>, finalState : Lazy<'s>) =
+        type ConstantReader<'s, 'ops>(t: Traceable<'s, 'ops>, ops: Lazy<'ops>, finalState: Lazy<'s>) =
             inherit ConstantObject()
             
             let mutable state = t.tempty
@@ -399,6 +399,6 @@ module History =
     
     /// creates a history depending on the given reader. 
     /// the history will internally use the given traceable instance.
-    let ofReader (t : Traceable<'s, 'ops>) (newReader : unit -> IOpReader<'ops>) =
+    let ofReader (t: Traceable<'s, 'ops>) (newReader: unit -> IOpReader<'ops>) =
         History<'s, 'ops>(newReader, t)
 

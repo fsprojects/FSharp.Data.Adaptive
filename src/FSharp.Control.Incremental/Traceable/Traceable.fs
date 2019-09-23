@@ -1,40 +1,40 @@
 ﻿namespace FSharp.Control.Traceable
 
 /// function table for a monoid instance
-type Monoid<'a> =
+type Monoid<'T> =
     {
         /// determines whether the given value is empty
-        misEmpty : 'a -> bool
+        misEmpty: 'T -> bool
 
         /// the empty element
-        mempty : 'a
+        mempty: 'T
 
         /// appends to values
-        mappend : 'a -> 'a -> 'a
+        mappend: 'T -> 'T -> 'T
     }
 
 /// function table for a traceable instance
-type Traceable<'s, 'ops> =
+type Traceable<'state, 'ops> =
     {
         /// the monoid instance for 'ops
-        tmonoid : Monoid<'ops>
+        tmonoid: Monoid<'ops>
 
         /// the empty state
-        tempty : 's
+        tempty: 'state
 
         /// applies the given operations to the state and 
         /// returns the new state accompanied by (possibly) reduced ops (removing useless ops)
-        tintegrate : 's -> 'ops -> 's * 'ops
+        tintegrate: 'state -> 'ops -> 'state * 'ops
 
         /// differentiates two states and returns the needed ops
-        tdifferentiate : 's -> 's -> 'ops
+        tdifferentiate: 'state -> 'state -> 'ops
 
-        /// determines the size of an operation
-        tsize : 'ops -> int
+        /// Determines the size of an operation
+        tsize: 'ops -> int
 
-        /// determines whether or not a history should be pruned although it is still referentiable.
+        /// Determines whether or not a history should be pruned although it is still referentiable.
         /// the first argument is the base-state for that history and the second argument is the size of the operaton that would need to be applied.
         /// when returning true the history implementation will discard the history and reproduce it on demand using tdifferentiate.
         /// WARNING: current implementation is quite costly.
-        tprune    : Option<'s -> int -> bool>
+        tprune: option<'state -> int -> bool>
     }

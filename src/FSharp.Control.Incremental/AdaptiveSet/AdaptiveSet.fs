@@ -3,10 +3,10 @@ namespace FSharp.Control.Incremental
 open FSharp.Control.Traceable
 
 /// an incremental reader for aset that allows to pull operations and exposes its current state.
-type ISetReader<'a> = IOpReader<CountingHashSet<'a>, DHashSet<'a>>
+type IHashSetReader<'a> = IOpReader<CountingHashSet<'a>, HashSetDelta<'a>>
 
 /// incremental set datastructure.
-type aset<'a> =
+type AdaptiveHashSet<'a> =
     /// is the set constant?
     abstract member IsConstant : bool
 
@@ -14,17 +14,20 @@ type aset<'a> =
     abstract member Content : aref<HashSet<'a>>
 
     /// gets a new reader to the set.
-    abstract member GetReader : unit -> ISetReader<'a>
+    abstract member GetReader : unit -> IHashSetReader<'a>
+
+and aset<'T> = AdaptiveHashSet<'T>
 
 /// internal implementations for aset operations.
-module ASetImplementation =
+module AdaptiveHashSetImplementation =
+
     /// core implementation for a dependent set.
-    type AdaptiveSet<'a>(createReader : unit -> IOpReader<DHashSet<'a>>) =
+    type AdaptiveHashSet<'a>(createReader : unit -> IOpReader<HashSetDelta<'a>>) =
         let history = History(createReader, CountingHashSet.trace)
         let content = history |> ARef.map CountingHashSet.toHashSet
 
         /// gets a new reader to the set.
-        member x.GetReader() : ISetReader<'a> =
+        member x.GetReader() : IHashSetReader<'a> =
             history.NewReader()
 
         /// current content of the set as aref.
@@ -40,7 +43,7 @@ module ASetImplementation =
     type EmptySet<'a> private() =   
         static let instance = EmptySet<'a>() :> aset<_>
         let content = ARef.constant HashSet.empty
-        let reader = new History.Readers.EmptyReader<CountingHashSet<'a>, DHashSet<'a>>(CountingHashSet.trace) :> ISetReader<'a>
+        let reader = new History.Readers.EmptyReader<CountingHashSet<'a>, HashSetDelta<'a>>(CountingHashSet.trace) :> IHashSetReader<'a>
         static member Instance = instance
         
         member x.Content = content
@@ -62,7 +65,7 @@ module ASetImplementation =
                 CountingHashSet.trace,
                 lazy (HashSet.addAll content.Value),
                 lazy (CountingHashSet.ofHashSet content.Value)
-            ) :> ISetReader<_>
+            ) :> IHashSetReader<_>
 
         interface aset<'a> with
             member x.IsConstant = true
@@ -72,13 +75,13 @@ module ASetImplementation =
 
     /// reader for map operations.
     type MapReader<'a, 'b>(input : aset<'a>, f : 'a -> 'b) =
-        inherit AbstractReader<DHashSet<'b>>(DHashSet.monoid)
+        inherit AbstractReader<HashSetDelta<'b>>(HashSetDelta.monoid)
             
         let cache = Cache f
         let r = input.GetReader()
 
         override x.Compute(token) =
-            r.GetOperations token |> DHashSet.map (fun d ->
+            r.GetOperations token |> HashSetDelta.map (fun d ->
                 match d with
                 | Add(1, v) -> Add(cache.Invoke v)
                 | Rem(1, v) -> Rem(cache.Revoke v)
@@ -86,14 +89,14 @@ module ASetImplementation =
             )
           
     /// reader for choose operations.
-    type ChooseReader<'a, 'b>(input : aset<'a>, mapping : 'a -> Option<'b>) =
-        inherit AbstractReader<DHashSet<'b>>(DHashSet.monoid)
+    type ChooseReader<'a, 'b>(input : aset<'a>, mapping : 'a -> option<'b>) =
+        inherit AbstractReader<HashSetDelta<'b>>(HashSetDelta.monoid)
             
         let cache = Cache mapping
         let r = input.GetReader()
 
         override x.Compute(token) =
-            r.GetOperations token |> DHashSet.choose (fun d ->
+            r.GetOperations token |> HashSetDelta.choose (fun d ->
                 match d with
                 | Add(1, v) -> 
                     match cache.Invoke v with
@@ -111,13 +114,13 @@ module ASetImplementation =
 
     /// reader for filter operations.
     type FilterReader<'a>(input : aset<'a>, predicate : 'a -> bool) =
-        inherit AbstractReader<DHashSet<'a>>(DHashSet.monoid)
+        inherit AbstractReader<HashSetDelta<'a>>(HashSetDelta.monoid)
             
         let cache = Cache predicate
         let r = input.GetReader()
 
         override x.Compute(token) =
-            r.GetOperations token |> DHashSet.filter (fun d ->
+            r.GetOperations token |> HashSetDelta.filter (fun d ->
                 match d with
                 | Add(1, v) -> cache.Invoke v
                 | Rem(1, v) -> cache.Revoke v
@@ -126,14 +129,14 @@ module ASetImplementation =
 
     /// reader for fully dynamic uinon operations.
     type UnionReader<'a>(input : aset<aset<'a>>) =
-        inherit AbstractDirtyReader<ISetReader<'a>, DHashSet<'a>>(DHashSet.monoid)
+        inherit AbstractDirtyReader<IHashSetReader<'a>, HashSetDelta<'a>>(HashSetDelta.monoid)
 
         let reader = input.GetReader()
         let cache = Cache(fun (inner : aset<'a>) -> inner.GetReader())
 
         override x.Compute(token, dirty) =
             let mutable deltas = 
-                reader.GetOperations token |> DHashSet.collect (fun d ->
+                reader.GetOperations token |> HashSetDelta.collect (fun d ->
                     match d with
                     | Add(1, v) ->
                         // r is no longer dirty since we pull it here.
@@ -158,13 +161,13 @@ module ASetImplementation =
 
             // finally pull all the dirty readers and accumulate the deltas.
             for d in dirty do
-                deltas <- DHashSet.combine deltas (d.GetOperations token)
+                deltas <- HashSetDelta.combine deltas (d.GetOperations token)
 
             deltas
 
     /// reader for unioning a constant set of asets.
     type UnionConstantReader<'a>(input : HashSet<aset<'a>>) =
-        inherit AbstractDirtyReader<ISetReader<'a>, DHashSet<'a>>(DHashSet.monoid)
+        inherit AbstractDirtyReader<IHashSetReader<'a>, HashSetDelta<'a>>(HashSetDelta.monoid)
 
         let mutable isInitial = true
         let input = input |> HashSet.map (fun s -> s.GetReader())
@@ -173,23 +176,23 @@ module ASetImplementation =
             if isInitial then
                 isInitial <- false
                 // initially we need to pull all inner readers.
-                (DHashSet.empty, input) ||> HashSet.fold (fun deltas r ->   
-                    DHashSet.combine deltas (r.GetOperations token)
+                (HashSetDelta.empty, input) ||> HashSet.fold (fun deltas r ->   
+                    HashSetDelta.combine deltas (r.GetOperations token)
                 )
             else
                 // once evaluated only dirty readers need to be pulled.
-                (DHashSet.empty, dirty) ||> Seq.fold (fun deltas r -> 
-                    DHashSet.combine deltas (r.GetOperations token)
+                (HashSetDelta.empty, dirty) ||> Seq.fold (fun deltas r -> 
+                    HashSetDelta.combine deltas (r.GetOperations token)
                 )
 
     /// reader for unioning a dynamic aset of immutable sets.
     type UnionHashSetReader<'a>(input : aset<HashSet<'a>>) =
-        inherit AbstractReader<DHashSet<'a>>(DHashSet.monoid)
+        inherit AbstractReader<HashSetDelta<'a>>(HashSetDelta.monoid)
 
         let reader = input.GetReader()
 
         override x.Compute(token) =
-            reader.GetOperations token |> DHashSet.collect (fun d ->
+            reader.GetOperations token |> HashSetDelta.collect (fun d ->
                 match d with
                 | Add(1, v) -> HashSet.addAll v
                 | Rem(1, v) -> HashSet.removeAll v   
@@ -198,14 +201,14 @@ module ASetImplementation =
 
     /// reader for collect operations.
     type CollectReader<'a, 'b>(input : aset<'a>, mapping : 'a -> aset<'b>) =
-        inherit AbstractDirtyReader<ISetReader<'b>, DHashSet<'b>>(DHashSet.monoid)
+        inherit AbstractDirtyReader<IHashSetReader<'b>, HashSetDelta<'b>>(HashSetDelta.monoid)
 
         let reader = input.GetReader()
         let cache = Cache(fun value -> (mapping value).GetReader())
 
         override x.Compute(token,dirty) =
             let mutable deltas = 
-                reader.GetOperations token |> DHashSet.collect (fun d ->
+                reader.GetOperations token |> HashSetDelta.collect (fun d ->
                     match d with
                     | Add(1, value) ->
                         // r is no longer dirty since we pull it here.
@@ -227,20 +230,20 @@ module ASetImplementation =
                                 r.GetOperations token
                         | None -> 
                             // weird
-                            DHashSet.empty
+                            HashSetDelta.empty
                                 
                     | _ -> unexpected()
                 )
                 
             // finally pull all the dirty readers and accumulate the deltas.
             for d in dirty do
-                deltas <- DHashSet.combine deltas (d.GetOperations token)
+                deltas <- HashSetDelta.combine deltas (d.GetOperations token)
 
             deltas
 
     /// reader for aref<HashSet<_>>
     type ARefReader<'s, 'a when 's :> seq<'a>>(input : aref<'s>) =
-        inherit AbstractReader<DHashSet<'a>>(DHashSet.monoid)
+        inherit AbstractReader<HashSetDelta<'a>>(HashSetDelta.monoid)
 
         let mutable oldSet = HashSet.empty
 
@@ -260,12 +263,12 @@ module ASetImplementation =
         ConstantSet(lazy(content())) :> aset<_> 
 
     /// creates an incremental set using the reader.
-    let inline create (reader : unit -> #IOpReader<DHashSet<'a>>) =
-        AdaptiveSet(fun () -> reader() :> IOpReader<_>) :> aset<_>
+    let inline create (reader : unit -> #IOpReader<HashSetDelta<'a>>) =
+        AdaptiveHashSet(fun () -> reader() :> IOpReader<_>) :> aset<_>
 
 /// functional operators for aset<_>
 module ASet =
-    open ASetImplementation
+    open AdaptiveHashSetImplementation
 
     /// the empty aset.
     [<GeneralizableValue>]
@@ -304,7 +307,7 @@ module ASet =
             create (fun () -> MapReader(set, mapping))
           
     /// incrementally chooses all elements returned by mapping.  
-    let choose (mapping : 'a -> Option<'b>) (set : aset<'a>) =
+    let choose (mapping : 'a -> option<'b>) (set : aset<'a>) =
         if set.IsConstant then
             constant (fun () -> set |> force |> HashSet.choose mapping)
         else

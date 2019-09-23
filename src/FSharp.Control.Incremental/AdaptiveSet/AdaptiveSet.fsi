@@ -3,12 +3,12 @@
 open FSharp.Control.Traceable
 
 /// an incremental reader for aset that allows to pull operations and exposes its current state.
-type ISetReader<'T> = 
-    IOpReader<CountingHashSet<'T>, DHashSet<'T>>
+type IHashSetReader<'T> = 
+    IOpReader<CountingHashSet<'T>, HashSetDelta<'T>>
 
 /// incremental set datastructure.
 [<Interface>]
-type aset<'T> =
+type AdaptiveHashSet<'T> =
     /// is the set constant?
     abstract member IsConstant : bool
 
@@ -16,7 +16,10 @@ type aset<'T> =
     abstract member Content : aref<HashSet<'T>>
     
     /// gets a new reader to the set.
-    abstract member GetReader : unit -> ISetReader<'T>
+    abstract member GetReader : unit -> IHashSetReader<'T>
+
+/// incremental set datastructure.
+and aset<'T> = AdaptiveHashSet<'T>
 
 /// functional operators for aset<_>
 module ASet =
@@ -46,7 +49,7 @@ module ASet =
     val map : mapping : ('A -> 'B) -> set : aset<'A> -> aset<'B>
 
     /// incrementally chooses all elements returned by mapping.  
-    val choose : mapping : ('A -> Option<'B>) -> set : aset<'A> -> aset<'B>
+    val choose : mapping : ('A -> option<'B>) -> set : aset<'A> -> aset<'B>
     
     /// incrementally filters the set using the given predicate.
     val filter : predicate : ('A -> bool) -> set : aset<'A> -> aset<'A>

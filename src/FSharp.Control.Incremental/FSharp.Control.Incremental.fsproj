@@ -19,8 +19,8 @@
 	<Compile Include="Datastructures\HashSet.fs" />
 	<Compile Include="Datastructures\HashMap.fs" />
 	<Compile Include="Datastructures\Operations.fs" />
-	<Compile Include="Datastructures\DHashSet.fs" />
-	<Compile Include="Datastructures\DHashMap.fs" />
+	<Compile Include="Datastructures\HashSetDelta.fs" />
+	<Compile Include="Datastructures\HashMapDelta.fs" />
 	<Compile Include="Datastructures\Differentiation.fs" />
 	<Compile Include="Utilities\Utilities.fs" />
 	<Compile Include="Utilities\PriorityQueue.fs" />

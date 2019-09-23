@@ -78,7 +78,7 @@ module internal HashSetList =
                     intersect &cnt tail r
 
 
-    let rec mergeWithOption (f : 'a -> bool -> bool -> Option<'c>) (l : list<'a>) (r : list<'a>) =
+    let rec mergeWithOption (f : 'a -> bool -> bool -> option<'c>) (l : list<'a>) (r : list<'a>) =
         let newL = 
             l |> List.choose (fun lk ->
                 let other = r |> List.exists (fun rk -> Unchecked.equals rk lk)
@@ -220,7 +220,7 @@ type HashSet<'a> internal(cnt : int, store : intmap<list<'a>>) =
 
     /// creates a new set by applying the given function to all entries.
     /// `O(N * log N)`
-    member x.Choose (mapping : 'a -> Option<'b>) =
+    member x.Choose (mapping : 'a -> option<'b>) =
         let mutable res = HashSet.Empty
         for e in x.ToSeq() do
             match mapping e with
@@ -527,7 +527,7 @@ module HashSet =
 
     /// creates a new set by applying the given function to all entries.
     /// `O(N * log N)`
-    let inline choose (mapping : 'a -> Option<'b>) (set : HashSet<'a>) =
+    let inline choose (mapping : 'a -> option<'b>) (set : HashSet<'a>) =
         set.Choose mapping
 
     /// creates a new set that contains all entries for which predicate was true.

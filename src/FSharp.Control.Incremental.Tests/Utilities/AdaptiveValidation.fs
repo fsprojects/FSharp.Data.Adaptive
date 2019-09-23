@@ -73,9 +73,9 @@ type aset<'a> =
     abstract member Adaptive : Incremental.aset<'a>
     abstract member Reference : Reference.aset<'a>
 
-type ISetReader<'a> =
-    abstract member Adaptive : Incremental.ISetReader<'a>
-    abstract member Reference : Reference.ISetReader<'a>
+type IHashSetReader<'a> =
+    abstract member Adaptive : Incremental.IHashSetReader<'a>
+    abstract member Reference : Reference.IHashSetReader<'a>
 
 [<AutoOpen>]
 module ASetReaders = 
@@ -83,7 +83,7 @@ module ASetReaders =
         member x.GetReader() =
             let adaptive = x.Adaptive.GetReader()
             let reference = x.Reference.GetReader()
-            { new ISetReader<'a> with
+            { new IHashSetReader<'a> with
                 member __.Adaptive = adaptive
                 member __.Reference = reference
             }
@@ -184,7 +184,7 @@ module ASet =
             (Incremental.ASet.map mapping set.Adaptive)
             (Reference.ASet.map mapping set.Reference)
 
-    let choose (mapping : 'a -> Option<'b>) (set : aset<'a>) =
+    let choose (mapping : 'a -> option<'b>) (set : aset<'a>) =
         create
             (Incremental.ASet.choose mapping set.Adaptive)
             (Reference.ASet.choose mapping set.Reference)

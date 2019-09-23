@@ -684,7 +684,7 @@ module internal IntMap =
         | Nil -> Nil
         
     ///O(n). Map keys/values and collect the Just results. Credit: Haskell.org
-    let rec mapOptionWithKey2 (f : int -> 'a -> Option<'b * 'c>) : intmap<'a> -> intmap<'b> * intmap<'c>  =
+    let rec mapOptionWithKey2 (f : int -> 'a -> option<'b * 'c>) : intmap<'a> -> intmap<'b> * intmap<'c>  =
         function
         | Bin(p, m, l, r) -> 
             let la, lb = mapOptionWithKey2 f l
@@ -947,7 +947,7 @@ module internal IntMap =
     ///add for any key-value-pair that is in m2 and not in m1, and
     ///mod for any key-value-pair is in both, but has changed.
     ///Untouched sub-trees that are reference-equal are not touched.
-    let computeDelta (change : int -> 'a -> 'a -> Option<'b>) (del : intmap<'a> -> intmap<'b>) (add : intmap<'a> -> intmap<'b>) =
+    let computeDelta (change : int -> 'a -> 'a -> option<'b>) (del : intmap<'a> -> intmap<'b>) (add : intmap<'a> -> intmap<'b>) =
         
         let inline ifChanged (Tip(k1, x1)) (Tip(_, x2)) =
             match change k1 x1 x2 with

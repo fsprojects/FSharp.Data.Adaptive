@@ -3,8 +3,8 @@
 open System
 open System.Threading
 
-/// represents a callback in the dependency-tree
-type internal CallbackObject(obj : IAdaptiveObject, callback : CallbackObject -> unit) =
+/// Represents a callback in the dependency-tree
+type internal CallbackObject(obj: IAdaptiveObject, callback: CallbackObject -> unit) =
     static let emptyOutputs = EmptyOutputSet() :> IWeakOutputSet
     let mutable level = obj.Level + 1
     let mutable live = 1
@@ -50,11 +50,11 @@ type internal CallbackObject(obj : IAdaptiveObject, callback : CallbackObject ->
 module CallbackExtensions =
     
     type IAdaptiveObject with
-        /// registers a callback with the given object that will be executed
+        /// Registers a callback with the given object that will be executed
         /// whenever the object gets marked out-of-date.
         /// note that it does not trigger when the object is currently out-of-date.
         /// returns a disposable for removing the callback.
-        member x.AddMarkingCallback (callback : unit -> unit) =
+        member x.AddMarkingCallback (callback: unit -> unit) =
             let cb =
                 new CallbackObject(x, fun self ->
                     try callback ()
@@ -68,7 +68,7 @@ module CallbackExtensions =
         /// ONCE! when the next out-of-date marking visits the object.
         /// note that it does not trigger when the object is currently out-of-date.
         /// returns a disposable for removing the callback.
-        member x.OnNextMarking (callback : unit -> unit) =
+        member x.OnNextMarking (callback: unit -> unit) =
             let cb =
                 new CallbackObject(x, fun self ->
                     try

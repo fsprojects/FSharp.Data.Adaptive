@@ -21,7 +21,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
     /// Traceable instance.
     static let trace =
         {
-            tmonoid = DHashSet.monoid
+            tmonoid = HashSetDelta.monoid
             tempty = CountingHashSet<'a>(HashMap.empty)
             tintegrate = fun s d -> s.Integrate d
             tdifferentiate = fun l r -> l.Differentiate r
@@ -32,7 +32,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
     /// Traceable instance without ref-counting.
     static let traceNoRefCount =
         {
-            tmonoid = DHashSet.monoid
+            tmonoid = HashSetDelta.monoid
             tempty = CountingHashSet<'a>(HashMap.empty)
             tintegrate = fun s d -> s.IntegrateNoRefCount d
             tdifferentiate = fun l r -> l.Differentiate r
@@ -183,7 +183,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         CountingHashSet res
         
     /// creates a new set by applying the given function to all elements.
-    member x.Choose(mapping : 'a -> Option<'b>) =
+    member x.Choose(mapping : 'a -> option<'b>) =
         let mutable res = HashMap.empty
         for (k,v) in HashMap.toSeq store do
             match mapping k with
@@ -249,19 +249,19 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         let mapStore = set.Store |> IntMap.map (List.map (fun a -> struct(a,1)))
         CountingHashSet(HashMap(set.Count, mapStore))
 
-    /// differentiates two sets returning a DHashSet.
+    /// differentiates two sets returning a HashSetDelta.
     member x.Differentiate(other : CountingHashSet<'a>) =
         // O(1)
         if Object.ReferenceEquals(store.Store, other.Store.Store) then
-            DHashSet.empty
+            HashSetDelta.empty
 
         // O(other)
         elif store.IsEmpty then 
-            other.Store |> HashMap.map (fun _ _ -> 1) |> DHashSet.ofHashMap
+            other.Store |> HashMap.map (fun _ _ -> 1) |> HashSetDelta.ofHashMap
 
         // O(N)
         elif other.IsEmpty then
-            store |> HashMap.map (fun _ _ -> -1) |> DHashSet.ofHashMap
+            store |> HashMap.map (fun _ _ -> -1) |> HashSetDelta.ofHashMap
         
         // O(N + other)
         else
@@ -282,18 +282,18 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
                 ) l r
 
             let store = IntMap.computeDelta both (IntMap.map del) (IntMap.map add) store.Store other.Store.Store
-            DHashSet (HashMap(cnt, store))
+            HashSetDelta (HashMap(cnt, store))
 
     /// same as x.Differentiate(empty)
     member x.RemoveAll() =
-        store |> HashMap.map (fun _ v -> -v) |> DHashSet
+        store |> HashMap.map (fun _ v -> -v) |> HashSetDelta
         
     /// same as empty.Differentiate(x)
     member x.AddAll() =
-        store |> DHashSet
+        store |> HashSetDelta
 
     /// integrates the given delta into the set, returns a new set and the effective deltas.
-    member x.Integrate (deltas : DHashSet<'a>) =
+    member x.Integrate (deltas : HashSetDelta<'a>) =
         // O(1)
         if deltas.IsEmpty then
             x, deltas
@@ -301,19 +301,19 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         // O(Delta)
         elif store.IsEmpty then
             let mutable maxDelta = 0
-            let state = deltas |> DHashSet.toHashMap |> HashMap.filter (fun _ d -> maxDelta <- max maxDelta d; d > 0)
+            let state = deltas |> HashSetDelta.toHashMap |> HashMap.filter (fun _ d -> maxDelta <- max maxDelta d; d > 0)
             let delta = 
                 if maxDelta > 1 then state |> HashMap.map (fun _ _ -> 1)
                 else state
 
-            CountingHashSet state, DHashSet delta
+            CountingHashSet state, HashSetDelta delta
 
         // O(Delta * log N)
         elif deltas.Count * 5 < store.Count then
             let mutable res = store
 
             let effective =
-                deltas |> DHashSet.choose (fun d ->
+                deltas |> HashSetDelta.choose (fun d ->
                     let mutable delta = Unchecked.defaultof<SetOperation<'a>>
                     let value = d.Value
                     res <- res |> HashMap.alter value (fun cnt ->
@@ -336,8 +336,8 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
 
         // O(Delta + N)
         else
-            let mutable effective = DHashSet.empty
-            let deltas = DHashSet.toHashMap deltas
+            let mutable effective = HashSetDelta.empty
+            let deltas = HashSetDelta.toHashMap deltas
             let newStore = 
                 HashMap.choose2 (fun k s d ->
                     match d with
@@ -345,9 +345,9 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
                             let o = Option.defaultValue 0 s 
                             let n = d + o
                             if o = 0 && n > 0 then
-                                effective <- DHashSet.add (Add k) effective
+                                effective <- HashSetDelta.add (Add k) effective
                             elif o > 0 && n = 0 then
-                                effective <- DHashSet.add (Rem k) effective
+                                effective <- HashSetDelta.add (Rem k) effective
                             
                             if n <= 0 then None
                             else Some n
@@ -358,22 +358,22 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
             CountingHashSet newStore, effective
 
     /// integrates the given delta into the set without ref-counting, returns a new set and the effective deltas.
-    member x.IntegrateNoRefCount (deltas : DHashSet<'a>) =
+    member x.IntegrateNoRefCount (deltas : HashSetDelta<'a>) =
         // O(1)
         if deltas.IsEmpty then
             x, deltas
 
         // O(Delta)
         elif store.IsEmpty then
-            let state = deltas |> DHashSet.toHashMap |> HashMap.choose (fun _ d -> if d > 0 then Some 1 else None)
-            CountingHashSet state, DHashSet state
+            let state = deltas |> HashSetDelta.toHashMap |> HashMap.choose (fun _ d -> if d > 0 then Some 1 else None)
+            CountingHashSet state, HashSetDelta state
 
         // O(Delta * log N)
         elif deltas.Count * 5 < store.Count then
             let mutable res = store
 
             let effective =
-                deltas |> DHashSet.choose (fun d ->
+                deltas |> HashSetDelta.choose (fun d ->
                     let mutable delta = Unchecked.defaultof<SetOperation<'a>>
                     let value = d.Value
                     res <- res |> HashMap.alter value (fun cnt ->
@@ -400,8 +400,8 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         
         // O(Delta + N)
         else
-            let mutable effective = DHashSet.empty
-            let deltas = DHashSet.toHashMap deltas
+            let mutable effective = HashSetDelta.empty
+            let deltas = HashSetDelta.toHashMap deltas
             let newStore = 
                 HashMap.choose2 (fun k s d ->
                     match d with
@@ -410,9 +410,9 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
                             let n = if d > 0 then 1 elif d < 0 then 0 else o
 
                             if o = 0 && n > 0 then
-                                effective <- DHashSet.add (Add k) effective
+                                effective <- HashSetDelta.add (Add k) effective
                             elif o > 0 && n = 0 then
-                                effective <- DHashSet.add (Rem k) effective
+                                effective <- HashSetDelta.add (Rem k) effective
                             
                             if n <= 0 then None
                             else Some n
@@ -557,7 +557,7 @@ module CountingHashSet =
         set.Map mapping
 
     /// creates a new set by applying the given function to all elements.
-    let inline choose (mapping : 'a -> Option<'b>) (set : CountingHashSet<'a>) =
+    let inline choose (mapping : 'a -> option<'b>) (set : CountingHashSet<'a>) =
         set.Choose mapping
 
     /// creates a new set filtered by the given predicate.
@@ -593,7 +593,7 @@ module CountingHashSet =
     /// Traceable instance without ref-counting.
     let inline traceNoRefCount<'a> = CountingHashSet<'a>.TraceNoRefCount
 
-    /// differentiates two sets returning a DHashSet.
+    /// differentiates two sets returning a HashSetDelta.
     let inline differentiate (src : CountingHashSet<'a>) (dst : CountingHashSet<'a>) =
         src.Differentiate dst
 
@@ -607,11 +607,11 @@ module CountingHashSet =
 
 
     /// integrates the given delta into the set, returns a new set and the effective deltas.
-    let inline integrate (set : CountingHashSet<'a>) (delta : DHashSet<'a>) =
+    let inline integrate (set : CountingHashSet<'a>) (delta : HashSetDelta<'a>) =
         set.Integrate delta
 
     /// integrates the given delta into the set without ref-counting, returns a new set and the effective deltas.
-    let inline integrateNoRefCount (set : CountingHashSet<'a>) (delta : DHashSet<'a>) =
+    let inline integrateNoRefCount (set : CountingHashSet<'a>) (delta : HashSetDelta<'a>) =
         set.IntegrateNoRefCount delta
         
     /// comares two sets.

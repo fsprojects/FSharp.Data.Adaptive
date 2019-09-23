@@ -3,36 +3,36 @@
 open FSharp.Control.Incremental
 
 
-/// functional operators for DHashSet.
+/// functional operators for HashSetDelta.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module DHashSet =
-    type private Monoid<'a> private() =
-        /// the monoid instance for DHashSet
+module HashSetDelta =
+    type private Monoid<'T> private() =
+        /// the monoid instance for HashSetDelta
         static let monoid =
             {
-                mempty = DHashSet<'a>(HashMap.empty)
+                mempty = HashSetDelta<'T>(HashMap.empty)
                 mappend = fun l r -> l.Combine r
                 misEmpty = fun s -> s.IsEmpty
             }
         static member Instance = monoid
-    /// the monoid instance for DHashSet
+    /// the monoid instance for HashSetDelta
     [<GeneralizableValue>]
-    let monoid<'a> = Monoid<'a>.Instance
+    let monoid<'T> = Monoid<'T>.Instance
    
-/// functional operators for DHashMap.
+/// functional operators for HashMapDelta.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module DHashMap =
+module HashMapDelta =
     type private Monoid<'k, 'v> private() =
-        /// the monoid instance for DHashMap
+        /// the monoid instance for HashMapDelta
         static let monoid =
             {
-                mempty = DHashMap.empty<'k, 'v>
+                mempty = HashMapDelta.empty<'k, 'v>
                 mappend = fun l r -> l.Combine r
                 misEmpty = fun s -> s.Store.IsEmpty
             }
         static member Instance = monoid
 
-    /// the monoid instance for DHashMap
+    /// the monoid instance for HashMapDelta
     [<GeneralizableValue>]
     let monoid<'k, 'v> = Monoid<'k, 'v>.Instance
     
@@ -42,20 +42,20 @@ module DHashMap =
 module HashSet =
 
     /// type for caching the Traceable<_> instance for HashSet<_>
-    type private Traceable<'a> private() =
-        static let trace : Traceable<HashSet<'a>, DHashSet<'a>> =
+    type private Traceable<'T> private() =
+        static let trace : Traceable<HashSet<'T>, HashSetDelta<'T>> =
             {
                 tempty = HashSet.empty
                 tdifferentiate = HashSet.differentiate
                 tintegrate = HashSet.integrate
-                tmonoid = DHashSet.monoid
+                tmonoid = HashSetDelta.monoid
                 tprune = None
                 tsize = fun s -> s.Count
             }
         static member Instance = trace
 
     /// the traceable instance for HashSet.
-    let trace<'a> = Traceable<'a>.Instance
+    let trace<'T> = Traceable<'T>.Instance
  
 /// functional operators for HashMap.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -63,12 +63,12 @@ module HashMap =
 
     /// type for caching the Traceable<_> instance for HashMap<_,_>
     type private TraceableInstance<'k, 'v> private() =
-        static let trace : Traceable<HashMap<'k, 'v>, DHashMap<'k, 'v>> =
+        static let trace : Traceable<HashMap<'k, 'v>, HashMapDelta<'k, 'v>> =
             {
                 tempty = HashMap.empty
                 tdifferentiate = HashMap.differentiate
                 tintegrate = HashMap.integrate
-                tmonoid = DHashMap.monoid
+                tmonoid = HashMapDelta.monoid
                 tprune = None
                 tsize = fun s -> s.Store.Count
             }

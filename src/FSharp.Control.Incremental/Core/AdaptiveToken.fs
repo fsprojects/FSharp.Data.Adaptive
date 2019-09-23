@@ -10,7 +10,11 @@ open System.Threading
 /// be marked.
 [<Struct>]
 type AdaptiveToken =
-    /// represents the calling IAdaptiveObject or null if none
+
+    /// Represents the calling IAdaptiveObject or null if none.
+    ///
+    /// Note, this is only mutable because that exposes the underlying field
+    /// for (reportedly) more performant access.
     val mutable public Caller : IAdaptiveObject
 
     /// enters the read-lock on the given object

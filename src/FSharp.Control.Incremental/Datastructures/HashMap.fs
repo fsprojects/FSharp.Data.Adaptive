@@ -12,7 +12,7 @@ module internal HashMapList =
     let inline combineHash (a : int) (b : int) =
         uint32 a ^^^ uint32 b + 0x9e3779b9u + ((uint32 a) <<< 6) + ((uint32 a) >>> 2) |> int
 
-    let rec alter (k : 'k) (f : Option<'v> -> Option<'v>) (l : list<struct ('k * 'v)>) =
+    let rec alter (k : 'k) (f : option<'v> -> option<'v>) (l : list<struct ('k * 'v)>) =
         match l with
             | [] ->
                 match f None with
@@ -27,7 +27,7 @@ module internal HashMapList =
                 else
                     struct(k1, v1) :: alter k f rest
 
-    let rec alter' (cnt : byref<int>) (k : 'k) (f : Option<'v> -> Option<'v>) (l : list<struct ('k * 'v)>) =
+    let rec alter' (cnt : byref<int>) (k : 'k) (f : option<'v> -> option<'v>) (l : list<struct ('k * 'v)>) =
         match l with
             | [] ->
                 match f None with
@@ -47,7 +47,7 @@ module internal HashMapList =
                 else
                     struct (k1, v1) :: alter' &cnt k f rest
 
-    let rec update (k : 'k) (f : Option<'v> -> 'v) (l : list<struct ('k * 'v)>) =
+    let rec update (k : 'k) (f : option<'v> -> 'v) (l : list<struct ('k * 'v)>) =
         match l with
             | [] -> 
                 let v = f None
@@ -107,7 +107,7 @@ module internal HashMapList =
 
         newL @ newR
 
-    let rec mergeWith (f : 'k -> Option<'a> -> Option<'b> -> 'c) (l : list<struct ('k * 'a)>) (r : list<struct ('k * 'b)>) =
+    let rec mergeWith (f : 'k -> option<'a> -> option<'b> -> 'c) (l : list<struct ('k * 'a)>) (r : list<struct ('k * 'b)>) =
         let newL = 
             l |> List.choose (fun struct(lk, lv) ->
                 let other = r |> List.tryFind (fun struct(rk, rv) -> Unchecked.equals rk lk)
@@ -127,7 +127,7 @@ module internal HashMapList =
 
         newL @ newR
 
-    let rec mergeWithOption (f : 'k -> Option<'a> -> Option<'b> -> Option<'c>) (l : list<struct('k * 'a)>) (r : list<struct('k * 'b)>) =
+    let rec mergeWithOption (f : 'k -> option<'a> -> option<'b> -> option<'c>) (l : list<struct('k * 'a)>) (r : list<struct('k * 'b)>) =
         let newL = 
             l |> List.choose (fun struct(lk, lv) ->
                 let other = r |> List.tryFind (fun struct(rk, rv) -> Unchecked.equals rk lk)
@@ -153,7 +153,7 @@ module internal HashMapList =
 
         newL @ newR
 
-    let rec mergeWithOption' (f : 'k -> Option<'a> -> Option<'b> -> Option<'c>) (l : list<struct('k * 'a)>) (r : list<struct('k * 'b)>) =
+    let rec mergeWithOption' (f : 'k -> option<'a> -> option<'b> -> option<'c>) (l : list<struct('k * 'a)>) (r : list<struct('k * 'b)>) =
         let newL = 
             l |> List.choose (fun struct(lk,lv) ->
                 let other = r |> List.tryFind (fun struct(rk,_) -> Unchecked.equals rk lk) |> Option.map (fun struct(_,a) -> a)
@@ -225,12 +225,12 @@ type HashMap<'k, [<EqualityConditionalOn>] 'v> internal(cnt : int, store : intma
     /// the update functions gets the optional old value and may optionally return
     /// a new value (or None for deleting the entry).
     /// `O(log N)`
-    member x.Alter (key : 'k, update : Option<'v> -> Option<'v>) =
+    member x.Alter (key : 'k, update : option<'v> -> option<'v>) =
         let hash = Unchecked.hash key
 
         let mutable changed = false
         let mutable deltaCnt = 0
-        let update (old : Option<list<struct('k * 'v)>>) =
+        let update (old : option<list<struct('k * 'v)>>) =
             match old with
             | None -> 
                 match update None with
@@ -271,7 +271,7 @@ type HashMap<'k, [<EqualityConditionalOn>] 'v> internal(cnt : int, store : intma
 
     /// adds or updates the entry for the given key based on the optional current value. 
     /// `O(log N)`
-    member x.Update (key : 'k, f : Option<'v> -> 'v) =
+    member x.Update (key : 'k, f : option<'v> -> 'v) =
         x.Alter(key, f >> Some)
             
     /// adds or updates the entry for the given key. `O(log N)`
@@ -328,7 +328,7 @@ type HashMap<'k, [<EqualityConditionalOn>] 'v> internal(cnt : int, store : intma
 
     /// creates two maps (with the same keys) by applying the given function to all entries.
     /// `O(N)`
-    member x.ChooseTup(mapping : 'k -> 'v -> Option<'b * 'c>) =
+    member x.ChooseTup(mapping : 'k -> 'v -> option<'b * 'c>) =
         let mutable cnt = 0
         let mapping (struct (k : 'k, v : 'v)) =
             match mapping k v with
@@ -352,7 +352,7 @@ type HashMap<'k, [<EqualityConditionalOn>] 'v> internal(cnt : int, store : intma
         
     /// creates a new map (with the same keys) by applying the given function to all entries.
     /// `O(N)`
-    member x.Choose(mapping : 'k -> 'v -> Option<'b>) =
+    member x.Choose(mapping : 'k -> 'v -> option<'b>) =
         let mutable cnt = 0
         let mapping (struct (k : 'k, v : 'v)) =
             match mapping k v with
@@ -437,7 +437,7 @@ type HashMap<'k, [<EqualityConditionalOn>] 'v> internal(cnt : int, store : intma
     /// the respective option-arguments are some whenever the left/right map has an entry for the current key.
     /// note that one of the options will always be some.
     /// `O(N + M)`
-    member x.Choose2(other : HashMap<'k, 'a>, mapping : 'k -> Option<'v> -> Option<'a> -> Option<'c>) =
+    member x.Choose2(other : HashMap<'k, 'a>, mapping : 'k -> option<'v> -> option<'a> -> option<'c>) =
         let mutable cnt = 0
         let f k l r =
             match mapping k l r with
@@ -475,7 +475,7 @@ type HashMap<'k, [<EqualityConditionalOn>] 'v> internal(cnt : int, store : intma
     /// the respective option-arguments are some whenever the left/right map has an entry for the current key.
     /// note that one of the options will always be some.
     /// `O(N + M)`
-    member x.Map2(other : HashMap<'k, 'a>, f : 'k -> Option<'v> -> Option<'a> -> 'c) =
+    member x.Map2(other : HashMap<'k, 'a>, f : 'k -> option<'v> -> option<'a> -> 'c) =
         let mutable cnt = 0
         let f k l r =
             cnt <- cnt + 1
@@ -777,12 +777,12 @@ module HashMap =
     /// the update functions gets the optional old value and may optionally return
     /// a new value (or None for deleting the entry).
     /// `O(log N)`
-    let inline alter (key : 'k) (mapping : Option<'v> -> Option<'v>) (map : HashMap<'k, 'v>) =
+    let inline alter (key : 'k) (mapping : option<'v> -> option<'v>) (map : HashMap<'k, 'v>) =
         map.Alter(key, mapping)
         
     /// adds or updates the entry for the given key based on the optional current value. 
     /// `O(log N)`
-    let inline update (key : 'k) (mapping : Option<'v> -> 'v) (map : HashMap<'k, 'v>) =
+    let inline update (key : 'k) (mapping : option<'v> -> 'v) (map : HashMap<'k, 'v>) =
         map.Update(key, mapping)
 
     /// creates a new map containing all elements from l and r.
@@ -810,7 +810,7 @@ module HashMap =
         
     /// creates a new map (with the same keys) by applying the given function to all entries.
     /// `O(N)`
-    let inline choose (mapping : 'k -> 'a -> Option<'b>) (map : HashMap<'k, 'a>) =
+    let inline choose (mapping : 'k -> 'a -> option<'b>) (map : HashMap<'k, 'a>) =
         map.Choose mapping
 
     /// creates a new map (with the same keys) that contains all entries for which predicate was true.
@@ -843,14 +843,14 @@ module HashMap =
     /// the respective option-arguments are some whenever the left/right map has an entry for the current key.
     /// note that one of the options will always be some.
     /// `O(N + M)`
-    let inline map2 (mapping : 'k -> Option<'a> -> Option<'b> -> 'c) (l : HashMap<'k, 'a>) (r : HashMap<'k, 'b>) =
+    let inline map2 (mapping : 'k -> option<'a> -> option<'b> -> 'c) (l : HashMap<'k, 'a>) (r : HashMap<'k, 'b>) =
         l.Map2(r, mapping)
 
     /// creates a new map by applying the mapping function to all entries.
     /// the respective option-arguments are some whenever the left/right map has an entry for the current key.
     /// note that one of the options will always be some.
     /// `O(N + M)`
-    let inline choose2 (mapping : 'k -> Option<'a> -> Option<'b> -> Option<'c>) (l : HashMap<'k, 'a>) (r : HashMap<'k, 'b>) =
+    let inline choose2 (mapping : 'k -> option<'a> -> option<'b> -> option<'c>) (l : HashMap<'k, 'a>) (r : HashMap<'k, 'b>) =
         l.Choose2(r, mapping)
 
     /// tries to find the value for the given key.

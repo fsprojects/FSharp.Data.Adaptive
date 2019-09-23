@@ -10,21 +10,21 @@ open FSharp.Control.Incremental
 /// convenient combine functions.
 [<Struct; CustomEquality; NoComparison>]
 [<StructuredFormatDisplay("{AsString}")>]
-type DHashSet<'a>(store : HashMap<'a, int>) =
+type HashSetDelta<'a>(store : HashMap<'a, int>) =
 
     /// the empty set.
-    static member Empty = DHashSet<'a>(HashMap.empty)
+    static member Empty = HashSetDelta<'a>(HashMap.empty)
 
-    /// the internal store used by the DHashSet.
+    /// the internal store used by the HashSetDelta.
     member internal x.Store = store
 
-    /// the number of operations contained in the DHashSet.
+    /// the number of operations contained in the HashSetDelta.
     member x.Count = store.Count
 
     /// is the set empty?
     member x.IsEmpty = store.IsEmpty
 
-    /// adds a SetOperation to the DHashSet.
+    /// adds a SetOperation to the HashSetDelta.
     member x.Add (op : SetOperation<'a>) =
         if op.Count <> 0 then
             store |> HashMap.alter op.Value (fun o ->
@@ -32,20 +32,20 @@ type DHashSet<'a>(store : HashMap<'a, int>) =
                 if n = 0 then None
                 else Some n
             )
-            |> DHashSet
+            |> HashSetDelta
         else
             x
 
-    /// removes a SetOperation from the DHashSet.
+    /// removes a SetOperation from the HashSetDelta.
     member x.Remove (op : SetOperation<'a>) =
         x.Add op.Inverse
 
     /// the inverse operations for the given set.
     member x.Inverse =
-        store |> HashMap.map (fun _ v -> -v) |> DHashSet
+        store |> HashMap.map (fun _ v -> -v) |> HashSetDelta
 
     /// combines two DHashSets to one using a reference counting implementation.
-    member x.Combine (other : DHashSet<'a>) =
+    member x.Combine (other : HashSetDelta<'a>) =
         if store.IsEmpty then 
             other
 
@@ -71,18 +71,18 @@ type DHashSet<'a>(store : HashMap<'a, int>) =
                 if r <> 0 then Some r
                 else None
             ) store other.Store
-            |> DHashSet
+            |> HashSetDelta
 
     /// applies the mapping function to all operations in the set.
     member x.Map (mapping : SetOperation<'a> -> SetOperation<'b>) =
-        let mutable res = DHashSet<'b>.Empty
+        let mutable res = HashSetDelta<'b>.Empty
         for (k,v) in store do
             res <- res.Add (mapping (SetOperation(k,v)))
         res
         
     /// applies the mapping function to all operations in the set.
-    member x.Choose (f : SetOperation<'a> -> Option<SetOperation<'b>>) =
-        let mutable res = DHashSet<'b>.Empty
+    member x.Choose (f : SetOperation<'a> -> option<SetOperation<'b>>) =
+        let mutable res = HashSetDelta<'b>.Empty
         for (k,v) in store do
             match f (SetOperation(k,v)) with
                 | Some r -> res <- res.Add r
@@ -91,12 +91,12 @@ type DHashSet<'a>(store : HashMap<'a, int>) =
         
     /// filters the operations contains using the given predicate.
     member x.Filter (f : SetOperation<'a> -> bool) =
-        store |> HashMap.filter (fun k v -> SetOperation(k,v) |> f) |> DHashSet
+        store |> HashMap.filter (fun k v -> SetOperation(k,v) |> f) |> HashSetDelta
 
         
     /// applies the mapping function to all operations in the set and combines all the results.
-    member x.Collect (f : SetOperation<'a> -> DHashSet<'b>) =
-        let mutable res = DHashSet<'b>.Empty
+    member x.Collect (f : SetOperation<'a> -> HashSetDelta<'b>) =
+        let mutable res = HashSetDelta<'b>.Empty
         for (k,v) in store do
             res <- res.Combine (f (SetOperation(k,v)))
         res
@@ -142,26 +142,26 @@ type DHashSet<'a>(store : HashMap<'a, int>) =
     /// note that this works in O(1).
     member x.ToMap() = store
 
-    /// creates a DHashSet using the given operations.
+    /// creates a HashSetDelta using the given operations.
     static member OfSeq (seq : seq<SetOperation<'a>>) =
-        let mutable res = DHashSet<'a>.Empty
+        let mutable res = HashSetDelta<'a>.Empty
         for e in seq do
             res <- res.Add e
         res
         
-    /// creates a DHashSet using the given operations.
+    /// creates a HashSetDelta using the given operations.
     static member OfList (list : list<SetOperation<'a>>) =
-        list |> DHashSet.OfSeq
+        list |> HashSetDelta.OfSeq
         
-    /// creates a DHashSet using the given operations.
+    /// creates a HashSetDelta using the given operations.
     static member OfArray (arr : array<SetOperation<'a>>) =
-        arr |> DHashSet.OfSeq
+        arr |> HashSetDelta.OfSeq
         
 
     override x.GetHashCode() = store.GetHashCode()
     override x.Equals o =
         match o with
-            | :? DHashSet<'a> as o -> store.Equals(o.Store)
+            | :? HashSetDelta<'a> as o -> store.Equals(o.Store)
             | _ -> false
             
 
@@ -173,7 +173,7 @@ type DHashSet<'a>(store : HashMap<'a, int>) =
         let content =
             x.ToSeq() |> Seq.truncate 5 |> Seq.map (sprintf "%A") |> String.concat "; "
 
-        "DHashSet [" + content + suffix + "]"
+        "HashSetDelta [" + content + suffix + "]"
 
     member private x.AsString = x.ToString()
 
@@ -183,7 +183,7 @@ type DHashSet<'a>(store : HashMap<'a, int>) =
     interface IEnumerable<SetOperation<'a>> with
         member x.GetEnumerator() = new DHashSetEnumerator<_>(store) :> _
 
-/// special enumerator for DHashSet.
+/// special enumerator for HashSetDelta.
 and private DHashSetEnumerator<'a>(store : HashMap<'a, int>) =
     let e = (store :> seq<_>).GetEnumerator()
 
@@ -200,101 +200,101 @@ and private DHashSetEnumerator<'a>(store : HashMap<'a, int>) =
         member x.Dispose() = e.Dispose()
         member x.Current = x.Current
 
-/// functional operators for DHashSet.
+/// functional operators for HashSetDelta.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module DHashSet =
+module HashSetDelta =
 
     /// the empty set.
     [<GeneralizableValue>]
-    let inline empty<'a> = DHashSet<'a>.Empty
+    let inline empty<'a> = HashSetDelta<'a>.Empty
 
     /// the inverse operations for the given set.
-    let inline inverse (set : DHashSet<'a>) = set.Inverse
+    let inline inverse (set : HashSetDelta<'a>) = set.Inverse
 
     /// is the set empty?
-    let inline isEmpty (set : DHashSet<'a>) = set.IsEmpty
+    let inline isEmpty (set : HashSetDelta<'a>) = set.IsEmpty
     
-    /// the number of operations contained in the DHashSet.
-    let inline count (set : DHashSet<'a>) = set.Count
+    /// the number of operations contained in the HashSetDelta.
+    let inline count (set : HashSetDelta<'a>) = set.Count
 
     /// creates a set from a single operation.
     let inline single (op : SetOperation<'a>) =
-        DHashSet(HashMap.single op.Value op.Count)
+        HashSetDelta(HashMap.single op.Value op.Count)
 
-    /// creates a DHashSet using the given operations.
+    /// creates a HashSetDelta using the given operations.
     let inline ofSeq (seq : seq<SetOperation<'a>>) =
-        DHashSet.OfSeq seq
+        HashSetDelta.OfSeq seq
 
-    /// creates a DHashSet using the given operations.
+    /// creates a HashSetDelta using the given operations.
     let inline ofList (list : list<SetOperation<'a>>) =
-        DHashSet.OfList list
+        HashSetDelta.OfList list
 
-    /// creates a DHashSet using the given operations.
+    /// creates a HashSetDelta using the given operations.
     let inline ofArray (arr : array<SetOperation<'a>>) =
-        DHashSet.OfArray arr
+        HashSetDelta.OfArray arr
         
-    /// creates a DHashSet using the given operations.
+    /// creates a HashSetDelta using the given operations.
     /// note that the values from the map are interpreted as reference-deltas and should therefore not be 0.
     let inline ofHashMap (map : HashMap<'a, int>) =
-        DHashSet map
+        HashSetDelta map
 
     /// creates a seq containing all operations from the set.
-    let inline toSeq (set : DHashSet<'a>) =
+    let inline toSeq (set : HashSetDelta<'a>) =
         set.ToSeq()
 
     /// creates a list containing all operations from the set.
-    let inline toList (set : DHashSet<'a>) =
+    let inline toList (set : HashSetDelta<'a>) =
         set.ToList()
         
     /// creates an array containing all operations from the set.
-    let inline toArray (set : DHashSet<'a>) =
+    let inline toArray (set : HashSetDelta<'a>) =
         set.ToArray()
 
     /// creates a HashMap containing all operations from the set.
     /// note that this works in O(1).
-    let inline toHashMap (set : DHashSet<'a>) =
+    let inline toHashMap (set : HashSetDelta<'a>) =
         set.ToMap()
 
-    /// adds a SetOperation to the DHashSet.
-    let inline add (value : SetOperation<'a>) (set : DHashSet<'a>) =
+    /// adds a SetOperation to the HashSetDelta.
+    let inline add (value : SetOperation<'a>) (set : HashSetDelta<'a>) =
         set.Add value
 
-    /// removes a SetOperation from the DHashSet.
-    let inline remove (value : SetOperation<'a>) (set : DHashSet<'a>) =
+    /// removes a SetOperation from the HashSetDelta.
+    let inline remove (value : SetOperation<'a>) (set : HashSetDelta<'a>) =
         set.Remove value
 
     /// combines two DHashSets to one using a reference counting implementation.
-    let inline combine (l : DHashSet<'a>) (r : DHashSet<'a>) =
+    let inline combine (l : HashSetDelta<'a>) (r : HashSetDelta<'a>) =
         l.Combine r
 
     /// applies the mapping function to all operations in the set.
-    let inline map (f : SetOperation<'a> -> SetOperation<'b>) (set : DHashSet<'a>) =
+    let inline map (f : SetOperation<'a> -> SetOperation<'b>) (set : HashSetDelta<'a>) =
         set.Map f
 
     /// applies the mapping function to all operations in the set.
-    let inline choose (f : SetOperation<'a> -> Option<SetOperation<'b>>) (set : DHashSet<'a>) =
+    let inline choose (f : SetOperation<'a> -> option<SetOperation<'b>>) (set : HashSetDelta<'a>) =
         set.Choose f
 
     /// filters the operations contains using the given predicate.
-    let inline filter (f : SetOperation<'a> -> bool) (set : DHashSet<'a>) =
+    let inline filter (f : SetOperation<'a> -> bool) (set : HashSetDelta<'a>) =
         set.Filter f
 
     /// applies the mapping function to all operations in the set and combines all the results.
-    let inline collect (f : SetOperation<'a> -> DHashSet<'b>) (set : DHashSet<'a>) =
+    let inline collect (f : SetOperation<'a> -> HashSetDelta<'b>) (set : HashSetDelta<'a>) =
         set.Collect f
 
     /// iterates over all operations in the set.
-    let inline iter (iterator : SetOperation<'a> -> unit) (set : DHashSet<'a>) =
+    let inline iter (iterator : SetOperation<'a> -> unit) (set : HashSetDelta<'a>) =
         set.Iter iterator
 
     /// checks whether an entry fulfilling the predicate exists.
-    let inline exists (predicate : SetOperation<'a> -> bool) (set : DHashSet<'a>) =
+    let inline exists (predicate : SetOperation<'a> -> bool) (set : HashSetDelta<'a>) =
         set.Exists predicate
 
     /// checks whether all entries fulfill the predicate exists.
-    let inline forall (predicate : SetOperation<'a> -> bool) (set : DHashSet<'a>) =
+    let inline forall (predicate : SetOperation<'a> -> bool) (set : HashSetDelta<'a>) =
         set.Forall predicate
 
     /// folds over the set.
-    let inline fold (folder : 's -> SetOperation<'a> -> 's) (seed : 's) (set : DHashSet<'a>) =
+    let inline fold (folder : 's -> SetOperation<'a> -> 's) (seed : 's) (set : HashSetDelta<'a>) =
         set.Fold(seed, folder)

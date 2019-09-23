@@ -29,7 +29,7 @@ type StupidHash = { value : int } with
 
 
 /// avoid obj defaulting
-let emptyDelta : DHashSet<int> = DHashSet.empty
+let emptyDelta : HashSetDelta<int> = HashSetDelta.empty
 
 [<Property>]
 let ``[HashSet] differentiate/integrate`` (set1 : Set<int>) (set2 : Set<int>) (set3 : Set<int>) =
@@ -61,17 +61,17 @@ let ``[HashSet] differentiate/integrate`` (set1 : Set<int>) (set2 : Set<int>) (s
     bw.Inverse |> should setequal fw
 
     // diff(A, B) + diff(B, A) = 0
-    DHashSet.combine fw bw |> should setequal emptyDelta
+    HashSetDelta.combine fw bw |> should setequal emptyDelta
 
     let d12 = HashSet.differentiate set1 set2
     let d23 = HashSet.differentiate set2 set3
     let d31 = HashSet.differentiate set3 set1
 
     // diff(A, B) + diff(B, C) + diff(C, A) = 0
-    DHashSet.combine (DHashSet.combine d12 d23) d31 |> should setequal emptyDelta
+    HashSetDelta.combine (HashSetDelta.combine d12 d23) d31 |> should setequal emptyDelta
 
     // diff(A, B) + diff(B, C) = diff(A, C)
-    DHashSet.combine d12 d23 |> should setequal d31.Inverse
+    HashSetDelta.combine d12 d23 |> should setequal d31.Inverse
 
 [<Property>]
 let ``[CountingHashSet] differentiate/integrate`` (set1 : Set<int>) (set2 : Set<int>) (set3 : Set<int>) =
@@ -103,17 +103,17 @@ let ``[CountingHashSet] differentiate/integrate`` (set1 : Set<int>) (set2 : Set<
     bw.Inverse |> should setequal fw
 
     // diff(A, B) + diff(B, A) = 0
-    DHashSet.combine fw bw |> should setequal emptyDelta
+    HashSetDelta.combine fw bw |> should setequal emptyDelta
 
     let d12 = CountingHashSet.differentiate set1 set2
     let d23 = CountingHashSet.differentiate set2 set3
     let d31 = CountingHashSet.differentiate set3 set1
 
     // diff(A, B) + diff(B, C) + diff(C, A) = 0
-    DHashSet.combine (DHashSet.combine d12 d23) d31 |> should setequal emptyDelta
+    HashSetDelta.combine (HashSetDelta.combine d12 d23) d31 |> should setequal emptyDelta
 
     // diff(A, B) + diff(B, C) = diff(A, C)
-    DHashSet.combine d12 d23 |> should setequal d31.Inverse
+    HashSetDelta.combine d12 d23 |> should setequal d31.Inverse
 
     
 [<Property>]
