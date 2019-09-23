@@ -13,8 +13,8 @@ type Record<'a> = { value : 'a }
 [<AutoOpen>]
 module Helpers =
     let check (r : IHashSetReader<'a>) =
-        let a = r.Adaptive.GetOperations FSharp.Data.Adaptive.AdaptiveToken.Top
-        let r = r.Reference.GetOperations FSharp.Data.Adaptive.Reference.AdaptiveToken.Top
+        let a = r.Adaptive.GetChanges FSharp.Data.Adaptive.AdaptiveToken.Top
+        let r = r.Reference.GetChanges FSharp.Data.Adaptive.Reference.AdaptiveToken.Top
         a |> should setequal r
         r
 

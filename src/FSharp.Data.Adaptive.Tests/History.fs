@@ -44,7 +44,7 @@ let ``[History] weak``() : unit =
 
     let createDeadReaders(n : int) =
         for i in 1 .. n do
-            h.NewReader().GetOperations(AdaptiveToken.Top) |> ignore
+            h.NewReader().GetChanges(AdaptiveToken.Top) |> ignore
         ensureGC()
 
     let mem0 = getRealMemory()
@@ -62,7 +62,7 @@ let ``[History] weak``() : unit =
 
     let createReaderAndEval() =
         let r = h.NewReader()
-        let eval () = r.GetOperations(AdaptiveToken.Top) |> ignore
+        let eval () = r.GetChanges(AdaptiveToken.Top) |> ignore
         eval()
         createDeadReaders 5
         transact performChange
@@ -96,7 +96,7 @@ let ``[History] different reader versions``() =
         )
 
     let eval (r : IOpReader<_,_>) = 
-        r.GetOperations AdaptiveToken.Top
+        r.GetChanges AdaptiveToken.Top
 
     // create three readers
     let r0 = history.NewReader()
@@ -155,7 +155,7 @@ let ``[History] single reader``() =
     )
     ensureGC()
 
-    r.GetOperations(AdaptiveToken.Top) 
+    r.GetChanges(AdaptiveToken.Top) 
     |> should setequal [Add 1; Add 2]
 
     r.State
@@ -165,7 +165,7 @@ let ``[History] single reader``() =
         h.Perform (HashSetDelta.ofList [Rem 1]) |> ignore
     )
     ensureGC()
-    r.GetOperations(AdaptiveToken.Top) 
+    r.GetChanges(AdaptiveToken.Top) 
     |> should setequal [Rem 1]
 
     r.State
@@ -191,7 +191,7 @@ let ``[History] multiple readers``() =
     )
     secondReader()
 
-    r.GetOperations(AdaptiveToken.Top) 
+    r.GetChanges(AdaptiveToken.Top) 
     |> should setequal [Add 1; Add 2]
 
     r.State
@@ -203,7 +203,7 @@ let ``[History] multiple readers``() =
         h.Perform (HashSetDelta.ofList [Rem 1]) |> ignore
     )
     secondReader()
-    r.GetOperations(AdaptiveToken.Top) 
+    r.GetChanges(AdaptiveToken.Top) 
     |> should setequal [Rem 1]
 
     r.State

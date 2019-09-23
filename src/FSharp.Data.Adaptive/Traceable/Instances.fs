@@ -2,25 +2,23 @@
 
 open FSharp.Data.Adaptive
 
-
 /// functional operators for HashSetDelta.
-[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module HashSetDelta =
     type private Monoid<'T> private() =
         /// the monoid instance for HashSetDelta
-        static let monoid =
+        static let monoid  =
             {
                 mempty = HashSetDelta<'T>(HashMap.empty)
                 mappend = fun l r -> l.Combine r
                 misEmpty = fun s -> s.IsEmpty
-            }
+            } 
         static member Instance = monoid
+
     /// the monoid instance for HashSetDelta
     [<GeneralizableValue>]
     let monoid<'T> = Monoid<'T>.Instance
    
 /// functional operators for HashMapDelta.
-[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module HashMapDelta =
     type private Monoid<'k, 'v> private() =
         /// the monoid instance for HashMapDelta
@@ -36,9 +34,7 @@ module HashMapDelta =
     [<GeneralizableValue>]
     let monoid<'k, 'v> = Monoid<'k, 'v>.Instance
     
-    
 /// functional operators for HashSet.
-[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module HashSet =
 
     /// type for caching the Traceable<_> instance for HashSet<_>
@@ -58,7 +54,6 @@ module HashSet =
     let trace<'T> = Traceable<'T>.Instance
  
 /// functional operators for HashMap.
-[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module HashMap =
 
     /// type for caching the Traceable<_> instance for HashMap<_,_>
