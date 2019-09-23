@@ -27,7 +27,7 @@ module internal LockingExtensions =
 /// attempting to evaluate. Therefore the evaluation may raise
 /// this exception causing the evaluation to be delayed to a later
 /// time in the Transaction.
-exception LevelChangedException of IAdaptiveObject * int * int
+exception LevelChangedException of newLevel : int
 
 
 /// Holds a set of adaptive objects which have been changed and shall
@@ -161,11 +161,11 @@ type Transaction() =
                                     // if Mark told us not to continue we're done here
                                     ()
 
-                            with LevelChangedException(_obj, objLevel, distance) ->
+                            with LevelChangedException newLevel ->
                                 // if the level was changed either by a callback
                                 // or Mark we re-enqueue the object with the new level and
                                 // mark it upToDate again (since it would otherwise not be processed again)
-                                e.Level <- max e.Level (objLevel + distance)
+                                e.Level <- max e.Level newLevel
                                 e.OutOfDate <- false
 
                                 levelChangeCount <- levelChangeCount + 1
