@@ -23,9 +23,6 @@
     <Compile Include="ARef.fs" />
     <Compile Include="ASet.fs" />
     <Compile Include="Program.fs" />
-    <Content Include="xunit.runner.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FSharp.Control.Incremental.Reference\FSharp.Control.Incremental.Reference.fsproj" />
