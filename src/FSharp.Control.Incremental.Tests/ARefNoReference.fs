@@ -66,19 +66,20 @@ let ``[ARef] eager evaluation`` () =
 
 [<Test>]
 let ``[ARef] nop change evaluation`` () =
+    
     let input = ARef.init 5
-
     let a = ARef.map id input
     let b = ARef.map (fun v -> -v) input
-
     let c = ARef.map2 (+) a b
     let mutable mapCounter = 0
-    let d = c |> ARef.map (fun v -> mapCounter <- mapCounter + 1; printfn "eval"; v)
-
+    let d = c |> ARef.map (fun v -> mapCounter <- mapCounter + 1; v)
+    
+    // mapping should be evaluated
     d |> ARef.force |> should equal 0
     mapCounter |> should equal 1
     mapCounter <- 0
 
+    // mapping should not be evaluated (input still 0)
     transact (fun () -> input.Value <- 10)
     d.OutOfDate |> should be True
     d |> ARef.force |> should equal 0

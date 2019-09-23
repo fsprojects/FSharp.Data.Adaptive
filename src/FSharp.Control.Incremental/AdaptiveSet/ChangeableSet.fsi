@@ -1,6 +1,6 @@
 ﻿namespace FSharp.Control.Incremental
 
-/// changeable incremental set that allows mutation by user-code and implements aset.
+/// changeable adaptive set that allows mutation by user-code and implements aset.
 [<Sealed>]
 type ChangeableHashSet<'T> =
     interface AdaptiveHashSet<'T>
@@ -32,7 +32,7 @@ type ChangeableHashSet<'T> =
     /// removes all the given elements from the set.
     member ExceptWith: other: seq<'T> -> unit
 
-    /// creates an incremental reader for the set.
+    /// creates an adaptive reader for the set.
     member GetReader: unit -> IHashSetReader<'T>
 
     /// creates a new empty cset.

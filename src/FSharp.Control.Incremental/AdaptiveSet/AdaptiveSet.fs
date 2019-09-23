@@ -2,10 +2,10 @@ namespace FSharp.Control.Incremental
 
 open FSharp.Control.Traceable
 
-/// an incremental reader for aset that allows to pull operations and exposes its current state.
+/// an adaptive reader for aset that allows to pull operations and exposes its current state.
 type IHashSetReader<'a> = IOpReader<CountingHashSet<'a>, HashSetDelta<'a>>
 
-/// incremental set datastructure.
+/// adaptive set datastructure.
 type AdaptiveHashSet<'a> =
     /// is the set constant?
     abstract member IsConstant : bool
@@ -39,7 +39,7 @@ module AdaptiveHashSetImplementation =
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
 
-    /// efficient implementation for an empty incremental set.
+    /// efficient implementation for an empty adaptive set.
     type EmptySet<'a> private() =   
         static let instance = EmptySet<'a>() :> aset<_>
         let content = ARef.constant HashSet.empty
@@ -54,7 +54,7 @@ module AdaptiveHashSetImplementation =
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
 
-    /// efficient implementation for a constant incremental set.
+    /// efficient implementation for a constant adaptive set.
     type ConstantSet<'a>(content : Lazy<HashSet<'a>>) =
         let ref = ARef.delay (fun () -> content.Value)
 
@@ -253,6 +253,41 @@ module AdaptiveHashSetImplementation =
             oldSet <- newSet
             deltas
 
+    /// reader for bind operations.
+    type BindReader<'a, 'b>(input : aref<'a>, mapping : 'a -> aset<'b>) =
+        inherit AbstractReader<HashSetDelta<'b>>(HashSetDelta.monoid)
+            
+        let mutable refChanged = 0
+        let mutable cache : option<'a * IHashSetReader<'b>> = None
+            
+        override x.InputChanged(_, i) =
+            if System.Object.ReferenceEquals(i, input) then
+                refChanged <- 1
+
+        override x.Compute(token) =
+            let newValue = input.GetValue token
+            let refChanged = System.Threading.Interlocked.Exchange(&refChanged, 0) = 1
+
+            match cache with
+            | Some(oldValue, oldReader) when refChanged && not (cheapEqual oldValue newValue) ->
+                // input changed
+                let rem = CountingHashSet.removeAll oldReader.State
+                oldReader.Outputs.Remove x |> ignore
+                let newReader = (mapping newValue).GetReader()
+                let add = newReader.GetOperations token
+                cache <- Some(newValue, newReader)
+                HashSetDelta.combine rem add
+
+            | Some(_, ro) ->    
+                // input unchanged
+                ro.GetOperations token
+
+            | None ->
+                // initial
+                let r = (mapping newValue).GetReader()
+                cache <- Some(newValue, r)
+                r.GetOperations token
+
 
     /// gets the current content of the aset as HashSet.
     let inline force (set : aset<'a>) = 
@@ -262,7 +297,7 @@ module AdaptiveHashSetImplementation =
     let inline constant (content : unit -> HashSet<'a>) = 
         ConstantSet(lazy(content())) :> aset<_> 
 
-    /// creates an incremental set using the reader.
+    /// creates an adaptive set using the reader.
     let inline create (reader : unit -> #IOpReader<HashSetDelta<'a>>) =
         AdaptiveHashSet(fun () -> reader() :> IOpReader<_>) :> aset<_>
 
@@ -299,28 +334,28 @@ module ASet =
     let toARef (set : aset<'a>) =
         set.Content
 
-    /// incrementally maps over the given set.
+    /// adaptively maps over the given set.
     let map (mapping : 'a -> 'b) (set : aset<'a>) =
         if set.IsConstant then
             constant (fun () -> set |> force |> HashSet.map mapping)
         else
             create (fun () -> MapReader(set, mapping))
           
-    /// incrementally chooses all elements returned by mapping.  
+    /// adaptively chooses all elements returned by mapping.  
     let choose (mapping : 'a -> option<'b>) (set : aset<'a>) =
         if set.IsConstant then
             constant (fun () -> set |> force |> HashSet.choose mapping)
         else
             create (fun () -> ChooseReader(set, mapping))
             
-    /// incrementally filters the set using the given predicate.
+    /// adaptively filters the set using the given predicate.
     let filter (predicate : 'a -> bool) (set : aset<'a>) =
         if set.IsConstant then
             constant (fun () -> set |> force |> HashSet.filter predicate)
         else
             create (fun () -> FilterReader(set, predicate))
 
-    /// incrementally unions all the given sets
+    /// adaptively unions all the given sets
     let union (sets : aset<aset<'a>>) = 
         if sets.IsConstant then
             // outer set is constant
@@ -335,7 +370,7 @@ module ASet =
             // sadly no way to know if inner sets will always be constants.
             create (fun () -> UnionReader sets)
 
-    /// incrementally maps over the given set and unions all resulting sets.
+    /// adaptively maps over the given set and unions all resulting sets.
     let collect (mapping : 'a -> aset<'b>) (set : aset<'a>) =   
         if set.IsConstant then
             // outer set is constant
@@ -355,3 +390,9 @@ module ASet =
             constant (fun () -> ARef.force ref :> seq<'a> |> HashSet.ofSeq)
         else
             create (fun () -> ARefReader(ref))
+
+    let bind (mapping : 'a -> aset<'b>) (ref : aref<'a>) =
+        if ref.IsConstant then
+            ref |> ARef.force |> mapping
+        else
+            create (fun () -> BindReader(ref, mapping))

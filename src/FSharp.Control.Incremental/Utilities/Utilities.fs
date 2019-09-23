@@ -222,7 +222,7 @@ module Unchecked =
 
 [<AutoOpen>]
 module Failures =
-    let inline unexpected() = failwith "[Incremental] encountered an invalid state"
+    let inline unexpected() = failwith "[Adaptive] encountered an invalid state"
 
 
 
