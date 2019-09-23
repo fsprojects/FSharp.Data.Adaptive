@@ -154,7 +154,13 @@ type HashSet<'a> internal(cnt : int, store : intmap<list<'a>>) =
             ) hash
 
         HashSet(cnt, newStore)
-        
+  
+    /// adds the given entry and returns none if it was already existing. `O(log N)`
+    member x.TryAdd (value : 'a) =
+        let res = x.Add value
+        if res.Count <> cnt then Some res
+        else None
+      
     /// removes the given entry. `O(log N)`
     member x.Remove (value : 'a) =
         let hash = Unchecked.hash value
@@ -168,6 +174,12 @@ type HashSet<'a> internal(cnt : int, store : intmap<list<'a>>) =
             ) hash
 
         HashSet(cnt, newStore)
+        
+    /// removes the given entry and returns none if it was not existing. `O(log N)`
+    member x.TryRemove (value : 'a) =
+        let res = x.Remove value
+        if res.Count <> cnt then Some res
+        else None
 
     /// tests if the given key exists. `O(log N)`
     member x.Contains (value : 'a) =
@@ -488,10 +500,18 @@ module HashSet =
     /// adds the given entry. `O(log N)`
     let inline add (value : 'a) (set : HashSet<'a>) =
         set.Add value
+        
+    /// adds the given entry and returns none if it was already existing. `O(log N)`
+    let inline tryAdd (value : 'a) (set : HashSet<'a>) =
+        set.TryAdd value
 
     /// removes the given entry. `O(log N)`
     let inline remove (value : 'a) (set : HashSet<'a>) =
         set.Remove value
+        
+    /// removes the given entry and returns none if it was not existing. `O(log N)`
+    let inline tryRemove (value : 'a) (set : HashSet<'a>) =
+        set.TryRemove value
 
     /// adds or deletes the given key.
     /// the update functions gets a boolean indicating whether the key was contained and

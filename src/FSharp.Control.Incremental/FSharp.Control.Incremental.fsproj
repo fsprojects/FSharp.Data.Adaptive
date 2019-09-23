@@ -30,16 +30,16 @@
 	<Compile Include="Core\AdaptiveToken.fs" />
 	<Compile Include="Core\AdaptiveObject.fs" />
 	<Compile Include="Core\Callbacks.fs" />
-	<Compile Include="ARef\ARef.fsi" />
-	<Compile Include="ARef\ARef.fs" />
+	<Compile Include="AdaptiveRef\AdaptiveRef.fsi" />
+	<Compile Include="AdaptiveRef\AdaptiveRef.fs" />
 	<Compile Include="Traceable\Traceable.fs" />
 	<Compile Include="Traceable\Instances.fs" />
 	<Compile Include="Traceable\History.fs" />
 	<Compile Include="Traceable\CountingHashSet.fs" />
-	<Compile Include="ASet\ASet.fsi" />
-	<Compile Include="ASet\ASet.fs" />
-	<Compile Include="ASet\CSet.fsi" />
-	<Compile Include="ASet\CSet.fs" />
+	<Compile Include="AdaptiveSet\AdaptiveSet.fsi" />
+	<Compile Include="AdaptiveSet\AdaptiveSet.fs" />
+	<Compile Include="AdaptiveSet\ChangeableSet.fsi" />
+	<Compile Include="AdaptiveSet\ChangeableSet.fs" />
 	</ItemGroup>
 	<Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

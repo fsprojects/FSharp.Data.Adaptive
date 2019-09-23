@@ -8,9 +8,8 @@ module DifferentiationExtensions =
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module HashSet =
 
-
         /// determines the operations needed to transform l into r.
-        /// returns a HashSetDelta containing all the needed operations.
+        /// Returns a HashSetDelta containing these operations.
         let differentiate (l : HashSet<'a>) (r : HashSet<'a>) =
             // O(1)
             if System.Object.ReferenceEquals(l.Store, r.Store) then
@@ -26,10 +25,7 @@ module DifferentiationExtensions =
                 let delta = l.Store |> IntMap.map (List.map (fun v -> struct (v, -1)))
                 HashMap(l.Count, delta) |> HashSetDelta
         
-            // TODO: |l|*log|r| and |r|*log|l| implementations should exists
-            // which will most likely be faster than |l|+|r| when one of the sets is small.
-
-            // O(max |l| |r|*log|l|)
+            // O(|l|*log|l|)
             elif r.Count * 5 < l.Count then
                 // r is small
                 let mutable lStore = l.Store
@@ -52,6 +48,7 @@ module DifferentiationExtensions =
                             |> List.map (fun v -> cnt <- cnt + 1; struct(v,1))
                             |> Some
                     )
+                
                 // O(|l|)
                 let deltaL =
                     lStore 
@@ -61,7 +58,40 @@ module DifferentiationExtensions =
 
                 HashSetDelta(HashMap(cnt, deltas))
 
-            // O(|l| + |r|)
+            // O(|r|*log|r|)
+            elif l.Count * 5 < r.Count then
+                // l is small
+                let mutable rStore = r.Store
+                let mutable cnt = 0
+                
+                // O(|l|*log|r|)
+                let deltaL = 
+                    l.Store |> IntMap.mapOptionWithKey (fun hash lValues ->
+                        match IntMap.tryRemove hash rStore with
+                        | Some (rValues, rest) ->
+                            rStore <- rest
+                            (lValues, rValues) ||> HashSetList.mergeWithOption (fun _value l r ->
+                                if l && not r then cnt <- cnt + 1; Some -1
+                                elif r && not l then cnt <- cnt + 1; Some 1
+                                else None
+                            )
+
+                        | None ->
+                            lValues
+                            |> List.map (fun v -> cnt <- cnt + 1; struct(v,-1))
+                            |> Some
+                    )
+                
+                // O(|r|)
+                let deltaR =
+                    rStore 
+                    |> IntMap.map (List.map (fun v -> cnt <- cnt + 1; struct(v,1)))
+
+                let deltas = IntMap.append deltaL deltaR
+
+                HashSetDelta(HashMap(cnt, deltas))
+
+            // O(|l|+|r|)
             else
                 let mutable cnt = 0
 
@@ -98,42 +128,83 @@ module DifferentiationExtensions =
             if delta.IsEmpty then
                 value, delta
 
-            // O(Delta)
+            // O(delta)
             elif value.IsEmpty then
                 let mutable maxDelta = 0
-
+                let mutable hasRemove = false
                 let state = 
-                    delta.Store.Store |> IntMap.map (
-                        List.map (fun struct (k, delta) ->
-                            if delta > maxDelta then maxDelta <- delta
-                            k
-                        )
+                    delta.Store.Store |> IntMap.mapOption (fun l ->
+                        let result = 
+                            l |> List.choose (fun struct (k, delta) ->
+                                if delta > 0 then 
+                                    if delta > maxDelta then maxDelta <- delta
+                                    Some k
+                                else 
+                                    hasRemove <- true
+                                    None
+                            )
+                        if List.isEmpty result then None
+                        else Some result
                     )
 
                 let delta = 
-                    if maxDelta > 1 then delta.Store |> HashMap.map (fun _ _ -> 1)
-                    else delta.Store
+                    if maxDelta > 1 || hasRemove then 
+                        delta.Store |> HashMap.choose (fun _ d -> 
+                            if d > 0 then Some 1
+                            else None
+                        )
+                    else 
+                        delta.Store
 
                 HashSet(delta.Count, state), HashSetDelta delta
 
-            // O(Delta * log N)
-            else
-                let mutable res = value
+            // O(delta * log N)
+            elif delta.Count * 5 < value.Count then
+                // delta small
+                let mutable result = value
                 let effective =
-                    delta |> HashSetDelta.choose (fun d ->
-                        let value = d.Value
-                        let contained = HashSet.contains value res
-                        if contained && d.Count < 0 then
-                            res <- HashSet.remove value res
-                            Some (Rem value)
-                        elif not contained && d.Count > 0 then
-                            res <- HashSet.add value res
-                            Some (Add value)
-                        else
-                            None
+                    delta |> HashSetDelta.choose (fun op ->
+                        match op with
+                        | Add(_, v) -> 
+                            match HashSet.tryAdd v result with
+                            | Some newSet ->
+                                result <- newSet
+                                Some (Add v)
+                            | None ->
+                                None
+                        | Rem(_, v) ->
+                            match HashSet.tryRemove v result with
+                            | Some newSet ->
+                                result <- newSet
+                                Some (Rem v)
+                            | None ->
+                                None
                     )
 
-                res, effective
+                result, effective
+                
+            // TODO: implementation possible?
+            //elif value.Count * 5 < delta.Count then
+
+            else
+                let mutable effective = HashSetDelta.empty
+                let newValue = 
+                    delta.Store.Choose2SetSet(value, fun k d o ->
+                        match d with
+                        | Some d ->
+                            if not o && d > 0 then
+                                effective <- HashSetDelta.add (Add k) effective
+                                true
+                            elif o && d < 0 then
+                                effective <- HashSetDelta.add (Rem k) effective
+                                false
+                            else
+                                o
+                        | None ->
+                            o
+                    )
+
+                newValue, effective
 
     /// Functional programming operators related to the HashMap<_,_> type.
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
