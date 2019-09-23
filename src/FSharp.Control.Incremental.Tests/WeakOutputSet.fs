@@ -2,9 +2,9 @@
 
 open System
 open FsUnit
-open Xunit
+open NUnit.Framework
 open FsCheck
-open FsCheck.Xunit
+open FsCheck.NUnit
 open FSharp.Control.Incremental
 
 
@@ -17,7 +17,7 @@ type NonEqualObject() =
 
 let relevantSizes = [0;1;2;4;8;9;20]
 
-[<Fact>]
+[<Test>]
 let ``[WeakOutputSet] add``() =
     relevantSizes |> List.iter (fun cnt ->
         let set = WeakOutputSet()
@@ -33,7 +33,7 @@ let ``[WeakOutputSet] add``() =
             many |> Array.exists (fun m -> Object.ReferenceEquals(m, a)) |> should be True
     )
 
-[<Fact>]
+[<Test>]
 let ``[WeakOutputSet] remove``() =
     relevantSizes |> List.iter (fun cnt ->
         let set = WeakOutputSet()
@@ -47,7 +47,7 @@ let ``[WeakOutputSet] remove``() =
     )
 
 
-[<Fact>]
+[<Test>]
 let ``[WeakOutputSet] actually weak``() =
     relevantSizes |> List.iter (fun cnt ->
         let set = WeakOutputSet()

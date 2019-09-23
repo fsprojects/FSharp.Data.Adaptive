@@ -1,9 +1,9 @@
 ﻿module HashSet
 
 open System
-open FsUnit.Xunit
+open FsUnit
 open FsCheck
-open FsCheck.Xunit
+open FsCheck.NUnit
 open FSharp.Control.Incremental
 open FSharp.Control.Traceable
 

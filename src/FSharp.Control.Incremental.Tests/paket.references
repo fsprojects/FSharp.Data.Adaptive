@@ -1,9 +1,8 @@
 FSharp.Core
 FsUnit
-FsUnit.XUnit
 FsCheck
-FsCheck.Xunit
+FsCheck.NUnit
 Microsoft.NET.Test.Sdk
-xunit
-xunit.runner.visualstudio
+NUnit
 BenchmarkDotNet
+NUnit3TestAdapter

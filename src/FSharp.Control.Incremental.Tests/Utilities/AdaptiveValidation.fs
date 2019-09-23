@@ -2,7 +2,7 @@
 
 open FSharp.Control.Incremental
 open FSharp.Control
-open FsUnit.Xunit
+open FsUnit
 
 type aref<'a> =
     abstract member Adaptive : Incremental.aref<'a>

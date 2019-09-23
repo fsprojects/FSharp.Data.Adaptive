@@ -1,13 +1,11 @@
 ﻿module History
 
-open Xunit
+open NUnit.Framework
 open FSharp.Control.Incremental
 open FSharp.Control.Traceable
 open FsCheck
-open FsUnit.Xunit
-open Xunit.Sdk
-open System.Diagnostics
-open Xunit.Abstractions
+open FsCheck.NUnit
+open FsUnit
 
 type HugeOp(delta : int) =
     static let size = 1 <<< 24
@@ -40,7 +38,7 @@ type Number(value : int) =
 
 
 
-[<Fact>]
+[<Test>]
 let ``[History] weak``() : unit =
     let mutable h = History Number.Trace
 
@@ -88,7 +86,7 @@ let ``[History] weak``() : unit =
 
 
 
-[<Fact>]
+[<Test>]
 let ``[History] different reader versions``() =
     let history = History CountingHashSet.trace
 
@@ -146,7 +144,7 @@ let ``[History] different reader versions``() =
 
 
 
-[<Fact>]
+[<Test>]
 let ``[History] single reader``() =
     
     let h = History(CountingHashSet.trace)
@@ -178,7 +176,7 @@ let ``[History] single reader``() =
 
     ()
    
-[<Fact>]
+[<Test>]
 let ``[History] multiple readers``() = 
     let h = History(CountingHashSet.trace)
     let r = h.NewReader()

@@ -1,12 +1,12 @@
 ﻿module ASet
 
-open Xunit
+open NUnit.Framework
 open FsCheck
 open FSharp.Control.Incremental
 open FSharp.Control.Incremental.Validation
 open FSharp.Control.Traceable
-open FsUnit.Xunit
-open FsCheck.Xunit
+open FsUnit
+open FsCheck.NUnit
 
 type Record<'a> = { value : 'a }
 
@@ -20,7 +20,7 @@ module Helpers =
 
 let emptyDelta = DHashSet.empty<int>
 
-[<Fact>]
+[<Test>]
 let ``[CSet] reader add/remove/clear/union/except`` () =
     let set = cset<int>(HashSet.empty)
 
@@ -51,7 +51,7 @@ let ``[CSet] reader add/remove/clear/union/except`` () =
     r |> check |> should setequal [Rem 2]
     r.Adaptive.State |> should setequal List.empty<int>
 
-[<Fact>]
+[<Test>]
 let ``[CSet] contains/isEmpty/count`` () =
     let set = cset(HashSet.ofList [1;2])
 

@@ -2,9 +2,9 @@
 
 open FSharp.Control.Incremental
 open FSharp.Control.Incremental.Validation
-open FsUnit.Xunit
-open FsCheck.Xunit
-open Xunit
+open NUnit.Framework
+open FsUnit
+open FsCheck.NUnit
 
 [<AutoOpen>]
 module Helpers =
@@ -62,7 +62,7 @@ let ``[ARef] map validation`` (values : list<obj>) =
         transact (fun () -> input.Value <- v)
         check test
       
-[<Fact>]
+[<Test>]
 let ``[ARef] map constant`` () =
     let a = ARef.constant 1
     let b = ARef.map id a
@@ -86,7 +86,7 @@ let ``[ARef] map2 validation`` (va : list<obj>) (vb : list<obj>)  =
         )
         check test
 
-[<Fact>]
+[<Test>]
 let ``[ARef] map2 constant`` () =
     let a = ARef.constant 1
     let b = ARef.constant 2
@@ -115,7 +115,7 @@ let ``[ARef] map3 validation`` (va : list<obj>) (vb : list<obj>) (vc : list<obj>
         )
         check test
 
-[<Fact>]
+[<Test>]
 let ``[ARef] map3 constant`` () =
     let a = ARef.constant 1
     let b = ARef.constant 2
@@ -150,7 +150,7 @@ let ``[ARef] bind validation`` (values : list<obj>) =
         )
         check test
 
-[<Fact>]
+[<Test>]
 let ``[ARef] bind constant`` () =
     let a = ARef.constant 10
     let b = ARef.init "b" |> ARef.map id

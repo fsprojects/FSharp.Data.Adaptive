@@ -3,7 +3,7 @@
 open System
 open NUnit
 open FsCheck
-open FsCheck.Xunit
+open FsCheck.NUnit
 open FSharp.Control.Incremental
 
 module List =
@@ -159,7 +159,7 @@ let ``[HashMap] map2/choose2`` (lm : Map<int, int>) (rm : Map<int, int>) =
     List.all [
         equal (HashMap.map2 add l r) (map2 add lm rm)
         equal (HashMap.choose2 (fun k l r -> add k l r |> Some) l r) (map2 add lm rm)
-        equal (HashMap.choose2 (fun k l r -> add2 k l r) l r) (choose2 add2 lm rm)
+        equal (HashMap.choose2 add2 l r) (choose2 add2 lm rm)
     ]
 
 [<Property>]

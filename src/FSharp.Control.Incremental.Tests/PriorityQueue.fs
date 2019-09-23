@@ -4,7 +4,7 @@ open System.Collections.Generic
 open FSharp.Control.Incremental
 open FsUnit
 open FsCheck
-open FsCheck.Xunit
+open FsCheck.NUnit
 
 
 [<Property>]

@@ -5,12 +5,11 @@ source https://api.nuget.org/v3/index.json
 nuget FSharp.Core                           ~> 4.6.2
 
 nuget FsUnit                                ~> 3.4.1
-nuget FsUnit.xUnit                          ~> 3.4.1
 nuget FsCheck                               ~> 2.14.0
-nuget FsCheck.Xunit                         ~> 2.14.0
+nuget FsCheck.NUnit                         ~> 2.14.0
 nuget Microsoft.NET.Test.Sdk                ~> 16.2.0
-nuget xunit                                 ~> 2.4.1
-nuget xunit.runner.visualstudio             ~> 2.4.1
+nuget NUnit                                 ~> 3.12.0
+nuget NUnit3TestAdapter                     ~> 3.15.1
 nuget BenchmarkDotNet                       ~> 0.11.5
 
 group Build

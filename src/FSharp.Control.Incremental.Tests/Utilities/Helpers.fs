@@ -4,22 +4,35 @@ open System
 
 [<AutoOpen>]
 module Helpers =
+    open NUnit.Framework.Constraints
+
     let refequal (expected : 'a) =
-        { new NHamcrest.Core.IsEqualMatcher<obj>(expected) with
-            override x.Matches o =
-                System.Object.ReferenceEquals(o, expected)
+        { new Constraint() with
+            override x.ApplyTo<'b>(other : 'b) =    
+                x.Description <- string <| System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode expected
+                let otherHash = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode other
+                if System.Object.ReferenceEquals(expected, other) then
+                    ConstraintResult(x, otherHash, true)
+                else
+                    ConstraintResult(x, otherHash, false)
         }
 
     let setequal (expected : seq<'a>) =
-        { new NHamcrest.Core.IsEqualMatcher<obj>(expected) with
-            override x.Matches o =
-                match o with
+        let expected = FSharp.Control.Incremental.HashSet.ofSeq expected
+        { new Constraint() with 
+            override x.ApplyTo<'b>(o : 'b) =
+                x.Description <- string expected
+                match o :> obj with
                 | :? seq<'a> as o -> 
                     let should = System.Collections.Generic.HashSet expected
                     let is = System.Collections.Generic.HashSet o
-                    should.SetEquals is
+                    if should.SetEquals is then
+                        ConstraintResult(x, o, true)
+                    else
+                        ConstraintResult(x, o, false)
+                        
                 | _ -> 
-                    false
+                    ConstraintResult(x, o, false)
         }
 
 

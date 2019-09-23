@@ -1,7 +1,7 @@
 ﻿module IntMap
 
-open FsUnit.Xunit
-open FsCheck.Xunit
+open FsUnit
+open FsCheck.NUnit
 open FSharp.Control.Incremental
 
 [<Property>]
