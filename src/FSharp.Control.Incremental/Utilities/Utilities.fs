@@ -216,6 +216,9 @@ module internal CheapEquality =
     let cheapHash (a : 'a) = CheapEquality<'a>.Comparer.GetHashCode a
     let cheapEqual (a : 'a) (b : 'a) = CheapEquality<'a>.Comparer.Equals(a, b)
 
+module Unchecked =
+    let inline isNull<'a when 'a : not struct> (value : 'a) =
+        isNull (value :> obj)
 
 [<AutoOpen>]
 module Failures =

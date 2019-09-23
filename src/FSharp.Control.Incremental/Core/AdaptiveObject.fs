@@ -4,7 +4,6 @@ open System
 
 /// Core implementation of IAdaptiveObject containing tools for evaluation
 /// and locking
-[<AllowNullLiteral>]
 type AdaptiveObject =
     
     [<DefaultValue; ThreadStatic>]
@@ -24,7 +23,7 @@ type AdaptiveObject =
     /// is not marked as outOfDate.
     /// this method takes care of appropriate locking
     member x.EvaluateAlways (token : AdaptiveToken) (f : AdaptiveToken -> 'T) =
-        let caller = token.Caller
+        let caller = token.caller
         let depth = AdaptiveObject.CurrentEvaluationDepth
 
         let mutable res = Unchecked.defaultof<_>
@@ -57,7 +56,7 @@ type AdaptiveObject =
                                                                      
             res <- r
 
-            if not (isNull caller) then
+            if not (Unchecked.isNull caller) then
                 x.outputs.Add caller |> ignore
                 caller.Level <- max caller.Level (x.Level + 1)
 
@@ -70,7 +69,7 @@ type AdaptiveObject =
         // downgrade to read
         token.Downgrade x
 
-        if isNull caller then
+        if Unchecked.isNull caller then
             token.Release()
 
         res
@@ -153,7 +152,6 @@ type AdaptiveObject =
 
 /// Core implementation of IAdaptiveObject for constant objects.
 /// the main goal of this implementation is to save memory when IAdaptiveObjects are known to be constant.
-[<AllowNullLiteral>]
 type ConstantObject() =
     let mutable weak : WeakReference<IAdaptiveObject> = null
     static let outputs = EmptyOutputSet() :> IWeakOutputSet

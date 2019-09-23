@@ -49,7 +49,7 @@ type Transaction() =
     // The contained set is useful for determinig if an element has
     // already been enqueued
     let contained = HashSet<IAdaptiveObject>()
-    let mutable current : IAdaptiveObject = null
+    let mutable current : IAdaptiveObject = Unchecked.defaultof<_>
     let mutable currentLevel = 0
     let mutable finalizers : list<unit -> unit> = []
 
@@ -93,7 +93,7 @@ type Transaction() =
 
     /// Gets the current AdaptiveObject being marked
     member x.CurrentAdapiveObject = 
-        if isNull current then None
+        if Unchecked.isNull current then None
         else Some current
 
     /// Performs the entire marking process, causing all affected objects to
@@ -182,7 +182,7 @@ type Transaction() =
                     x.Enqueue o
 
             contained.Remove e |> ignore
-            current <- null
+            current <- Unchecked.defaultof<_>
             
         // when the commit is over we restore the old
         // running transaction (if any)

@@ -12,7 +12,6 @@ open System.Collections.Generic
 /// Represents the core interface for all adaptive objects.
 /// Contains support for tracking OutOfDate flags, managing in-/outputs 
 /// and lazy/eager evaluation in the dependency tree.
-[<AllowNullLiteral>]
 type IAdaptiveObject =
 
     /// Each object can cache a WeakReference pointing to itself.
