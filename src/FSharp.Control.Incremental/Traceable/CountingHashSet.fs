@@ -584,9 +584,6 @@ module CountingHashSet =
     let inline fold (folder : 's -> 'a -> 's) (seed : 's) (set : CountingHashSet<'a>) =
         set.Fold(seed, folder)
 
-
-
-    
     /// Traceable instance.
     let inline trace<'a> = CountingHashSet<'a>.Trace
 

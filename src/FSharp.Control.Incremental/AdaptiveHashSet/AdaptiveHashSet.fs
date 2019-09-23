@@ -81,7 +81,7 @@ module AdaptiveHashSetImplementation =
         let r = input.GetReader()
 
         override x.Compute(token) =
-            r.GetOperations token |> HashSetDelta.map (fun d ->
+            r.GetChanges token |> HashSetDelta.map (fun d ->
                 match d with
                 | Add(1, v) -> Add(cache.Invoke v)
                 | Rem(1, v) -> Rem(cache.Revoke v)
@@ -96,7 +96,7 @@ module AdaptiveHashSetImplementation =
         let r = input.GetReader()
 
         override x.Compute(token) =
-            r.GetOperations token |> HashSetDelta.choose (fun d ->
+            r.GetChanges token |> HashSetDelta.choose (fun d ->
                 match d with
                 | Add(1, v) -> 
                     match cache.Invoke v with
@@ -120,7 +120,7 @@ module AdaptiveHashSetImplementation =
         let r = input.GetReader()
 
         override x.Compute(token) =
-            r.GetOperations token |> HashSetDelta.filter (fun d ->
+            r.GetChanges token |> HashSetDelta.filter (fun d ->
                 match d with
                 | Add(1, v) -> cache.Invoke v
                 | Rem(1, v) -> cache.Revoke v
@@ -136,13 +136,13 @@ module AdaptiveHashSetImplementation =
 
         override x.Compute(token, dirty) =
             let mutable deltas = 
-                reader.GetOperations token |> HashSetDelta.collect (fun d ->
+                reader.GetChanges token |> HashSetDelta.collect (fun d ->
                     match d with
                     | Add(1, v) ->
                         // r is no longer dirty since we pull it here.
                         let r = cache.Invoke v
                         dirty.Remove r |> ignore
-                        r.GetOperations token
+                        r.GetChanges token
 
                     | Rem(1, v) -> 
                         // r is no longer dirty since we either pull or destroy it here.
@@ -154,14 +154,14 @@ module AdaptiveHashSetImplementation =
                             r.Outputs.Remove x |> ignore
                             CountingHashSet.removeAll r.State
                         else
-                            r.GetOperations token
+                            r.GetChanges token
                                 
                     | _ -> unexpected()
                 )
 
             // finally pull all the dirty readers and accumulate the deltas.
             for d in dirty do
-                deltas <- HashSetDelta.combine deltas (d.GetOperations token)
+                deltas <- HashSetDelta.combine deltas (d.GetChanges token)
 
             deltas
 
@@ -177,12 +177,12 @@ module AdaptiveHashSetImplementation =
                 isInitial <- false
                 // initially we need to pull all inner readers.
                 (HashSetDelta.empty, input) ||> HashSet.fold (fun deltas r ->   
-                    HashSetDelta.combine deltas (r.GetOperations token)
+                    HashSetDelta.combine deltas (r.GetChanges token)
                 )
             else
                 // once evaluated only dirty readers need to be pulled.
                 (HashSetDelta.empty, dirty) ||> Seq.fold (fun deltas r -> 
-                    HashSetDelta.combine deltas (r.GetOperations token)
+                    HashSetDelta.combine deltas (r.GetChanges token)
                 )
 
     /// reader for unioning a dynamic aset of immutable sets.
@@ -192,7 +192,7 @@ module AdaptiveHashSetImplementation =
         let reader = input.GetReader()
 
         override x.Compute(token) =
-            reader.GetOperations token |> HashSetDelta.collect (fun d ->
+            reader.GetChanges token |> HashSetDelta.collect (fun d ->
                 match d with
                 | Add(1, v) -> HashSet.addAll v
                 | Rem(1, v) -> HashSet.removeAll v   
@@ -208,13 +208,13 @@ module AdaptiveHashSetImplementation =
 
         override x.Compute(token,dirty) =
             let mutable deltas = 
-                reader.GetOperations token |> HashSetDelta.collect (fun d ->
+                reader.GetChanges token |> HashSetDelta.collect (fun d ->
                     match d with
                     | Add(1, value) ->
                         // r is no longer dirty since we pull it here.
                         let r = cache.Invoke value
                         dirty.Remove r |> ignore
-                        r.GetOperations token
+                        r.GetChanges token
 
                     | Rem(1, value) -> 
                         match cache.RevokeAndGetDeletedTotal value with
@@ -227,7 +227,7 @@ module AdaptiveHashSetImplementation =
                                 r.Outputs.Remove x |> ignore
                                 CountingHashSet.removeAll r.State
                             else
-                                r.GetOperations token
+                                r.GetChanges token
                         | None -> 
                             // weird
                             HashSetDelta.empty
@@ -237,7 +237,7 @@ module AdaptiveHashSetImplementation =
                 
             // finally pull all the dirty readers and accumulate the deltas.
             for d in dirty do
-                deltas <- HashSetDelta.combine deltas (d.GetOperations token)
+                deltas <- HashSetDelta.combine deltas (d.GetChanges token)
 
             deltas
 
