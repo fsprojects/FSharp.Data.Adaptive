@@ -155,6 +155,7 @@ module ASet =
             member x.Adaptive = a
             member x.Reference = r
         }
+
     let empty<'a> = 
         create (Incremental.ASet.empty) (Reference.ASet.empty)
             
@@ -183,4 +184,24 @@ module ASet =
             (Incremental.ASet.map mapping set.Adaptive)
             (Reference.ASet.map mapping set.Reference)
 
-        
+    let choose (mapping : 'a -> Option<'b>) (set : aset<'a>) =
+        create
+            (Incremental.ASet.choose mapping set.Adaptive)
+            (Reference.ASet.choose mapping set.Reference)
+
+    let filter (predicate : 'a -> bool) (set : aset<'a>) =
+        create
+            (Incremental.ASet.filter predicate set.Adaptive)
+            (Reference.ASet.filter predicate set.Reference)
+            
+    let union (sets : aset<aset<'a>>) =
+        create
+            (Incremental.ASet.union (sets.Adaptive |> Incremental.ASet.map (fun s -> s.Adaptive)))
+            (Reference.ASet.union (sets.Reference |> Reference.ASet.map (fun s -> s.Reference)))
+
+    let collect (mapping : 'a -> aset<'b>) (set : aset<'a>) =
+        create
+            (Incremental.ASet.collect (fun v -> (mapping v).Adaptive) set.Adaptive)
+            (Reference.ASet.collect (fun v -> (mapping v).Reference) set.Reference)
+
+           

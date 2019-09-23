@@ -7,6 +7,8 @@ module DifferentiationExtensions =
     /// Functional programming operators related to the HashSet<_> type.
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module HashSet =
+
+
         /// determines the operations needed to transform l into r.
         /// returns a DHashSet containing all the needed operations.
         let differentiate (l : HashSet<'a>) (r : HashSet<'a>) =
@@ -79,6 +81,16 @@ module DifferentiationExtensions =
                 let store = IntMap.computeDelta both (IntMap.map del) (IntMap.map add) l.Store r.Store
                 DHashSet(HashMap(cnt, store))
             
+        /// same as differentiate set empty
+        let removeAll (set : HashSet<'a>) =
+            let store = set.Store |> IntMap.map (List.map (fun v -> struct (v, -1)))
+            HashMap(set.Count, store) |> DHashSet
+            
+        /// same as differentiate empty set
+        let addAll (set : HashSet<'a>) =
+            let store = set.Store |> IntMap.map (List.map (fun v -> struct (v, 1)))
+            HashMap(set.Count, store) |> DHashSet
+
         /// applies the given operations to the set. 
         /// returns the new set and the 'effective' operations.
         let integrate (value : HashSet<'a>) (delta : DHashSet<'a>) =

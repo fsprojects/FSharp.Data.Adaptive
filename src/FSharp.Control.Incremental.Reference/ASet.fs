@@ -122,4 +122,23 @@ module ASet =
     /// applies mapping to all elements of the set and returns the resulting set.
     let map (mapping : 'a -> 'b) (set : aset<'a>) =
         set.Content |> ARef.map (HashSet.map mapping) |> ofRef
+
+    /// applies mapping to all elements of the set and returns the resulting set.
+    let choose (mapping : 'a -> Option<'b>) (set : aset<'a>) =
+        set.Content |> ARef.map (HashSet.choose mapping) |> ofRef
         
+    /// filters the set using the given predicate.
+    let filter (predicate : 'a -> bool) (set : aset<'a>) =
+        set.Content |> ARef.map (HashSet.filter predicate) |> ofRef
+
+    /// unions all the sets.
+    let union (sets : aset<aset<'a>>) =
+        sets.Content |> ARef.map (fun sets ->
+            sets |> HashSet.collect (fun s -> s.Content.GetValue AdaptiveToken.Top)
+        ) |> ofRef
+
+    /// unions all the sets.
+    let collect (mapping : 'a -> aset<'b>) (set : aset<'a>) =
+        set.Content |> ARef.map (fun values ->
+            values |> HashSet.collect (fun s -> (mapping s).Content.GetValue AdaptiveToken.Top)
+        ) |> ofRef

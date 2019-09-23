@@ -284,6 +284,14 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
             let store = IntMap.computeDelta both (IntMap.map del) (IntMap.map add) store.Store other.Store.Store
             DHashSet (HashMap(cnt, store))
 
+    /// same as x.Differentiate(empty)
+    member x.RemoveAll() =
+        store |> HashMap.map (fun _ v -> -v) |> DHashSet
+        
+    /// same as empty.Differentiate(x)
+    member x.AddAll() =
+        store |> DHashSet
+
     /// integrates the given delta into the set, returns a new set and the effective deltas.
     member x.Integrate (deltas : DHashSet<'a>) =
         // O(1)
@@ -588,6 +596,15 @@ module CountingHashSet =
     /// differentiates two sets returning a DHashSet.
     let inline differentiate (src : CountingHashSet<'a>) (dst : CountingHashSet<'a>) =
         src.Differentiate dst
+
+    /// same as differentiate src empty.
+    let inline removeAll (src : CountingHashSet<'a>) =
+        src.RemoveAll()
+        
+    /// same as differentiate empty src.
+    let inline addAll (src : CountingHashSet<'a>) =
+        src.AddAll()
+
 
     /// integrates the given delta into the set, returns a new set and the effective deltas.
     let inline integrate (set : CountingHashSet<'a>) (delta : DHashSet<'a>) =

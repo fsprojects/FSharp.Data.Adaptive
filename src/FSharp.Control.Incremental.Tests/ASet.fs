@@ -97,6 +97,67 @@ let ``[ASet] map``(values : list<Set<int>>) =
         reader |> check |> ignore
         i <- i + 1
 
+[<Property>]
+let ``[ASet] choose``(values : list<Set<int>>) =
+    let initial = cset(HashSet.empty)
+    let derived = ASet.choose (fun a -> if a % 2 = 0 then Some (a * 10) else None) initial
+    let reader = derived.GetReader()
+
+    reader |> check |> should setequal emptyDelta
+
+    let mutable i = 0
+    for s in values do
+        let s = 
+            if i % 7 < 3 then Set.add i s
+            else s
+
+        transact (fun () -> initial.Value <- HashSet.ofSeq s)
+        reader |> check |> ignore
+        i <- i + 1
+
+[<Property>]
+let ``[ASet] filter``(values : list<Set<int>>) =
+    let initial = cset(HashSet.empty)
+    let derived = ASet.filter (fun a -> a % 2 = 0) initial
+    let reader = derived.GetReader()
+
+    reader |> check |> should setequal emptyDelta
+
+    let mutable i = 0
+    for s in values do
+        let s = 
+            if i % 7 < 3 then Set.add i s
+            else s
+
+        transact (fun () -> initial.Value <- HashSet.ofSeq s)
+        reader |> check |> ignore
+        i <- i + 1
+
+
+[<Property>]
+let ``[ASet] union``(all : list<list<Set<int>>>) =
+    
+    let initial = cset<aset<int>>(HashSet.empty)
+    let innerSets = System.Collections.Generic.List<cset<int>>()
+
+    let derived = ASet.union initial
+    let reader = derived.GetReader()
+
+    reader |> check |> should setequal emptyDelta
+
+    for values in all do
+        let arr = List.toArray values
+        transact (fun () -> 
+            for i in 0 .. arr.Length - 1 do
+                if i < innerSets.Count then 
+                    innerSets.[i].Value <- HashSet.ofSeq arr.[i]
+                else 
+                    let set = cset (HashSet.ofSeq arr.[i])
+                    innerSets.Add set
+
+            initial.Value <- HashSet.ofSeq (Seq.take arr.Length (Seq.cast innerSets))
+        )
+        reader |> check |> ignore
 
 
 

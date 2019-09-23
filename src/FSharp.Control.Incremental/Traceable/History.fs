@@ -67,7 +67,6 @@ type AbstractDirtyReader<'t, 'ops when 't :> IAdaptiveObject>(t : Monoid<'ops>) 
         | :? 't as o -> lock dirty (fun () -> dirty.Value.Add o |> ignore)
         | _ -> ()
 
-    abstract member Release : unit -> unit
     abstract member Compute : AdaptiveToken * System.Collections.Generic.HashSet<'t> -> 'ops
 
     abstract member Apply : 'ops -> 'ops
@@ -86,13 +85,6 @@ type AbstractDirtyReader<'t, 'ops when 't :> IAdaptiveObject>(t : Monoid<'ops>) 
             else
                 t.mempty
         )   
-
-    member x.Dispose() =
-        x.Release()
-        x.Outputs.Consume() |> ignore
-
-    interface IDisposable with
-        member x.Dispose() = x.Dispose()
 
     interface IOpReader<'ops> with
         member x.GetOperations c = x.GetOperations c

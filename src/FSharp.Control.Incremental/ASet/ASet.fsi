@@ -45,5 +45,15 @@ module ASet =
     /// incrementally maps over the given set.
     val map : mapping : ('A -> 'B) -> set : aset<'A> -> aset<'B>
 
+    /// incrementally chooses all elements returned by mapping.  
+    val choose : mapping : ('A -> Option<'B>) -> set : aset<'A> -> aset<'B>
+    
+    /// incrementally filters the set using the given predicate.
+    val filter : predicate : ('A -> bool) -> set : aset<'A> -> aset<'A>
 
+    /// incrementally unions all the given sets
+    val union : sets : aset<aset<'A>> -> aset<'A>
+
+    /// incrementally maps over the given set and unions all resulting sets.
+    val collect : mapping : ('A -> aset<'B>) -> set : aset<'A> -> aset<'B>
 
