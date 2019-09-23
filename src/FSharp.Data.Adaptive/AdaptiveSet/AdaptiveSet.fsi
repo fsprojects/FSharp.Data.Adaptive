@@ -65,3 +65,28 @@ module ASet =
 
     /// adaptively maps over the given ref and returns the resulting set.
     val bind : mapping : ('A -> aset<'B>) -> ref : aref<'A> -> aset<'B>
+
+    /// adaptively flattens the set of adaptive refs.
+    val flattenA : set : aset<aref<'A>> -> aset<'A>
+
+    /// adaptively maps over the set and also respects inner changes.
+    val mapA : mapping : ('A -> aref<'B>) -> set : aset<'A> -> aset<'B>
+
+    /// adaptively maps over the set and also respects inner changes.
+    val chooseA : mapping : ('A -> aref<Option<'B>>) -> set : aset<'A> -> aset<'B>
+
+    /// adaptively filters the set and also respects inner changes.
+    val filterA : mapping : ('A -> aref<bool>) -> set : aset<'A> -> aset<'A>
+
+    /// adaptively folds over the set using add for additions and trySubtract for removals.
+    /// note the trySubtract may return None indicating that the result needs to be recomputed.
+    /// also note that the order of elements given to add/trySubtract is undefined.
+    val foldHalfGroup : add : ('S -> 'A -> 'S) -> trySubtract : ('S -> 'A -> Option<'S>) -> zero : 'S -> set : aset<'A> -> aref<'S>
+    
+    /// adaptively folds over the set using add for additions and subtract for removals.
+    /// note that the order of elements given to add/subtract is undefined.
+    val foldGroup : add : ('S -> 'A -> 'S) -> subtract : ('S -> 'A -> 'S) -> zero : 'S -> set : aset<'A> -> aref<'S>
+
+    /// adaptively folds over the set using add for additions and recomputes the value on every removal.
+    /// note that the order of elements given to add is undefined.
+    val fold : add : ('S -> 'A -> 'S) -> zero : 'S -> set : aset<'A> -> aref<'S>
