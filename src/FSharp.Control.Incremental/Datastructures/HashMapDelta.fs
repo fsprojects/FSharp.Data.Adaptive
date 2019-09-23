@@ -5,8 +5,8 @@ open System.Collections.Generic
 open FSharp.Control.Incremental
 
 /// represents the difference of two HashMaps.
-type HashMapDelta<'k, 'v>(store : HashMap<'k, ElementOperation<'v>>) =
-    static let empty = HashMapDelta<'k, 'v>(HashMap.empty)
+type HashMapDelta<'K, 'V>(store : HashMap<'K, ElementOperation<'V>>) =
+    static let empty = HashMapDelta<'K, 'V>(HashMap.empty)
 
     /// the internal store used by the HashMapDelta.
     member internal x.Store = store
@@ -16,21 +16,21 @@ type HashMapDelta<'k, 'v>(store : HashMap<'k, ElementOperation<'v>>) =
         empty
 
     /// combines two DHashMaps to one.
-    member x.Combine(other : HashMapDelta<'k, 'v>) =
+    member x.Combine(other : HashMapDelta<'K, 'V>) =
         HashMapDelta (HashMap.union store other.Store)
 
     interface IEnumerable with
         member x.GetEnumerator() = (store :> IEnumerable).GetEnumerator()
 
-    interface IEnumerable<'k * ElementOperation<'v>> with
+    interface IEnumerable<'K * ElementOperation<'V>> with
         member x.GetEnumerator() = (store :> seq<_>).GetEnumerator()
 
 /// functional operators for HashMapDelta.
 module HashMapDelta =
     /// the empty map.
     [<GeneralizableValue>]
-    let empty<'k, 'v> = HashMapDelta<'k, 'v>.Empty
+    let empty<'K, 'V> = HashMapDelta<'K, 'V>.Empty
 
     /// combines two DHashMaps to one.
-    let inline combine (l : HashMapDelta<'k, 'v>) (r : HashMapDelta<'k, 'v>) = l.Combine r
+    let inline combine (l : HashMapDelta<'K, 'V>) (r : HashMapDelta<'K, 'V>) = l.Combine r
 
