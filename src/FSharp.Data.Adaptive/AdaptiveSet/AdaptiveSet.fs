@@ -672,3 +672,9 @@ module ASet =
     /// note that the order of elements given to add/subtract is undefined.
     let foldGroup (add : 's -> 'a -> 's) (sub : 's -> 'a -> 's) (zero : 's) (s : aset<'a>) =
         foldHalfGroup add (fun a b -> Some (sub a b)) zero s
+
+    let inline sum (set : aset<'a>) =
+        foldGroup (+) (-) LanguagePrimitives.GenericZero set
+
+    let inline product (set : aset<'a>) =
+        foldGroup (*) (/) LanguagePrimitives.GenericOne set

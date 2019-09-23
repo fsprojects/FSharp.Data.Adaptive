@@ -162,3 +162,36 @@ module ASet =
             member x.Content = ref |> ARef.map HashSet.ofSeq
             member x.GetReader() = ASetReader(x) :> IHashSetReader<_>    
         }
+
+    let bind (mapping : 'A -> aset<'B>) (ref : aref<'A>) =
+        { new aset<'B> with 
+            member x.Content = ref |> ARef.bind (fun v -> (mapping v).Content)
+            member x.GetReader() = ASetReader(x) :> IHashSetReader<_>    
+        }
+
+    let flattenA (set : aset<aref<'T>>) =
+        { new aset<'T> with 
+            member x.Content = set.Content |> ARef.map (HashSet.map (fun r -> r.GetValue AdaptiveToken.Top))
+            member x.GetReader() = ASetReader(x) :> IHashSetReader<_>    
+        }
+        
+    let mapA (mapping : 'T -> aref<'B>) (set : aset<'T>) =
+        set |> map mapping |> flattenA
+        
+    let chooseA (mapping : 'T -> aref<Option<'B>>) (set : aset<'T>) =
+        set |> map mapping |> flattenA |> choose id
+
+    let filterA (predicate : 'T -> aref<bool>) (set : aset<'T>) =
+        set |> chooseA (fun a -> a |> predicate |> ARef.map (function true -> Some a | false -> None))
+
+    let foldHalfGroup (add : 'S -> 'A -> 'S) (trySubtract : 'S -> 'A -> Option<'S>) (zero : 'S) (set : aset<'A>) =
+        set.Content |> ARef.map (HashSet.fold add zero)
+
+    let foldGroup (add : 'S -> 'A -> 'S) (sub : 'S -> 'A -> 'S) (zero : 'S) (set : aset<'A>) =
+        set.Content |> ARef.map (HashSet.fold add zero)
+
+    let fold (add : 'S -> 'A -> 'S) (zero : 'S) (set : aset<'A>) =
+        set.Content |> ARef.map (HashSet.fold add zero)
+
+    let inline sum (set : aset<'A>) = foldGroup (+) (-) LanguagePrimitives.GenericZero set
+    let inline product (set : aset<'A>) = foldGroup (*) (/) LanguagePrimitives.GenericOne set

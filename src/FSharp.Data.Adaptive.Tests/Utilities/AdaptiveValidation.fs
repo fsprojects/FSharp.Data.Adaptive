@@ -208,4 +208,43 @@ module ASet =
         create
             (ref.Adaptive |> Adaptive.ASet.ofARef)
             (ref.Reference |> Reference.ASet.ofARef)
+
+    let bind (mapping : 'a -> aset<'b>) (ref : aref<'a>) =
+        create
+            (ref.Adaptive |> Adaptive.ASet.bind (fun v -> (mapping v).Adaptive))
+            (ref.Reference |> Reference.ASet.bind (fun v -> (mapping v).Reference))
          
+
+    let mapA (mapping : 'a -> aref<'b>) (set : aset<'a>) =
+        create
+            (set.Adaptive |> Adaptive.ASet.mapA (fun v -> (mapping v).Adaptive))
+            (set.Reference |> Reference.ASet.mapA (fun v -> (mapping v).Reference))
+       
+
+    let chooseA (mapping : 'a -> aref<option<'b>>) (set : aset<'a>) =
+        create
+            (set.Adaptive |> Adaptive.ASet.chooseA (fun v -> (mapping v).Adaptive))
+            (set.Reference |> Reference.ASet.chooseA (fun v -> (mapping v).Reference))
+           
+
+    let filterA (predicate : 'a -> aref<bool>) (set : aset<'a>) =
+        create
+            (set.Adaptive |> Adaptive.ASet.filterA (fun v -> (predicate v).Adaptive))
+            (set.Reference |> Reference.ASet.filterA (fun v -> (predicate v).Reference))
+                   
+
+    let foldHalfGroup (add : 's -> 'a -> 's) (trySub : 's -> 'a -> Option<'s>) (zero : 's) (set : aset<'a>) =
+        ARef.create
+            (set.Adaptive |> Adaptive.ASet.foldHalfGroup add trySub zero)
+            (set.Reference |> Reference.ASet.foldHalfGroup add trySub zero)
+        
+    let foldGroup (add : 's -> 'a -> 's) (sub : 's -> 'a -> 's) (zero : 's) (set : aset<'a>) =
+        ARef.create
+            (set.Adaptive |> Adaptive.ASet.foldGroup add sub zero)
+            (set.Reference |> Reference.ASet.foldGroup add sub zero)
+                
+    let fold (add : 's -> 'a -> 's) (zero : 's) (set : aset<'a>) =
+        ARef.create
+            (set.Adaptive |> Adaptive.ASet.fold add zero)
+            (set.Reference |> Reference.ASet.fold add zero)
+                

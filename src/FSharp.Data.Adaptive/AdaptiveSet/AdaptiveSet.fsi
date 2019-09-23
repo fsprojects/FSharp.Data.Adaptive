@@ -73,7 +73,7 @@ module ASet =
     val mapA : mapping : ('A -> aref<'B>) -> set : aset<'A> -> aset<'B>
 
     /// adaptively maps over the set and also respects inner changes.
-    val chooseA : mapping : ('A -> aref<Option<'B>>) -> set : aset<'A> -> aset<'B>
+    val chooseA : mapping : ('A -> aref<option<'B>>) -> set : aset<'A> -> aset<'B>
 
     /// adaptively filters the set and also respects inner changes.
     val filterA : mapping : ('A -> aref<bool>) -> set : aset<'A> -> aset<'A>
@@ -81,7 +81,7 @@ module ASet =
     /// adaptively folds over the set using add for additions and trySubtract for removals.
     /// note the trySubtract may return None indicating that the result needs to be recomputed.
     /// also note that the order of elements given to add/trySubtract is undefined.
-    val foldHalfGroup : add : ('S -> 'A -> 'S) -> trySubtract : ('S -> 'A -> Option<'S>) -> zero : 'S -> set : aset<'A> -> aref<'S>
+    val foldHalfGroup : add : ('S -> 'A -> 'S) -> trySubtract : ('S -> 'A -> option<'S>) -> zero : 'S -> set : aset<'A> -> aref<'S>
     
     /// adaptively folds over the set using add for additions and subtract for removals.
     /// note that the order of elements given to add/subtract is undefined.
@@ -90,3 +90,15 @@ module ASet =
     /// adaptively folds over the set using add for additions and recomputes the value on every removal.
     /// note that the order of elements given to add is undefined.
     val fold : add : ('S -> 'A -> 'S) -> zero : 'S -> set : aset<'A> -> aref<'S>
+
+    /// adaptively computes the sum all entries in the set.
+    val inline sum<'A, 'B 
+                    when ('A or 'B) : (static member (+) : 'A -> 'B -> 'A) 
+                    and ('A or 'B) : (static member (-) : 'A -> 'B -> 'A) 
+                    and 'B : (static member Zero : 'B)> : set : aset<'A> -> aref<'B>
+
+    /// adaptively computes the product of all entries in the set.
+    val inline product<'A, 'B 
+                        when ('A or 'B) : (static member (*) : 'A -> 'B -> 'A) 
+                        and ('A or 'B) : (static member (/) : 'A -> 'B -> 'A) 
+                        and 'B : (static member One : 'B)> : set : aset<'A> -> aref<'B>
