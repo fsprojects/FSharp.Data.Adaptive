@@ -22,6 +22,7 @@
     <Compile Include="History.fs" />
     <Compile Include="AdaptiveRef.fs" />
     <Compile Include="AdaptiveHashSet.fs" />
+    <Compile Include="ARefNoReference.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

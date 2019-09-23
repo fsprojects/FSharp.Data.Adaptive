@@ -18,7 +18,7 @@ type internal CallbackObject(obj: IAdaptiveObject, callback: CallbackObject -> u
     member x.Dispose() =
         if Interlocked.Exchange(&live, 0) = 1 then
             obj.Outputs.Remove x |> ignore
-            obj <- null
+            obj <- Unchecked.defaultof<_>
             weak <- null
             level <- 0
 
