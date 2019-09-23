@@ -1,9 +1,13 @@
 version 5.215.0
-framework: netstandard2.0, netcoreapp2.2
 source https://api.nuget.org/v3/index.json
+redirects: off
+storage: none
+framework: netstandard2.0, netcoreapp2.2
 
 nuget FSharp.Core                           ~> 4.6.2
 
+# Tests : intentionally in main group
+nuget Appveyor.TestLogger                   ~> 2.0.0
 nuget FsUnit                                ~> 3.4.1
 nuget FsCheck                               ~> 2.14.0
 nuget FsCheck.NUnit                         ~> 2.14.0
@@ -13,10 +17,10 @@ nuget NUnit3TestAdapter                     ~> 3.15.1
 nuget BenchmarkDotNet                       ~> 0.11.5
 
 group Build
-source https://api.nuget.org/v3/index.json
-nuget fake-cli ~> 5.16.1
-nuget Fake.DotNet.Cli ~> 5.16.1
-nuget Fake.Core.Target ~> 5.16.1
-nuget Fake.DotNet.Paket ~> 5.16.1
-nuget Fake.Core.ReleaseNotes ~> 5.16.1
-nuget Fake.Tools.Git ~> 5.16.1
+  source https://api.nuget.org/v3/index.json
+  nuget fake-cli ~> 5.16.1
+  nuget Fake.DotNet.Cli ~> 5.16.1
+  nuget Fake.Core.Target ~> 5.16.1
+  nuget Fake.DotNet.Paket ~> 5.16.1
+  nuget Fake.Core.ReleaseNotes ~> 5.16.1
+  nuget Fake.Tools.Git ~> 5.16.1
