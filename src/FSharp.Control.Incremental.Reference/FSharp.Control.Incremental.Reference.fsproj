@@ -10,8 +10,8 @@
     <OutputPath>..\..\bin\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="ARef.fs" />
-    <Compile Include="ASet.fs" />
+    <Compile Include="AdaptiveRef.fs" />
+    <Compile Include="AdaptiveSet.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FSharp.Control.Incremental\FSharp.Control.Incremental.fsproj" />

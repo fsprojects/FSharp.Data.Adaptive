@@ -96,7 +96,7 @@ let ``[HashMap] map2/choose2`` (lm : Map<int, int>) (rm : Map<int, int>) =
     let l = lm |> Map.toList |> HashMap.ofList
     let r = rm |> Map.toList |> HashMap.ofList
 
-    let map2 (f : 'k -> Option<'a> -> Option<'b> -> 'c) (l : Map<'k, 'a>) (r : Map<'k, 'b>) =
+    let map2 (f : 'k -> option<'a> -> option<'b> -> 'c) (l : Map<'k, 'a>) (r : Map<'k, 'b>) =
         let mutable res = Map.empty
 
         for (lk,lv) in Map.toSeq l do
@@ -111,7 +111,7 @@ let ``[HashMap] map2/choose2`` (lm : Map<int, int>) (rm : Map<int, int>) =
 
         res
 
-    let choose2 (f : 'k -> Option<'a> -> Option<'b> -> Option<'c>) (l : Map<'k, 'a>) (r : Map<'k, 'b>) =
+    let choose2 (f : 'k -> option<'a> -> option<'b> -> option<'c>) (l : Map<'k, 'a>) (r : Map<'k, 'b>) =
         let mutable res = Map.empty
 
         for (lk,lv) in Map.toSeq l do
@@ -142,14 +142,14 @@ let ``[HashMap] map2/choose2`` (lm : Map<int, int>) (rm : Map<int, int>) =
         let r = r |> Map.toList
         l = r
 
-    let add (k : int) (l : Option<int>) (r : Option<int>) =
+    let add (k : int) (l : option<int>) (r : option<int>) =
         match l, r with
             | Some l, Some r -> l + r
             | None, Some r -> r
             | Some l, None -> l
             | None, None -> failwith "that's bad (Map invented a key)"
 
-    let add2 (k : int) (l : Option<int>) (r : Option<int>) =
+    let add2 (k : int) (l : option<int>) (r : option<int>) =
         match l, r with
             | Some l, Some r -> if l > r then Some r else None
             | None, Some r -> Some r
@@ -163,7 +163,7 @@ let ``[HashMap] map2/choose2`` (lm : Map<int, int>) (rm : Map<int, int>) =
     ]
 
 [<Property>]
-let ``[HashMap] choose`` (m : Map<int, int>) (f : int -> int -> Option<int>) =
+let ``[HashMap] choose`` (m : Map<int, int>) (f : int -> int -> option<int>) =
     let h = HashMap.ofSeq (Map.toSeq m)
 
     let tm =

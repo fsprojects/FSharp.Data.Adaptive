@@ -36,17 +36,17 @@ exception LevelChangedException of IAdaptiveObject * int * int
 /// execution-order and acquires appropriate locks for all objects affected.
 type Transaction() =
 
-    // each thread may have its own running transaction
+    // Each thread may have its own running transaction
     [<ThreadStatic; DefaultValue>]
-    static val mutable private RunningTransaction : Option<Transaction>
+    static val mutable private RunningTransaction : option<Transaction>
 
     [<ThreadStatic; DefaultValue>]
-    static val mutable private CurrentTransaction : Option<Transaction>
+    static val mutable private CurrentTransaction : option<Transaction>
 
-    // we use a duplicate-queue here since we expect levels to be identical quite often
+    // We use a duplicate-queue here since we expect levels to be identical quite often
     let q = DuplicatePriorityQueue<IAdaptiveObject, int>(fun o -> o.Level)
 
-    // the contained set is useful for determinig if an element has
+    // The contained set is useful for determinig if an element has
     // already been enqueued
     let contained = HashSet<IAdaptiveObject>()
     let mutable current : IAdaptiveObject = null
@@ -199,7 +199,7 @@ type Transaction() =
 
 [<AutoOpen>]
 module Transaction =
-    /// returns the currently running transaction or (if none)
+    /// Returns the currently running transaction or (if none)
     /// the current transaction for the calling thread
     let getCurrentTransaction() =
         match Transaction.Running with
@@ -212,7 +212,7 @@ module Transaction =
     let inline internal setCurrentTransaction t =
         Transaction.Current <- t
 
-    /// executes a function "inside" a newly created
+    /// Executes a function "inside" a newly created
     /// transaction and commits the transaction
     let transact (f : unit -> 'a) =
         use t = new Transaction()
@@ -224,8 +224,7 @@ module Transaction =
         r
     
 
-    // defines some extension utilites for
-    // IAdaptiveObjects
+    // Defines some extension utilites for IAdaptiveObjects
     type IAdaptiveObject with
         /// utility for marking adaptive object as outOfDate.
         /// Note that this function will actually enqueue the
@@ -243,7 +242,7 @@ module Transaction =
                         else failwith "cannot mark object without transaction"
                     )
                     
-        /// utility for marking adaptive object as outOfDate.
+        /// Utility for marking adaptive object as outOfDate.
         /// Note that this function will actually enqueue the
         /// object to the current transaction and will fail if
         /// no current transaction can be found.

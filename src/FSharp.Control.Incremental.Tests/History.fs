@@ -92,7 +92,7 @@ let ``[History] different reader versions``() =
 
     let change (l : list<SetOperation<int>>) =
         transact (fun () ->
-            history.Perform (DHashSet.ofList l) |> ignore
+            history.Perform (HashSetDelta.ofList l) |> ignore
         )
 
     let eval (r : IOpReader<_,_>) = 
@@ -151,7 +151,7 @@ let ``[History] single reader``() =
     let r = h.NewReader()
 
     transact (fun () ->
-        h.Perform (DHashSet.ofList [Add 1; Add 2]) |> ignore
+        h.Perform (HashSetDelta.ofList [Add 1; Add 2]) |> ignore
     )
     ensureGC()
 
@@ -162,7 +162,7 @@ let ``[History] single reader``() =
     |> should setequal [1;2]
     
     transact (fun () ->
-        h.Perform (DHashSet.ofList [Rem 1]) |> ignore
+        h.Perform (HashSetDelta.ofList [Rem 1]) |> ignore
     )
     ensureGC()
     r.GetOperations(AdaptiveToken.Top) 
@@ -187,7 +187,7 @@ let ``[History] multiple readers``() =
         
 
     transact (fun () ->
-        h.Perform (DHashSet.ofList [Add 1; Add 2]) |> ignore
+        h.Perform (HashSetDelta.ofList [Add 1; Add 2]) |> ignore
     )
     secondReader()
 
@@ -200,7 +200,7 @@ let ``[History] multiple readers``() =
     secondReader()
 
     transact (fun () ->
-        h.Perform (DHashSet.ofList [Rem 1]) |> ignore
+        h.Perform (HashSetDelta.ofList [Rem 1]) |> ignore
     )
     secondReader()
     r.GetOperations(AdaptiveToken.Top) 

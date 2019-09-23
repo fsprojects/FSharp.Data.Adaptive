@@ -2,8 +2,8 @@
 
 open System
 
-/// core implementation of IAdaptiveObject containing tools
-/// for evaluation and locking
+/// Core implementation of IAdaptiveObject containing tools for evaluation
+/// and locking
 [<AllowNullLiteral>]
 type AdaptiveObject =
     
@@ -14,18 +14,16 @@ type AdaptiveObject =
     val mutable private level: int 
     val mutable private outputs : WeakOutputSet
     val mutable private weak : WeakReference<IAdaptiveObject>
-
     
     /// used for resetting EvaluationDepth in eager evaluation
     static member internal UnsafeEvaluationDepth
         with get() = AdaptiveObject.CurrentEvaluationDepth
         and set v = AdaptiveObject.CurrentEvaluationDepth <- v
-        
 
-    /// utility function for evaluating an object even if it
+    /// Utility function for evaluating an object even if it
     /// is not marked as outOfDate.
     /// this method takes care of appropriate locking
-    member x.EvaluateAlways (token : AdaptiveToken) (f : AdaptiveToken -> 'a) =
+    member x.EvaluateAlways (token : AdaptiveToken) (f : AdaptiveToken -> 'T) =
         let caller = token.Caller
         let depth = AdaptiveObject.CurrentEvaluationDepth
 
@@ -59,7 +57,6 @@ type AdaptiveObject =
                                                                      
             res <- r
 
-
             if not (isNull caller) then
                 x.outputs.Add caller |> ignore
                 caller.Level <- max caller.Level (x.Level + 1)
@@ -78,13 +75,12 @@ type AdaptiveObject =
 
         res
 
-
-    /// utility function for evaluating an object if
+    /// Utility function for evaluating an object if
     /// it is marked as outOfDate. If the object is actually
     /// outOfDate the given function is executed and otherwise
     /// the given default value is returned.
     /// this method takes care of appropriate locking
-    member inline x.EvaluateIfNeeded (token : AdaptiveToken) (otherwise : 'a) (f : AdaptiveToken -> 'a) =
+    member inline x.EvaluateIfNeeded (token : AdaptiveToken) (otherwise : 'T) (f : AdaptiveToken -> 'T) =
         x.EvaluateAlways token (fun token ->
             if x.OutOfDate then 
                 f token
@@ -155,7 +151,7 @@ type AdaptiveObject =
             weak = null
         }
 
-/// core implementation of IAdaptiveObject for constant objects.
+/// Core implementation of IAdaptiveObject for constant objects.
 /// the main goal of this implementation is to save memory when IAdaptiveObjects are known to be constant.
 [<AllowNullLiteral>]
 type ConstantObject() =

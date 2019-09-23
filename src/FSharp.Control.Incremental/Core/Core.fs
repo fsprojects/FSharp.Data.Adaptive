@@ -14,6 +14,7 @@ open System.Collections.Generic
 /// and lazy/eager evaluation in the dependency tree.
 [<AllowNullLiteral>]
 type IAdaptiveObject =
+
     /// Each object can cache a WeakReference pointing to itself.
     /// This is because the system internally needs WeakReferences to IAdaptiveObjects
     abstract member Weak: WeakReference<IAdaptiveObject>
@@ -54,6 +55,7 @@ type IAdaptiveObject =
 /// dependency graphs transactions were ~10% faster 
 /// than they were when using unbox
 and [<Struct; StructLayout(LayoutKind.Explicit)>] private VolatileSetData =
+
     [<FieldOffset(0)>]
     val mutable public Single: WeakReference<IAdaptiveObject>
 
@@ -66,33 +68,31 @@ and [<Struct; StructLayout(LayoutKind.Explicit)>] private VolatileSetData =
     [<FieldOffset(8)>]
     val mutable public Tag: int
 
-/// Represents a set of outputs for an AdaptiveObject.
-/// The references to all contained elements are weak and the 
-/// datastructure allows to add/remove entries.
-/// The only other functionality is Consume which returns all the
-/// (currenlty living) entries and clears the set.
+/// Represents a set of outputs for an AdaptiveObject. The references to all 
+/// contained elements are weak and the datastructure allows to add/remove entries.
+/// The only other functionality is Consume which returns all the (currently alive)
+/// entries and clears the set.
 and IWeakOutputSet =
 
-    /// indicates whether the set is (conservatively) known to be empty.
+    /// Indicates whether the set is (conservatively) known to be empty.
     abstract member IsEmpty : bool
 
-    /// adds a weak reference to the given AdaptiveObject to the set
+    /// Adds a weak reference to the given AdaptiveObject to the set
     /// and returns a boolean indicating whether the obj was new.
     abstract member Add : IAdaptiveObject -> bool
 
-    /// removes the reference to the given AdaptiveObject from the set
+    /// Removes the reference to the given AdaptiveObject from the set
     /// and returns a boolean indicating whether the obj was removed.
     abstract member Remove : IAdaptiveObject -> bool
 
-    /// returns all currenty living entries from the set
+    /// Returns all currenty living entries from the set
     /// and clears its content.
     abstract member Consume : unit -> IAdaptiveObject[]
 
-/// Represents a set of outputs for an AdaptiveObject.
-/// The references to all contained elements are weak and the 
-/// datastructure allows to add/remove entries.
-/// The only other functionality is Consume which returns all the
-/// (currenlty living) entries and clears the set.
+/// Represents a set of outputs for an AdaptiveObject. The references to all
+/// contained elements are weak and the datastructure allows to add/remove
+/// entries. The only other functionality is Consume which returns all the
+/// (currently live) entries and clears the set.
 and internal WeakOutputSet() =
     let mutable data = Unchecked.defaultof<VolatileSetData>
     let mutable setOps = 0
@@ -155,7 +155,7 @@ and internal WeakOutputSet() =
         | _ ->
             data.Set.Add weakObj
 
-    /// used interally to get rid of leaking WeakReferences
+    /// Used interally to get rid of leaking WeakReferences
     member x.Cleanup() =
         lock x (fun () ->
             // TODO: better heuristic?
@@ -165,7 +165,7 @@ and internal WeakOutputSet() =
                 for a in all do add a |> ignore
         )
 
-    /// adds a weak reference to the given AdaptiveObject to the set
+    /// Adds a weak reference to the given AdaptiveObject to the set
     /// and returns a boolean indicating whether the obj was new.
     member x.Add(obj: IAdaptiveObject) =
         if not obj.IsConstant then
@@ -180,7 +180,7 @@ and internal WeakOutputSet() =
         else
             false
         
-    /// removes the reference to the given AdaptiveObject from the set
+    /// Removes the reference to the given AdaptiveObject from the set
     /// and returns a boolean indicating whether the obj was removed.
     member x.Remove(obj: IAdaptiveObject) =
         if not obj.IsConstant then
@@ -242,7 +242,7 @@ and internal WeakOutputSet() =
         else
             false
 
-    /// returns all currenty living entries from the set
+    /// Returns all currenty living entries from the set
     /// and clears its content.
     member x.Consume(): IAdaptiveObject[] =
         lock x (fun () ->
@@ -277,7 +277,7 @@ and internal WeakOutputSet() =
                 arr
         )
 
-    /// indicates whether the set is (conservatively) known to be empty.
+    /// Indicates whether the set is (conservatively) known to be empty.
     /// note that we don't dereference any WeakReferences here.
     member x.IsEmpty =
         match data.Tag with

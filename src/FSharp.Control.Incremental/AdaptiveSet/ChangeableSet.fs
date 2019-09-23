@@ -2,9 +2,9 @@
 
 open FSharp.Control.Traceable
 
-/// changeable incremental set that allows mutation by user-code and implements aset.
+/// Changeable incremental set that allows mutation by user-code and implements aset.
 [<Sealed>]
-type cset<'a>(initial : HashSet<'a>) =
+type ChangeableHashSet<'T>(initial : HashSet<'T>) =
     let history = 
         let h = History(CountingHashSet.traceNoRefCount)
         if not initial.IsEmpty then 
@@ -14,19 +14,15 @@ type cset<'a>(initial : HashSet<'a>) =
 
     let content = history |> ARef.map CountingHashSet.toHashSet
     
-    /// the number of entries currently in the set.
     member x.Count =
         history.State.Count
 
-    /// is the set currently empty?
     member x.IsEmpty =
         history.State.IsEmpty
 
-    /// checks whether the given value is contained.
-    member x.Contains (value : 'a) =
+    member x.Contains (value : 'T) =
         CountingHashSet.contains value history.State
 
-    /// gets or sets the current state as HashSet.
     member x.Value
         with get() = 
             ARef.force content
@@ -35,35 +31,30 @@ type cset<'a>(initial : HashSet<'a>) =
             |> history.Perform
             |> ignore
 
-    /// adds a value and returns whether the element was new.
-    member x.Add(value : 'a) =
-        history.Perform (DHashSet.single (Add value))
+    member x.Add(value : 'T) =
+        history.Perform (HashSetDelta.single (Add value))
 
-    /// removes a value and returns whether the element was deleted.
-    member x.Remove(value : 'a) =
-        history.Perform (DHashSet.single (Rem value))
+    member x.Remove(value : 'T) =
+        history.Perform (HashSetDelta.single (Rem value))
 
-    /// clears the set.
     member x.Clear() =
         if not history.State.IsEmpty then
             let ops = CountingHashSet.differentiate history.State CountingHashSet.empty
             history.Perform ops |> ignore
 
-    /// adds all the given values to the set.
-    member x.UnionWith (other : seq<'a>) =
-        let ops = other |> Seq.map (fun v -> v, 1) |> HashMap.ofSeq |> DHashSet
+    member x.UnionWith (other : seq<'T>) =
+        let ops = other |> Seq.map (fun v -> v, 1) |> HashMap.ofSeq |> HashSetDelta
         history.Perform ops |> ignore
         
-    /// removes all the given elements from the set.
-    member x.ExceptWith (other : seq<'a>) =
-        let ops = other |> Seq.map (fun v -> v, -1) |> HashMap.ofSeq |> DHashSet
+    member x.ExceptWith (other : seq<'T>) =
+        let ops = other |> Seq.map (fun v -> v, -1) |> HashMap.ofSeq |> HashSetDelta
         history.Perform ops |> ignore
 
     /// creates an incremental reader for the set.
-    member x.GetReader() : ISetReader<'a> =
+    member x.GetReader() : IHashSetReader<'T> =
         history.NewReader()
 
-    interface aset<'a> with
+    interface AdaptiveHashSet<'T> with
         member x.IsConstant = false
         member x.GetReader() = x.GetReader()
         member x.Content = content
@@ -80,9 +71,8 @@ type cset<'a>(initial : HashSet<'a>) =
 
     member private x.AsString = x.ToString()
 
-    /// creates a new empty cset.
-    new() = cset<'a>(HashSet.empty)
+    new() = cset<'T>(HashSet.empty)
 
-    /// creates a new cset containing all the given elements.
-    new(elements : seq<'a>) = cset<'a>(HashSet.ofSeq elements)
-    
+    new(elements : seq<'T>) = cset<'T>(HashSet.ofSeq elements)
+
+and cset<'T> = ChangeableHashSet<'T>

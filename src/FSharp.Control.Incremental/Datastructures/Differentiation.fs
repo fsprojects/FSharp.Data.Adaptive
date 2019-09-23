@@ -5,25 +5,24 @@
 module DifferentiationExtensions =
 
     /// Functional programming operators related to the HashSet<_> type.
-    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module HashSet =
 
         /// determines the operations needed to transform l into r.
-        /// returns a DHashSet containing these operations.
-        let differentiate (l : HashSet<'a>) (r : HashSet<'a>) =
+        /// Returns a HashSetDelta containing these operations.
+        let differentiate (l: HashSet<'a>) (r: HashSet<'a>) =
             // O(1)
             if System.Object.ReferenceEquals(l.Store, r.Store) then
-                DHashSet.empty
+                HashSetDelta.empty
 
             // O(|r|)
             elif l.IsEmpty then 
                 let delta = r.Store |> IntMap.map (List.map (fun v -> struct (v, 1)))
-                HashMap(r.Count, delta) |> DHashSet
+                HashMap(r.Count, delta) |> HashSetDelta
 
             // O(|l|)
             elif r.IsEmpty then
                 let delta = l.Store |> IntMap.map (List.map (fun v -> struct (v, -1)))
-                HashMap(l.Count, delta) |> DHashSet
+                HashMap(l.Count, delta) |> HashSetDelta
         
             // O(|l|*log|l|)
             elif r.Count * 5 < l.Count then
@@ -56,7 +55,7 @@ module DifferentiationExtensions =
 
                 let deltas = IntMap.append deltaL deltaR
 
-                DHashSet(HashMap(cnt, deltas))
+                HashSetDelta(HashMap(cnt, deltas))
 
             // O(|r|*log|r|)
             elif l.Count * 5 < r.Count then
@@ -89,19 +88,19 @@ module DifferentiationExtensions =
 
                 let deltas = IntMap.append deltaL deltaR
 
-                DHashSet(HashMap(cnt, deltas))
+                HashSetDelta(HashMap(cnt, deltas))
 
             // O(|l|+|r|)
             else
                 let mutable cnt = 0
 
-                let del (l : list<'a>) =
+                let del (l: list<'a>) =
                     l |> List.map (fun v -> cnt <- cnt + 1; struct (v, -1))
             
-                let add (l : list<'a>) =
+                let add (l: list<'a>) =
                     l |> List.map (fun v -> cnt <- cnt + 1; struct (v, 1))
 
-                let both (_hash : int) (l : list<'a>) (r : list<'a>) =
+                let both (_hash: int) (l: list<'a>) (r: list<'a>) =
                     HashSetList.mergeWithOption (fun v l r ->
                         if l && not r then cnt <- cnt + 1; Some -1
                         elif r && not l then cnt <- cnt + 1; Some 1
@@ -109,21 +108,21 @@ module DifferentiationExtensions =
                     ) l r
 
                 let store = IntMap.computeDelta both (IntMap.map del) (IntMap.map add) l.Store r.Store
-                DHashSet(HashMap(cnt, store))
+                HashSetDelta(HashMap(cnt, store))
             
         /// same as differentiate set empty
-        let removeAll (set : HashSet<'a>) =
+        let removeAll (set: HashSet<'a>) =
             let store = set.Store |> IntMap.map (List.map (fun v -> struct (v, -1)))
-            HashMap(set.Count, store) |> DHashSet
+            HashMap(set.Count, store) |> HashSetDelta
             
         /// same as differentiate empty set
-        let addAll (set : HashSet<'a>) =
+        let addAll (set: HashSet<'a>) =
             let store = set.Store |> IntMap.map (List.map (fun v -> struct (v, 1)))
-            HashMap(set.Count, store) |> DHashSet
+            HashMap(set.Count, store) |> HashSetDelta
 
         /// applies the given operations to the set. 
         /// returns the new set and the 'effective' operations.
-        let integrate (value : HashSet<'a>) (delta : DHashSet<'a>) =
+        let integrate (value: HashSet<'a>) (delta: HashSetDelta<'a>) =
             // O(1)
             if delta.IsEmpty then
                 value, delta
@@ -156,14 +155,14 @@ module DifferentiationExtensions =
                     else 
                         delta.Store
 
-                HashSet(delta.Count, state), DHashSet delta
+                HashSet(delta.Count, state), HashSetDelta delta
 
             // O(delta * log N)
             elif delta.Count * 5 < value.Count then
                 // delta small
                 let mutable result = value
                 let effective =
-                    delta |> DHashSet.choose (fun op ->
+                    delta |> HashSetDelta.choose (fun op ->
                         match op with
                         | Add(_, v) -> 
                             match HashSet.tryAdd v result with
@@ -187,16 +186,16 @@ module DifferentiationExtensions =
             //elif value.Count * 5 < delta.Count then
 
             else
-                let mutable effective = DHashSet.empty
+                let mutable effective = HashSetDelta.empty
                 let newValue = 
                     delta.Store.Choose2SetSet(value, fun k d o ->
                         match d with
                         | Some d ->
                             if not o && d > 0 then
-                                effective <- DHashSet.add (Add k) effective
+                                effective <- HashSetDelta.add (Add k) effective
                                 true
                             elif o && d < 0 then
-                                effective <- DHashSet.add (Rem k) effective
+                                effective <- HashSetDelta.add (Rem k) effective
                                 false
                             else
                                 o
@@ -207,23 +206,22 @@ module DifferentiationExtensions =
                 newValue, effective
 
     /// Functional programming operators related to the HashMap<_,_> type.
-    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module HashMap =
     
         /// determines the operations needed to transform l into r.
-        /// returns a DHashMap containing all the needed operations.
-        let differentiate (l : HashMap<'k, 'v>) (r : HashMap<'k, 'v>) : DHashMap<'k, 'v> =
+        /// returns a HashMapDelta containing all the needed operations.
+        let differentiate (l: HashMap<'k, 'v>) (r: HashMap<'k, 'v>): HashMapDelta<'k, 'v> =
             if System.Object.ReferenceEquals(l.Store, r.Store) then
-                DHashMap.empty
+                HashMapDelta.empty
             elif l.Count = 0 && r.Count = 0 then
-                DHashMap.empty
+                HashMapDelta.empty
             elif l.Count = 0 then
-                r |> HashMap.map (fun _ v -> Set v) |> DHashMap
+                r |> HashMap.map (fun _ v -> Set v) |> HashMapDelta
             elif r.Count = 0 then
-                l |> HashMap.map (fun _ _ -> Remove) |> DHashMap
+                l |> HashMap.map (fun _ _ -> Remove) |> HashMapDelta
             else
                 // TODO: one small???
-                let merge (_key : 'k) (l : Option<'v>) (r : Option<'v>) =
+                let merge (_key: 'k) (l: option<'v>) (r: option<'v>) =
                     match l, r with
                         | None, None -> None
                         | Some l, None -> Some Remove
@@ -231,11 +229,11 @@ module DifferentiationExtensions =
                         | Some l, Some r ->
                             if Unchecked.equals l r then None
                             else Some (Set r)
-                HashMap.choose2 merge l r |> DHashMap
+                HashMap.choose2 merge l r |> HashMapDelta
                 
         /// applies the given operations to the map. 
         /// returns the new map and the 'effective' operations.
-        let integrate (m : HashMap<'k, 'v>) (delta : DHashMap<'k, 'v>) =
+        let integrate (m: HashMap<'k, 'v>) (delta: HashMapDelta<'k, 'v>) =
             if delta.Store.Count = 0 then
                 m, delta
             elif m.Count = 0 then
@@ -245,7 +243,7 @@ module DifferentiationExtensions =
                         | Set v -> Some (v, Set v)
                         | _ -> None
                     )
-                state, DHashMap delta
+                state, HashMapDelta delta
             else
                 let mutable effective = HashMap.empty
                 let mutable m = m
@@ -269,5 +267,5 @@ module DifferentiationExtensions =
                                 Some n
                     )
 
-                m, DHashMap effective
+                m, HashMapDelta effective
 
