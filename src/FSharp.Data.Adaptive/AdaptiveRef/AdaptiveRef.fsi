@@ -1,4 +1,4 @@
-﻿namespace FSharp.Control.Incremental
+﻿namespace FSharp.Data.Adaptive
 
 /// Represents a dependency-aware reference that may change as changes are fed into the system.
 /// An AdaptiveRef cannot be changed directly but gets updated by the dependency graph. 

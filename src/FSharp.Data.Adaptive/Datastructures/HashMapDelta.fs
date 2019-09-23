@@ -1,8 +1,8 @@
-﻿namespace FSharp.Control.Incremental
+﻿namespace FSharp.Data.Adaptive
 
 open System.Collections
 open System.Collections.Generic
-open FSharp.Control.Incremental
+open FSharp.Data.Adaptive
 
 /// represents the difference of two HashMaps.
 type HashMapDelta<'K, 'V>(store : HashMap<'K, ElementOperation<'V>>) =

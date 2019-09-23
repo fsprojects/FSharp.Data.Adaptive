@@ -1,4 +1,4 @@
-﻿namespace FSharp.Control.Incremental
+﻿namespace FSharp.Data.Adaptive
 
 /// represents a set operation (Add/Remove) using a reference count.
 /// note that internally SetOperations may have reference counts > 1 and < -1.

@@ -5,7 +5,7 @@ open FsUnit
 open NUnit.Framework
 open FsCheck
 open FsCheck.NUnit
-open FSharp.Control.Incremental
+open FSharp.Data.Adaptive
 
 
 /// a dummy type failing on GetHashCode/Equals to ensure that

@@ -4,8 +4,8 @@ open System
 open FsUnit
 open FsCheck
 open FsCheck.NUnit
-open FSharp.Control.Incremental
-open FSharp.Control.Traceable
+open FSharp.Data.Adaptive
+open FSharp.Data.Traceable
 
 module List =
     let all (l : list<bool>) =

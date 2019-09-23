@@ -20,13 +20,14 @@
     <Compile Include="PriorityQueue.fs" />
     <Compile Include="WeakOutputSet.fs" />
     <Compile Include="History.fs" />
-    <Compile Include="AdaptiveRef.fs" />
-    <Compile Include="AdaptiveSet.fs" />
+    <Compile Include="ARef.fs" />
+    <Compile Include="ARefNoReference.fs" />
+    <Compile Include="ASet.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\FSharp.Control.Incremental.Reference\FSharp.Control.Incremental.Reference.fsproj" />
-    <ProjectReference Include="..\FSharp.Control.Incremental\FSharp.Control.Incremental.fsproj" />
+    <ProjectReference Include="..\FSharp.Data.Adaptive.Reference\FSharp.Data.Adaptive.Reference.fsproj" />
+    <ProjectReference Include="..\FSharp.Data.Adaptive\FSharp.Data.Adaptive.fsproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

@@ -1,4 +1,4 @@
-﻿namespace FSharp.Control.Incremental
+﻿namespace FSharp.Data.Adaptive
 
 open System
 open System.Threading
@@ -27,7 +27,7 @@ module internal LockingExtensions =
 /// attempting to evaluate. Therefore the evaluation may raise
 /// this exception causing the evaluation to be delayed to a later
 /// time in the Transaction.
-exception LevelChangedException of IAdaptiveObject * int * int
+exception LevelChangedException of newLevel : int
 
 
 /// Holds a set of adaptive objects which have been changed and shall
@@ -49,7 +49,7 @@ type Transaction() =
     // The contained set is useful for determinig if an element has
     // already been enqueued
     let contained = HashSet<IAdaptiveObject>()
-    let mutable current : IAdaptiveObject = null
+    let mutable current : IAdaptiveObject = Unchecked.defaultof<_>
     let mutable currentLevel = 0
     let mutable finalizers : list<unit -> unit> = []
 
@@ -93,7 +93,7 @@ type Transaction() =
 
     /// Gets the current AdaptiveObject being marked
     member x.CurrentAdapiveObject = 
-        if isNull current then None
+        if Unchecked.isNull current then None
         else Some current
 
     /// Performs the entire marking process, causing all affected objects to
@@ -157,15 +157,16 @@ type Transaction() =
                                     outputs <- e.Outputs.Consume()
 
                                 else
+                                    e.OutOfDate <- false
                                     outputs <- [||]
                                     // if Mark told us not to continue we're done here
                                     ()
 
-                            with LevelChangedException(_obj, objLevel, distance) ->
+                            with LevelChangedException newLevel ->
                                 // if the level was changed either by a callback
                                 // or Mark we re-enqueue the object with the new level and
                                 // mark it upToDate again (since it would otherwise not be processed again)
-                                e.Level <- max e.Level (objLevel + distance)
+                                e.Level <- max e.Level newLevel
                                 e.OutOfDate <- false
 
                                 levelChangeCount <- levelChangeCount + 1
@@ -182,7 +183,7 @@ type Transaction() =
                     x.Enqueue o
 
             contained.Remove e |> ignore
-            current <- null
+            current <- Unchecked.defaultof<_>
             
         // when the commit is over we restore the old
         // running transaction (if any)

@@ -1,8 +1,8 @@
 ﻿module History
 
 open NUnit.Framework
-open FSharp.Control.Incremental
-open FSharp.Control.Traceable
+open FSharp.Data.Adaptive
+open FSharp.Data.Traceable
 open FsCheck
 open FsCheck.NUnit
 open FsUnit

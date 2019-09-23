@@ -2,7 +2,7 @@
 
 open FsUnit
 open FsCheck.NUnit
-open FSharp.Control.Incremental
+open FSharp.Data.Adaptive
 
 [<Property>]
 let ``[IntMap] basics`` (data : list<int>) (value : int) =

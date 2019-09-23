@@ -18,7 +18,7 @@ module Helpers =
         }
 
     let setequal (expected : seq<'a>) =
-        let expected = FSharp.Control.Incremental.HashSet.ofSeq expected
+        let expected = FSharp.Data.Adaptive.HashSet.ofSeq expected
         { new Constraint() with 
             override x.ApplyTo<'b>(o : 'b) =
                 x.Description <- string expected

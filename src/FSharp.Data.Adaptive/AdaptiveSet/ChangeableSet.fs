@@ -1,8 +1,8 @@
-﻿namespace FSharp.Control.Incremental
+﻿namespace FSharp.Data.Adaptive
 
-open FSharp.Control.Traceable
+open FSharp.Data.Traceable
 
-/// Changeable incremental set that allows mutation by user-code and implements aset.
+/// Changeable adaptive set that allows mutation by user-code and implements aset.
 [<Sealed>]
 type ChangeableHashSet<'T>(initial : HashSet<'T>) =
     let history = 
@@ -50,7 +50,7 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
         let ops = other |> Seq.map (fun v -> v, -1) |> HashMap.ofSeq |> HashSetDelta
         history.Perform ops |> ignore
 
-    /// creates an incremental reader for the set.
+    /// creates an adaptive reader for the set.
     member x.GetReader() : IHashSetReader<'T> =
         history.NewReader()
 

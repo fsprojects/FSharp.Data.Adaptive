@@ -1,7 +1,7 @@
-﻿namespace FSharp.Control.Traceable
+﻿namespace FSharp.Data.Traceable
 
 open System
-open FSharp.Control.Incremental
+open FSharp.Data.Adaptive
 
 /// an adaptive reader that allows to get operations since the last evaluation
 type IOpReader<'Delta> =

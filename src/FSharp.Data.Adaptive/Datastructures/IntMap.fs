@@ -8,7 +8,7 @@
 // Maintainer  :  libraries@haskell.org
 // Portability :  portable
 //---------------------------------------------------------------------------
-namespace FSharp.Control.Incremental
+namespace FSharp.Data.Adaptive
 
 open System.Collections
 open System.Collections.Generic

@@ -4,7 +4,7 @@ open System
 open NUnit
 open FsCheck
 open FsCheck.NUnit
-open FSharp.Control.Incremental
+open FSharp.Data.Adaptive
 
 module List =
     let all (l : list<bool>) =

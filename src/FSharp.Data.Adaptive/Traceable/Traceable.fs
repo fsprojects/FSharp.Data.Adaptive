@@ -1,4 +1,4 @@
-﻿namespace FSharp.Control.Traceable
+﻿namespace FSharp.Data.Traceable
 
 /// function table for a monoid instance
 type Monoid<'T> =

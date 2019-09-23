@@ -1,15 +1,15 @@
-﻿namespace FSharp.Control.Incremental.Validation
+﻿namespace FSharp.Data.Adaptive.Validation
 
-open FSharp.Control.Incremental
-open FSharp.Control
+open FSharp.Data.Adaptive
+open FSharp.Data
 open FsUnit
 
 type aref<'a> =
-    abstract member Adaptive : Incremental.aref<'a>
+    abstract member Adaptive : Adaptive.aref<'a>
     abstract member Reference : Reference.aref<'a>
 
 type cref<'a>(value : 'a) = 
-    let adaptive = Incremental.cref value
+    let adaptive = Adaptive.cref value
     let reference = Reference.cref value
 
     member x.Value 
@@ -19,19 +19,19 @@ type cref<'a>(value : 'a) =
             adaptive.Value <- v
 
     interface aref<'a> with
-        member x.Adaptive = adaptive :> Incremental.aref<_>
+        member x.Adaptive = adaptive :> Adaptive.aref<_>
         member x.Reference = reference :> Reference.aref<_>
 
 module ARef =
 
-    let create (adaptive : Incremental.aref<'a>) (reference : Reference.aref<'a>) =
+    let create (adaptive : Adaptive.aref<'a>) (reference : Reference.aref<'a>) =
         { new aref<'a> with
             member x.Adaptive = adaptive
             member x.Reference = reference
         }
 
     let force (ref : aref<'a>) =
-        let adaptive = Incremental.ARef.force ref.Adaptive
+        let adaptive = Adaptive.ARef.force ref.Adaptive
         let reference = Reference.ARef.force ref.Reference
         (adaptive, reference)
 
@@ -40,41 +40,41 @@ module ARef =
 
     let constant (value : 'a) =
         create 
-            (Incremental.ARef.constant value)
+            (Adaptive.ARef.constant value)
             (Reference.ARef.constant value)
 
     let map (mapping : 'a -> 'b) (r : aref<'a>) =
         create
-            (Incremental.ARef.map mapping r.Adaptive)
+            (Adaptive.ARef.map mapping r.Adaptive)
             (Reference.ARef.map mapping r.Reference)
  
     let map2 (mapping : 'a -> 'b -> 'c) (ref1 : aref<'a>) (ref2 : aref<'b>) =
         create
-            (Incremental.ARef.map2 mapping ref1.Adaptive ref2.Adaptive)
+            (Adaptive.ARef.map2 mapping ref1.Adaptive ref2.Adaptive)
             (Reference.ARef.map2 mapping ref1.Reference ref2.Reference)
  
     let map3 (mapping : 'a -> 'b -> 'c -> 'd) (ref1 : aref<'a>) (ref2 : aref<'b>) (ref3 : aref<'c>) =
         create
-            (Incremental.ARef.map3 mapping ref1.Adaptive ref2.Adaptive ref3.Adaptive)
+            (Adaptive.ARef.map3 mapping ref1.Adaptive ref2.Adaptive ref3.Adaptive)
             (Reference.ARef.map3 mapping ref1.Reference ref2.Reference ref3.Reference)
  
     let bind (mapping : 'a -> aref<'b>) (r : aref<'a>) =
         create
-            (Incremental.ARef.bind (fun v -> mapping(v).Adaptive) r.Adaptive)
+            (Adaptive.ARef.bind (fun v -> mapping(v).Adaptive) r.Adaptive)
             (Reference.ARef.bind (fun v -> mapping(v).Reference) r.Reference)
 
     let bind2 (mapping : 'a -> 'b -> aref<'c>) (r1 : aref<'a>) (r2 : aref<'b>) =
         create
-            (Incremental.ARef.bind2 (fun va vb -> (mapping va vb).Adaptive) r1.Adaptive r2.Adaptive)
+            (Adaptive.ARef.bind2 (fun va vb -> (mapping va vb).Adaptive) r1.Adaptive r2.Adaptive)
             (Reference.ARef.bind2 (fun va vb -> (mapping va vb).Reference) r1.Reference r2.Reference)
 
 
 type aset<'a> =
-    abstract member Adaptive : Incremental.aset<'a>
+    abstract member Adaptive : Adaptive.aset<'a>
     abstract member Reference : Reference.aset<'a>
 
 type IHashSetReader<'a> =
-    abstract member Adaptive : Incremental.IHashSetReader<'a>
+    abstract member Adaptive : Adaptive.IHashSetReader<'a>
     abstract member Reference : Reference.IHashSetReader<'a>
 
 [<AutoOpen>]
@@ -89,7 +89,7 @@ module ASetReaders =
             }
 
 type cset<'a>(value : HashSet<'a>) = 
-    let adaptive = Incremental.cset value
+    let adaptive = Adaptive.cset value
     let reference = Reference.cset value
 
     member x.Contains value =
@@ -150,62 +150,62 @@ type cset<'a>(value : HashSet<'a>) =
         member x.Reference = reference :> _
 
 module ASet =
-    let create (a : Incremental.aset<'a>) (r : Reference.aset<'a>) =
+    let create (a : Adaptive.aset<'a>) (r : Reference.aset<'a>) =
         { new aset<'a> with
             member x.Adaptive = a
             member x.Reference = r
         }
 
     let empty<'a> = 
-        create (Incremental.ASet.empty) (Reference.ASet.empty)
+        create (Adaptive.ASet.empty) (Reference.ASet.empty)
             
     let single (value : 'a) = 
-        create (Incremental.ASet.single value) (Reference.ASet.single value)
+        create (Adaptive.ASet.single value) (Reference.ASet.single value)
 
     let ofSeq (value : seq<'a>) = 
-        create (Incremental.ASet.ofSeq value) (Reference.ASet.ofSeq value)
+        create (Adaptive.ASet.ofSeq value) (Reference.ASet.ofSeq value)
 
     let ofList (value : list<'a>) = 
-        create (Incremental.ASet.ofList value) (Reference.ASet.ofList value)
+        create (Adaptive.ASet.ofList value) (Reference.ASet.ofList value)
 
     let ofArray (value : array<'a>) = 
-        create (Incremental.ASet.ofArray value) (Reference.ASet.ofArray value)
+        create (Adaptive.ASet.ofArray value) (Reference.ASet.ofArray value)
 
     let ofHashSet (value : HashSet<'a>) = 
-        create (Incremental.ASet.ofHashSet value) (Reference.ASet.ofHashSet value)
+        create (Adaptive.ASet.ofHashSet value) (Reference.ASet.ofHashSet value)
 
     let toARef (set : aset<'a>) =
         ARef.create
-            (Incremental.ASet.toARef set.Adaptive)
+            (Adaptive.ASet.toARef set.Adaptive)
             (Reference.ASet.toARef set.Reference)
 
     let map (mapping : 'a -> 'b) (set : aset<'a>) =
         create
-            (Incremental.ASet.map mapping set.Adaptive)
+            (Adaptive.ASet.map mapping set.Adaptive)
             (Reference.ASet.map mapping set.Reference)
 
     let choose (mapping : 'a -> option<'b>) (set : aset<'a>) =
         create
-            (Incremental.ASet.choose mapping set.Adaptive)
+            (Adaptive.ASet.choose mapping set.Adaptive)
             (Reference.ASet.choose mapping set.Reference)
 
     let filter (predicate : 'a -> bool) (set : aset<'a>) =
         create
-            (Incremental.ASet.filter predicate set.Adaptive)
+            (Adaptive.ASet.filter predicate set.Adaptive)
             (Reference.ASet.filter predicate set.Reference)
             
     let union (sets : aset<aset<'a>>) =
         create
-            (Incremental.ASet.union (sets.Adaptive |> Incremental.ASet.map (fun s -> s.Adaptive)))
+            (Adaptive.ASet.union (sets.Adaptive |> Adaptive.ASet.map (fun s -> s.Adaptive)))
             (Reference.ASet.union (sets.Reference |> Reference.ASet.map (fun s -> s.Reference)))
 
     let collect (mapping : 'a -> aset<'b>) (set : aset<'a>) =
         create
-            (Incremental.ASet.collect (fun v -> (mapping v).Adaptive) set.Adaptive)
+            (Adaptive.ASet.collect (fun v -> (mapping v).Adaptive) set.Adaptive)
             (Reference.ASet.collect (fun v -> (mapping v).Reference) set.Reference)
 
     let ofARef (ref : aref<#seq<'a>>) =
         create
-            (ref.Adaptive |> Incremental.ASet.ofARef)
+            (ref.Adaptive |> Adaptive.ASet.ofARef)
             (ref.Reference |> Reference.ASet.ofARef)
          

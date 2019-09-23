@@ -60,7 +60,7 @@ Target.create "Compile" (fun _ ->
                         ] 
                 }
         }
-    DotNet.build options "FSharp.Control.Incremental.sln"
+    DotNet.build options "FSharp.Data.Adaptive.sln"
 )
 
 Target.create "Pack" (fun _ ->
@@ -71,7 +71,7 @@ Target.create "Pack" (fun _ ->
             WorkingDir = Environment.CurrentDirectory
             OutputPath = "bin"
             PinProjectReferences = true
-            ProjectUrl = "https://github.com/krauthaufen/FSharp.Control.Incremental"
+            ProjectUrl = "https://github.com/krauthaufen/FSharp.Data.Adaptive"
             Version = notes.NugetVersion
             ReleaseNotes = String.concat "\n" notes.Notes
         }
@@ -153,7 +153,7 @@ Target.create "Test" (fun _ ->
             Configuration = DotNet.BuildConfiguration.Release
             Logger = Some "console;verbosity=normal"
         }
-    DotNet.test options "FSharp.Control.Incremental.sln"
+    DotNet.test options "FSharp.Data.Adaptive.sln"
 )
 
 Target.create "Default" ignore

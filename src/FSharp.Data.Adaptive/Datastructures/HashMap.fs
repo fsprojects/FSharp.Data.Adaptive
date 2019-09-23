@@ -1,9 +1,9 @@
-﻿namespace FSharp.Control.Incremental
+﻿namespace FSharp.Data.Adaptive
 
 
 open System.Collections
 open System.Collections.Generic
-open FSharp.Control.Incremental
+open FSharp.Data.Adaptive
 
 /// helper functions for hash-collision lists.
 /// most members have bad runtime, but the lists should be quite small when using appropriate hashCodes.

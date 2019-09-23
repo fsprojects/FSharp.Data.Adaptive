@@ -1,4 +1,4 @@
-﻿namespace FSharp.Control.Incremental.Reference
+﻿namespace FSharp.Data.Adaptive.Reference
 
 /// reference implementation for AdaptiveToken.
 type AdaptiveToken private() =

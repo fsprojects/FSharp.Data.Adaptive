@@ -1,9 +1,9 @@
-namespace FSharp.Control.Incremental
+namespace FSharp.Data.Adaptive
 
 open System
 open System.Collections
 open System.Collections.Generic
-open FSharp.Control.Incremental
+open FSharp.Data.Adaptive
 
 /// represents the difference of two HashSets.
 /// internally uses reference counts to represent deltas and provides 

@@ -1,6 +1,6 @@
-﻿namespace FSharp.Control.Traceable
+﻿namespace FSharp.Data.Traceable
 
-open FSharp.Control.Incremental
+open FSharp.Data.Adaptive
 
 /// functional operators for HashSetDelta.
 module HashSetDelta =

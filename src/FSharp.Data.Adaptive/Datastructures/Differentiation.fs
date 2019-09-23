@@ -1,4 +1,4 @@
-﻿namespace FSharp.Control.Incremental
+﻿namespace FSharp.Data.Adaptive
 
 /// differentiation extensions for several immutable datastructures.
 [<AutoOpen>]

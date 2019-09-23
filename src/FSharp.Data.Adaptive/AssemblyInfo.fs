@@ -2,5 +2,5 @@
 
 open System.Runtime.CompilerServices
 
-[<assembly: InternalsVisibleTo("FSharp.Control.Incremental.Tests")>]
+[<assembly: InternalsVisibleTo("FSharp.Data.Adaptive.Tests")>]
 do()

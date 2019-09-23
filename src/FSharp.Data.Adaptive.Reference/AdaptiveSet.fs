@@ -1,7 +1,7 @@
-﻿namespace FSharp.Control.Incremental.Reference
+﻿namespace FSharp.Data.Adaptive.Reference
 
-open FSharp.Control.Incremental
-open FSharp.Control.Incremental.Reference
+open FSharp.Data.Adaptive
+open FSharp.Data.Adaptive.Reference
 
 /// the reference implementation for IOpReader<_>.
 type IOpReader<'Delta> =

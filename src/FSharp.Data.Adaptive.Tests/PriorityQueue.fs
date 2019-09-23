@@ -1,7 +1,7 @@
 ﻿module PriorityQueue
 
 open System.Collections.Generic
-open FSharp.Control.Incremental
+open FSharp.Data.Adaptive
 open FsUnit
 open FsCheck
 open FsCheck.NUnit

@@ -1,4 +1,4 @@
-﻿namespace FSharp.Control.Incremental
+﻿namespace FSharp.Data.Adaptive
 
 open System.Threading
 
@@ -15,7 +15,11 @@ type AdaptiveToken =
     ///
     /// Note, this is only mutable because that exposes the underlying field
     /// for (reportedly) more performant access.
-    val mutable public Caller : IAdaptiveObject
+    val mutable internal caller : IAdaptiveObject
+
+    member x.Caller =
+        if Unchecked.isNull x.caller then None
+        else Some x.caller
 
     /// enters the read-lock on the given object
     member inline internal x.EnterRead(o : IAdaptiveObject) =
@@ -57,10 +61,10 @@ type AdaptiveToken =
         AdaptiveToken(c)
 
     /// the top-level AdaptiveToken without a calling IAdaptiveObject
-    static member Top = AdaptiveToken(null)
+    static member Top = AdaptiveToken(Unchecked.defaultof<_>)
 
     /// creates a new AdaptiveToken using the given caller
     internal new(caller : IAdaptiveObject) =
         {
-            Caller = caller
+            caller = caller
         }

@@ -1,7 +1,7 @@
 ﻿module ARef
 
-open FSharp.Control.Incremental
-open FSharp.Control.Incremental.Validation
+open FSharp.Data.Adaptive
+open FSharp.Data.Adaptive.Validation
 open NUnit.Framework
 open FsUnit
 open FsCheck.NUnit

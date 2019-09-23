@@ -2,9 +2,9 @@
 
 open NUnit.Framework
 open FsCheck
-open FSharp.Control.Incremental
-open FSharp.Control.Incremental.Validation
-open FSharp.Control.Traceable
+open FSharp.Data.Adaptive
+open FSharp.Data.Adaptive.Validation
+open FSharp.Data.Traceable
 open FsUnit
 open FsCheck.NUnit
 
@@ -13,8 +13,8 @@ type Record<'a> = { value : 'a }
 [<AutoOpen>]
 module Helpers =
     let check (r : IHashSetReader<'a>) =
-        let a = r.Adaptive.GetChanges FSharp.Control.Incremental.AdaptiveToken.Top
-        let r = r.Reference.GetChanges FSharp.Control.Incremental.Reference.AdaptiveToken.Top
+        let a = r.Adaptive.GetChanges FSharp.Data.Adaptive.AdaptiveToken.Top
+        let r = r.Reference.GetChanges FSharp.Data.Adaptive.Reference.AdaptiveToken.Top
         a |> should setequal r
         r
 
