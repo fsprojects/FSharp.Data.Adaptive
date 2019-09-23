@@ -4,13 +4,13 @@ open FSharp.Data.Adaptive
 open FSharp.Data
 open FsUnit
 
-type aref<'T> =
-    abstract member Adaptive : Adaptive.aref<'T>
-    abstract member Reference : Reference.aref<'T>
+type aval<'T> =
+    abstract member Adaptive : Adaptive.aval<'T>
+    abstract member Reference : Reference.aval<'T>
 
-type cref<'T>(value : 'T) = 
-    let adaptive = Adaptive.cref value
-    let reference = Reference.cref value
+type cval<'T>(value : 'T) = 
+    let adaptive = Adaptive.cval value
+    let reference = Reference.cval value
 
     member x.Value 
         with get() = reference.Value
@@ -18,55 +18,55 @@ type cref<'T>(value : 'T) =
             reference.Value <- v
             adaptive.Value <- v
 
-    interface aref<'T> with
-        member x.Adaptive = adaptive :> Adaptive.aref<_>
-        member x.Reference = reference :> Reference.aref<_>
+    interface aval<'T> with
+        member x.Adaptive = adaptive :> Adaptive.aval<_>
+        member x.Reference = reference :> Reference.aval<_>
 
-module ARef =
+module AVal =
 
-    let create (adaptive : Adaptive.aref<'T>) (reference : Reference.aref<'T>) =
-        { new aref<'T> with
+    let create (adaptive : Adaptive.aval<'T>) (reference : Reference.aval<'T>) =
+        { new aval<'T> with
             member x.Adaptive = adaptive
             member x.Reference = reference
         }
 
-    let force (ref : aref<'T>) =
-        let adaptive = Adaptive.ARef.force ref.Adaptive
-        let reference = Reference.ARef.force ref.Reference
+    let force (ref : aval<'T>) =
+        let adaptive = Adaptive.AVal.force ref.Adaptive
+        let reference = Reference.AVal.force ref.Reference
         (adaptive, reference)
 
     let init (value : 'T) =
-        cref<'T>(value)
+        cval<'T>(value)
 
     let constant (value : 'T) =
         create 
-            (Adaptive.ARef.constant value)
-            (Reference.ARef.constant value)
+            (Adaptive.AVal.constant value)
+            (Reference.AVal.constant value)
 
-    let map (mapping : 'A -> 'B) (r : aref<'A>) =
+    let map (mapping : 'A -> 'B) (r : aval<'A>) =
         create
-            (Adaptive.ARef.map mapping r.Adaptive)
-            (Reference.ARef.map mapping r.Reference)
+            (Adaptive.AVal.map mapping r.Adaptive)
+            (Reference.AVal.map mapping r.Reference)
  
-    let map2 (mapping : 'A -> 'B -> 'C) (ref1 : aref<'A>) (ref2 : aref<'B>) =
+    let map2 (mapping : 'A -> 'B -> 'C) (ref1 : aval<'A>) (ref2 : aval<'B>) =
         create
-            (Adaptive.ARef.map2 mapping ref1.Adaptive ref2.Adaptive)
-            (Reference.ARef.map2 mapping ref1.Reference ref2.Reference)
+            (Adaptive.AVal.map2 mapping ref1.Adaptive ref2.Adaptive)
+            (Reference.AVal.map2 mapping ref1.Reference ref2.Reference)
  
-    let map3 (mapping : 'A -> 'B -> 'C -> 'D) (ref1 : aref<'A>) (ref2 : aref<'B>) (ref3 : aref<'C>) =
+    let map3 (mapping : 'A -> 'B -> 'C -> 'D) (ref1 : aval<'A>) (ref2 : aval<'B>) (ref3 : aval<'C>) =
         create
-            (Adaptive.ARef.map3 mapping ref1.Adaptive ref2.Adaptive ref3.Adaptive)
-            (Reference.ARef.map3 mapping ref1.Reference ref2.Reference ref3.Reference)
+            (Adaptive.AVal.map3 mapping ref1.Adaptive ref2.Adaptive ref3.Adaptive)
+            (Reference.AVal.map3 mapping ref1.Reference ref2.Reference ref3.Reference)
  
-    let bind (mapping : 'A -> aref<'B>) (r : aref<'A>) =
+    let bind (mapping : 'A -> aval<'B>) (r : aval<'A>) =
         create
-            (Adaptive.ARef.bind (fun v -> mapping(v).Adaptive) r.Adaptive)
-            (Reference.ARef.bind (fun v -> mapping(v).Reference) r.Reference)
+            (Adaptive.AVal.bind (fun v -> mapping(v).Adaptive) r.Adaptive)
+            (Reference.AVal.bind (fun v -> mapping(v).Reference) r.Reference)
 
-    let bind2 (mapping : 'A -> 'B -> aref<'C>) (r1 : aref<'A>) (r2 : aref<'B>) =
+    let bind2 (mapping : 'A -> 'B -> aval<'C>) (r1 : aval<'A>) (r2 : aval<'B>) =
         create
-            (Adaptive.ARef.bind2 (fun va vb -> (mapping va vb).Adaptive) r1.Adaptive r2.Adaptive)
-            (Reference.ARef.bind2 (fun va vb -> (mapping va vb).Reference) r1.Reference r2.Reference)
+            (Adaptive.AVal.bind2 (fun va vb -> (mapping va vb).Adaptive) r1.Adaptive r2.Adaptive)
+            (Reference.AVal.bind2 (fun va vb -> (mapping va vb).Reference) r1.Reference r2.Reference)
 
 
 type aset<'T> =
@@ -174,10 +174,10 @@ module ASet =
     let ofHashSet (value : HashSet<'T>) = 
         create (Adaptive.ASet.ofHashSet value) (Reference.ASet.ofHashSet value)
 
-    let toARef (set : aset<'T>) =
-        ARef.create
-            (Adaptive.ASet.toARef set.Adaptive)
-            (Reference.ASet.toARef set.Reference)
+    let toAVal (set : aset<'T>) =
+        AVal.create
+            (Adaptive.ASet.toAVal set.Adaptive)
+            (Reference.ASet.toAVal set.Reference)
 
     let map (mapping : 'A -> 'B) (set : aset<'A>) =
         create
@@ -204,47 +204,47 @@ module ASet =
             (Adaptive.ASet.collect (fun v -> (mapping v).Adaptive) set.Adaptive)
             (Reference.ASet.collect (fun v -> (mapping v).Reference) set.Reference)
 
-    let ofARef (ref : aref<#seq<'A>>) =
+    let ofAVal (ref : aval<#seq<'A>>) =
         create
-            (ref.Adaptive |> Adaptive.ASet.ofARef)
-            (ref.Reference |> Reference.ASet.ofARef)
+            (ref.Adaptive |> Adaptive.ASet.ofAVal)
+            (ref.Reference |> Reference.ASet.ofAVal)
 
-    let bind (mapping : 'A -> aset<'B>) (ref : aref<'A>) =
+    let bind (mapping : 'A -> aset<'B>) (ref : aval<'A>) =
         create
             (ref.Adaptive |> Adaptive.ASet.bind (fun v -> (mapping v).Adaptive))
             (ref.Reference |> Reference.ASet.bind (fun v -> (mapping v).Reference))
          
 
-    let mapA (mapping : 'A -> aref<'B>) (set : aset<'A>) =
+    let mapA (mapping : 'A -> aval<'B>) (set : aset<'A>) =
         create
             (set.Adaptive |> Adaptive.ASet.mapA (fun v -> (mapping v).Adaptive))
             (set.Reference |> Reference.ASet.mapA (fun v -> (mapping v).Reference))
        
 
-    let chooseA (mapping : 'A -> aref<option<'B>>) (set : aset<'A>) =
+    let chooseA (mapping : 'A -> aval<option<'B>>) (set : aset<'A>) =
         create
             (set.Adaptive |> Adaptive.ASet.chooseA (fun v -> (mapping v).Adaptive))
             (set.Reference |> Reference.ASet.chooseA (fun v -> (mapping v).Reference))
            
 
-    let filterA (predicate : 'T -> aref<bool>) (set : aset<'T>) =
+    let filterA (predicate : 'T -> aval<bool>) (set : aset<'T>) =
         create
             (set.Adaptive |> Adaptive.ASet.filterA (fun v -> (predicate v).Adaptive))
             (set.Reference |> Reference.ASet.filterA (fun v -> (predicate v).Reference))
                    
 
     let foldHalfGroup (add : 'S -> 'A -> 'S) (trySub : 'S -> 'A -> option<'S>) (zero : 'S) (set : aset<'A>) =
-        ARef.create
+        AVal.create
             (set.Adaptive |> Adaptive.ASet.foldHalfGroup add trySub zero)
             (set.Reference |> Reference.ASet.foldHalfGroup add trySub zero)
         
     let foldGroup (add : 'S -> 'A -> 'S) (sub : 'S -> 'A -> 'S) (zero : 'S) (set : aset<'A>) =
-        ARef.create
+        AVal.create
             (set.Adaptive |> Adaptive.ASet.foldGroup add sub zero)
             (set.Reference |> Reference.ASet.foldGroup add sub zero)
                 
     let fold (add : 'S -> 'T -> 'S) (zero : 'S) (set : aset<'T>) =
-        ARef.create
+        AVal.create
             (set.Adaptive |> Adaptive.ASet.fold add zero)
             (set.Reference |> Reference.ASet.fold add zero)
                 

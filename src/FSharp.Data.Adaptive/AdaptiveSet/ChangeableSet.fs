@@ -12,7 +12,7 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
             h.Perform delta |> ignore
         h
 
-    let content = history |> ARef.map CountingHashSet.toHashSet
+    let content = history |> AVal.map CountingHashSet.toHashSet
     
     member x.Count =
         history.State.Count
@@ -25,9 +25,9 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
 
     member x.Value
         with get() = 
-            ARef.force content
+            AVal.force content
         and set newSet =
-            HashSet.differentiate (ARef.force content) newSet
+            HashSet.differentiate (AVal.force content) newSet
             |> history.Perform
             |> ignore
 

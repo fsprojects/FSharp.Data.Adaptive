@@ -184,12 +184,12 @@ let ``[ASet] collect``(all : list<list<Set<int>>>) =
         reader |> check |> ignore
 
 [<Property>]
-let ``[ASet] toARef / ofARef``(all : list<Set<int>>) =
+let ``[ASet] toAVal / ofAVal``(all : list<Set<int>>) =
     let all = all |> List.map HashSet.ofSeq
 
     let mutable last = HashSet.empty
     let input = cset<int>(HashSet.empty)
-    let roundtrip = input |> ASet.toARef |> ASet.ofARef
+    let roundtrip = input |> ASet.toAVal |> ASet.ofAVal
     let reader = roundtrip.GetReader()
 
     for set in all do

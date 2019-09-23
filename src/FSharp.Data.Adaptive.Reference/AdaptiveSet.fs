@@ -18,7 +18,7 @@ type IHashSetReader<'T> = IOpReader<HashSet<'T>, HashSetDelta<'T>>
 /// the reference implementation for aset.
 type AdaptiveHashSet<'T> =
     abstract member GetReader: unit -> IHashSetReader<'T>
-    abstract member Content: aref<HashSet<'T>>
+    abstract member Content: aval<HashSet<'T>>
 
 and aset<'T> = AdaptiveHashSet<'T>
 
@@ -46,9 +46,9 @@ type internal ASetReader<'T>(set: aset<'T>) =
 type ChangeableHashSet<'T>(value: HashSet<'T>) =
     let mutable content = value
 
-    // the current content as aref<_>
+    // the current content as aval<_>
     let contentRef =
-        { new aref<HashSet<'T>> with
+        { new aval<HashSet<'T>> with
             member x.GetValue _ = content
         }
 
@@ -105,93 +105,93 @@ and cset<'T> = ChangeableHashSet<'T>
 /// functional operators for the aset reference-implementation.
 module ASet =
 
-    /// Creates an aset from the given aref.
-    let internal ofRef (r: aref<HashSet<'T>>) =
+    /// Creates an aset from the given aval.
+    let internal ofRef (r: aval<HashSet<'T>>) =
         { new aset<'T> with 
             member x.Content = r
             member x.GetReader() = ASetReader(x) :> IHashSetReader<_>    
         }
         
     /// The empty aset.
-    let empty<'T> = ofRef (ARef.constant HashSet.empty<'T>)
+    let empty<'T> = ofRef (AVal.constant HashSet.empty<'T>)
     
     /// A constant aset containing a single value
-    let single (value: 'T) = ofRef (ARef.constant (HashSet.single value))
+    let single (value: 'T) = ofRef (AVal.constant (HashSet.single value))
 
     /// Creates a constant aset from the given values.
-    let ofSeq (values: seq<'T>) = ofRef (ARef.constant (HashSet.ofSeq values))
+    let ofSeq (values: seq<'T>) = ofRef (AVal.constant (HashSet.ofSeq values))
     
     /// Creates a constant aset from the given values.
-    let ofList (values: list<'T>) = ofRef (ARef.constant (HashSet.ofList values))
+    let ofList (values: list<'T>) = ofRef (AVal.constant (HashSet.ofList values))
     
     /// Creates a constant aset from the given values.
-    let ofArray (values: 'T[]) = ofRef (ARef.constant (HashSet.ofArray values))
+    let ofArray (values: 'T[]) = ofRef (AVal.constant (HashSet.ofArray values))
     
     /// Creates a constant aset from the given values.
-    let ofHashSet (values: HashSet<'T>) = ofRef (ARef.constant values)
+    let ofHashSet (values: HashSet<'T>) = ofRef (AVal.constant values)
     
     /// Creates an adaptive value holding the set'State content.
-    let toARef (set: aset<'T>) = set.Content
+    let toAVal (set: aset<'T>) = set.Content
 
     /// Applies mapping to all elements of the set and returns the resulting set.
     let map (mapping: 'T -> 'B) (set: aset<'T>) =
-        set.Content |> ARef.map (HashSet.map mapping) |> ofRef
+        set.Content |> AVal.map (HashSet.map mapping) |> ofRef
 
     /// Applies mapping to all elements of the set and returns the resulting set.
     let choose (mapping: 'T -> option<'B>) (set: aset<'T>) =
-        set.Content |> ARef.map (HashSet.choose mapping) |> ofRef
+        set.Content |> AVal.map (HashSet.choose mapping) |> ofRef
         
     /// Filters the set using the given predicate.
     let filter (predicate: 'T -> bool) (set: aset<'T>) =
-        set.Content |> ARef.map (HashSet.filter predicate) |> ofRef
+        set.Content |> AVal.map (HashSet.filter predicate) |> ofRef
 
     /// Unions all the sets.
     let union (sets: aset<aset<'T>>) =
-        sets.Content |> ARef.map (fun sets ->
+        sets.Content |> AVal.map (fun sets ->
             sets |> HashSet.collect (fun s -> s.Content.GetValue AdaptiveToken.Top)
         ) |> ofRef
 
     /// Unions all the sets.
     let collect (mapping: 'T -> aset<'B>) (set: aset<'T>) =
-        set.Content |> ARef.map (fun values ->
+        set.Content |> AVal.map (fun values ->
             values |> HashSet.collect (fun s -> (mapping s).Content.GetValue AdaptiveToken.Top)
         ) |> ofRef
 
-    let ofARef (ref: aref<#seq<'T>>) =
+    let ofAVal (ref: aval<#seq<'T>>) =
         { new aset<'T> with 
-            member x.Content = ref |> ARef.map HashSet.ofSeq
+            member x.Content = ref |> AVal.map HashSet.ofSeq
             member x.GetReader() = ASetReader(x) :> IHashSetReader<_>    
         }
 
-    let bind (mapping : 'A -> aset<'B>) (ref : aref<'A>) =
+    let bind (mapping : 'A -> aset<'B>) (ref : aval<'A>) =
         { new aset<'B> with 
-            member x.Content = ref |> ARef.bind (fun v -> (mapping v).Content)
+            member x.Content = ref |> AVal.bind (fun v -> (mapping v).Content)
             member x.GetReader() = ASetReader(x) :> IHashSetReader<_>    
         }
 
-    let flattenA (set : aset<aref<'T>>) =
+    let flattenA (set : aset<aval<'T>>) =
         { new aset<'T> with 
-            member x.Content = set.Content |> ARef.map (HashSet.map (fun r -> r.GetValue AdaptiveToken.Top))
+            member x.Content = set.Content |> AVal.map (HashSet.map (fun r -> r.GetValue AdaptiveToken.Top))
             member x.GetReader() = ASetReader(x) :> IHashSetReader<_>    
         }
         
-    let mapA (mapping : 'T -> aref<'B>) (set : aset<'T>) =
+    let mapA (mapping : 'T -> aval<'B>) (set : aset<'T>) =
         set |> map mapping |> flattenA
         
-    let chooseA (mapping : 'T -> aref<option<'B>>) (set : aset<'T>) =
+    let chooseA (mapping : 'T -> aval<option<'B>>) (set : aset<'T>) =
         set |> map mapping |> flattenA |> choose id
 
-    let filterA (predicate : 'T -> aref<bool>) (set : aset<'T>) =
-        set |> chooseA (fun a -> a |> predicate |> ARef.map (function true -> Some a | false -> None))
+    let filterA (predicate : 'T -> aval<bool>) (set : aset<'T>) =
+        set |> chooseA (fun a -> a |> predicate |> AVal.map (function true -> Some a | false -> None))
 
     let foldHalfGroup (add : 'S -> 'A -> 'S) (trySubtract : 'S -> 'A -> option<'S>) (zero : 'S) (set : aset<'A>) =
-        set.Content |> ARef.map (HashSet.fold add zero)
+        set.Content |> AVal.map (HashSet.fold add zero)
 
     let foldGroup (add : 'S -> 'A -> 'S) (sub : 'S -> 'A -> 'S) (zero : 'S) (set : aset<'A>) =
-        set.Content |> ARef.map (HashSet.fold add zero)
+        set.Content |> AVal.map (HashSet.fold add zero)
 
     let fold (add : 'S -> 'A -> 'S) (zero : 'S) (set : aset<'A>) =
-        set.Content |> ARef.map (HashSet.fold add zero)
+        set.Content |> AVal.map (HashSet.fold add zero)
 
     let inline sum (set : aset<'A>) = foldGroup (+) (-) LanguagePrimitives.GenericZero set
     let inline product (set : aset<'A>) = foldGroup (*) (/) LanguagePrimitives.GenericOne set

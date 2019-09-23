@@ -1,4 +1,4 @@
-﻿module ARef
+﻿module AVal
 
 open FSharp.Data.Adaptive
 open FSharp.Data.Adaptive.Validation
@@ -14,36 +14,36 @@ module Helpers =
                 b |> List.map (fun vb -> (va, vb))
             )
 
-    let inline check (r : aref<'T>) =
-        let (a, r) = ARef.force r
+    let inline check (r : aval<'T>) =
+        let (a, r) = AVal.force r
         a |> should equal r
 
 
 type Record<'T> = { value : 'T }
 
 [<Property>]
-let ``[ARef] constant equality`` (value : obj) =
-    let a = ARef.constant value
-    let b = ARef.constant value
+let ``[AVal] constant equality`` (value : obj) =
+    let a = AVal.constant value
+    let b = AVal.constant value
     a.Adaptive |> should equal b.Adaptive
 
-    let a = ARef.constant { value = value }
-    let b = ARef.constant { value = value }
+    let a = AVal.constant { value = value }
+    let b = AVal.constant { value = value }
     a.Adaptive |> should equal b.Adaptive
 
     
-    let a = ARef.constant { value = 1 }
-    let b = ARef.constant { value = 2 }
+    let a = AVal.constant { value = 1 }
+    let b = AVal.constant { value = 2 }
     a.Adaptive |> should not' (equal b.Adaptive)
 
-    let a = ARef.constant null
-    let b = ARef.constant null
+    let a = AVal.constant null
+    let b = AVal.constant null
     a.Adaptive |> should equal b.Adaptive
 
 [<Property>]
-let ``[CRef] can change`` (values : list<obj>) =
+let ``[CVal] can change`` (values : list<obj>) =
     
-    let ref = ARef.init (obj())
+    let ref = AVal.init (obj())
     check ref
 
     for v in values do
@@ -51,10 +51,10 @@ let ``[CRef] can change`` (values : list<obj>) =
         check ref
 
 [<Property>]
-let ``[ARef] map validation`` (values : list<obj>) =
+let ``[AVal] map validation`` (values : list<obj>) =
     let values = obj() :: values
-    let input = ARef.init (obj())
-    let test = input |> ARef.map (fun v -> v, Unchecked.hash v)
+    let input = AVal.init (obj())
+    let test = input |> AVal.map (fun v -> v, Unchecked.hash v)
 
     check test
 
@@ -63,19 +63,19 @@ let ``[ARef] map validation`` (values : list<obj>) =
         check test
       
 [<Test>]
-let ``[ARef] map constant`` () =
-    let a = ARef.constant 1
-    let b = ARef.map id a
+let ``[AVal] map constant`` () =
+    let a = AVal.constant 1
+    let b = AVal.map id a
     check b
     b.Adaptive.IsConstant |> should be True
   
 [<Property>]
-let ``[ARef] map2 validation`` (va : list<obj>) (vb : list<obj>)  =
+let ``[AVal] map2 validation`` (va : list<obj>) (vb : list<obj>)  =
     let va = obj() :: va
     let vb = obj() :: vb
-    let ra = ARef.init (obj())
-    let rb = ARef.init (obj())
-    let test = ARef.map2 (fun a b -> Unchecked.hash a - Unchecked.hash b) ra rb
+    let ra = AVal.init (obj())
+    let rb = AVal.init (obj())
+    let test = AVal.map2 (fun a b -> Unchecked.hash a - Unchecked.hash b) ra rb
 
     check test
 
@@ -87,23 +87,23 @@ let ``[ARef] map2 validation`` (va : list<obj>) (vb : list<obj>)  =
         check test
 
 [<Test>]
-let ``[ARef] map2 constant`` () =
-    let a = ARef.constant 1
-    let b = ARef.constant 2
-    let test = ARef.map2 (fun a b -> (a,b)) a b
+let ``[AVal] map2 constant`` () =
+    let a = AVal.constant 1
+    let b = AVal.constant 2
+    let test = AVal.map2 (fun a b -> (a,b)) a b
     check test
     test.Adaptive.IsConstant |> should be True
 
 [<Property>]
-let ``[ARef] map3 validation`` (va : list<obj>) (vb : list<obj>) (vc : list<obj>)  =
+let ``[AVal] map3 validation`` (va : list<obj>) (vb : list<obj>) (vc : list<obj>)  =
     let va = obj() :: va
     let vb = obj() :: vb
     let vc = obj() :: vc
 
-    let ra = ARef.init (obj())
-    let rb = ARef.init (obj())
-    let rc = ARef.init (obj())
-    let test = ARef.map3 (fun a b c -> Unchecked.hash a - Unchecked.hash b - Unchecked.hash c) ra rb rc
+    let ra = AVal.init (obj())
+    let rb = AVal.init (obj())
+    let rc = AVal.init (obj())
+    let test = AVal.map3 (fun a b c -> Unchecked.hash a - Unchecked.hash b - Unchecked.hash c) ra rb rc
 
     check test
 
@@ -116,25 +116,25 @@ let ``[ARef] map3 validation`` (va : list<obj>) (vb : list<obj>) (vc : list<obj>
         check test
 
 [<Test>]
-let ``[ARef] map3 constant`` () =
-    let a = ARef.constant 1
-    let b = ARef.constant 2
-    let c = ARef.constant 3
-    let test = ARef.map3 (fun a b c -> (a,b,c)) a b c
+let ``[AVal] map3 constant`` () =
+    let a = AVal.constant 1
+    let b = AVal.constant 2
+    let c = AVal.constant 3
+    let test = AVal.map3 (fun a b c -> (a,b,c)) a b c
     check test
     test.Adaptive.IsConstant |> should be True
 
 [<Property>]
-let ``[ARef] bind validation`` (values : list<obj>) =
-    let input = ARef.init (obj())
-    let a = ARef.init (obj())
-    let b = ARef.init (obj())
+let ``[AVal] bind validation`` (values : list<obj>) =
+    let input = AVal.init (obj())
+    let a = AVal.init (obj())
+    let b = AVal.init (obj())
 
     let test = 
-        input |> ARef.bind (fun v -> 
+        input |> AVal.bind (fun v -> 
             let hash = Unchecked.hash v
-            if hash % 2 = 0 then a :> aref<_>
-            else b :> aref<_>
+            if hash % 2 = 0 then a :> aval<_>
+            else b :> aval<_>
         )
 
     check test
@@ -151,13 +151,13 @@ let ``[ARef] bind validation`` (values : list<obj>) =
         check test
 
 [<Test>]
-let ``[ARef] bind constant`` () =
-    let a = ARef.constant 10
-    let b = ARef.init "b" |> ARef.map id
-    let c = ARef.init "c" |> ARef.map id
+let ``[AVal] bind constant`` () =
+    let a = AVal.constant 10
+    let b = AVal.init "b" |> AVal.map id
+    let c = AVal.init "c" |> AVal.map id
 
     let test =
-        a |> ARef.bind (fun va ->
+        a |> AVal.bind (fun va ->
             if va = 10 then b
             else c
         )
@@ -166,17 +166,17 @@ let ``[ARef] bind constant`` () =
     test.Adaptive |> should equal b.Adaptive
  
 [<Property>]
-let ``[ARef] bind2 validation`` (values : list<obj>) =
-    let ref1 = ARef.init (obj())
-    let ref2 = ARef.init (obj())
-    let a = ARef.init (obj())
-    let b = ARef.init (obj())
+let ``[AVal] bind2 validation`` (values : list<obj>) =
+    let ref1 = AVal.init (obj())
+    let ref2 = AVal.init (obj())
+    let a = AVal.init (obj())
+    let b = AVal.init (obj())
 
     let test = 
-        ARef.bind2 (fun v1 v2 -> 
+        AVal.bind2 (fun v1 v2 -> 
             let hash = Unchecked.hash v1 - Unchecked.hash v2
-            if hash % 2 = 0 then a :> aref<_>
-            else b :> aref<_>
+            if hash % 2 = 0 then a :> aval<_>
+            else b :> aval<_>
         ) ref1 ref2
 
     check test

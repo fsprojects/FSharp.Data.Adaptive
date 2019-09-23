@@ -1,11 +1,11 @@
-﻿module ARefNoReference
+﻿module AValNoReference
 
 open FSharp.Data.Adaptive
 open NUnit.Framework
 open FsUnit
 open FsCheck.NUnit
 
-type EagerRef<'T>(input : aref<'T>) =
+type EagerVal<'T>(input : aval<'T>) =
     inherit AdaptiveObject()
 
     let mutable last = None
@@ -27,62 +27,62 @@ type EagerRef<'T>(input : aref<'T>) =
             res
         )
 
-    interface aref<'T> with
+    interface aval<'T> with
         member x.GetValue(t) = x.GetValue t
         
 [<Test>]
-let ``[ARef] eager evaluation`` () =
-    let a = ARef.init 0
+let ``[AVal] eager evaluation`` () =
+    let a = AVal.init 0
 
-    let short = ARef.init "a"
-    let long = ARef.init "a" |> ARef.map id |> ARef.map id |> ARef.map id
-    let different = ARef.init "b" |> ARef.map id |> ARef.map id |> ARef.map id |> ARef.map id |> ARef.map id
+    let short = AVal.init "a"
+    let long = AVal.init "a" |> AVal.map id |> AVal.map id |> AVal.map id
+    let different = AVal.init "b" |> AVal.map id |> AVal.map id |> AVal.map id |> AVal.map id |> AVal.map id
 
     let dynamic =   
-        a |> ARef.bind (fun l ->
-            if l = 0 then short :> aref<_>
+        a |> AVal.bind (fun l ->
+            if l = 0 then short :> aval<_>
             elif l = 1 then long
             else different
         )
 
     // eager level is initially small
-    let eager = EagerRef(dynamic) :> aref<_>
-    eager |> ARef.force |> should equal "a"
+    let eager = EagerVal(dynamic) :> aval<_>
+    eager |> AVal.force |> should equal "a"
     eager.Level |> should equal 2
 
     // makes eager level larger (LevelChangedException)
     // but does not change content.
     transact (fun () -> a.Value <- 1)
     eager.OutOfDate |> should be False
-    eager |> ARef.force |> should equal "a"
+    eager |> AVal.force |> should equal "a"
     eager.Level |> should be (greaterThan long.Level)
 
     // actually changes content.
     transact (fun () -> a.Value <- 2)
     eager.OutOfDate |> should be True
-    eager |> ARef.force |> should equal "b"
+    eager |> AVal.force |> should equal "b"
     eager.Level |> should be (greaterThan different.Level)
 
 
 [<Test>]
-let ``[ARef] nop change evaluation`` () =
+let ``[AVal] nop change evaluation`` () =
     
-    let input = ARef.init 5
-    let a = ARef.map id input
-    let b = ARef.map (fun v -> -v) input
-    let c = ARef.map2 (+) a b
+    let input = AVal.init 5
+    let a = AVal.map id input
+    let b = AVal.map (fun v -> -v) input
+    let c = AVal.map2 (+) a b
     let mutable mapCounter = 0
-    let d = c |> ARef.map (fun v -> mapCounter <- mapCounter + 1; v)
+    let d = c |> AVal.map (fun v -> mapCounter <- mapCounter + 1; v)
     
     // mapping should be evaluated
-    d |> ARef.force |> should equal 0
+    d |> AVal.force |> should equal 0
     mapCounter |> should equal 1
     mapCounter <- 0
 
     // mapping should not be evaluated (input still 0)
     transact (fun () -> input.Value <- 10)
     d.OutOfDate |> should be True
-    d |> ARef.force |> should equal 0
+    d |> AVal.force |> should equal 0
     mapCounter |> should equal 0
 
 

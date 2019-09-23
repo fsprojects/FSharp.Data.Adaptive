@@ -327,7 +327,7 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
         let reader = new HistoryReader<'State, 'Delta>(x) 
         reader :> IOpReader<'State, 'Delta>
 
-    interface aref<'State> with
+    interface aval<'State> with
         member x.GetValue t = x.GetValue t
 
     new (t: Traceable<'State, 'Delta>, finalize: 'Delta -> unit) = History<'State, 'Delta>(None, t, finalize)
