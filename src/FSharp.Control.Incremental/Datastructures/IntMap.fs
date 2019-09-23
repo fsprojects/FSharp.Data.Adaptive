@@ -56,25 +56,25 @@ type internal intmap<'T> =
         member x.GetEnumerator() =
             new IntMapEnumerator<_>(x) :> _
 
-and private IntMapEnumerator<'a>(m : intmap<'a>) =
+and private IntMapEnumerator<'T1>(m : intmap<'T1>) =
     let mutable stack = [m]
     let mutable current = Unchecked.defaultof<_>
 
     let rec moveNext() =
         match stack with
-            | [] -> false
-            | h :: rest ->
-                stack <- rest
-                match h with
-                    | Nil -> 
-                        moveNext()
+        | [] -> false
+        | h :: rest ->
+            stack <- rest
+            match h with
+            | Nil -> 
+                moveNext()
 
-                    | Tip(k,v) -> 
-                        current <- (k,v)
-                        true
-                    | Bin(_,_,l,r) -> 
-                        stack <- l :: r :: stack
-                        moveNext()
+            | Tip(k,v) -> 
+                current <- (k,v)
+                true
+            | Bin(_,_,l,r) -> 
+                stack <- l :: r :: stack
+                moveNext()
 
     interface IEnumerator with
         member x.MoveNext() = moveNext()
@@ -82,7 +82,8 @@ and private IntMapEnumerator<'a>(m : intmap<'a>) =
         member x.Reset() =
             stack <- [m]
             current <- Unchecked.defaultof<_>
-    interface IEnumerator<int * 'a> with
+
+    interface IEnumerator<int * 'T1> with
         member x.Current = current
         member x.Dispose() =
             stack <- []
@@ -122,15 +123,14 @@ module internal IntMap =
         | (l, r) -> Bin(p, m, l, r)
 
     ///O(1). Map is empty.  Credit: Haskell.org
-    let isEmpty =
-        function
+    let isEmpty t =
+        match t with
         | Nil -> true
         | _ -> false
 
-
     ///O(min(n,W)). Lookup the value at a key in the map. Returns 'T option. Credit: Haskell.org
-    let rec tryFind k =
-        function
+    let rec tryFind k t =
+        match t with
         | Bin(p, m, l, r) ->
             if nomatch k p m then None
             elif zero k m then tryFind k l
@@ -164,8 +164,8 @@ module internal IntMap =
             None
 
     ///O(min(n,W)). Is the key a member of the map? Credit: Haskell.org
-    let rec exists k =
-        function
+    let rec exists k t =
+        match t with
         | Bin(p, m, l, r) ->
             if nomatch k p m then false
             elif zero k m then exists k l
@@ -188,8 +188,8 @@ module internal IntMap =
         | _ -> notFound()
 
     ///O(min(n,W)). The expression (findWithDefault def k map) returns the value at key k or returns def when the key is not an element of the map.  Credit: Haskell.org
-    let rec findWithDefault def k =
-        function
+    let rec findWithDefault def k t =
+        match t with
         | Bin(p, m, l, r) -> 
             if nomatch k p m then def
             elif zero k m then findWithDefault def k l
@@ -197,8 +197,8 @@ module internal IntMap =
         | Tip(kx, x) when k = kx -> x
         | _ -> def
 
-    let rec private unsafeFindMax =
-        function
+    let rec private unsafeFindMax t =
+        match t with
         | Nil -> None
         | Tip(ky, y) -> Some(ky, y)
         | Bin(_, _, _, r) -> unsafeFindMax r
@@ -220,8 +220,8 @@ module internal IntMap =
         | Bin(_, m, l, r) when m < 0 -> if k >= 0 then go r l else go Nil r
         | _ -> go Nil t
 
-    let rec private unsafeFindMin =
-        function
+    let rec private unsafeFindMin t =
+        match t with
         | Nil -> None
         | Tip(ky, y) -> Some(ky, y)
         | Bin(_, _, l, _) -> unsafeFindMin l
@@ -410,7 +410,7 @@ module internal IntMap =
             | Some x -> Tip(k, x)
             | None -> Nil
 
-    let inline private mergeWithKey' bin' f g1 g2 =
+    let inline private mergeWithKeyAux binOp f g1 g2 =
 
         let inline maybe_join p1 t1 p2 t2  =
             match t1, t2 with
@@ -420,13 +420,13 @@ module internal IntMap =
      
         let rec merge1 p1 m1 t1 l1 r1 p2 m2 t2 =
             if nomatch p2 p1 m1 then maybe_join p1 (g1 t1) p2 (g2 t2)
-            elif zero p2 m1 then bin' p1 m1 (go l1 t2) (g1 r1)
-            else bin' p1 m1 (g1 l1) (go r1 t2)
+            elif zero p2 m1 then binOp p1 m1 (go l1 t2) (g1 r1)
+            else binOp p1 m1 (g1 l1) (go r1 t2)
 
         and merge2 p1 m1 t1 p2 m2 t2 l2 r2 =
             if nomatch p1 p2 m2 then maybe_join p1 (g1 t1) p2 (g2 t2)
-            elif zero p1 m2 then bin' p2 m2 (go t1 l2) (g2 r2)
-            else bin' p2 m2 (g2 l2) (go t1 r2)
+            elif zero p1 m2 then binOp p2 m2 (go t1 l2) (g2 r2)
+            else binOp p2 m2 (g2 l2) (go t1 r2)
 
         and go t1 t2 =
             match t1 with
@@ -435,15 +435,15 @@ module internal IntMap =
                 | Bin(p2, m2, l2, r2) -> 
                     if shorter m1 m2 then merge1 p1 m1 t1 l1 r1 p2 m2 t2
                     elif shorter m2 m1 then merge2 p1 m1 t1 p2 m2 t2 l2 r2
-                    elif p1 = p2 then bin' p1 m1 (go l1 l2) (go r1 r2)
+                    elif p1 = p2 then binOp p1 m1 (go l1 l2) (go r1 r2)
                     else maybe_join p1 (g1 t1) p2 (g2 t2)
                 | Tip (k2', _) ->
                     let rec merge t2 k2 t1 =
                         match t1 with
                         | Bin(p1, m1, l1, r1) ->
                             if nomatch k2 p1 m1 then maybe_join p1 (g1 t1) k2 (g2 t2)
-                            else if zero k2 m1 then bin' p1 m1 (merge t2 k2 l1) (g1 r1)
-                            else bin' p1 m1 (g1 l1) (merge t2 k2 r1)
+                            else if zero k2 m1 then binOp p1 m1 (merge t2 k2 l1) (g1 r1)
+                            else binOp p1 m1 (g1 l1) (merge t2 k2 r1)
                         | Tip(k1, _) -> 
                             if k1 = k2 then f t1 t2
                             else maybe_join k1 (g1 t1) k2 (g2 t2)
@@ -455,8 +455,8 @@ module internal IntMap =
                     match t2 with
                     | Bin(p2, m2, l2, r2) ->
                         if nomatch k1 p2 m2 then maybe_join k1 (g1 t1) p2 (g2 t2)
-                        elif zero k1 m2 then bin' p2 m2 (merge t1 k1 l2) (g2 r2)
-                        else bin' p2 m2 (g2 l2) (merge t1 k1 r2)
+                        elif zero k1 m2 then binOp p2 m2 (merge t1 k1 l2) (g2 r2)
+                        else binOp p2 m2 (g2 l2) (merge t1 k1 r2)
                     | Tip(k2, _) ->
                         if k1 = k2 then f t1 t2
                         else maybe_join k1 (g1 t1) k2 (g2 t2)
@@ -472,14 +472,14 @@ module internal IntMap =
                 match f k1 x1 x2 with
                 | None -> Nil
                 | Some x -> Tip(k1, x)
-        mergeWithKey' bin combine g1 g2
+        mergeWithKeyAux bin combine g1 g2
 
     let inline konst a _ = a
 
-    let append m1 m2 = mergeWithKey' (fun x y m1' m2' -> Bin(x, y, m1', m2')) konst id id m1 m2
+    let append m1 m2 = mergeWithKeyAux (fun x y m1' m2' -> Bin(x, y, m1', m2')) konst id id m1 m2
 
     let appendWithKey f m1 m2 =
-        mergeWithKey' (fun x y m1' m2' -> Bin(x, y, m1', m2')) (fun (Tip(k1, x1)) (Tip(_, x2)) -> Tip(k1, f k1 x1 x2)) id id m1 m2
+        mergeWithKeyAux (fun x y m1' m2' -> Bin(x, y, m1', m2')) (fun (Tip(k1, x1)) (Tip(_, x2)) -> Tip(k1, f k1 x1 x2)) id id m1 m2
 
     let appendWith f m1 m2 = appendWithKey (fun _ x y -> f x y) m1 m2
 
@@ -497,11 +497,11 @@ module internal IntMap =
     let differenceWith f m1 m2 = differenceWithKey (fun _ x y -> f x y) m1 m2
 
     ///O(n+m). The (left-biased) intersection of two maps (based on keys). Credit: Haskell.org
-    let intersection m1 m2 = mergeWithKey' bin konst (konst Nil) (konst Nil) m1 m2
+    let intersection m1 m2 = mergeWithKeyAux bin konst (konst Nil) (konst Nil) m1 m2
 
     ///O(n+m). The intersection with a combining function. Credit: Haskell.org
     let intersectionWithKey f m1 m2 =
-        mergeWithKey' bin (fun (Tip(k1, x1)) (Tip(_, x2)) -> Tip(k1, f k1 x1 x2)) (konst Nil) (konst Nil) m1 m2
+        mergeWithKeyAux bin (fun (Tip(k1, x1)) (Tip(_, x2)) -> Tip(k1, f k1 x1 x2)) (konst Nil) (konst Nil) m1 m2
 
     ///O(n+m). The intersection with a combining function. Credit: Haskell.org
     let intersectionWith f m1 m2 = intersectionWithKey (fun _ x y -> f x y) m1 m2
@@ -621,22 +621,22 @@ module internal IntMap =
         | _ -> Nil
 
     ///O(n). Map a function over all values in the map. Credit: Haskell.org
-    let rec mapWithKey f =
-        function
+    let rec mapWithKey f t =
+        match t with
         | Bin(p, m, l, r) -> Bin(p, m, mapWithKey f l, mapWithKey f r)
         | Tip(k, x) -> Tip(k, f k x)
         | Nil -> Nil
 
     ///O(n). Map a function over all values in the map. Credit: Haskell.org
-    let rec map<'a, 'b> (f : 'a -> 'b) (m : intmap<'a>) : intmap<'b> =
+    let rec map<'T1, 'T2> (f : 'T1 -> 'T2) (m : intmap<'T1>) : intmap<'T2> =
         match m with
         | Bin(p, m, l, r) -> Bin(p, m, map f l, map f r)
         | Tip(k, x) -> Tip(k, f x)
         | Nil -> Nil
 
 
-    let rec private mapAccumL f a =
-        function
+    let rec private mapAccumL f a t =
+        match t with
         | Bin(p, m, l, r) ->
             let (a1,l) = mapAccumL f a l
             let (a2,r) = mapAccumL f a1 r
@@ -645,14 +645,14 @@ module internal IntMap =
         | Nil -> (a, Nil)
 
     ///O(n). The function mapAccum threads an accumulating argument through the map in ascending order of keys. Credit: Haskell.org
-    let mapAccumWithKey f a t = mapAccumL f a t
+    let mapAccumWithKey f acc t = mapAccumL f acc t
 
     ///O(n). The function mapAccumWithKey threads an accumulating argument through the map in ascending order of keys. Credit: Haskell.org
-    let mapAccum f = mapAccumWithKey (fun a' _ x -> f a' x)
+    let mapAccum f acc t= mapAccumWithKey (fun a' _ x -> f a' x) acc t
 
     ///O(n). Filter all keys/values that satisfy some predicate. Credit: Haskell.org
-    let rec filterWithKey predicate =
-        function
+    let rec filterWithKey predicate t =
+        match t with
         | Bin(p, m, l, r) -> bin p m (filterWithKey predicate l) (filterWithKey predicate r)
         | Tip(k, x) -> if predicate k x then Tip(k, x) else Nil
         | _ -> Nil
@@ -674,8 +674,8 @@ module internal IntMap =
     let partition p m = partitionWithKey (fun _ x -> p x) m
 
     ///O(n). Map keys/values and collect the Just results. Credit: Haskell.org
-    let rec mapOptionWithKey f =
-        function
+    let rec mapOptionWithKey f t =
+        match t with
         | Bin(p, m, l, r) -> bin p m (mapOptionWithKey f l) (mapOptionWithKey f r)
         | Tip(k, x) ->
             match f k x with
@@ -684,8 +684,8 @@ module internal IntMap =
         | Nil -> Nil
         
     ///O(n). Map keys/values and collect the Just results. Credit: Haskell.org
-    let rec mapOptionWithKey2 (f : int -> 'a -> option<'b * 'c>) : intmap<'a> -> intmap<'b> * intmap<'c>  =
-        function
+    let rec mapOptionWithKey2 (f : int -> 'T1 -> option<'T2 * 'T3>) (t: intmap<'T1>) : intmap<'T2> * intmap<'T3>  =
+        match t with
         | Bin(p, m, l, r) -> 
             let la, lb = mapOptionWithKey2 f l
             let ra, rb = mapOptionWithKey2 f r
@@ -701,8 +701,8 @@ module internal IntMap =
     let mapOption f = mapOptionWithKey (fun _ x -> f x)
 
     ///O(n). Map keys/values and separate the Left and Right results. Credit: Haskell.org
-    let rec mapChoiceWithKey f =
-        function
+    let rec mapChoiceWithKey f t =
+        match t with
         | Bin(p, m, l, r) ->
             let (l1, l2) = mapChoiceWithKey f l
             let (r1, r2) = mapChoiceWithKey f r
@@ -823,7 +823,7 @@ module internal IntMap =
     let toList (m: _ intmap) = m.ToList()
 
     ///O(n). Convert the map to a seq of key/value pairs. Credit: Haskell.org
-    let toSeq (m : intmap<'a>) = m.ToSeq()
+    let toSeq (m : intmap<'T1>) = m.ToSeq()
 
     ///O(n). Convert the map to an array of key/value pairs. Credit: Haskell.org
     let toArray m = m |> toList |> List.toArray
@@ -947,7 +947,7 @@ module internal IntMap =
     ///add for any key-value-pair that is in m2 and not in m1, and
     ///mod for any key-value-pair is in both, but has changed.
     ///Untouched sub-trees that are reference-equal are not touched.
-    let computeDelta (change : int -> 'a -> 'a -> option<'b>) (del : intmap<'a> -> intmap<'b>) (add : intmap<'a> -> intmap<'b>) =
+    let computeDelta (change : int -> 'T1 -> 'T1 -> option<'T2>) (del : intmap<'T1> -> intmap<'T2>) (add : intmap<'T1> -> intmap<'T2>) =
         
         let inline ifChanged (Tip(k1, x1)) (Tip(_, x2)) =
             match change k1 x1 x2 with
@@ -1012,7 +1012,7 @@ module internal IntMap =
 
     
 
-    let rec equals (valueEqual : 'a -> 'a -> bool) (l : intmap<'a>) (r : intmap<'a>) =
+    let rec equals (valueEqual : 'T1 -> 'T1 -> bool) (l : intmap<'T1>) (r : intmap<'T1>) =
         if System.Object.ReferenceEquals(l, r) then
             true
         else
