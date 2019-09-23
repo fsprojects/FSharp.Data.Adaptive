@@ -21,7 +21,7 @@
     <Compile Include="WeakOutputSet.fs" />
     <Compile Include="History.fs" />
     <Compile Include="AdaptiveRef.fs" />
-    <Compile Include="AdaptiveHashSet.fs" />
+    <Compile Include="AdaptiveSet.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
