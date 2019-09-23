@@ -12,7 +12,8 @@
     <OutputPath>..\..\bin\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Helpers.fs" />
+    <Compile Include="Utilities\Helpers.fs" />
+    <Compile Include="Utilities\AdaptiveValidation.fs" />
     <Compile Include="IntMap.fs" />
     <Compile Include="HashMap.fs" />
     <Compile Include="HashSet.fs" />

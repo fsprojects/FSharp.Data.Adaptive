@@ -2,8 +2,8 @@
 
 open Xunit
 open FsCheck
-open FSharp.Control
 open FSharp.Control.Incremental
+open FSharp.Control.Incremental.Validation
 open FSharp.Control.Traceable
 open FsUnit.Xunit
 open FsCheck.Xunit
@@ -11,133 +11,10 @@ open FsCheck.Xunit
 type Record<'a> = { value : 'a }
 
 [<AutoOpen>]
-module ASetTestImplementation =
-    open FSharp.Control.Traceable
-    
-    type aset<'a> =
-        abstract member Adaptive : Incremental.aset<'a>
-        abstract member Reference : Reference.aset<'a>
-
-    type ISetReader<'a> =
-        abstract member Adaptive : Incremental.ISetReader<'a>
-        abstract member Reference : (unit -> DHashSet<'a>)
-
-    [<AutoOpen>]
-    module ASetReaders = 
-        type aset<'a> with
-            member x.GetReader() =
-                let adaptive = x.Adaptive.GetReader()
-                let reference =
-                    let mutable state = HashSet.empty
-                    fun () ->
-                        let newState = x.Reference.GetContent()
-                        let ops = HashSet.differentiate state newState
-                        state <- newState
-                        ops
-                    
-                { new ISetReader<'a> with
-                    member __.Adaptive = adaptive
-                    member __.Reference = reference
-                }
-
-    type cset<'a>(value : HashSet<'a>) = 
-        let adaptive = Incremental.cset value
-        let reference = Reference.cset value
-
-        member x.Contains value =
-            let cr = reference.Contains value
-            let ca = adaptive.Contains value
-            ca |> should equal cr
-            cr
-
-        member x.IsEmpty =
-            let er = reference.IsEmpty
-            let ea = adaptive.IsEmpty
-            ea |> should equal er
-            er
-
-        member x.Count = 
-            let cr = reference.Count
-            let ca = adaptive.Count
-            ca |> should equal cr
-            cr
-
-        member x.Value
-            with get() = 
-                let vr = reference.Value
-                let va = adaptive.Value
-                va |> should equal vr
-                vr
-
-            and set v = 
-                adaptive.Value <- v
-                reference.Value <- v
-
-        member x.Add (value : 'a) =
-            let wa = adaptive.Add value
-            let wr = reference.Add value
-            wa |> should equal wr
-            wr
-
-        member x.Remove(value : 'a) =
-            let wa = adaptive.Remove value
-            let wr = reference.Remove value
-            wa |> should equal wr
-            wr
-
-        member x.Clear() =
-            adaptive.Clear()
-            reference.Clear()
-
-        member x.UnionWith other =
-            adaptive.UnionWith other
-            reference.UnionWith other
-
-        member x.ExceptWith other =
-            adaptive.ExceptWith other
-            reference.ExceptWith other
-
-        interface aset<'a> with
-            member x.Adaptive = adaptive :> _
-            member x.Reference = reference :> _
-
-    module ASet =
-        let create (a : Incremental.aset<'a>) (r : Reference.aset<'a>) =
-            { new aset<'a> with
-                member x.Adaptive = a
-                member x.Reference = r
-            }
-        let empty<'a> = 
-            create (Incremental.ASet.empty) (Reference.ASet.empty)
-            
-        let single (value : 'a) = 
-            create (Incremental.ASet.single value) (Reference.ASet.single value)
-
-        let ofSeq (value : seq<'a>) = 
-            create (Incremental.ASet.ofSeq value) (Reference.ASet.ofSeq value)
-
-        let ofList (value : list<'a>) = 
-            create (Incremental.ASet.ofList value) (Reference.ASet.ofList value)
-
-        let ofArray (value : array<'a>) = 
-            create (Incremental.ASet.ofArray value) (Reference.ASet.ofArray value)
-
-        let ofHashSet (value : HashSet<'a>) = 
-            create (Incremental.ASet.ofHashSet value) (Reference.ASet.ofHashSet value)
-
-        let toARef (set : aset<'a>) =
-            ARef.ARefTestImplementation.ARef.create
-                (Incremental.ASet.toARef set.Adaptive)
-                (Reference.ASet.toARef set.Reference)
-
-        let map (mapping : 'a -> 'b) (set : aset<'a>) =
-            create
-                (Incremental.ASet.map mapping set.Adaptive)
-                (Reference.ASet.map mapping set.Reference)
-
+module Helpers =
     let check (r : ISetReader<'a>) =
-        let a = r.Adaptive.GetOperations AdaptiveToken.Top
-        let r = r.Reference ()
+        let a = r.Adaptive.GetOperations FSharp.Control.Incremental.AdaptiveToken.Top
+        let r = r.Reference.GetOperations FSharp.Control.Incremental.Reference.AdaptiveToken.Top
         a |> should setequal r
         r
 

@@ -1,81 +1,13 @@
 ﻿module ARef
 
-open FSharp.Control
 open FSharp.Control.Incremental
+open FSharp.Control.Incremental.Validation
 open FsUnit.Xunit
 open FsCheck.Xunit
 open Xunit
 
-type Record<'a> = { value : 'a }
-
 [<AutoOpen>]
-module ARefTestImplementation =
-
-    type aref<'a> =
-        abstract member Adaptive : Incremental.aref<'a>
-        abstract member Reference : Reference.aref<'a>
-
-    type cref<'a>(value : 'a) = 
-        let adaptive = Incremental.cref value
-        let reference = Reference.cref value
-
-        member x.Value 
-            with get() = reference.Value
-            and set v =
-                reference.Value <- v
-                adaptive.Value <- v
-
-        interface aref<'a> with
-            member x.Adaptive = adaptive :> Incremental.aref<_>
-            member x.Reference = reference :> Reference.aref<_>
-
-    module ARef =
-
-        let create (adaptive : Incremental.aref<'a>) (reference : Reference.aref<'a>) =
-            { new aref<'a> with
-                member x.Adaptive = adaptive
-                member x.Reference = reference
-            }
-
-        let force (ref : aref<'a>) =
-            let adaptive = Incremental.ARef.force ref.Adaptive
-            let reference = Reference.ARef.force ref.Reference
-            (adaptive, reference)
-
-        let init (value : 'a) =
-            cref<'a>(value)
-
-        let constant (value : 'a) =
-            create 
-                (Incremental.ARef.constant value)
-                (Reference.ARef.constant value)
-
-        let map (mapping : 'a -> 'b) (r : aref<'a>) =
-            create
-                (Incremental.ARef.map mapping r.Adaptive)
-                (Reference.ARef.map mapping r.Reference)
- 
-        let map2 (mapping : 'a -> 'b -> 'c) (ref1 : aref<'a>) (ref2 : aref<'b>) =
-            create
-                (Incremental.ARef.map2 mapping ref1.Adaptive ref2.Adaptive)
-                (Reference.ARef.map2 mapping ref1.Reference ref2.Reference)
- 
-        let map3 (mapping : 'a -> 'b -> 'c -> 'd) (ref1 : aref<'a>) (ref2 : aref<'b>) (ref3 : aref<'c>) =
-            create
-                (Incremental.ARef.map3 mapping ref1.Adaptive ref2.Adaptive ref3.Adaptive)
-                (Reference.ARef.map3 mapping ref1.Reference ref2.Reference ref3.Reference)
- 
-        let bind (mapping : 'a -> aref<'b>) (r : aref<'a>) =
-            create
-                (Incremental.ARef.bind (fun v -> mapping(v).Adaptive) r.Adaptive)
-                (Reference.ARef.bind (fun v -> mapping(v).Reference) r.Reference)
-
-        let bind2 (mapping : 'a -> 'b -> aref<'c>) (r1 : aref<'a>) (r2 : aref<'b>) =
-            create
-                (Incremental.ARef.bind2 (fun va vb -> (mapping va vb).Adaptive) r1.Adaptive r2.Adaptive)
-                (Reference.ARef.bind2 (fun va vb -> (mapping va vb).Reference) r1.Reference r2.Reference)
-        
-  
+module Helpers =
     module List =
         let cross (a : list<'a>) (b : list<'b>) =
             a |> List.collect (fun va ->
@@ -85,6 +17,9 @@ module ARefTestImplementation =
     let inline check (r : aref<'a>) =
         let (a, r) = ARef.force r
         a |> should equal r
+
+
+type Record<'a> = { value : 'a }
 
 [<Property>]
 let ``[ARef] constant equality`` (value : obj) =
