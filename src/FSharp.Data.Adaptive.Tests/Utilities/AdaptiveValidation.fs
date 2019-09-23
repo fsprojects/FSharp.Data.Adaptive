@@ -30,9 +30,9 @@ module AVal =
             member x.Reference = reference
         }
 
-    let force (ref : aval<'T>) =
-        let adaptive = Adaptive.AVal.force ref.Adaptive
-        let reference = Reference.AVal.force ref.Reference
+    let force (value : aval<'T>) =
+        let adaptive = Adaptive.AVal.force value.Adaptive
+        let reference = Reference.AVal.force value.Reference
         (adaptive, reference)
 
     let init (value : 'T) =
@@ -48,15 +48,15 @@ module AVal =
             (Adaptive.AVal.map mapping r.Adaptive)
             (Reference.AVal.map mapping r.Reference)
  
-    let map2 (mapping : 'A -> 'B -> 'C) (ref1 : aval<'A>) (ref2 : aval<'B>) =
+    let map2 (mapping : 'A -> 'B -> 'C) (value1 : aval<'A>) (value2 : aval<'B>) =
         create
-            (Adaptive.AVal.map2 mapping ref1.Adaptive ref2.Adaptive)
-            (Reference.AVal.map2 mapping ref1.Reference ref2.Reference)
+            (Adaptive.AVal.map2 mapping value1.Adaptive value2.Adaptive)
+            (Reference.AVal.map2 mapping value1.Reference value2.Reference)
  
-    let map3 (mapping : 'A -> 'B -> 'C -> 'D) (ref1 : aval<'A>) (ref2 : aval<'B>) (ref3 : aval<'C>) =
+    let map3 (mapping : 'A -> 'B -> 'C -> 'D) (value1 : aval<'A>) (value2 : aval<'B>) (value3 : aval<'C>) =
         create
-            (Adaptive.AVal.map3 mapping ref1.Adaptive ref2.Adaptive ref3.Adaptive)
-            (Reference.AVal.map3 mapping ref1.Reference ref2.Reference ref3.Reference)
+            (Adaptive.AVal.map3 mapping value1.Adaptive value2.Adaptive value3.Adaptive)
+            (Reference.AVal.map3 mapping value1.Reference value2.Reference value3.Reference)
  
     let bind (mapping : 'A -> aval<'B>) (r : aval<'A>) =
         create
@@ -204,15 +204,15 @@ module ASet =
             (Adaptive.ASet.collect (fun v -> (mapping v).Adaptive) set.Adaptive)
             (Reference.ASet.collect (fun v -> (mapping v).Reference) set.Reference)
 
-    let ofAVal (ref : aval<#seq<'A>>) =
+    let ofAVal (value : aval<#seq<'A>>) =
         create
-            (ref.Adaptive |> Adaptive.ASet.ofAVal)
-            (ref.Reference |> Reference.ASet.ofAVal)
+            (value.Adaptive |> Adaptive.ASet.ofAVal)
+            (value.Reference |> Reference.ASet.ofAVal)
 
-    let bind (mapping : 'A -> aset<'B>) (ref : aval<'A>) =
+    let bind (mapping : 'A -> aset<'B>) (value : aval<'A>) =
         create
-            (ref.Adaptive |> Adaptive.ASet.bind (fun v -> (mapping v).Adaptive))
-            (ref.Reference |> Reference.ASet.bind (fun v -> (mapping v).Reference))
+            (value.Adaptive |> Adaptive.ASet.bind (fun v -> (mapping v).Adaptive))
+            (value.Reference |> Reference.ASet.bind (fun v -> (mapping v).Reference))
          
 
     let mapA (mapping : 'A -> aval<'B>) (set : aset<'A>) =

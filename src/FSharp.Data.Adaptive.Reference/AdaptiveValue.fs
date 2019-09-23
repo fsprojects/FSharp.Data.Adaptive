@@ -48,15 +48,15 @@ module AVal =
         }
         
     /// adaptively maps over the given aval and returns the resulting aval.
-    let map2 (mapping : 'A -> 'B -> 'C) (ref1 : aval<'A>) (ref2 : aval<'B>) =
+    let map2 (mapping : 'A -> 'B -> 'C) (value1 : aval<'A>) (value2 : aval<'B>) =
         { new aval<'C> with
-            member x.GetValue(t) = mapping (ref1.GetValue(t)) (ref2.GetValue(t))
+            member x.GetValue(t) = mapping (value1.GetValue(t)) (value2.GetValue(t))
         }
         
     /// adaptively maps over the given avals and returns the resulting aval.
-    let map3 (mapping : 'A -> 'B -> 'C -> 'D) (ref1 : aval<'A>) (ref2 : aval<'B>) (ref3 : aval<'C>) =
+    let map3 (mapping : 'A -> 'B -> 'C -> 'D) (value1 : aval<'A>) (value2 : aval<'B>) (value3 : aval<'C>) =
         { new aval<'D> with
-            member x.GetValue(t) = mapping (ref1.GetValue(t)) (ref2.GetValue(t)) (ref3.GetValue(t))
+            member x.GetValue(t) = mapping (value1.GetValue(t)) (value2.GetValue(t)) (value3.GetValue(t))
         }
         
     /// adaptively applies mapping to the given aval and also depends on the inner aval.

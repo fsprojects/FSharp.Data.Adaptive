@@ -157,15 +157,15 @@ module ASet =
             values |> HashSet.collect (fun s -> (mapping s).Content.GetValue AdaptiveToken.Top)
         ) |> ofRef
 
-    let ofAVal (ref: aval<#seq<'T>>) =
+    let ofAVal (value: aval<#seq<'T>>) =
         { new aset<'T> with 
-            member x.Content = ref |> AVal.map HashSet.ofSeq
+            member x.Content = value |> AVal.map HashSet.ofSeq
             member x.GetReader() = ASetReader(x) :> IHashSetReader<_>    
         }
 
-    let bind (mapping : 'A -> aset<'B>) (ref : aval<'A>) =
+    let bind (mapping : 'A -> aset<'B>) (value : aval<'A>) =
         { new aset<'B> with 
-            member x.Content = ref |> AVal.bind (fun v -> (mapping v).Content)
+            member x.Content = value |> AVal.bind (fun v -> (mapping v).Content)
             member x.GetReader() = ASetReader(x) :> IHashSetReader<_>    
         }
 
