@@ -9,7 +9,7 @@ module DifferentiationExtensions =
 
         /// determines the operations needed to transform l into r.
         /// Returns a HashSetDelta containing these operations.
-        let differentiate (l: HashSet<'a>) (r: HashSet<'a>) =
+        let differentiate (l: HashSet<'T>) (r: HashSet<'T>) =
             // O(1)
             if System.Object.ReferenceEquals(l.Store, r.Store) then
                 HashSetDelta.empty
@@ -94,13 +94,13 @@ module DifferentiationExtensions =
             else
                 let mutable cnt = 0
 
-                let del (l: list<'a>) =
+                let del (l: list<'T>) =
                     l |> List.map (fun v -> cnt <- cnt + 1; struct (v, -1))
             
-                let add (l: list<'a>) =
+                let add (l: list<'T>) =
                     l |> List.map (fun v -> cnt <- cnt + 1; struct (v, 1))
 
-                let both (_hash: int) (l: list<'a>) (r: list<'a>) =
+                let both (_hash: int) (l: list<'T>) (r: list<'T>) =
                     HashSetList.mergeWithOption (fun v l r ->
                         if l && not r then cnt <- cnt + 1; Some -1
                         elif r && not l then cnt <- cnt + 1; Some 1
@@ -111,18 +111,18 @@ module DifferentiationExtensions =
                 HashSetDelta(HashMap(cnt, store))
             
         /// same as differentiate set empty
-        let removeAll (set: HashSet<'a>) =
+        let removeAll (set: HashSet<'T>) =
             let store = set.Store |> IntMap.map (List.map (fun v -> struct (v, -1)))
             HashMap(set.Count, store) |> HashSetDelta
             
         /// same as differentiate empty set
-        let addAll (set: HashSet<'a>) =
+        let addAll (set: HashSet<'T>) =
             let store = set.Store |> IntMap.map (List.map (fun v -> struct (v, 1)))
             HashMap(set.Count, store) |> HashSetDelta
 
         /// applies the given operations to the set. 
         /// returns the new set and the 'effective' operations.
-        let integrate (value: HashSet<'a>) (delta: HashSetDelta<'a>) =
+        let integrate (value: HashSet<'T>) (delta: HashSetDelta<'T>) =
             // O(1)
             if delta.IsEmpty then
                 value, delta
@@ -210,7 +210,7 @@ module DifferentiationExtensions =
     
         /// determines the operations needed to transform l into r.
         /// returns a HashMapDelta containing all the needed operations.
-        let differentiate (l: HashMap<'k, 'v>) (r: HashMap<'k, 'v>): HashMapDelta<'k, 'v> =
+        let differentiate (l: HashMap<'A, 'B>) (r: HashMap<'A, 'B>): HashMapDelta<'A, 'B> =
             if System.Object.ReferenceEquals(l.Store, r.Store) then
                 HashMapDelta.empty
             elif l.Count = 0 && r.Count = 0 then
@@ -221,7 +221,7 @@ module DifferentiationExtensions =
                 l |> HashMap.map (fun _ _ -> Remove) |> HashMapDelta
             else
                 // TODO: one small???
-                let merge (_key: 'k) (l: option<'v>) (r: option<'v>) =
+                let merge (_key: 'A) (l: option<'B>) (r: option<'B>) =
                     match l, r with
                         | None, None -> None
                         | Some l, None -> Some Remove
@@ -233,7 +233,7 @@ module DifferentiationExtensions =
                 
         /// applies the given operations to the map. 
         /// returns the new map and the 'effective' operations.
-        let integrate (m: HashMap<'k, 'v>) (delta: HashMapDelta<'k, 'v>) =
+        let integrate (m: HashMap<'A, 'B>) (delta: HashMapDelta<'A, 'B>) =
             if delta.Store.Count = 0 then
                 m, delta
             elif m.Count = 0 then

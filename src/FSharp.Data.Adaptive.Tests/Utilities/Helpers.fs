@@ -6,9 +6,9 @@ open System
 module Helpers =
     open NUnit.Framework.Constraints
 
-    let refequal (expected : 'a) =
+    let refequal (expected : 'T) =
         { new Constraint() with
-            override x.ApplyTo<'b>(other : 'b) =    
+            override x.ApplyTo<'B>(other : 'B) =    
                 x.Description <- string <| System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode expected
                 let otherHash = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode other
                 if System.Object.ReferenceEquals(expected, other) then
@@ -17,13 +17,13 @@ module Helpers =
                     ConstraintResult(x, otherHash, false)
         }
 
-    let setequal (expected : seq<'a>) =
+    let setequal (expected : seq<'T>) =
         let expected = FSharp.Data.Adaptive.HashSet.ofSeq expected
         { new Constraint() with 
-            override x.ApplyTo<'b>(o : 'b) =
+            override x.ApplyTo<'B>(o : 'B) =
                 x.Description <- string expected
                 match o :> obj with
-                | :? seq<'a> as o -> 
+                | :? seq<'T> as o -> 
                     let should = System.Collections.Generic.HashSet expected
                     let is = System.Collections.Generic.HashSet o
                     if should.SetEquals is then

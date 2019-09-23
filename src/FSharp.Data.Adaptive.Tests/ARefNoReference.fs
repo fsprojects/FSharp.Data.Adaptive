@@ -5,7 +5,7 @@ open NUnit.Framework
 open FsUnit
 open FsCheck.NUnit
 
-type EagerRef<'a>(input : aref<'a>) =
+type EagerRef<'T>(input : aref<'T>) =
     inherit AdaptiveObject()
 
     let mutable last = None
@@ -27,7 +27,7 @@ type EagerRef<'a>(input : aref<'a>) =
             res
         )
 
-    interface aref<'a> with
+    interface aref<'T> with
         member x.GetValue(t) = x.GetValue t
         
 [<Test>]

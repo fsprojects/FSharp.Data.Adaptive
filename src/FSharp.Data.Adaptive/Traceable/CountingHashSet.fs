@@ -16,13 +16,13 @@ type internal SetCmp =
 /// a reference counting set.
 [<Struct; StructuralEquality; NoComparison>]
 [<StructuredFormatDisplay("{AsString}")>]
-type CountingHashSet<'a>(store : HashMap<'a, int>) =
+type CountingHashSet<'T>(store : HashMap<'T, int>) =
     
     /// Traceable instance.
     static let trace =
         {
             tmonoid = HashSetDelta.monoid
-            tempty = CountingHashSet<'a>(HashMap.empty)
+            tempty = CountingHashSet<'T>(HashMap.empty)
             tintegrate = fun s d -> s.Integrate d
             tdifferentiate = fun l r -> l.Differentiate r
             tprune = None
@@ -33,7 +33,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
     static let traceNoRefCount =
         {
             tmonoid = HashSetDelta.monoid
-            tempty = CountingHashSet<'a>(HashMap.empty)
+            tempty = CountingHashSet<'T>(HashMap.empty)
             tintegrate = fun s d -> s.IntegrateNoRefCount d
             tdifferentiate = fun l r -> l.Differentiate r
             tprune = None
@@ -41,7 +41,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         }
 
     /// the empty set.
-    static member Empty = CountingHashSet<'a>(HashMap.empty)
+    static member Empty = CountingHashSet<'T>(HashMap.empty)
 
 
     /// Traceable instance.
@@ -65,15 +65,15 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         HashSet(x.Count, setStore)
 
     /// checks whether the given value is contained in the set.
-    member x.Contains (value : 'a) =
+    member x.Contains (value : 'T) =
         HashMap.containsKey value store
     
     /// gets the reference-count for the given value (0 if not contained)
-    member x.GetRefCount (value : 'a) =
+    member x.GetRefCount (value : 'T) =
         HashMap.tryFind value store |> Option.defaultValue 0
 
     /// adds the given value to the set. (one reference)
-    member x.Add(value : 'a) =
+    member x.Add(value : 'T) =
         store
         |> HashMap.update value (fun o -> 
             match o with
@@ -83,7 +83,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         |> CountingHashSet
 
     /// removes the given value from the set. (one reference)
-    member x.Remove(value : 'a) =
+    member x.Remove(value : 'T) =
         store
         |> HashMap.alter value (fun o ->
             match o with
@@ -94,7 +94,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         |> CountingHashSet
 
     /// changes the reference-count for the given element.
-    member x.Alter(value : 'a, f : int -> int) =
+    member x.Alter(value : 'T, f : int -> int) =
         store
         |> HashMap.alter value (fun o ->
             let o = defaultArg o 0
@@ -107,7 +107,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         |> CountingHashSet
 
     /// unions the two sets.
-    member x.Union(other : CountingHashSet<'a>) =
+    member x.Union(other : CountingHashSet<'T>) =
         HashMap.map2 (fun k l r ->
             match l, r with 
                 | Some l, Some r -> l + r
@@ -118,7 +118,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         |> CountingHashSet
 
     /// computes the set difference for both sets. (this - other)
-    member x.Difference(other : CountingHashSet<'a>) =
+    member x.Difference(other : CountingHashSet<'T>) =
         HashMap.choose2 (fun k l r ->
             let newRefCount = 
                 match l, r with 
@@ -133,7 +133,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         |> CountingHashSet
 
     /// computes the intersection of both sets.
-    member x.Intersect(other : CountingHashSet<'a>) =
+    member x.Intersect(other : CountingHashSet<'T>) =
         HashMap.choose2 (fun k l r ->
             match l, r with 
                 | Some l, Some r -> Some (min l r)
@@ -142,7 +142,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         |> CountingHashSet
 
     /// unions both sets using resolve to aggregate ref-counts.
-    member x.UnionWith(other : CountingHashSet<'a>, resolve : int -> int -> int) =
+    member x.UnionWith(other : CountingHashSet<'T>, resolve : int -> int -> int) =
         HashMap.map2 (fun k l r ->
             match l, r with 
                 | Some l, Some r -> resolve l r
@@ -174,7 +174,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         result
 
     /// creates a new set by applying the given function to all elements.
-    member x.Map(mapping : 'a -> 'b) =
+    member x.Map(mapping : 'T -> 'B) =
         let mutable res = HashMap.empty
         for (k,v) in HashMap.toSeq store do
             let k = mapping k
@@ -183,7 +183,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         CountingHashSet res
         
     /// creates a new set by applying the given function to all elements.
-    member x.Choose(mapping : 'a -> option<'b>) =
+    member x.Choose(mapping : 'T -> option<'B>) =
         let mutable res = HashMap.empty
         for (k,v) in HashMap.toSeq store do
             match mapping k with
@@ -195,12 +195,12 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         CountingHashSet res
         
     /// creates a new set filtered by the given predicate.
-    member x.Filter(predicate : 'a -> bool) =
+    member x.Filter(predicate : 'T -> bool) =
         store |> HashMap.filter (fun k _ -> predicate k) |> CountingHashSet
 
     /// creates a new set with all elements from all created sets.  (respecting ref-counts)
-    member x.Collect(mapping : 'a -> CountingHashSet<'b>) =
-        let mutable res = CountingHashSet<'b>.Empty
+    member x.Collect(mapping : 'T -> CountingHashSet<'B>) =
+        let mutable res = CountingHashSet<'B>.Empty
         for (k,ro) in store.ToSeq() do
             let r = mapping k
             if ro = 1 then
@@ -210,47 +210,47 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         res
 
     /// iterates over all set elements. (once)
-    member x.Iter (iterator : 'a -> unit) =
+    member x.Iter (iterator : 'T -> unit) =
         store |> HashMap.iter (fun k _ -> iterator k)
 
     /// checks whether an element fulfilling the predicate exists.
-    member x.Exists (predicate : 'a -> bool) =
+    member x.Exists (predicate : 'T -> bool) =
         store |> HashMap.exists (fun k _ -> predicate k)
         
     /// checks whether all elements fulfill the predicate.
-    member x.Forall (predicate : 'a -> bool) =
+    member x.Forall (predicate : 'T -> bool) =
         store |> HashMap.forall (fun k _ -> predicate k)
 
     /// folds over all elements in the set.
-    member x.Fold (seed : 's, folder : 's -> 'a -> 's) =
+    member x.Fold (seed : 'S, folder : 'S -> 'T -> 'S) =
         store |> HashMap.fold (fun s k _ -> folder s k) seed 
 
     /// creates a set holding all the given values. (with reference counts)
-    static member OfSeq (seq : seq<'a>) =
-        let mutable res = CountingHashSet<'a>.Empty
+    static member OfSeq (seq : seq<'T>) =
+        let mutable res = CountingHashSet<'T>.Empty
         for e in seq do
             res <- res.Add e
         res
         
     /// creates a set holding all the given values. (with reference counts)
-    static member OfList (list : list<'a>) =
-        CountingHashSet<'a>.OfSeq list
+    static member OfList (list : list<'T>) =
+        CountingHashSet<'T>.OfSeq list
         
     /// creates a set holding all the given values. (with reference counts)
-    static member OfArray (arr : 'a[]) =
-        CountingHashSet<'a>.OfSeq arr
+    static member OfArray (arr : 'T[]) =
+        CountingHashSet<'T>.OfSeq arr
         
     /// creates a set holding all the given values. (with reference counts)
-    static member OfHashMap (map : HashMap<'a, int>) =
+    static member OfHashMap (map : HashMap<'T, int>) =
         CountingHashSet map
         
     /// creates a set holding all the given values.
-    static member OfHashSet (set : HashSet<'a>) =
+    static member OfHashSet (set : HashSet<'T>) =
         let mapStore = set.Store |> IntMap.map (List.map (fun a -> struct(a,1)))
         CountingHashSet(HashMap(set.Count, mapStore))
 
     /// differentiates two sets returning a HashSetDelta.
-    member x.Differentiate(other : CountingHashSet<'a>) =
+    member x.Differentiate(other : CountingHashSet<'T>) =
         // O(1)
         if Object.ReferenceEquals(store.Store, other.Store.Store) then
             HashSetDelta.empty
@@ -267,13 +267,13 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         else
             let mutable cnt = 0
 
-            let del (l : list<struct ('a * int)>) =
+            let del (l : list<struct ('T * int)>) =
                 l |> List.map (fun struct(v,_) -> cnt <- cnt + 1; struct (v, -1))
             
-            let add (l : list<struct('a * int)>) =
+            let add (l : list<struct('T * int)>) =
                 l |> List.map (fun struct(v,_) -> cnt <- cnt + 1; struct (v, 1))
 
-            let both (_hash : int) (l : list<struct('a * int)>) (r : list<struct('a * int)>) =
+            let both (_hash : int) (l : list<struct('T * int)>) (r : list<struct('T * int)>) =
                 HashMapList.mergeWithOption' (fun v l r ->
                     match l, r with
                         | Some l, None ->  cnt <- cnt + 1; Some -1
@@ -293,7 +293,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
         store |> HashSetDelta
 
     /// integrates the given delta into the set, returns a new set and the effective deltas.
-    member x.Integrate (deltas : HashSetDelta<'a>) =
+    member x.Integrate (deltas : HashSetDelta<'T>) =
         // O(1)
         if deltas.IsEmpty then
             x, deltas
@@ -314,7 +314,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
 
             let effective =
                 deltas |> HashSetDelta.choose (fun d ->
-                    let mutable delta = Unchecked.defaultof<SetOperation<'a>>
+                    let mutable delta = Unchecked.defaultof<SetOperation<'T>>
                     let value = d.Value
                     res <- res |> HashMap.alter value (fun cnt ->
                         let o = defaultArg cnt 0
@@ -358,7 +358,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
             CountingHashSet newStore, effective
 
     /// integrates the given delta into the set without ref-counting, returns a new set and the effective deltas.
-    member x.IntegrateNoRefCount (deltas : HashSetDelta<'a>) =
+    member x.IntegrateNoRefCount (deltas : HashSetDelta<'T>) =
         // O(1)
         if deltas.IsEmpty then
             x, deltas
@@ -374,7 +374,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
 
             let effective =
                 deltas |> HashSetDelta.choose (fun d ->
-                    let mutable delta = Unchecked.defaultof<SetOperation<'a>>
+                    let mutable delta = Unchecked.defaultof<SetOperation<'T>>
                     let value = d.Value
                     res <- res |> HashMap.alter value (fun cnt ->
                         let o = defaultArg cnt 0
@@ -423,7 +423,7 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
             CountingHashSet newStore, effective
 
     /// comares two sets.
-    static member internal Compare(l : CountingHashSet<'a>, r : CountingHashSet<'a>) =
+    static member internal Compare(l : CountingHashSet<'T>, r : CountingHashSet<'T>) =
         let i = l.Intersect r
         let b = i.Count
         let lo = l.Count - b
@@ -452,11 +452,11 @@ type CountingHashSet<'a>(store : HashMap<'a, int>) =
     interface IEnumerable with
         member x.GetEnumerator() = new CountingHashSetEnumerator<_>(store) :> _
 
-    interface IEnumerable<'a> with
+    interface IEnumerable<'T> with
         member x.GetEnumerator() = new CountingHashSetEnumerator<_>(store) :> _
 
 /// an enumerator for CountingHashSet.
-and private CountingHashSetEnumerator<'a>(store : HashMap<'a, int>) =
+and private CountingHashSetEnumerator<'T>(store : HashMap<'T, int>) =
     let e = (store :> seq<_>).GetEnumerator()
 
     member x.Current = 
@@ -468,7 +468,7 @@ and private CountingHashSetEnumerator<'a>(store : HashMap<'a, int>) =
         member x.Current = x.Current :> obj
         member x.Reset() = e.Reset()
 
-    interface IEnumerator<'a> with
+    interface IEnumerator<'T> with
         member x.Dispose() = e.Dispose()
         member x.Current = x.Current
 
@@ -477,141 +477,141 @@ and private CountingHashSetEnumerator<'a>(store : HashMap<'a, int>) =
 module CountingHashSet =
 
     /// the empty set.
-    let inline empty<'a> = CountingHashSet<'a>.Empty
+    let inline empty<'T> = CountingHashSet<'T>.Empty
 
     /// a set holding a single value.
     let single v = CountingHashSet (HashMap.single v 1)
 
     // creates a HashMap with all the contained values and ref-counts.
-    let inline toHashMap (set : CountingHashSet<'a>) = set.ToHashMap()
+    let inline toHashMap (set : CountingHashSet<'T>) = set.ToHashMap()
 
     // a seq containing all elements from the set. (once)
-    let inline toSeq (set : CountingHashSet<'a>) = set.ToSeq()
+    let inline toSeq (set : CountingHashSet<'T>) = set.ToSeq()
     
     // a list containing all elements from the set. (once)
-    let inline toList (set : CountingHashSet<'a>) = set.ToList()
+    let inline toList (set : CountingHashSet<'T>) = set.ToList()
     
     // an array containing all elements from the set. (once)
-    let inline toArray (set : CountingHashSet<'a>) = set.ToArray()
+    let inline toArray (set : CountingHashSet<'T>) = set.ToArray()
     
     // a HashSet containing all elements from the set.
-    let inline toHashSet (set : CountingHashSet<'a>) = set.ToHashSet()
+    let inline toHashSet (set : CountingHashSet<'T>) = set.ToHashSet()
 
     // creates a set from the given HashMap containing ref-counts.
-    let inline ofHashMap (map : HashMap<'a, int>) = CountingHashSet.OfHashMap map
+    let inline ofHashMap (map : HashMap<'T, int>) = CountingHashSet.OfHashMap map
     
     /// creates a set holding all the given values.
-    let inline ofHashSet (set : HashSet<'a>) = CountingHashSet.OfHashSet set
+    let inline ofHashSet (set : HashSet<'T>) = CountingHashSet.OfHashSet set
 
     /// creates a set holding all the given values.
-    let inline ofSeq (seq : seq<'a>) = CountingHashSet.OfSeq seq
+    let inline ofSeq (seq : seq<'T>) = CountingHashSet.OfSeq seq
 
     /// creates a set holding all the given values.
-    let inline ofList (list : list<'a>) = CountingHashSet.OfList list
+    let inline ofList (list : list<'T>) = CountingHashSet.OfList list
 
     /// creates a set holding all the given values.
-    let inline ofArray (arr : 'a[]) = CountingHashSet.OfArray arr
+    let inline ofArray (arr : 'T[]) = CountingHashSet.OfArray arr
 
     /// is the set empty?
-    let inline isEmpty (set : CountingHashSet<'a>) =
+    let inline isEmpty (set : CountingHashSet<'T>) =
         set.IsEmpty
 
     /// the number of entries in the set (excluding ref-counts).
-    let inline count (set : CountingHashSet<'a>) =
+    let inline count (set : CountingHashSet<'T>) =
         set.Count
 
     /// gets the reference-count for the given value (0 if not contained)
-    let inline refcount (value : 'a) (set : CountingHashSet<'a>) =
+    let inline refcount (value : 'T) (set : CountingHashSet<'T>) =
         set.GetRefCount value
 
     /// checks whether the given value is contained in the set.
-    let inline contains (value : 'a) (set : CountingHashSet<'a>) =
+    let inline contains (value : 'T) (set : CountingHashSet<'T>) =
         set.Contains value
 
     /// adds the given value to the set. (one reference)
-    let inline add (value : 'a) (set : CountingHashSet<'a>) =
+    let inline add (value : 'T) (set : CountingHashSet<'T>) =
         set.Add value
         
     /// removes the given value from the set. (one reference)
-    let inline remove (value : 'a) (set : CountingHashSet<'a>) =
+    let inline remove (value : 'T) (set : CountingHashSet<'T>) =
         set.Remove value
 
     /// unions the two sets.
-    let inline union (l : CountingHashSet<'a>) (r : CountingHashSet<'a>) =
+    let inline union (l : CountingHashSet<'T>) (r : CountingHashSet<'T>) =
         l.Union r
 
     /// computes the set difference for both sets. (l - r)
-    let inline difference (l : CountingHashSet<'a>) (r : CountingHashSet<'a>) =
+    let inline difference (l : CountingHashSet<'T>) (r : CountingHashSet<'T>) =
         l.Difference r
 
     /// computes the intersection of both sets.
-    let inline intersect (l : CountingHashSet<'a>) (r : CountingHashSet<'a>) =
+    let inline intersect (l : CountingHashSet<'T>) (r : CountingHashSet<'T>) =
         l.Intersect r
 
     /// changes the reference-count for the given element.
-    let inline alter (value : 'a) (f : int -> int) (set : CountingHashSet<'a>) =
+    let inline alter (value : 'T) (f : int -> int) (set : CountingHashSet<'T>) =
         set.Alter(value, f)
 
     /// creates a new set by applying the given function to all elements.
-    let inline map (mapping : 'a -> 'b) (set : CountingHashSet<'a>) =
+    let inline map (mapping : 'A -> 'B) (set : CountingHashSet<'A>) =
         set.Map mapping
 
     /// creates a new set by applying the given function to all elements.
-    let inline choose (mapping : 'a -> option<'b>) (set : CountingHashSet<'a>) =
+    let inline choose (mapping : 'A -> option<'B>) (set : CountingHashSet<'A>) =
         set.Choose mapping
 
     /// creates a new set filtered by the given predicate.
-    let inline filter (predicate : 'a -> bool) (set : CountingHashSet<'a>) =
+    let inline filter (predicate : 'T -> bool) (set : CountingHashSet<'T>) =
         set.Filter predicate
 
     /// creates a new set with all elements from all created sets. (respecting ref-counts)
-    let inline collect (mapping : 'a -> CountingHashSet<'b>) (set : CountingHashSet<'a>) =
+    let inline collect (mapping : 'A -> CountingHashSet<'B>) (set : CountingHashSet<'A>) =
         set.Collect mapping
 
     /// iterates over all set elements. (once)    
-    let inline iter (iterator : 'a -> unit) (set : CountingHashSet<'a>) =
+    let inline iter (iterator : 'T -> unit) (set : CountingHashSet<'T>) =
         set.Iter iterator
 
     /// checks whether an element fulfilling the predicate exists.
-    let inline exists (predicate : 'a -> bool) (set : CountingHashSet<'a>) =
+    let inline exists (predicate : 'T -> bool) (set : CountingHashSet<'T>) =
         set.Exists predicate
 
     /// checks whether all elements fulfill the predicate.
-    let inline forall (predicate : 'a -> bool) (set : CountingHashSet<'a>) =
+    let inline forall (predicate : 'T -> bool) (set : CountingHashSet<'T>) =
         set.Forall predicate
 
     /// folds over all elements in the set.
-    let inline fold (folder : 's -> 'a -> 's) (seed : 's) (set : CountingHashSet<'a>) =
+    let inline fold (folder : 'S -> 'T -> 'S) (seed : 'S) (set : CountingHashSet<'T>) =
         set.Fold(seed, folder)
 
     /// Traceable instance.
-    let inline trace<'a> = CountingHashSet<'a>.Trace
+    let inline trace<'T> = CountingHashSet<'T>.Trace
 
     /// Traceable instance without ref-counting.
-    let inline traceNoRefCount<'a> = CountingHashSet<'a>.TraceNoRefCount
+    let inline traceNoRefCount<'T> = CountingHashSet<'T>.TraceNoRefCount
 
     /// differentiates two sets returning a HashSetDelta.
-    let inline differentiate (src : CountingHashSet<'a>) (dst : CountingHashSet<'a>) =
+    let inline differentiate (src : CountingHashSet<'T>) (dst : CountingHashSet<'T>) =
         src.Differentiate dst
 
     /// same as differentiate src empty.
-    let inline removeAll (src : CountingHashSet<'a>) =
+    let inline removeAll (src : CountingHashSet<'T>) =
         src.RemoveAll()
         
     /// same as differentiate empty src.
-    let inline addAll (src : CountingHashSet<'a>) =
+    let inline addAll (src : CountingHashSet<'T>) =
         src.AddAll()
 
 
     /// integrates the given delta into the set, returns a new set and the effective deltas.
-    let inline integrate (set : CountingHashSet<'a>) (delta : HashSetDelta<'a>) =
+    let inline integrate (set : CountingHashSet<'T>) (delta : HashSetDelta<'T>) =
         set.Integrate delta
 
     /// integrates the given delta into the set without ref-counting, returns a new set and the effective deltas.
-    let inline integrateNoRefCount (set : CountingHashSet<'a>) (delta : HashSetDelta<'a>) =
+    let inline integrateNoRefCount (set : CountingHashSet<'T>) (delta : HashSetDelta<'T>) =
         set.IntegrateNoRefCount delta
         
     /// comares two sets.
-    let internal compare (l : CountingHashSet<'a>) (r : CountingHashSet<'a>) =
+    let internal compare (l : CountingHashSet<'T>) (r : CountingHashSet<'T>) =
         CountingHashSet.Compare(l,r)
 

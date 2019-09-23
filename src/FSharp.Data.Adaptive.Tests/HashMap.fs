@@ -96,7 +96,7 @@ let ``[HashMap] map2/choose2`` (lm : Map<int, int>) (rm : Map<int, int>) =
     let l = lm |> Map.toList |> HashMap.ofList
     let r = rm |> Map.toList |> HashMap.ofList
 
-    let map2 (f : 'k -> option<'a> -> option<'b> -> 'c) (l : Map<'k, 'a>) (r : Map<'k, 'b>) =
+    let map2 (f : 'K -> option<'A> -> option<'B> -> 'C) (l : Map<'K, 'A>) (r : Map<'K, 'B>) =
         let mutable res = Map.empty
 
         for (lk,lv) in Map.toSeq l do
@@ -111,7 +111,7 @@ let ``[HashMap] map2/choose2`` (lm : Map<int, int>) (rm : Map<int, int>) =
 
         res
 
-    let choose2 (f : 'k -> option<'a> -> option<'b> -> option<'c>) (l : Map<'k, 'a>) (r : Map<'k, 'b>) =
+    let choose2 (f : 'K -> option<'A> -> option<'B> -> option<'C>) (l : Map<'K, 'A>) (r : Map<'K, 'B>) =
         let mutable res = Map.empty
 
         for (lk,lv) in Map.toSeq l do
@@ -137,7 +137,7 @@ let ``[HashMap] map2/choose2`` (lm : Map<int, int>) (rm : Map<int, int>) =
 
         res
 
-    let equal (l : HashMap<'k, 'v>) (r : Map<'k, 'v>) =
+    let equal (l : HashMap<'K, 'V>) (r : Map<'K, 'V>) =
         let l = l |> HashMap.toList |> List.sortBy fst
         let r = r |> Map.toList
         l = r

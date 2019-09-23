@@ -9,17 +9,17 @@ open FsCheck.NUnit
 [<AutoOpen>]
 module Helpers =
     module List =
-        let cross (a : list<'a>) (b : list<'b>) =
+        let cross (a : list<'A>) (b : list<'B>) =
             a |> List.collect (fun va ->
                 b |> List.map (fun vb -> (va, vb))
             )
 
-    let inline check (r : aref<'a>) =
+    let inline check (r : aref<'T>) =
         let (a, r) = ARef.force r
         a |> should equal r
 
 
-type Record<'a> = { value : 'a }
+type Record<'T> = { value : 'T }
 
 [<Property>]
 let ``[ARef] constant equality`` (value : obj) =

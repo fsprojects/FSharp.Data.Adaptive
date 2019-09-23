@@ -8,11 +8,11 @@ open FSharp.Data.Traceable
 open FsUnit
 open FsCheck.NUnit
 
-type Record<'a> = { value : 'a }
+type Record<'T> = { value : 'T }
 
 [<AutoOpen>]
 module Helpers =
-    let check (r : IHashSetReader<'a>) =
+    let check (r : IHashSetReader<'T>) =
         let a = r.Adaptive.GetChanges FSharp.Data.Adaptive.AdaptiveToken.Top
         let r = r.Reference.GetChanges FSharp.Data.Adaptive.Reference.AdaptiveToken.Top
         a |> should setequal r

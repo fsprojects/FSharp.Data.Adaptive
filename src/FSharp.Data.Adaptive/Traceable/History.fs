@@ -92,13 +92,13 @@ type AbstractDirtyReader<'T, 'Delta when 'T :> IAdaptiveObject>(t: Monoid<'Delta
 
 /// linked list node used by the system to represent a 'version' in the History
 [<AllowNullLiteral>]
-type internal RelevantNode<'State, 'a> =
+type internal RelevantNode<'State, 'T> =
     class
-        val mutable public Prev: WeakReference<RelevantNode<'State, 'a>>
-        val mutable public Next: RelevantNode<'State, 'a>
+        val mutable public Prev: WeakReference<RelevantNode<'State, 'T>>
+        val mutable public Next: RelevantNode<'State, 'T>
         val mutable public RefCount: int
         val mutable public BaseState: 'State
-        val mutable public Value: 'a
+        val mutable public Value: 'T
             
         new(p, s, v, n) = { Prev = p; Next = n; RefCount = 0; BaseState = s; Value = v }
     end

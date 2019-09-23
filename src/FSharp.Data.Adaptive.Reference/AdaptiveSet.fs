@@ -134,11 +134,11 @@ module ASet =
     let toARef (set: aset<'T>) = set.Content
 
     /// Applies mapping to all elements of the set and returns the resulting set.
-    let map (mapping: 'T -> 'b) (set: aset<'T>) =
+    let map (mapping: 'T -> 'B) (set: aset<'T>) =
         set.Content |> ARef.map (HashSet.map mapping) |> ofRef
 
     /// Applies mapping to all elements of the set and returns the resulting set.
-    let choose (mapping: 'T -> option<'b>) (set: aset<'T>) =
+    let choose (mapping: 'T -> option<'B>) (set: aset<'T>) =
         set.Content |> ARef.map (HashSet.choose mapping) |> ofRef
         
     /// Filters the set using the given predicate.
@@ -152,7 +152,7 @@ module ASet =
         ) |> ofRef
 
     /// Unions all the sets.
-    let collect (mapping: 'T -> aset<'b>) (set: aset<'T>) =
+    let collect (mapping: 'T -> aset<'B>) (set: aset<'T>) =
         set.Content |> ARef.map (fun values ->
             values |> HashSet.collect (fun s -> (mapping s).Content.GetValue AdaptiveToken.Top)
         ) |> ofRef
@@ -178,13 +178,13 @@ module ASet =
     let mapA (mapping : 'T -> aref<'B>) (set : aset<'T>) =
         set |> map mapping |> flattenA
         
-    let chooseA (mapping : 'T -> aref<Option<'B>>) (set : aset<'T>) =
+    let chooseA (mapping : 'T -> aref<option<'B>>) (set : aset<'T>) =
         set |> map mapping |> flattenA |> choose id
 
     let filterA (predicate : 'T -> aref<bool>) (set : aset<'T>) =
         set |> chooseA (fun a -> a |> predicate |> ARef.map (function true -> Some a | false -> None))
 
-    let foldHalfGroup (add : 'S -> 'A -> 'S) (trySubtract : 'S -> 'A -> Option<'S>) (zero : 'S) (set : aset<'A>) =
+    let foldHalfGroup (add : 'S -> 'A -> 'S) (trySubtract : 'S -> 'A -> option<'S>) (zero : 'S) (set : aset<'A>) =
         set.Content |> ARef.map (HashSet.fold add zero)
 
     let foldGroup (add : 'S -> 'A -> 'S) (sub : 'S -> 'A -> 'S) (zero : 'S) (set : aset<'A>) =

@@ -190,34 +190,34 @@ module internal CheapEquality =
     open System.Collections.Generic
     open System.Runtime.CompilerServices
 
-    type private CheapEquality<'a> private() =
+    type private CheapEquality<'T> private() =
 
         static let comparer =
-            let typ = typeof<'a>
+            let typ = typeof<'T>
 
             // TODO: any reasonable ideas?
             if FSharpType.IsRecord typ || FSharpType.IsUnion typ || FSharpType.IsTuple typ then
-                EqualityComparer<'a>.Default
+                EqualityComparer<'T>.Default
 
             elif not typ.IsValueType then
-                { new EqualityComparer<'a>() with 
-                    member x.GetHashCode(o : 'a) = RuntimeHelpers.GetHashCode o
-                    member x.Equals(a : 'a, b : 'a) = Object.ReferenceEquals(a, b)
+                { new EqualityComparer<'T>() with 
+                    member x.GetHashCode(o : 'T) = RuntimeHelpers.GetHashCode o
+                    member x.Equals(a : 'T, b : 'T) = Object.ReferenceEquals(a, b)
                 }
 
             else 
-                EqualityComparer<'a>.Default
+                EqualityComparer<'T>.Default
 
 
         static member Comparer = comparer
 
-    let cheapComparer<'a> : EqualityComparer<'a> = CheapEquality<'a>.Comparer
+    let cheapComparer<'T> : EqualityComparer<'T> = CheapEquality<'T>.Comparer
 
-    let cheapHash (a : 'a) = CheapEquality<'a>.Comparer.GetHashCode a
-    let cheapEqual (a : 'a) (b : 'a) = CheapEquality<'a>.Comparer.Equals(a, b)
+    let cheapHash (a : 'T) = CheapEquality<'T>.Comparer.GetHashCode a
+    let cheapEqual (a : 'T) (b : 'T) = CheapEquality<'T>.Comparer.Equals(a, b)
 
 module Unchecked =
-    let inline isNull<'a when 'a : not struct> (value : 'a) =
+    let inline isNull<'T when 'T : not struct> (value : 'T) =
         isNull (value :> obj)
 
 [<AutoOpen>]

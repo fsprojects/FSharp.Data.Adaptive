@@ -3,18 +3,18 @@ namespace FSharp.Data.Adaptive
 open FSharp.Data.Traceable
 
 /// an adaptive reader for aset that allows to pull operations and exposes its current state.
-type IHashSetReader<'a> = IOpReader<CountingHashSet<'a>, HashSetDelta<'a>>
+type IHashSetReader<'T> = IOpReader<CountingHashSet<'T>, HashSetDelta<'T>>
 
 /// adaptive set datastructure.
-type AdaptiveHashSet<'a> =
+type AdaptiveHashSet<'T> =
     /// is the set constant?
     abstract member IsConstant : bool
 
     /// the current content of the set as aref.
-    abstract member Content : aref<HashSet<'a>>
+    abstract member Content : aref<HashSet<'T>>
 
     /// gets a new reader to the set.
-    abstract member GetReader : unit -> IHashSetReader<'a>
+    abstract member GetReader : unit -> IHashSetReader<'T>
 
 and aset<'T> = AdaptiveHashSet<'T>
 
@@ -22,40 +22,40 @@ and aset<'T> = AdaptiveHashSet<'T>
 module AdaptiveHashSetImplementation =
 
     /// core implementation for a dependent set.
-    type AdaptiveHashSet<'a>(createReader : unit -> IOpReader<HashSetDelta<'a>>) =
+    type AdaptiveHashSet<'T>(createReader : unit -> IOpReader<HashSetDelta<'T>>) =
         let history = History(createReader, CountingHashSet.trace)
         let content = history |> ARef.map CountingHashSet.toHashSet
 
         /// gets a new reader to the set.
-        member x.GetReader() : IHashSetReader<'a> =
+        member x.GetReader() : IHashSetReader<'T> =
             history.NewReader()
 
         /// current content of the set as aref.
         member x.Content =
             content
 
-        interface aset<'a> with
+        interface aset<'T> with
             member x.IsConstant = false
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
 
     /// efficient implementation for an empty adaptive set.
-    type EmptySet<'a> private() =   
-        static let instance = EmptySet<'a>() :> aset<_>
+    type EmptySet<'T> private() =   
+        static let instance = EmptySet<'T>() :> aset<_>
         let content = ARef.constant HashSet.empty
-        let reader = new History.Readers.EmptyReader<CountingHashSet<'a>, HashSetDelta<'a>>(CountingHashSet.trace) :> IHashSetReader<'a>
+        let reader = new History.Readers.EmptyReader<CountingHashSet<'T>, HashSetDelta<'T>>(CountingHashSet.trace) :> IHashSetReader<'T>
         static member Instance = instance
         
         member x.Content = content
         member x.GetReader() = reader
         
-        interface aset<'a> with
+        interface aset<'T> with
             member x.IsConstant = true
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
 
     /// efficient implementation for a constant adaptive set.
-    type ConstantSet<'a>(content : Lazy<HashSet<'a>>) =
+    type ConstantSet<'T>(content : Lazy<HashSet<'T>>) =
         let ref = ARef.delay (fun () -> content.Value)
 
         member x.Content = ref
@@ -67,21 +67,21 @@ module AdaptiveHashSetImplementation =
                 lazy (CountingHashSet.ofHashSet content.Value)
             ) :> IHashSetReader<_>
 
-        interface aset<'a> with
+        interface aset<'T> with
             member x.IsConstant = true
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
 
 
     /// reader for map operations.
-    type MapReader<'a, 'b>(input : aset<'a>, f : 'a -> 'b) =
-        inherit AbstractReader<HashSetDelta<'b>>(HashSetDelta.monoid)
+    type MapReader<'A, 'B>(input : aset<'A>, mapping : 'A -> 'B) =
+        inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.monoid)
             
-        let cache = Cache f
-        let r = input.GetReader()
+        let cache = Cache mapping
+        let reader = input.GetReader()
 
         override x.Compute(token) =
-            r.GetChanges token |> HashSetDelta.map (fun d ->
+            reader.GetChanges token |> HashSetDelta.map (fun d ->
                 match d with
                 | Add(1, v) -> Add(cache.Invoke v)
                 | Rem(1, v) -> Rem(cache.Revoke v)
@@ -89,8 +89,8 @@ module AdaptiveHashSetImplementation =
             )
           
     /// reader for choose operations.
-    type ChooseReader<'a, 'b>(input : aset<'a>, mapping : 'a -> option<'b>) =
-        inherit AbstractReader<HashSetDelta<'b>>(HashSetDelta.monoid)
+    type ChooseReader<'A, 'B>(input : aset<'A>, mapping : 'A -> option<'B>) =
+        inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.monoid)
             
         let cache = Cache mapping
         let r = input.GetReader()
@@ -113,8 +113,8 @@ module AdaptiveHashSetImplementation =
             )
 
     /// reader for filter operations.
-    type FilterReader<'a>(input : aset<'a>, predicate : 'a -> bool) =
-        inherit AbstractReader<HashSetDelta<'a>>(HashSetDelta.monoid)
+    type FilterReader<'T>(input : aset<'T>, predicate : 'T -> bool) =
+        inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.monoid)
             
         let cache = Cache predicate
         let r = input.GetReader()
@@ -128,11 +128,11 @@ module AdaptiveHashSetImplementation =
             )
 
     /// reader for fully dynamic uinon operations.
-    type UnionReader<'a>(input : aset<aset<'a>>) =
-        inherit AbstractDirtyReader<IHashSetReader<'a>, HashSetDelta<'a>>(HashSetDelta.monoid)
+    type UnionReader<'T>(input : aset<aset<'T>>) =
+        inherit AbstractDirtyReader<IHashSetReader<'T>, HashSetDelta<'T>>(HashSetDelta.monoid)
 
         let reader = input.GetReader()
-        let cache = Cache(fun (inner : aset<'a>) -> inner.GetReader())
+        let cache = Cache(fun (inner : aset<'T>) -> inner.GetReader())
 
         override x.Compute(token, dirty) =
             let mutable deltas = 
@@ -166,8 +166,8 @@ module AdaptiveHashSetImplementation =
             deltas
 
     /// reader for unioning a constant set of asets.
-    type UnionConstantReader<'a>(input : HashSet<aset<'a>>) =
-        inherit AbstractDirtyReader<IHashSetReader<'a>, HashSetDelta<'a>>(HashSetDelta.monoid)
+    type UnionConstantReader<'T>(input : HashSet<aset<'T>>) =
+        inherit AbstractDirtyReader<IHashSetReader<'T>, HashSetDelta<'T>>(HashSetDelta.monoid)
 
         let mutable isInitial = true
         let input = input |> HashSet.map (fun s -> s.GetReader())
@@ -186,8 +186,8 @@ module AdaptiveHashSetImplementation =
                 )
 
     /// reader for unioning a dynamic aset of immutable sets.
-    type UnionHashSetReader<'a>(input : aset<HashSet<'a>>) =
-        inherit AbstractReader<HashSetDelta<'a>>(HashSetDelta.monoid)
+    type UnionHashSetReader<'T>(input : aset<HashSet<'T>>) =
+        inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.monoid)
 
         let reader = input.GetReader()
 
@@ -200,8 +200,8 @@ module AdaptiveHashSetImplementation =
             )
 
     /// reader for collect operations.
-    type CollectReader<'a, 'b>(input : aset<'a>, mapping : 'a -> aset<'b>) =
-        inherit AbstractDirtyReader<IHashSetReader<'b>, HashSetDelta<'b>>(HashSetDelta.monoid)
+    type CollectReader<'A, 'B>(input : aset<'A>, mapping : 'A -> aset<'B>) =
+        inherit AbstractDirtyReader<IHashSetReader<'B>, HashSetDelta<'B>>(HashSetDelta.monoid)
 
         let reader = input.GetReader()
         let cache = Cache(fun value -> (mapping value).GetReader())
@@ -242,8 +242,8 @@ module AdaptiveHashSetImplementation =
             deltas
 
     /// reader for aref<HashSet<_>>
-    type ARefReader<'s, 'a when 's :> seq<'a>>(input : aref<'s>) =
-        inherit AbstractReader<HashSetDelta<'a>>(HashSetDelta.monoid)
+    type ARefReader<'S, 'A when 'S :> seq<'A>>(input : aref<'S>) =
+        inherit AbstractReader<HashSetDelta<'A>>(HashSetDelta.monoid)
 
         let mutable oldSet = HashSet.empty
 
@@ -254,11 +254,11 @@ module AdaptiveHashSetImplementation =
             deltas
 
     /// reader for bind operations.
-    type BindReader<'a, 'b>(input : aref<'a>, mapping : 'a -> aset<'b>) =
-        inherit AbstractReader<HashSetDelta<'b>>(HashSetDelta.monoid)
+    type BindReader<'A, 'B>(input : aref<'A>, mapping : 'A -> aset<'B>) =
+        inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.monoid)
             
         let mutable refChanged = 0
-        let mutable cache : option<'a * IHashSetReader<'b>> = None
+        let mutable cache : option<'A * IHashSetReader<'B>> = None
             
         override x.InputChanged(_, i) =
             if System.Object.ReferenceEquals(i, input) then
@@ -289,26 +289,26 @@ module AdaptiveHashSetImplementation =
                 r.GetChanges token
 
     /// reader for flattenA
-    type FlattenAReader<'a>(input : aset<aref<'a>>) =
-        inherit AbstractDirtyReader<aref<'a>, HashSetDelta<'a>>(HashSetDelta.monoid)
+    type FlattenAReader<'T>(input : aset<aref<'T>>) =
+        inherit AbstractDirtyReader<aref<'T>, HashSetDelta<'T>>(HashSetDelta.monoid)
             
         let r = input.GetReader()
 
         let mutable initial = true
-        let cache = System.Collections.Generic.Dictionary<aref<'a>, 'a>()
+        let cache = System.Collections.Generic.Dictionary<aref<'T>, 'T>()
 
-        member x.Invoke(token : AdaptiveToken, m : aref<'a>) =
+        member x.Invoke(token : AdaptiveToken, m : aref<'T>) =
             let v = m.GetValue token
             cache.[m] <- v
             v
 
-        member x.Invoke2(token : AdaptiveToken, m : aref<'a>) =
+        member x.Invoke2(token : AdaptiveToken, m : aref<'T>) =
             let o = cache.[m]
             let v = m.GetValue token
             cache.[m] <- v
             o, v
 
-        member x.Revoke(m : aref<'a>, dirty : System.Collections.Generic.HashSet<_>) =
+        member x.Revoke(m : aref<'T>, dirty : System.Collections.Generic.HashSet<_>) =
             match cache.TryGetValue m with
             | (true, v) -> 
                 cache.Remove m |> ignore
@@ -335,14 +335,14 @@ module AdaptiveHashSetImplementation =
             deltas
             
     /// reader for mapA
-    type MapAReader<'a, 'b>(input : aset<'a>, mapping : 'a -> aref<'b>) =
-        inherit AbstractDirtyReader<aref<'b>, HashSetDelta<'b>>(HashSetDelta.monoid)
+    type MapAReader<'A, 'B>(input : aset<'A>, mapping : 'A -> aref<'B>) =
+        inherit AbstractDirtyReader<aref<'B>, HashSetDelta<'B>>(HashSetDelta.monoid)
             
         let reader = input.GetReader()
         let mapping = Cache mapping
-        let cache = System.Collections.Generic.Dictionary<aref<'b>, ref<int * 'b>>()
+        let cache = System.Collections.Generic.Dictionary<aref<'B>, ref<int * 'B>>()
 
-        member x.Invoke(token : AdaptiveToken, v : 'a) =
+        member x.Invoke(token : AdaptiveToken, v : 'A) =
             let m = mapping.Invoke v
             let v = m.GetValue token
             match cache.TryGetValue m with
@@ -354,14 +354,14 @@ module AdaptiveHashSetImplementation =
 
             v
 
-        member x.Invoke2(token : AdaptiveToken, m : aref<'b>) =
+        member x.Invoke2(token : AdaptiveToken, m : aref<'B>) =
             let r = cache.[m]
             let v = m.GetValue token
             let (rc, o) = !r
             r := (rc, v)
             o, v
 
-        member x.Revoke(v : 'a, dirty : System.Collections.Generic.HashSet<_>) =
+        member x.Revoke(v : 'A, dirty : System.Collections.Generic.HashSet<_>) =
             let m = mapping.Revoke v
                 
             match cache.TryGetValue m with
@@ -395,16 +395,16 @@ module AdaptiveHashSetImplementation =
             deltas
             
     /// reader for chooseA
-    type ChooseAReader<'a, 'b>(input : aset<'a>, f : 'a -> aref<Option<'b>>) =
-        inherit AbstractDirtyReader<aref<Option<'b>>, HashSetDelta<'b>>(HashSetDelta.monoid)
+    type ChooseAReader<'A, 'B>(input : aset<'A>, f : 'A -> aref<option<'B>>) =
+        inherit AbstractDirtyReader<aref<option<'B>>, HashSetDelta<'B>>(HashSetDelta.monoid)
             
         let r = input.GetReader()
 
         let f = Cache f
         let mutable initial = true
-        let cache = System.Collections.Generic.Dictionary<aref<Option<'b>>, ref<int * Option<'b>>>()
+        let cache = System.Collections.Generic.Dictionary<aref<option<'B>>, ref<int * option<'B>>>()
 
-        member x.Invoke(token : AdaptiveToken, v : 'a) =
+        member x.Invoke(token : AdaptiveToken, v : 'A) =
             let m = f.Invoke v
             let v = m.GetValue token
 
@@ -418,7 +418,7 @@ module AdaptiveHashSetImplementation =
             v
 
 
-        member x.Invoke2(token : AdaptiveToken, m : aref<Option<'b>>) =
+        member x.Invoke2(token : AdaptiveToken, m : aref<option<'B>>) =
             match cache.TryGetValue m with
             | (true, r) ->
                 let (rc, o) = !r
@@ -428,7 +428,7 @@ module AdaptiveHashSetImplementation =
             | _ ->
                 None, None  
 
-        member x.Revoke(v : 'a) =
+        member x.Revoke(v : 'A) =
             let m = f.Revoke v
             match cache.TryGetValue m with
             | (true, r) -> 
@@ -485,15 +485,15 @@ module AdaptiveHashSetImplementation =
             deltas
  
     /// gets the current content of the aset as HashSet.
-    let inline force (set : aset<'a>) = 
+    let inline force (set : aset<'T>) = 
         ARef.force set.Content
 
     /// creates a constant set using the creation function.
-    let inline constant (content : unit -> HashSet<'a>) = 
+    let inline constant (content : unit -> HashSet<'T>) = 
         ConstantSet(lazy(content())) :> aset<_> 
 
     /// creates an adaptive set using the reader.
-    let inline create (reader : unit -> #IOpReader<HashSetDelta<'a>>) =
+    let inline create (reader : unit -> #IOpReader<HashSetDelta<'T>>) =
         AdaptiveHashSet(fun () -> reader() :> IOpReader<_>) :> aset<_>
 
 /// functional operators for aset<_>
@@ -502,56 +502,56 @@ module ASet =
 
     /// the empty aset.
     [<GeneralizableValue>]
-    let empty<'a> : aset<'a> = 
-        EmptySet<'a>.Instance
+    let empty<'T> : aset<'T> = 
+        EmptySet<'T>.Instance
 
     /// a constant aset holding a single value.
-    let single (value : 'a) =
+    let single (value : 'T) =
         lazy (HashSet.single value) |> ConstantSet :> aset<_>
         
     /// creates an aset holding the given values.
-    let ofSeq (s : seq<'a>) =
+    let ofSeq (s : seq<'T>) =
         lazy (HashSet.ofSeq s) |> ConstantSet :> aset<_>
         
     /// creates an aset holding the given values.
-    let ofList (s : list<'a>) =
+    let ofList (s : list<'T>) =
         lazy (HashSet.ofList s) |> ConstantSet :> aset<_>
         
     /// creates an aset holding the given values.
-    let ofArray (s : 'a[]) =
+    let ofArray (s : 'T[]) =
         lazy (HashSet.ofArray s) |> ConstantSet :> aset<_>
         
     /// creates an aset holding the given values. `O(1)`
-    let ofHashSet (elements : HashSet<'a>) =
+    let ofHashSet (elements : HashSet<'T>) =
         ConstantSet(lazy elements) :> aset<_>
 
     /// creates an aref providing access to the current content of the set.
-    let toARef (set : aset<'a>) =
+    let toARef (set : aset<'T>) =
         set.Content
 
     /// adaptively maps over the given set.
-    let map (mapping : 'a -> 'b) (set : aset<'a>) =
+    let map (mapping : 'A -> 'B) (set : aset<'A>) =
         if set.IsConstant then
             constant (fun () -> set |> force |> HashSet.map mapping)
         else
             create (fun () -> MapReader(set, mapping))
           
     /// adaptively chooses all elements returned by mapping.  
-    let choose (mapping : 'a -> option<'b>) (set : aset<'a>) =
+    let choose (mapping : 'A -> option<'B>) (set : aset<'A>) =
         if set.IsConstant then
             constant (fun () -> set |> force |> HashSet.choose mapping)
         else
             create (fun () -> ChooseReader(set, mapping))
             
     /// adaptively filters the set using the given predicate.
-    let filter (predicate : 'a -> bool) (set : aset<'a>) =
+    let filter (predicate : 'A -> bool) (set : aset<'A>) =
         if set.IsConstant then
             constant (fun () -> set |> force |> HashSet.filter predicate)
         else
             create (fun () -> FilterReader(set, predicate))
 
     /// adaptively unions all the given sets
-    let union (sets : aset<aset<'a>>) = 
+    let union (sets : aset<aset<'A>>) = 
         if sets.IsConstant then
             // outer set is constant
             let all = force sets
@@ -566,7 +566,7 @@ module ASet =
             create (fun () -> UnionReader sets)
 
     /// adaptively maps over the given set and unions all resulting sets.
-    let collect (mapping : 'a -> aset<'b>) (set : aset<'a>) =   
+    let collect (mapping : 'A -> aset<'B>) (set : aset<'A>) =   
         if set.IsConstant then
             // outer set is constant
             let all = set |> force |> HashSet.map mapping
@@ -580,21 +580,21 @@ module ASet =
             create (fun () -> CollectReader(set, mapping))
 
     /// creates an aset for the given aref.
-    let ofARef (ref : aref<#seq<'a>>) =
+    let ofARef (ref : aref<#seq<'T>>) =
         if ref.IsConstant then
-            constant (fun () -> ARef.force ref :> seq<'a> |> HashSet.ofSeq)
+            constant (fun () -> ARef.force ref :> seq<'T> |> HashSet.ofSeq)
         else
             create (fun () -> ARefReader(ref))
 
     /// adaptively maps over the given ref and returns the resulting set.
-    let bind (mapping : 'a -> aset<'b>) (ref : aref<'a>) =
+    let bind (mapping : 'A -> aset<'B>) (ref : aref<'A>) =
         if ref.IsConstant then
             ref |> ARef.force |> mapping
         else
             create (fun () -> BindReader(ref, mapping))
 
     /// adaptively flattens the set of adaptive refs.
-    let flattenA (set : aset<aref<'a>>) =
+    let flattenA (set : aset<aref<'A>>) =
         if set.IsConstant then
             let all = set |> force
             if all |> HashSet.forall (fun r -> r.IsConstant) then
@@ -606,20 +606,20 @@ module ASet =
             create (fun () -> FlattenAReader(set))
             
     /// adaptively maps over the set and also respects inner changes.
-    let mapA (mapping : 'a -> aref<'b>) (set : aset<'a>) =
+    let mapA (mapping : 'A -> aref<'B>) (set : aset<'A>) =
         // TODO: constants
         create (fun () -> MapAReader(set, mapping))
 
     /// adaptively maps over the set and also respects inner changes.
-    let chooseA (mapping : 'a -> aref<Option<'b>>) (set : aset<'a>) =
+    let chooseA (mapping : 'A -> aref<option<'B>>) (set : aset<'A>) =
         // TODO: constants
         create (fun () -> ChooseAReader(set, mapping))
 
     /// adaptively filters the set and also respects inner changes.
-    let filterA (predicate : 'a -> aref<bool>) (set : aset<'a>) =
+    let filterA (predicate : 'A -> aref<bool>) (set : aset<'A>) =
         // TODO: direct implementation
         create (fun () -> 
-            let mapping (a : 'a) =  
+            let mapping (a : 'A) =  
                 predicate a 
                 |> ARef.map (function true -> Some a | false -> None)
 
@@ -629,11 +629,11 @@ module ASet =
     /// adaptively folds over the set using add for additions and trySubtract for removals.
     /// note the trySubtract may return None indicating that the result needs to be recomputed.
     /// also note that the order of elements given to add/trySubtract is undefined.
-    let foldHalfGroup (add : 's -> 'a -> 's) (trySub : 's -> 'a -> Option<'s>) (zero : 's) (s : aset<'a>) =
+    let foldHalfGroup (add : 'S -> 'A -> 'S) (trySub : 'S -> 'A -> option<'S>) (zero : 'S) (s : aset<'A>) =
         let r = s.GetReader()
         let mutable res = zero
 
-        let rec traverse (d : list<SetOperation<'a>>) =
+        let rec traverse (d : list<SetOperation<'A>>) =
             match d with
                 | [] -> true
                 | d :: rest ->
@@ -665,16 +665,16 @@ module ASet =
 
     /// adaptively folds over the set using add for additions and recomputes the value on every removal.
     /// note that the order of elements given to add is undefined.
-    let fold (f : 's -> 'a -> 's) (seed : 's) (s : aset<'a>) =
+    let fold (f : 'S -> 'A -> 'S) (seed : 'S) (s : aset<'A>) =
         foldHalfGroup f (fun _ _ -> None) seed s
 
     /// adaptively folds over the set using add for additions and subtract for removals.
     /// note that the order of elements given to add/subtract is undefined.
-    let foldGroup (add : 's -> 'a -> 's) (sub : 's -> 'a -> 's) (zero : 's) (s : aset<'a>) =
+    let foldGroup (add : 'S -> 'A -> 'S) (sub : 'S -> 'A -> 'S) (zero : 'S) (s : aset<'A>) =
         foldHalfGroup add (fun a b -> Some (sub a b)) zero s
 
-    let inline sum (set : aset<'a>) =
+    let inline sum (set : aset<'T>) =
         foldGroup (+) (-) LanguagePrimitives.GenericZero set
 
-    let inline product (set : aset<'a>) =
+    let inline product (set : aset<'T>) =
         foldGroup (*) (/) LanguagePrimitives.GenericOne set

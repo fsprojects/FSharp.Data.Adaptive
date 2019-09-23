@@ -215,7 +215,7 @@ module Transaction =
 
     /// Executes a function "inside" a newly created
     /// transaction and commits the transaction
-    let transact (f : unit -> 'a) =
+    let transact (f : unit -> 'T) =
         use t = new Transaction()
         let old = Transaction.Current
         Transaction.Current <- Some t
