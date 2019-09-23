@@ -204,4 +204,8 @@ module ASet =
             (Incremental.ASet.collect (fun v -> (mapping v).Adaptive) set.Adaptive)
             (Reference.ASet.collect (fun v -> (mapping v).Reference) set.Reference)
 
-           
+    let ofARef (ref : aref<#seq<'a>>) =
+        create
+            (ref.Adaptive |> Incremental.ASet.ofARef)
+            (ref.Reference |> Reference.ASet.ofARef)
+         

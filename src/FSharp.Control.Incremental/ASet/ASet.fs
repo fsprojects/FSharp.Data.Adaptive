@@ -238,6 +238,18 @@ module ASetImplementation =
 
             deltas
 
+    /// reader for aref<HashSet<_>>
+    type ARefReader<'s, 'a when 's :> seq<'a>>(input : aref<'s>) =
+        inherit AbstractReader<DHashSet<'a>>(DHashSet.monoid)
+
+        let mutable oldSet = HashSet.empty
+
+        override x.Compute(token) =
+            let newSet = input.GetValue token :> seq<_> |> HashSet.ofSeq
+            let deltas = HashSet.differentiate oldSet newSet
+            oldSet <- newSet
+            deltas
+
 
     /// gets the current content of the aset as HashSet.
     let inline force (set : aset<'a>) = 
@@ -333,3 +345,10 @@ module ASet =
                 create (fun () -> UnionConstantReader all)
         else
             create (fun () -> CollectReader(set, mapping))
+
+    /// creates an aset for the given aref.
+    let ofARef (ref : aref<#seq<'a>>) =
+        if ref.IsConstant then
+            constant (fun () -> ARef.force ref :> seq<'a> |> HashSet.ofSeq)
+        else
+            create (fun () -> ARefReader(ref))

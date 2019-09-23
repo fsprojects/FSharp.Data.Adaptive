@@ -346,10 +346,13 @@ type HashSet<'a> internal(cnt : int, store : intmap<list<'a>>) =
     /// creates a set with all entries from the seq.
     /// `O(N * log N)`
     static member OfSeq (seq : seq<'a>) =
-        let mutable res = empty
-        for e in seq do
-            res <- res.Add e
-        res
+        match seq with
+        | :? HashSet<'a> as set -> set
+        | _ -> 
+            let mutable res = empty
+            for e in seq do
+                res <- res.Add e
+            res
         
     /// creates a set with all entries from the list.
     /// `O(N * log N)`

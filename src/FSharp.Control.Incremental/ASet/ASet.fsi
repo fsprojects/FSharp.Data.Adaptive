@@ -57,3 +57,5 @@ module ASet =
     /// incrementally maps over the given set and unions all resulting sets.
     val collect : mapping : ('A -> aset<'B>) -> set : aset<'A> -> aset<'B>
 
+    /// creates an aset for the given aref.
+    val ofARef : ref : aref<#seq<'A>> -> aset<'A>

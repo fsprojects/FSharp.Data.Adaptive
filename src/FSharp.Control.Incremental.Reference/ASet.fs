@@ -142,3 +142,9 @@ module ASet =
         set.Content |> ARef.map (fun values ->
             values |> HashSet.collect (fun s -> (mapping s).Content.GetValue AdaptiveToken.Top)
         ) |> ofRef
+
+    let ofARef (ref : aref<#seq<'a>>) =
+        { new aset<'a> with 
+            member x.Content = ref |> ARef.map HashSet.ofSeq
+            member x.GetReader() = ASetReader(x) :> ISetReader<_>    
+        }

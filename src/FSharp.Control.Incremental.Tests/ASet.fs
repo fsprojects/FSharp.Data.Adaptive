@@ -159,6 +159,50 @@ let ``[ASet] union``(all : list<list<Set<int>>>) =
         )
         reader |> check |> ignore
 
+[<Property>]
+let ``[ASet] collect``(all : list<list<Set<int>>>) =
+    
+    let initial = cset<cset<int>>(HashSet.empty)
+    let innerSets = System.Collections.Generic.List<cset<int>>()
+
+    let derived = ASet.collect (fun c -> c :> aset<_>) initial
+    let reader = derived.GetReader()
+
+    reader |> check |> should setequal emptyDelta
+
+    for values in all do
+        let arr = List.toArray values
+        transact (fun () -> 
+            for i in 0 .. arr.Length - 1 do
+                if i < innerSets.Count then 
+                    innerSets.[i].Value <- HashSet.ofSeq arr.[i]
+                else 
+                    let set = cset (HashSet.ofSeq arr.[i])
+                    innerSets.Add set
+
+            initial.Value <- HashSet.ofSeq (Seq.take arr.Length innerSets)
+        )
+        reader |> check |> ignore
+
+[<Property>]
+let ``[ASet] toARef / ofARef``(all : list<Set<int>>) =
+    let all = all |> List.map HashSet.ofSeq
+
+    let mutable last = HashSet.empty
+    let input = cset<int>(HashSet.empty)
+    let roundtrip = input |> ASet.toARef |> ASet.ofARef
+    let reader = roundtrip.GetReader()
+
+    for set in all do
+        transact (fun () -> input.Value <- set)
+        reader |> check |> should setequal (HashSet.differentiate last set)
+        last <- set
+
+
+
+
+
+
 
 
 
