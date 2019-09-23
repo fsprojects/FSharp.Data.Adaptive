@@ -157,6 +157,7 @@ type Transaction() =
                                     outputs <- e.Outputs.Consume()
 
                                 else
+                                    e.OutOfDate <- false
                                     outputs <- [||]
                                     // if Mark told us not to continue we're done here
                                     ()

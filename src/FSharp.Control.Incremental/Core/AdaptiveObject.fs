@@ -52,7 +52,7 @@ type AdaptiveObject =
             if x.Level > maxAllowedLevel then
                 //printfn "%A tried to pull from level %A but has level %A" top.Id level top.Level
                 // all greater pulls would be from the future
-                raise <| LevelChangedException(x.Level + depth - 1)
+                raise <| LevelChangedException(x.Level + depth)
                                                                      
             res <- r
 
