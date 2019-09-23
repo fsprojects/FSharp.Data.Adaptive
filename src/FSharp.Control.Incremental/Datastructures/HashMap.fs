@@ -153,6 +153,58 @@ module internal HashMapList =
 
         newL @ newR
 
+    let rec mergeWithOptionSetMap (f : 'k -> Option<'a> -> bool -> Option<'c>) (l : list<struct('k * 'a)>) (r : list<'k>) =
+        let newL = 
+            l |> List.choose (fun struct(lk, lv) ->
+                let other = r |> List.tryFind (fun rk -> Unchecked.equals rk lk)
+                match other with
+                    | Some rv -> 
+                        match f lk (Some lv) true with
+                            | Some r -> Some (struct (lk, r))
+                            | None -> None
+                    | None -> 
+                        match f lk (Some lv) false with
+                            | Some r -> Some (struct (lk, r))
+                            | None -> None
+            )
+        let newR =
+            r |> List.choose (fun rk ->
+                if l |> List.forall (fun struct(lk,_) -> not (Unchecked.equals lk rk)) then
+                    match f rk None true with
+                        | Some r -> Some (struct (rk, r))
+                        | None -> None
+                else 
+                    None
+            )
+
+        newL @ newR
+        
+    let rec mergeWithOptionSetSet (f : 'k -> Option<'a> -> bool -> bool) (l : list<struct('k * 'a)>) (r : list<'k>) =
+        let newL = 
+            l |> List.choose (fun struct(lk, lv) ->
+                let other = r |> List.tryFind (fun rk -> Unchecked.equals rk lk)
+                match other with
+                    | Some rv -> 
+                        match f lk (Some lv) true with
+                            | true -> Some lk
+                            | false -> None
+                    | None -> 
+                        match f lk (Some lv) false with
+                            | true -> Some lk
+                            | false -> None
+            )
+        let newR =
+            r |> List.choose (fun rk ->
+                if l |> List.forall (fun struct(lk,_) -> not (Unchecked.equals lk rk)) then
+                    match f rk None true with
+                        | true -> Some rk
+                        | false -> None
+                else 
+                    None
+            )
+
+        newL @ newR
+
     let rec mergeWithOption' (f : 'k -> Option<'a> -> Option<'b> -> Option<'c>) (l : list<struct('k * 'a)>) (r : list<struct('k * 'b)>) =
         let newL = 
             l |> List.choose (fun struct(lk,lv) ->
@@ -470,6 +522,82 @@ type HashMap<'k, [<EqualityConditionalOn>] 'v> internal(cnt : int, store : intma
             IntMap.mergeWithKey both onlyLeft onlyRight store other.Store
 
         HashMap(cnt, newStore)
+    
+    /// creates a new map by applying the mapping function to all entries.
+    /// the respective option-arguments are some whenever the left/right map has an entry for the current key.
+    /// note that one of the options will always be some.
+    /// `O(N + M)`
+    member x.Choose2SetMap(other : HashSet<'k>, mapping : 'k -> Option<'v> -> bool -> Option<'c>) =
+        let mutable cnt = 0
+        let f k l r =
+            match mapping k l r with
+                | Some r -> 
+                    cnt <- cnt + 1
+                    Some r
+                | None -> 
+                    None
+
+        let both (_hash : int) (l : list<struct ('k * 'v)>) (r : list<'k>) =
+            match HashMapList.mergeWithOptionSetMap f l r with
+                | [] -> None
+                | l -> Some l
+
+        let onlyLeft (l : intmap<list<struct ('k * 'v)>>) =
+            l |> IntMap.mapOption (fun l -> 
+                match l |> List.choose (fun struct (lk, lv) -> match f lk (Some lv) false with | Some r -> Some (struct (lk,r)) | None -> None) with
+                    | [] -> None
+                    | l -> Some l
+            )
+            
+        let onlyRight (r : intmap<list<'k>>) =
+            r |> IntMap.mapOption (fun r -> 
+                match r |> List.choose (fun rk -> match f rk None true with | Some r -> Some (struct (rk,r)) | None -> None) with
+                    | [] -> None
+                    | r -> Some r
+            )
+
+        let newStore =
+            IntMap.mergeWithKey both onlyLeft onlyRight store other.Store
+
+        HashMap(cnt, newStore)
+    
+    /// creates a new set by applying the mapping function to all entries.
+    /// the respective option-arguments are some whenever the left/right map has an entry for the current key.
+    /// note that one of the options will always be some.
+    /// `O(N + M)`
+    member x.Choose2SetSet(other : HashSet<'k>, mapping : 'k -> Option<'v> -> bool -> bool) =
+        let mutable cnt = 0
+        let f k l r =
+            match mapping k l r with
+            | true -> 
+                cnt <- cnt + 1
+                true
+            | false -> 
+                false
+
+        let both (_hash : int) (l : list<struct ('k * 'v)>) (r : list<'k>) =
+            match HashMapList.mergeWithOptionSetSet f l r with
+                | [] -> None
+                | l -> Some l
+
+        let onlyLeft (l : intmap<list<struct ('k * 'v)>>) =
+            l |> IntMap.mapOption (fun l -> 
+                match l |> List.choose (fun struct (lk, lv) -> match f lk (Some lv) false with | true -> Some lk | false -> None) with
+                    | [] -> None
+                    | l -> Some l
+            )
+            
+        let onlyRight (r : intmap<list<'k>>) =
+            r |> IntMap.mapOption (fun r -> 
+                match r |> List.choose (fun rk -> match f rk None true with | true -> Some rk | false -> None) with
+                    | [] -> None
+                    | r -> Some r
+            )
+
+        let newStore =
+            IntMap.mergeWithKey both onlyLeft onlyRight store other.Store
+
+        HashSet(cnt, newStore)
 
     /// creates a new map by applying the mapping function to all entries.
     /// the respective option-arguments are some whenever the left/right map has an entry for the current key.

@@ -1,7 +1,6 @@
 ﻿module HashSet
 
 open System
-open NUnit
 open FsUnit.Xunit
 open FsCheck
 open FsCheck.Xunit
@@ -31,11 +30,95 @@ type StupidHash = { value : int } with
 /// avoid obj defaulting
 let emptyDelta : DHashSet<int> = DHashSet.empty
 
+
+[<Property>]
+let ``[HashSet] integrate drops useless removes``() =
+
+    // value empty
+    // integrate({}, {Rem 1}) = ({}, {})
+    let set = HashSet.empty<int>
+    let delta = DHashSet.ofList [Rem 1]
+    let res, eff = HashSet.integrate set delta
+    res |> should setequal set
+    eff |> should setequal emptyDelta
+  
+    // delta empty
+    // integrate({1}, {}) = ({1}, {})
+    let set = HashSet.ofList [1]
+    let delta = DHashSet.empty
+    let res, eff = HashSet.integrate set delta
+    res |> should setequal set
+    eff |> should setequal emptyDelta  
+
+    // delta small
+    // integrate({2..20}, {Rem 1}) = ({2..20}, {})
+    let set = HashSet.ofList [2..20]
+    let delta = DHashSet.ofList [Rem 1]
+    let res, eff = HashSet.integrate set delta
+    res |> should setequal set
+    eff |> should setequal emptyDelta
+    
+    // value small
+    // integrate({21}, {Rem 1..20}) = ({21}, {})
+    let set = HashSet.single 21
+    let delta = DHashSet.ofList ([1..20] |> List.map Rem)
+    let res, eff = HashSet.integrate set delta
+    res |> should setequal set
+    eff |> should setequal emptyDelta
+    
+    // similar size
+    // integrate({1..20}, {Rem 21..40}) = ({1..20}, {})
+    let set = HashSet.ofList [1..20]
+    let delta = DHashSet.ofList ([21..40] |> List.map Rem)
+    let res, eff = HashSet.integrate set delta
+    res |> should setequal set
+    eff |> should setequal emptyDelta
+    
+
+[<Property>]
+let ``[HashSet] integrate drops useless adds``() =
+    // integrate({1}, {Add 1}) = ({1}, {})
+    let set = HashSet.single 1
+    let delta = DHashSet.ofList [Add 1]
+    let res, eff = HashSet.integrate set delta
+    res |> should setequal set
+    eff |> should setequal emptyDelta
+
+    // integrate({1..20}, {Add 1}) = ({1..20}, {})
+    let set = HashSet.ofList [1..20]
+    let delta = DHashSet.ofList [Add 1]
+    let res, eff = HashSet.integrate set delta
+    res |> should setequal set
+    eff |> should setequal emptyDelta
+    
+    // integrate({1..20}, {Add 1..20}) = ({1..20}, {})
+    let set = HashSet.ofList [1..20]
+    let delta = DHashSet.ofList ([1..20] |> List.map Add)
+    let res, eff = HashSet.integrate set delta
+    res |> should setequal set
+    eff |> should setequal emptyDelta
+
+[<Property>]
+let ``[HashSet] integrate basic``() =  
+    // integrate({1..19}, {Add 20}) = ({1..20}, {Add 20})
+    let delta = DHashSet.ofList [Add 20]
+    let set, eff = HashSet.integrate (HashSet.ofList [1..19]) delta
+    set |> should setequal (HashSet.ofList [1..20])
+    eff |> should setequal delta
+    
+    // integrate({1}, {Add 1..20}) = ({1..20}, {Add 2..20})
+    let delta = DHashSet.ofList ([1..20] |> List.map Add)
+    let set, eff = HashSet.integrate (HashSet.ofList [1]) delta
+    set |> should setequal (HashSet.ofList [1..20])
+    eff |> should setequal (DHashSet.ofList ([2..20] |> List.map Add))
+
 [<Property>]
 let ``[HashSet] differentiate/integrate`` (set1 : Set<int>) (set2 : Set<int>) (set3 : Set<int>) =
     let set1 = HashSet.ofSeq set1
     let set2 = HashSet.ofSeq set2
     let set3 = HashSet.ofSeq set3
+
+
 
     // diff(A, A) = 0
     HashSet.differentiate set1 set1 |> should setequal emptyDelta
@@ -79,6 +162,18 @@ let ``[CountingHashSet] differentiate/integrate`` (set1 : Set<int>) (set2 : Set<
     let set2 = CountingHashSet.ofSeq set2
     let set3 = CountingHashSet.ofSeq set3
 
+    // integrate({}, {Rem 1}) = ({}, {})
+    let delta = DHashSet.ofList [Rem 1]
+    let set, eff = CountingHashSet.integrate CountingHashSet.empty delta
+    set |> should setequal CountingHashSet.empty<int>
+    eff |> should setequal emptyDelta
+    
+    // integrate({1}, {Add 1}) = ({1}, {})
+    let delta = DHashSet.ofList [Add 1]
+    let set, eff = CountingHashSet.integrate (CountingHashSet.single 1) delta
+    set |> should setequal (CountingHashSet.single 1)
+    eff |> should setequal emptyDelta
+
     // diff(A, A) = 0
     CountingHashSet.differentiate set1 set1 |> should setequal emptyDelta
     CountingHashSet.differentiate set2 set2 |> should setequal emptyDelta
@@ -114,6 +209,88 @@ let ``[CountingHashSet] differentiate/integrate`` (set1 : Set<int>) (set2 : Set<
 
     // diff(A, B) + diff(B, C) = diff(A, C)
     DHashSet.combine d12 d23 |> should setequal d31.Inverse
+
+
+[<Property>]
+let ``[CountingHashSet] integrate drops useless removes``() =
+
+    // value empty
+    // integrate({}, {Rem 1}) = ({}, {})
+    let set = CountingHashSet.empty<int>
+    let delta = DHashSet.ofList [Rem 1]
+    let res, eff = CountingHashSet.integrate set delta
+    res |> should setequal set
+    eff |> should setequal emptyDelta
+  
+    // delta empty
+    // integrate({1}, {}) = ({1}, {})
+    let set = CountingHashSet.ofList [1]
+    let delta = DHashSet.empty
+    let res, eff = CountingHashSet.integrate set delta
+    res |> should setequal set
+    eff |> should setequal emptyDelta  
+
+    // delta small
+    // integrate({2..20}, {Rem 1}) = ({2..20}, {})
+    let set = CountingHashSet.ofList [2..20]
+    let delta = DHashSet.ofList [Rem 1]
+    let res, eff = CountingHashSet.integrate set delta
+    res |> should setequal set
+    eff |> should setequal emptyDelta
+    
+    // value small
+    // integrate({21}, {Rem 1..20}) = ({21}, {})
+    let set = CountingHashSet.single 21
+    let delta = DHashSet.ofList ([1..20] |> List.map Rem)
+    let res, eff = CountingHashSet.integrate set delta
+    res |> should setequal set
+    eff |> should setequal emptyDelta
+    
+    // similar size
+    // integrate({1..20}, {Rem 21..40}) = ({1..20}, {})
+    let set = CountingHashSet.ofList [1..20]
+    let delta = DHashSet.ofList ([21..40] |> List.map Rem)
+    let res, eff = CountingHashSet.integrate set delta
+    res |> should setequal set
+    eff |> should setequal emptyDelta
+
+[<Property>]
+let ``[CountingHashSet] integrate drops useless adds``() =
+    // integrate({1}, {Add 1}) = ({1}, {})
+    let set = CountingHashSet.single 1
+    let delta = DHashSet.ofList [Add 1]
+    let res, eff = CountingHashSet.integrate set delta
+    res |> should setequal set
+    eff |> should setequal emptyDelta
+
+    // integrate({1..20}, {Add 1}) = ({1..20}, {})
+    let set = CountingHashSet.ofList [1..20]
+    let delta = DHashSet.ofList [Add 1]
+    let res, eff = CountingHashSet.integrate set delta
+    res |> should setequal set
+    eff |> should setequal emptyDelta
+    
+    // integrate({1..20}, {Add 1..20}) = ({1..20}, {})
+    let set = CountingHashSet.ofList [1..20]
+    let delta = DHashSet.ofList ([1..20] |> List.map Add)
+    let res, eff = CountingHashSet.integrate set delta
+    res |> should setequal set
+    eff |> should setequal emptyDelta
+
+[<Property>]
+let ``[CountingHashSet] integrate basic``() =  
+    // integrate({1..19}, {Add 20}) = ({1..20}, {Add 20})
+    let delta = DHashSet.ofList [Add 20]
+    let set, eff = CountingHashSet.integrate (CountingHashSet.ofList [1..19]) delta
+    set |> should setequal (CountingHashSet.ofList [1..20])
+    eff |> should setequal delta
+    
+    // integrate({1}, {Add 1..20}) = ({1..20}, {Add 2..20})
+    let delta = DHashSet.ofList ([1..20] |> List.map Add)
+    let set, eff = CountingHashSet.integrate (CountingHashSet.ofList [1]) delta
+    set |> should setequal (CountingHashSet.ofList [1..20])
+    eff |> should setequal (DHashSet.ofList ([2..20] |> List.map Add))
+
 
     
 [<Property>]
@@ -176,22 +353,6 @@ let ``[CountingHashSet] basic properties`` (fset1 : Set<int>) (fset2 : Set<int>)
     // (0 - A) = 0
     CountingHashSet.difference empty set1 |> should setequal empty
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 [<Property>]
 let ``[HashSet] count`` (l : Set<int>) (a : int)  =
@@ -208,10 +369,10 @@ let ``[HashSet] count`` (l : Set<int>) (a : int)  =
             HashSet.count (HashSet.union set setWithA) = HashSet.count setWithA
             HashSet.count (HashSet.difference setWithA set) = 1
             HashSet.count (HashSet.intersect setWithA set) = HashSet.count set
-            HashSet.count (HashSet.map (fun v -> v) set) = HashSet.count set
+            HashSet.count (HashSet.map id set) = HashSet.count set
             HashSet.count (HashSet.filter (fun _ -> true) set) = HashSet.count set
             HashSet.count (HashSet.filter (fun _ -> false) set) = 0
-            HashSet.count (HashSet.choose (fun v -> Some v) set) = HashSet.count set
+            HashSet.count (HashSet.choose Some set) = HashSet.count set
             HashSet.count (HashSet.choose (fun _ -> None) set) = 0
             HashSet.count (HashSet.choose (fun _ -> Some 1) setWithA) = 1
             HashSet.count (HashSet.alter a (fun _ -> false) setWithA) = HashSet.count set
@@ -226,21 +387,21 @@ let ``[HashSet] contains`` (l : Set<int>) (a : int)  =
         let setWithA = HashSet.add a set
         
         List.all [
-            HashSet.contains a setWithA = true
-            HashSet.contains a set = false
-            HashSet.contains a (HashSet.add a setWithA) = true
-            HashSet.contains a (HashSet.add a set) = true
-            HashSet.contains a (HashSet.remove a setWithA) = false
-            HashSet.contains a (HashSet.union set setWithA) = true
-            HashSet.contains a (HashSet.difference setWithA set) = true
-            HashSet.contains a (HashSet.intersect setWithA set) = false
-            HashSet.contains a (HashSet.alter a (fun o -> true) setWithA) = true
-            HashSet.contains a (HashSet.alter a (fun o -> false) setWithA) = false
-            HashSet.contains a (HashSet.choose (fun v -> Some v) setWithA) = true
-            HashSet.contains a (HashSet.choose (fun v -> None) setWithA) = false
-            HashSet.contains 7 (HashSet.choose (fun v -> Some 7) setWithA) = true
-            HashSet.contains a (HashSet.filter (fun v -> true) setWithA) = true
-            HashSet.contains a (HashSet.filter (fun v -> false) setWithA) = false
+            HashSet.contains a setWithA
+            HashSet.contains a set |> not
+            HashSet.contains a (HashSet.add a setWithA) 
+            HashSet.contains a (HashSet.add a set)
+            HashSet.contains a (HashSet.remove a setWithA) |> not
+            HashSet.contains a (HashSet.union set setWithA)
+            HashSet.contains a (HashSet.difference setWithA set)
+            HashSet.contains a (HashSet.intersect setWithA set) |> not
+            HashSet.contains a (HashSet.alter a (fun o -> true) setWithA)
+            HashSet.contains a (HashSet.alter a (fun o -> false) setWithA) |> not
+            HashSet.contains a (HashSet.choose Some setWithA)
+            HashSet.contains a (HashSet.choose (fun v -> None) setWithA) |> not
+            HashSet.contains 7 (HashSet.choose (fun v -> Some 7) setWithA)
+            HashSet.contains a (HashSet.filter (fun v -> true) setWithA)
+            HashSet.contains a (HashSet.filter (fun v -> false) setWithA) |> not
 
         ]
 
