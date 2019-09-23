@@ -1,9 +1,0 @@
-type project
-authors Aardvark Platform Team
-owners Aardvark Platform Team
-projectUrl https://github.com/fsprojects/FSharp.Control.Incremental
-licenseUrl https://raw.githubusercontent.com/fsprojects/FSharp.Control.Incremental/master/LICENSE
-description
-    FSharp.Control.Incremental provides an incremental evaluation system inspired by Adapton, DeltaML and many others
-	for FSharp. The implementation provides incremental datastructures for refs/sets/lists/maps.
-include-pdbs true

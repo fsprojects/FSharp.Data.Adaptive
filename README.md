@@ -1,4 +1,4 @@
-### FSharp.Control.Incremental
+### FSharp.Data.Adaptive
 
 | Platform | Status |
 |---------|----|
