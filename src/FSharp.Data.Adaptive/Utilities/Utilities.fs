@@ -186,6 +186,7 @@ module internal InterlockedExtensions =
 
 [<AutoOpen>]
 module internal CheapEquality =
+    open FSharp.Reflection
     open System.Collections.Generic
     open System.Runtime.CompilerServices
 
@@ -194,20 +195,19 @@ module internal CheapEquality =
         static let comparer =
             let typ = typeof<'a>
 
-            if typ.IsValueType then 
+            // TODO: any reasonable ideas?
+            if FSharpType.IsRecord typ || FSharpType.IsUnion typ || FSharpType.IsTuple typ then
                 EqualityComparer<'a>.Default
 
-            elif typ.IsArray then 
+            elif not typ.IsValueType then
                 { new EqualityComparer<'a>() with 
                     member x.GetHashCode(o : 'a) = RuntimeHelpers.GetHashCode o
                     member x.Equals(a : 'a, b : 'a) = Object.ReferenceEquals(a, b)
                 }
 
-            else
-                { new EqualityComparer<'a>() with 
-                    member x.GetHashCode(o : 'a) = Unchecked.hash o
-                    member x.Equals(a : 'a, b : 'a) = Object.ReferenceEquals(a, b) || Unchecked.equals a b
-                }
+            else 
+                EqualityComparer<'a>.Default
+
 
         static member Comparer = comparer
 
@@ -216,6 +216,9 @@ module internal CheapEquality =
     let cheapHash (a : 'a) = CheapEquality<'a>.Comparer.GetHashCode a
     let cheapEqual (a : 'a) (b : 'a) = CheapEquality<'a>.Comparer.Equals(a, b)
 
+module Unchecked =
+    let inline isNull<'a when 'a : not struct> (value : 'a) =
+        isNull (value :> obj)
 
 [<AutoOpen>]
 module Failures =
