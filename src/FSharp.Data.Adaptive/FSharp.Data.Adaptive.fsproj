@@ -40,14 +40,14 @@
 	<Compile Include="Traceable\Instances.fs" />
 	<Compile Include="Traceable\History.fs" />
 	<Compile Include="Traceable\CountingHashSet.fs" />
-	<Compile Include="AdaptiveSet\AdaptiveSet.fsi" />
-	<Compile Include="AdaptiveSet\AdaptiveSet.fs" />
-	<Compile Include="AdaptiveSet\ChangeableSet.fsi" />
-	<Compile Include="AdaptiveSet\ChangeableSet.fs" />
-	<Compile Include="AdaptiveMap\AdaptiveMap.fsi" />
-	<Compile Include="AdaptiveMap\AdaptiveMap.fs" />
-	<Compile Include="AdaptiveMap\ChangeableMap.fsi" />
-	<Compile Include="AdaptiveMap\ChangeableMap.fs" />
+	<Compile Include="AdaptiveHashSet\AdaptiveHashSet.fsi" />
+	<Compile Include="AdaptiveHashSet\AdaptiveHashSet.fs" />
+	<Compile Include="AdaptiveHashSet\ChangeableHashSet.fsi" />
+	<Compile Include="AdaptiveHashSet\ChangeableHashSet.fs" />
+	<Compile Include="AdaptiveHashMap\AdaptiveHashMap.fsi" />
+	<Compile Include="AdaptiveHashMap\AdaptiveHashMap.fs" />
+	<Compile Include="AdaptiveHashMap\ChangeableHashMap.fsi" />
+	<Compile Include="AdaptiveHashMap\ChangeableHashMap.fs" />
 	</ItemGroup>
 	<Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

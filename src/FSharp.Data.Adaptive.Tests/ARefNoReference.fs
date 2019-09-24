@@ -27,7 +27,7 @@ type EagerVal<'T>(input : aval<'T>) =
             res
         )
 
-    interface aval<'T> with
+    interface AdaptiveValue<'T> with
         member x.GetValue(t) = x.GetValue t
         
 [<Test>]

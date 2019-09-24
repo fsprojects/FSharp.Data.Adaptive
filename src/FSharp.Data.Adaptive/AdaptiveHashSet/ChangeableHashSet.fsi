@@ -1,0 +1,48 @@
+﻿namespace FSharp.Data.Adaptive
+
+/// Changeable adaptive set that allows mutation by user-code and implements aset.
+[<Sealed>]
+type ChangeableHashSet<'T> =
+    interface AdaptiveHashSet<'T>
+
+    /// The number of entries currently in the set.
+    member Count: int
+
+    /// Is the set currently empty?
+    member IsEmpty: bool
+
+    /// Checks whether the given value is contained.
+    member Contains: value: 'T -> bool
+
+    /// Gets or sets the current state as HashSet.
+    member Value: HashSet<'T> with get, set
+
+    /// Adds a value and returns whether the element was new.
+    member Add: value: 'T -> bool
+
+    /// Removes a value and returns whether the element was deleted.
+    member Remove: value: 'T -> bool
+
+    /// Clears the set.
+    member Clear: unit -> unit
+
+    /// Adds all the given values to the set.
+    member UnionWith: other: seq<'T> -> unit
+
+    /// Removes all the given elements from the set.
+    member ExceptWith: other: seq<'T> -> unit
+
+    /// Creates an adaptive reader for the set.
+    member GetReader: unit -> IHashSetReader<'T>
+
+    /// Creates a new empty cset.
+    new: unit -> cset<'T>
+
+    /// Creates a new cset containing all the given elements.
+    new: seq<'T> -> cset<'T>
+
+    /// Creates a new cset containing all the given elements.
+    new: HashSet<'T> -> cset<'T>
+
+/// An abbreviation for ChangeableHashSet
+and cset<'T> = ChangeableHashSet<'T>

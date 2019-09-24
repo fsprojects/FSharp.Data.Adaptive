@@ -227,7 +227,7 @@ module Transaction =
 
     // Defines some extension utilites for IAdaptiveObjects
     type IAdaptiveObject with
-        /// utility for marking adaptive object as outOfDate.
+        /// Utility for marking adaptive object as outOfDate.
         /// Note that this function will actually enqueue the
         /// object to the current transaction and will fail if
         /// no current transaction can be found.
@@ -248,7 +248,7 @@ module Transaction =
         /// object to the current transaction and will fail if
         /// no current transaction can be found.
         /// However objects which are already outOfDate might
-        /// also be "marked" when not having a current transaction.
+        /// Also be "marked" when not having a current transaction.
         member x.MarkOutdated (fin : unit -> unit) =
             match getCurrentTransaction() with
                 | Some t -> 

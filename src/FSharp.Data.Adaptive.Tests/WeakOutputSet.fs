@@ -8,7 +8,7 @@ open FsCheck.NUnit
 open FSharp.Data.Adaptive
 
 
-/// a dummy type failing on GetHashCode/Equals to ensure that
+/// A dummy type failing on GetHashCode/Equals to ensure that
 /// WeakRef/WeakSet only operate on reference-hashes/equality
 type NonEqualObject() =
     inherit AdaptiveObject()

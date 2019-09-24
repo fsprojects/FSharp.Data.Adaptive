@@ -4,18 +4,18 @@ open System.Collections
 open System.Collections.Generic
 open FSharp.Data.Adaptive
 
-/// represents the difference of two HashMaps.
+/// Represents the difference of two HashMaps.
 type HashMapDelta<'K, 'V>(store : HashMap<'K, ElementOperation<'V>>) =
     static let empty = HashMapDelta<'K, 'V>(HashMap.empty)
 
-    /// the internal store used by the HashMapDelta.
+    /// The internal store used by the HashMapDelta.
     member internal x.Store = store
 
-    /// the empty map.
+    /// The empty map.
     static member Empty = 
         empty
 
-    /// combines two DHashMaps to one.
+    /// Combines two DHashMaps to one.
     member x.Combine(other : HashMapDelta<'K, 'V>) =
         HashMapDelta (HashMap.union store other.Store)
 
@@ -25,12 +25,12 @@ type HashMapDelta<'K, 'V>(store : HashMap<'K, ElementOperation<'V>>) =
     interface IEnumerable<'K * ElementOperation<'V>> with
         member x.GetEnumerator() = (store :> seq<_>).GetEnumerator()
 
-/// functional operators for HashMapDelta.
+/// Functional operators for HashMapDelta.
 module HashMapDelta =
-    /// the empty map.
+    /// The empty map.
     [<GeneralizableValue>]
     let empty<'K, 'V> = HashMapDelta<'K, 'V>.Empty
 
-    /// combines two DHashMaps to one.
+    /// Combines two DHashMaps to one.
     let inline combine (l : HashMapDelta<'K, 'V>) (r : HashMapDelta<'K, 'V>) = l.Combine r
 

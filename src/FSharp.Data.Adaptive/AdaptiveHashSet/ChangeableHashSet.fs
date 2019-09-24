@@ -50,7 +50,7 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
         let ops = other |> Seq.map (fun v -> v, -1) |> HashMap.ofSeq |> HashSetDelta
         history.Perform ops |> ignore
 
-    /// creates an adaptive reader for the set.
+    /// Creates an adaptive reader for the set.
     member x.GetReader() : IHashSetReader<'T> =
         history.NewReader()
 

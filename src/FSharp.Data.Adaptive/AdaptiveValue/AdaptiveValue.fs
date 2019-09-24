@@ -25,7 +25,7 @@ type ChangeableValue<'T> =
             x.value
         )
 
-    interface aval<'T> with
+    interface AdaptiveValue<'T> with
         member x.GetValue t = x.GetValue t
         
     member private x.AsString = sprintf "cval(%A)" x.Value
@@ -38,7 +38,7 @@ and cval<'T> = ChangeableValue<'T>
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module AVal =
 
-    /// base class for standard avals
+    /// Base class for standard avals
     [<AbstractClass; StructuredFormatDisplay("{AsString}")>]
     type AbstractVal<'T>() =
         inherit AdaptiveObject()
@@ -65,10 +65,10 @@ module AVal =
             if x.OutOfDate then String.Format("aval*({0})", cache)
             else String.Format("aval({0})", cache)
 
-        interface aval<'T> with
+        interface AdaptiveValue<'T> with
             member x.GetValue t = x.GetValue t  
             
-    /// lazy without locking
+    /// Lazy without locking
     type LazyOrValue<'T> =
         val mutable public Create: unit -> 'T
         val mutable public Value: 'T
@@ -77,7 +77,7 @@ module AVal =
         new(value: 'T) = { Create = Unchecked.defaultof<_>; Value = value; IsValue = true }
         new(create: unit -> 'T) = { Create = create; Value = Unchecked.defaultof<_>; IsValue = false }
         
-    /// a constant value that can either be a value or a lazy computation
+    /// A constant value that can either be a value or a lazy computation
     [<StructuredFormatDisplay("{AsString}")>]
     type ConstantVal<'T> private(data: LazyOrValue<'T>) =
         inherit ConstantObject()
@@ -96,7 +96,7 @@ module AVal =
         member x.GetValue(_token: AdaptiveToken): 'T = 
             x.GetValue()
 
-        interface aval<'T> with
+        interface AdaptiveValue<'T> with
             member x.GetValue t = x.GetValue t    
 
         static member Lazy (create: unit -> 'T) =
@@ -124,7 +124,7 @@ module AVal =
             | _ ->
                 false
 
-    /// aval for mapping a single value
+    /// Aval for mapping a single value
     type MapVal<'T1, 'T2>(mapping: 'T1 -> 'T2, input: aval<'T1>) =
         inherit AbstractVal<'T2>()
 
@@ -141,10 +141,10 @@ module AVal =
                 cache <- ValueSome(struct (i, b))
                 b
 
-        interface aval<'T2> with
+        interface AdaptiveValue<'T2> with
             member x.GetValue t = x.GetValue t
 
-    /// aval for mapping 2 values in 'parallel'
+    /// Aval for mapping 2 values in 'parallel'
     type Map2Val<'T1, 'T2, 'T3>(mapping: 'T1 -> 'T2 -> 'T3, a: aval<'T1>, b: aval<'T2>) =
         inherit AbstractVal<'T3>()
 
@@ -162,7 +162,7 @@ module AVal =
                 cache <- ValueSome(struct (a, b, c))
                 c
 
-    /// aval for mapping 3 values in 'parallel'
+    /// Aval for mapping 3 values in 'parallel'
     type Map3Val<'T1, 'T2, 'T3, 'T4>(mapping: 'T1 -> 'T2 -> 'T3 -> 'T4, a: aval<'T1>, b: aval<'T2>, c: aval<'T3>) =
         inherit AbstractVal<'T4>()
 
@@ -181,7 +181,7 @@ module AVal =
                 cache <- ValueSome (struct (a, b, c, d))
                 d
 
-    /// aval for binding a single value
+    /// Aval for binding a single value
     type BindVal<'T1, 'T2>(mapping: 'T1 -> aval<'T2>, input: aval<'T1>) =
         inherit AbstractVal<'T2>()
 
@@ -211,7 +211,7 @@ module AVal =
                 inner <- ValueSome (struct (va, result))
                 result.GetValue token     
 
-    /// aval for binding two values in 'parallel'
+    /// Aval for binding two values in 'parallel'
     type Bind2Val<'T1, 'T2, 'T3>(mapping: 'T1 -> 'T2 -> aval<'T3>, value1: aval<'T1>, value2: aval<'T2>) =
         inherit AbstractVal<'T3>()
 
@@ -243,7 +243,7 @@ module AVal =
                 inner <- ValueSome (struct (va, vb, res))
                 res.GetValue token     
 
-    /// aval for custom computations
+    /// Aval for custom computations
     type CustomVal<'T>(compute: AdaptiveToken -> 'T) =
         inherit AbstractVal<'T>()
 

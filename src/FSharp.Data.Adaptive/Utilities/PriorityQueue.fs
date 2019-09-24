@@ -34,7 +34,7 @@ type internal DuplicatePriorityQueue<'T, 'Key when 'Key: comparison>(extract: 'T
     let mutable count = 0
     let mutable currentQueue = Unchecked.defaultof<_>
 
-    /// enqueues a new element
+    /// Enqueues a new element
     member x.Enqueue(v: 'T) =
         let k = extract v
         count <- count + 1
