@@ -8,9 +8,14 @@ type IHashMapReader<'Key,'Value> = IOpReader<HashMap<'Key,'Value>,HashMapDelta<'
 /// adaptive map datastructure.
 [<Interface>]
 type AdaptiveHashMap<'Key,'Value> =
-    abstract member GetReader : unit -> IHashMapReader<'Key,'Value>
-    abstract member Content : aval<HashMap<'Key,'Value>>
+    /// is the map constant?
     abstract member IsConstant : bool
+
+    /// the current content of the map as aval.
+    abstract member Content : aval<HashMap<'Key,'Value>>
+
+    /// gets a new reader to the map.
+    abstract member GetReader : unit -> IHashMapReader<'Key,'Value>
 
 /// adaptive map datastructure.
 type amap<'Key,'Value> = AdaptiveHashMap<'Key,'Value>
