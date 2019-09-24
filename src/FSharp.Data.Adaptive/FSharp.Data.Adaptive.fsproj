@@ -8,7 +8,7 @@
     <OutputPath>..\..\bin\Debug\</OutputPath>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>..\..\bin\Debug\netstandard2.0\FSharp.Data.Adaptive.XML</DocumentationFile>
-    <OtherFlags>--sig:test.fsi</OtherFlags>
+    <OtherFlags></OtherFlags>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>..\..\bin\Release</OutputPath>
@@ -24,6 +24,8 @@
 	<Compile Include="Datastructures\Differentiation.fs" />
 	<Compile Include="Datastructures\Index.fsi" />
 	<Compile Include="Datastructures\Index.fs" />
+	<Compile Include="Datastructures\MapExt.fs" />
+	<Compile Include="Datastructures\IndexList.fs" />
 	<Compile Include="Utilities\Utilities.fs" />
 	<Compile Include="Utilities\PriorityQueue.fs" />
 	<Compile Include="Utilities\Cache.fs" />
