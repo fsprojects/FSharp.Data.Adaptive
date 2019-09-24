@@ -673,6 +673,14 @@ module ASet =
     let foldGroup (add : 'S -> 'A -> 'S) (sub : 'S -> 'A -> 'S) (zero : 'S) (s : aset<'A>) =
         foldHalfGroup add (fun a b -> Some (sub a b)) zero s
 
+    /// creates an aset using the given reader-creator.
+    let ofReader (creator : unit -> #IOpReader<HashSetDelta<'T>>) =
+        create creator
+
+    /// creates a constant aset lazy content.
+    let delay (creator : unit -> HashSet<'T>) =
+        constant creator
+
     /// adaptively computes the sum all entries in the set.
     let inline sum (set : aset<'A>) =
         foldGroup (+) (-) LanguagePrimitives.GenericZero set

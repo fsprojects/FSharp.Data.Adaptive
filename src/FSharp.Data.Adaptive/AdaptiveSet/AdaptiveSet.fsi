@@ -91,6 +91,12 @@ module ASet =
     /// note that the order of elements given to add is undefined.
     val fold : add : ('S -> 'A -> 'S) -> zero : 'S -> set : aset<'A> -> aval<'S>
 
+    /// creates an aset using the given reader-creator.
+    val ofReader : create : (unit -> #IOpReader<HashSetDelta<'T>>) -> aset<'T>
+    
+    /// creates a constant aset lazy content.
+    val delay : create : (unit -> HashSet<'T>) -> aset<'T>
+
     /// adaptively computes the sum all entries in the set.
     val inline sum<'A, 'B 
                     when ('A or 'B) : (static member (+) : 'B -> 'A -> 'B) 

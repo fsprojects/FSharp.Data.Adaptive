@@ -716,10 +716,14 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
     /// creates a map with all entries from the seq.
     /// `O(N * log N)`
     static member OfSeq (seq: seq<'K * 'V>) =
-        let mutable res = empty
-        for (k,v) in seq do
-            res <- res.Add(k,v)
-        res
+        match seq with
+        | :? HashMap<'K, 'V> as o ->
+            o
+        | _ -> 
+            let mutable res = empty
+            for (k,v) in seq do
+                res <- res.Add(k,v)
+            res
         
     /// creates a map with all entries from the list.
     /// `O(N * log N)`

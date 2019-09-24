@@ -8,7 +8,7 @@
     <OutputPath>..\..\bin\Debug\</OutputPath>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>..\..\bin\Debug\netstandard2.0\FSharp.Data.Adaptive.XML</DocumentationFile>
-    <OtherFlags></OtherFlags>
+    <OtherFlags>--sig:test.fsi</OtherFlags>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>..\..\bin\Release</OutputPath>
@@ -40,6 +40,10 @@
 	<Compile Include="AdaptiveSet\AdaptiveSet.fs" />
 	<Compile Include="AdaptiveSet\ChangeableSet.fsi" />
 	<Compile Include="AdaptiveSet\ChangeableSet.fs" />
+	<Compile Include="AdaptiveMap\AdaptiveMap.fsi" />
+	<Compile Include="AdaptiveMap\AdaptiveMap.fs" />
+	<Compile Include="AdaptiveMap\ChangeableMap.fsi" />
+	<Compile Include="AdaptiveMap\ChangeableMap.fs" />
 	</ItemGroup>
 	<Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

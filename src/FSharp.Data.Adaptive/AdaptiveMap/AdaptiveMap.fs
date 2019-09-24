@@ -1,0 +1,417 @@
+namespace FSharp.Data.Adaptive
+
+open FSharp.Data.Traceable
+
+/// an adaptive reader for amap that allows to pull operations and exposes its current state.
+type IHashMapReader<'Key, 'Value> = IOpReader<HashMap<'Key, 'Value>, HashMapDelta<'Key, 'Value>>
+
+/// adaptive map datastructure.
+type AdaptiveHashMap<'Key, 'Value> =
+    /// is the map constant?
+    abstract member IsConstant : bool
+
+    /// the current content of the map as aval.
+    abstract member Content : aval<HashMap<'Key, 'Value>>
+
+    /// gets a new reader to the map.
+    abstract member GetReader : unit -> IHashMapReader<'Key, 'Value>
+
+/// adaptive map datastructure.
+and amap<'Key, 'Value> = AdaptiveHashMap<'Key, 'Value>
+
+
+
+/// internal implementations for amap operations.
+module AdaptiveHashMapImplementation =
+
+    /// core implementation for a dependent map.
+    type AdaptiveHashMap<'Key, 'Value>(createReader : unit -> IOpReader<HashMapDelta<'Key, 'Value>>) =
+        let history = History(createReader, HashMap.trace)
+        /// gets a new reader to the set.
+        member x.GetReader() : IHashMapReader<'Key, 'Value> =
+            history.NewReader()
+
+        /// current content of the set as aval.
+        member x.Content =
+            history :> aval<_>
+
+        interface amap<'Key, 'Value> with
+            member x.IsConstant = false
+            member x.GetReader() = x.GetReader()
+            member x.Content = x.Content
+
+    /// efficient implementation for an empty adaptive map.
+    type EmptyMap<'Key, 'Value> private() =   
+        static let instance = EmptyMap<'Key, 'Value>() :> amap<_,_>
+        let content = AVal.constant HashMap.empty
+        let reader = new History.Readers.EmptyReader<HashMap<'Key, 'Value>, HashMapDelta<'Key, 'Value>>(HashMap.trace) :> IHashMapReader<'Key, 'Value>
+        static member Instance = instance
+        
+        member x.Content = content
+        member x.GetReader() = reader
+        
+        interface amap<'Key, 'Value> with
+            member x.IsConstant = true
+            member x.GetReader() = x.GetReader()
+            member x.Content = x.Content
+
+    /// efficient implementation for a constant adaptive map.
+    type ConstantMap<'Key, 'Value>(content : Lazy<HashMap<'Key, 'Value>>) =
+        let value = AVal.delay (fun () -> content.Value)
+
+        member x.Content = value
+
+        member x.GetReader() =
+            new History.Readers.ConstantReader<_,_>(
+                HashMap.trace,
+                lazy (HashMap.differentiate HashMap.empty content.Value),
+                content
+            ) :> IHashMapReader<_,_>
+
+        interface amap<'Key, 'Value> with
+            member x.IsConstant = true
+            member x.GetReader() = x.GetReader()
+            member x.Content = x.Content
+
+    /// reader for map operations.
+    type MapWithKeyReader<'Key, 'Value1, 'Value2>(input : amap<'Key, 'Value1>, mapping : 'Key -> 'Value1 -> 'Value2) =
+        inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.monoid)
+        
+        let reader = input.GetReader()
+
+        override x.Compute(token) =
+            let ops = reader.GetChanges token
+            ops.Store |> HashMap.map (fun k op ->
+                match op with
+                    | Set v -> Set (mapping k v)
+                    | Remove -> Remove
+            ) |> HashMapDelta
+            
+    /// reader for map operations without keys.
+    type MapReader<'Key, 'Value1, 'Value2>(input : amap<'Key, 'Value1>, mapping : 'Value1 -> 'Value2) =
+        inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.monoid)
+
+        let cache = Cache<'Value1, 'Value2>(mapping)
+        let reader = input.GetReader()
+
+        override x.Compute(token) =
+            let oldState = reader.State
+            let ops = reader.GetChanges token
+            ops.Store |> HashMap.map (fun k op ->
+                match op with
+                    | Set v -> 
+                        let res = cache.Invoke(v)
+                        Set res
+                    | Remove -> 
+                        match HashMap.tryFind k oldState with
+                        | Some value -> cache.RevokeAndGetDeleted value |> ignore
+                        | None -> () // strange
+                        Remove
+            ) |> HashMapDelta
+
+    /// reader for choose operations.
+    type ChooseWithKeyReader<'Key, 'Value1, 'Value2>(input : amap<'Key, 'Value1>, mapping : 'Key -> 'Value1 -> option<'Value2>) =
+        inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.monoid)
+
+        let reader = input.GetReader()
+        let livingKeys = System.Collections.Generic.HashSet<'Key>()
+
+        override x.Compute(token) =
+            let ops = reader.GetChanges token
+            ops.Store |> HashMap.choose (fun k op ->
+                match op with
+                | Set v -> 
+                    match mapping k v with
+                    | Some n ->
+                        livingKeys.Add k |> ignore
+                        Some (Set n)
+                    | None ->
+                        if livingKeys.Remove k then
+                            Some Remove
+                        else
+                            None
+                | Remove -> 
+                    if livingKeys.Remove k then Some Remove
+                    else None
+            ) |> HashMapDelta
+            
+    /// reader for choose operations without keys.
+    type ChooseReader<'Key, 'Value1, 'Value2>(input : amap<'Key, 'Value1>, f : 'Value1 -> option<'Value2>) =
+        inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.monoid)
+
+        let reader = input.GetReader()
+        let cache = Cache f
+
+        override x.Compute(token) =
+            let oldState = reader.State
+            let ops = reader.GetChanges token
+            ops.Store |> HashMap.choose (fun k op ->
+                match op with
+                | Set v -> 
+                    match cache.Invoke v with
+                    | Some r -> Some (Set r)
+                    | None -> None
+                | Remove -> 
+                    match HashMap.tryFind k oldState with
+                    | Some oldValue -> 
+                        match cache.Revoke oldValue with
+                        | Some _r -> Some Remove
+                        | None -> None
+                    | None ->
+                        // strange
+                        None
+            ) |> HashMapDelta
+
+    /// reader for union/unionWith operations.
+    type UnionWithReader<'Key, 'Value>(l : amap<'Key, 'Value>, r : amap<'Key, 'Value>, resolve : 'Key -> 'Value -> 'Value -> 'Value) =
+        inherit AbstractReader<HashMapDelta<'Key, 'Value>>(HashMapDelta.monoid)
+
+        let lReader = l.GetReader()
+        let rReader = r.GetReader()
+
+        override x.Compute(token) =
+            let lops = lReader.GetChanges token
+            let rops = rReader.GetChanges token
+
+            let merge (key : 'Key) (lop : Option<ElementOperation<'Value>>) (rop : Option<ElementOperation<'Value>>) : ElementOperation<'Value> =
+                let lv =
+                    match lop with
+                    | Some (Set lv) -> Some lv
+                    | Some (Remove) -> None
+                    | None -> HashMap.tryFind key lReader.State
+                            
+                let rv =
+                    match rop with
+                    | Some (Set rv) -> Some rv
+                    | Some (Remove) -> None
+                    | None -> HashMap.tryFind key rReader.State
+
+
+                match lv, rv with
+                | None, None -> Remove
+                | Some l, None -> Set l
+                | None, Some r -> Set r
+                | Some l, Some r -> Set (resolve key l r)
+
+            HashMap.map2 merge lops.Store rops.Store |> HashMapDelta
+
+    /// reader for ofAVal.
+    type AValReader<'Seq, 'Key, 'Value when 'Seq :> seq<'Key * 'Value>>(input : aval<'Seq>) =
+        inherit AbstractReader<HashMap<'Key, 'Value>, HashMapDelta<'Key, 'Value>>(HashMap.trace)
+
+        override x.Compute(token) =
+            input.GetValue token
+            :> seq<_>
+            |> HashMap.ofSeq
+            |> HashMap.differentiate x.State
+
+    /// reader for bind.
+    type BindReader<'T, 'Key, 'Value>(value : aval<'T>, mapping : 'T -> amap<'Key, 'Value>) =
+        inherit AbstractReader<HashMapDelta<'Key, 'Value>>(HashMapDelta.monoid)
+
+        let mutable oldValue : option<'T * IHashMapReader<'Key, 'Value>> = None
+
+        override x.Compute(token) =
+            let v = value.GetValue token
+            
+            match oldValue with
+            | Some (ov, r) when Unchecked.equals ov v ->
+                r.GetChanges(token)
+            | _ ->
+                let rem =
+                    match oldValue with
+                    | Some (_, oldReader) ->
+                        let res = HashMap.differentiate oldReader.State HashMap.empty
+                        oldReader.Outputs.Remove x |> ignore
+                        res.Store
+                    | _ ->
+                        HashMap.empty
+                                
+                let newMap = mapping v
+                let newReader = newMap.GetReader()
+                oldValue <- Some(v, newReader)
+                let add = newReader.GetChanges token
+                HashMapDelta.combine (HashMapDelta rem) add
+
+    /// reader for toASet.
+    type ToASetReader<'Key, 'Value>(input : amap<'Key, 'Value>) =
+        inherit AbstractReader<HashSetDelta<'Key * 'Value>>(HashSetDelta.monoid)
+
+        let reader = input.GetReader()
+
+        override x.Compute(token) =
+            let oldState = reader.State
+            let ops = reader.GetChanges token
+            let mutable deltas = HashSetDelta.empty
+
+            for (k,op) in ops do
+                match op with
+                | Set v ->
+                    match HashMap.tryFind k oldState with
+                    | None -> ()
+                    | Some oldValue ->
+                        deltas <- HashSetDelta.add (Rem(k, oldValue)) deltas
+                    deltas <- HashSetDelta.add (Add(k, v)) deltas
+
+                | Remove ->
+                    // NOTE: As it is not clear at what point the toASet computation has been evaluated last, it is 
+                    //       a valid case that something is removed that is not present in the current local state.
+                    match HashMap.tryFind k oldState with
+                    | None -> ()
+                    | Some ov ->
+                        deltas <- HashSetDelta.add (Rem (k, ov)) deltas
+
+
+            deltas
+
+    /// reader for mapSet.
+    type MapSetReader<'Key, 'Value>(set : aset<'Key>, mapping : 'Key -> 'Value) =
+        inherit AbstractReader<HashMapDelta<'Key, 'Value>>(HashMapDelta.monoid)
+
+        let reader = set.GetReader()
+
+        override x.Compute(token) =
+            reader.GetChanges(token).Store
+            |> HashMap.choose (fun key v ->
+                if v > 0 then Some (Set (mapping key))
+                elif v < 0 then Some Remove
+                else None
+            )
+            |> HashMapDelta
+
+
+    type internal KeyedMod<'k, 'a>(key : 'k, m : aval<'a>) =
+        inherit AVal.AbstractVal<'k * 'a>()
+
+        let mutable last = None
+            
+        member x.Key = key
+            
+        member x.UnsafeLast =
+            last
+
+        override x.Compute(token) =
+            let v = m.GetValue(token)
+            last <- Some v
+            key, v
+
+    /// gets the current content of the amap as HashMap.
+    let inline force (map : amap<'Key, 'Value>) = 
+        AVal.force map.Content
+
+    /// creates a constant map using the creation function.
+    let inline constant (content : unit -> HashMap<'Key, 'Value>) = 
+        ConstantMap(lazy(content())) :> amap<_,_> 
+
+    /// creates an adaptive map using the reader.
+    let inline create (reader : unit -> #IOpReader<HashMapDelta<'Key, 'Value>>) =
+        AdaptiveHashMap(fun () -> reader() :> IOpReader<_>) :> amap<_,_>
+
+/// functional operators for amap<_,_>
+module AMap =
+    open AdaptiveHashMapImplementation
+
+    /// the empty map.
+    let empty<'Key, 'Value> = EmptyMap<'Key, 'Value>.Instance
+    
+    /// a constant amap holding a single key/value.
+    let single (key : 'Key) (value : 'Value) =
+        constant (fun () -> HashMap.single key value)
+        
+    /// creates an amap holding the given entries.
+    let ofSeq (elements : seq<'Key * 'Value>) =
+        constant (fun () -> HashMap.ofSeq elements)
+        
+    /// creates an amap holding the given entries.
+    let ofList (elements : list<'Key * 'Value>) =
+        constant (fun () -> HashMap.ofList elements)
+        
+    /// creates an amap holding the given entries.
+    let ofArray (elements : array<'Key * 'Value>) =
+        constant (fun () -> HashMap.ofArray elements)
+        
+    /// creates an aval providing access to the current content of the map.
+    let toAVal (map : amap<'k, 'v>) = map.Content
+
+    /// adaptively maps over the given map.
+    let map (mapping : 'Key -> 'Value1 -> 'Value2) (map : amap<'Key, 'Value1>) =
+        if map.IsConstant then
+            constant (fun () -> map |> force |> HashMap.map mapping)
+        else
+            create (fun () -> MapWithKeyReader(map, mapping))
+    
+    /// creates an amap with the keys from the set and the values given by mapping.
+    let mapSet (mapping : 'Key -> 'Value) (set : aset<'Key>) =
+        if set.IsConstant then
+            constant (fun () ->     
+                let c = set.Content |> AVal.force
+                let newStore = c.Store |> IntMap.map (List.map (fun key -> struct(key, mapping key)))
+                HashMap(c.Count, newStore)
+            )
+        else
+            create (fun () -> MapSetReader(set, mapping))
+
+    /// adaptively maps over the given map without exposing keys.
+    let map' (mapping : 'Value1 -> 'Value2) (map : amap<'Key, 'Value1>) =
+        if map.IsConstant then
+            constant (fun () -> map |> force |> HashMap.map (fun _ -> mapping))
+        else
+            create (fun () -> MapReader(map, mapping))
+        
+    /// adaptively chooses all elements returned by mapping.  
+    let choose (mapping : 'Key -> 'Value1 -> option<'Value2>) (map : amap<'Key, 'Value1>) =
+        if map.IsConstant then
+            constant (fun () -> map |> force |> HashMap.choose mapping)
+        else
+            create (fun () -> ChooseWithKeyReader(map, mapping))
+            
+    /// adaptively chooses all elements returned by mapping without exposing keys.  
+    let choose' (mapping : 'Value1 -> option<'Value2>) (map : amap<'Key, 'Value1>) =
+        if map.IsConstant then
+            constant (fun () -> map |> force |> HashMap.choose (fun _ -> mapping))
+        else
+            create (fun () -> ChooseReader(map, mapping))
+ 
+    /// adaptively filters the set using the given predicate.
+    let filter (predicate : 'k -> 'a -> bool) (map : amap<'k, 'a>) =
+        choose (fun k v -> if predicate k v then Some v else None) map
+
+    /// adaptively filters the set using the given predicate without exposing keys.
+    let filter' (predicate : 'a -> bool) (map : amap<'k, 'a>) =
+        choose' (fun v -> if predicate v then Some v else None) map
+
+    /// adaptively unions both maps using the given resolve functions when colliding entries are found.
+    let unionWith (resolve : 'Key -> 'Value -> 'Value -> 'Value) (a : amap<'Key, 'Value>) (b : amap<'Key, 'Value>) =
+        if a.IsConstant && b.IsConstant then
+            constant (fun () ->
+                let va = force a
+                let vb = force b
+                HashMap.unionWith resolve va vb
+            )
+        else
+            create (fun () -> UnionWithReader(a, b, resolve))
+
+    /// adaptively unions both maps preferring the right value when colliding entries are found.
+    let union (a : amap<'Key, 'Value>) (b : amap<'Key, 'Value>) =
+        unionWith (fun _ _ r -> r) a b
+
+    /// creates an amap for the given aval.
+    let ofAVal (value : aval<#seq<'Key * 'Value>>) =
+        if value.IsConstant then
+            constant (fun () -> value |> AVal.force :> seq<_> |> HashMap.ofSeq)
+        else
+            create (fun () -> AValReader(value))
+
+    /// adaptively maps over the given aval and returns the resulting map.
+    let bind (mapping : 'T -> amap<'Key, 'Value>) (value : aval<'T>) =
+        if value.IsConstant then
+            mapping (AVal.force value)
+        else
+            create (fun () -> BindReader(value, mapping))
+
+    /// creates an aset holding all key/value tuples from the map.
+    let toASet (map : amap<'Key, 'Value>) = 
+        if map.IsConstant then
+            ASet.delay (fun () -> map |> force |> HashMap.toSeq |> HashSet.ofSeq)
+        else
+            ASet.ofReader (fun () -> ToASetReader(map))
