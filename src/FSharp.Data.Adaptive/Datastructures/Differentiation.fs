@@ -313,7 +313,7 @@ module DifferentiationExtensions =
 
             else
                 // TODO: one small???
-                let merge (k : Index) (l : Option<'T>) (r : Option<'T>) =
+                let merge (k : Index) (l : option<'T>) (r : option<'T>) =
                     match l, r with
                     | Some l, Some r when Unchecked.equals l r -> 
                         None

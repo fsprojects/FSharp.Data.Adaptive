@@ -34,7 +34,7 @@ type IndexListDelta< [<EqualityConditionalOn>] 'T> internal(content : MapExt<Ind
     member x.Map(mapping : Index -> ElementOperation<'T> -> ElementOperation<'T2>) =
         IndexListDelta(MapExt.map mapping content)
         
-    member x.Choose(mapping : Index -> ElementOperation<'T> -> Option<ElementOperation<'T2>>) =
+    member x.Choose(mapping : Index -> ElementOperation<'T> -> option<ElementOperation<'T2>>) =
         IndexListDelta(MapExt.choose mapping content)
 
     member x.MapMonotonic(mapping : Index -> ElementOperation<'T> -> Index * ElementOperation<'T2>) =
@@ -93,7 +93,7 @@ module IndexListDelta =
     let inline map (mapping : Index -> ElementOperation<'T1> -> ElementOperation<'T2>) (l : IndexListDelta<'T1>) = 
         l.Map mapping
         
-    let inline choose (mapping : Index -> ElementOperation<'T1> -> Option<ElementOperation<'T2>>) (l : IndexListDelta<'T1>) = 
+    let inline choose (mapping : Index -> ElementOperation<'T1> -> option<ElementOperation<'T2>>) (l : IndexListDelta<'T1>) = 
         l.Choose mapping
 
     let inline combine (l : IndexListDelta<'T1>) (r : IndexListDelta<'T1>) =

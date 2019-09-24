@@ -414,7 +414,7 @@ module internal MapExtImplementation =
                 | MapNode(_,_,l,r,_,_) ->
                     1 + stupidCount l + stupidCount r
 
-        let rec validateAux (comparer: IComparer<'Value>) (min : Option<_>) (max : Option<_>) m =
+        let rec validateAux (comparer: IComparer<'Value>) (min : option<_>) (max : option<_>) m =
             match m with
                 | MapNode(k,v,l,r,h,c) ->
                     let lh = height l
@@ -541,7 +541,7 @@ module internal MapExtImplementation =
 
         let mapiMonotonic f m = mapiMonotonicAux (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
     
-        let rec chooseiOpt (f:OptimizedClosures.FSharpFunc<'Key,'T1,Option<'T2>>) m =
+        let rec chooseiOpt (f:OptimizedClosures.FSharpFunc<'Key,'T1,option<'T2>>) m =
             match m with
                 | MapEmpty -> empty
                 | MapOne(k,v) ->
@@ -1163,7 +1163,7 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
     member m.Remove(k)  : MapExt<'Key,'Value> = 
         new MapExt<'Key,'Value>(comparer,MapTree.remove comparer k tree)
         
-    member m.TryRemove(k)  : Option<'Value * MapExt<'Key,'Value>> = 
+    member m.TryRemove(k)  : option<'Value * MapExt<'Key,'Value>> = 
         match MapTree.tryRemove comparer k tree with
         | Some (v, t) -> 
             Some(v, new MapExt<'Key,'Value>(comparer, t))

@@ -171,7 +171,7 @@ module AdaptiveHashMapImplementation =
             let lops = lReader.GetChanges token
             let rops = rReader.GetChanges token
 
-            let merge (key : 'Key) (lop : Option<ElementOperation<'Value>>) (rop : Option<ElementOperation<'Value>>) : ElementOperation<'Value> =
+            let merge (key : 'Key) (lop : option<ElementOperation<'Value>>) (rop : option<ElementOperation<'Value>>) : ElementOperation<'Value> =
                 let lv =
                     match lop with
                     | Some (Set lv) -> Some lv
