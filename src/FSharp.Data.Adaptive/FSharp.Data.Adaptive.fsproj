@@ -49,7 +49,7 @@
 	<Compile Include="AdaptiveHashMap\AdaptiveHashMap.fs" />
 	<Compile Include="AdaptiveHashMap\ChangeableHashMap.fsi" />
 	<Compile Include="AdaptiveHashMap\ChangeableHashMap.fs" />
-	<Compile Include="AdaptiveList\AdaptiveList.fs" />
+	<Compile Include="AdaptiveIndexList\AdaptiveIndexList.fs" />
 	</ItemGroup>
 	<Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
