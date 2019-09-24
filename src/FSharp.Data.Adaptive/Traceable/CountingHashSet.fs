@@ -22,7 +22,7 @@ type internal SetCmp =
 //  c=union a b // {1,2,3}
 //
 //  a.remove 1
-// c={1,2,3} // still because 1 was contained twice
+//  c={1,2,3} // still because 1 was contained twice
 //
 // We could have solved these problems a different way, but using refcounting simply works and we don't have to care about duplicates in reader implementations...
 [<Struct; StructuralEquality; NoComparison>]
