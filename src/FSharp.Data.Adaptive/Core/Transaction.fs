@@ -24,16 +24,16 @@ module internal LockingExtensions =
 
 /// When evaluating AdaptiveObjects inside a Transaction 
 /// (aka eager evaluation) their level might be inconsistent when
-/// attempting to evaluate. Therefore the evaluation may raise
-/// this exception causing the evaluation to be delayed to a later
-/// time in the Transaction.
+/// Attempting to evaluate. Therefore the evaluation may raise
+/// This exception causing the evaluation to be delayed to a later
+/// Time in the Transaction.
 exception LevelChangedException of newLevel : int
 
 
 /// Holds a set of adaptive objects which have been changed and shall
-/// therefore be marked as outOfDate. Committing the transaction propagates
-/// these changes into the dependency-graph, takes care of the correct
-/// execution-order and acquires appropriate locks for all objects affected.
+/// Therefore be marked as outOfDate. Committing the transaction propagates
+/// These changes into the dependency-graph, takes care of the correct
+/// Execution-order and acquires appropriate locks for all objects affected.
 type Transaction() =
 
     // Each thread may have its own running transaction
@@ -97,7 +97,7 @@ type Transaction() =
         else Some current
 
     /// Performs the entire marking process, causing all affected objects to
-    /// be made consistent with the enqueued changes.
+    /// Be made consistent with the enqueued changes.
     member x.Commit() =
 
         // cache the currently running transaction (if any)
@@ -201,7 +201,7 @@ type Transaction() =
 [<AutoOpen>]
 module Transaction =
     /// Returns the currently running transaction or (if none)
-    /// the current transaction for the calling thread
+    /// The current transaction for the calling thread
     let getCurrentTransaction() =
         match Transaction.Running with
             | Some r -> Some r
@@ -214,7 +214,7 @@ module Transaction =
         Transaction.Current <- t
 
     /// Executes a function "inside" a newly created
-    /// transaction and commits the transaction
+    /// Transaction and commits the transaction
     let transact (f : unit -> 'T) =
         use t = new Transaction()
         let old = Transaction.Current
@@ -227,12 +227,12 @@ module Transaction =
 
     // Defines some extension utilites for IAdaptiveObjects
     type IAdaptiveObject with
-        /// utility for marking adaptive object as outOfDate.
+        /// Utility for marking adaptive object as outOfDate.
         /// Note that this function will actually enqueue the
-        /// object to the current transaction and will fail if
-        /// no current transaction can be found.
+        /// Object to the current transaction and will fail if
+        /// No current transaction can be found.
         /// However objects which are already outOfDate might
-        /// also be "marked" when not having a current transaction.
+        /// Also be "marked" when not having a current transaction.
         member x.MarkOutdated () =
             match getCurrentTransaction() with
                 | Some t -> t.Enqueue(x)
@@ -245,10 +245,10 @@ module Transaction =
                     
         /// Utility for marking adaptive object as outOfDate.
         /// Note that this function will actually enqueue the
-        /// object to the current transaction and will fail if
-        /// no current transaction can be found.
+        /// Object to the current transaction and will fail if
+        /// No current transaction can be found.
         /// However objects which are already outOfDate might
-        /// also be "marked" when not having a current transaction.
+        /// Also be "marked" when not having a current transaction.
         member x.MarkOutdated (fin : unit -> unit) =
             match getCurrentTransaction() with
                 | Some t -> 

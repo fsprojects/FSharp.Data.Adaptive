@@ -5,8 +5,8 @@ open System.Collections
 open System.Collections.Generic
 open FSharp.Data.Adaptive
 
-/// helper functions for hash-collision lists.
-/// most members have bad runtime, but the lists should be quite small when using appropriate hashCodes.
+/// Helper functions for hash-collision lists.
+/// Most members have bad runtime, but the lists should be quite small when using appropriate hashCodes.
 module internal HashMapList =
 
     let inline combineHash (a: int) (b: int) =
@@ -255,27 +255,27 @@ module internal HashMapList =
             
 
 /// Immutable hash-based map datastructure.
-/// hash/equality are determined using the Unchecked module
+/// Hash/equality are determined using the Unchecked module
 [<Struct; CustomEquality; NoComparison>]
 [<StructuredFormatDisplay("{AsString}")>]
 type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<list<struct ('K * 'V)>>) =
     static let empty = HashMap<'K, 'V>(0, IntMap.empty)
 
-    /// internal for getting the IntMap store
+    /// Internal for getting the IntMap store
     member internal x.Store = store
 
-    /// the empty HashMap.
+    /// The empty HashMap.
     static member Empty = empty
     
-    /// is the map empty? `O(1)`
+    /// Is the map empty? `O(1)`
     member x.IsEmpty = cnt = 0
 
-    /// the number of elements in the map `O(1)`
+    /// The number of elements in the map `O(1)`
     member x.Count = cnt
 
-    /// adds, deletes or updates the entry for the given key.
-    /// the update functions gets the optional old value and may optionally return
-    /// a new value (or None for deleting the entry).
+    /// Adds, deletes or updates the entry for the given key.
+    /// The update functions gets the optional old value and may optionally return
+    /// A new value (or None for deleting the entry).
     /// `O(log N)`
     member x.Alter (key: 'K, update: option<'V> -> option<'V>) =
         let hash = Unchecked.hash key
@@ -321,12 +321,12 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
         if changed then HashMap(cnt + deltaCnt, newStore)
         else x
 
-    /// adds or updates the entry for the given key based on the optional current value. 
+    /// Adds or updates the entry for the given key based on the optional current value. 
     /// `O(log N)`
     member x.Update (key: 'K, f: option<'V> -> 'V) =
         x.Alter(key, f >> Some)
             
-    /// adds or updates the entry for the given key. `O(log N)`
+    /// Adds or updates the entry for the given key. `O(log N)`
     member x.Add (key: 'K, value: 'V) =
         let hash = Unchecked.hash key
         let mutable cnt = cnt
@@ -340,7 +340,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
             ) hash
         HashMap(cnt, newMap)
 
-    /// removes the entry for the given key. `O(log N)`
+    /// Removes the entry for the given key. `O(log N)`
     member x.Remove (key: 'K) =
         let mutable cnt = cnt
         let hash = Unchecked.hash key
@@ -352,14 +352,14 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
             ) hash
         HashMap(cnt, newMap)
 
-    /// tests if an entry for the given key exists. `O(log N)`
+    /// Tests if an entry for the given key exists. `O(log N)`
     member x.ContainsKey (key: 'K) =
         let hash = Unchecked.hash key
         match IntMap.tryFind hash store with
         | Some l -> l |> List.exists (fun struct (k,_) -> Unchecked.equals k key)
         | None -> false
         
-    /// creates a HashSet holding all keys from the map.
+    /// Creates a HashSet holding all keys from the map.
     /// `O(N)`
     member x.GetKeys() =
         let setStore =
@@ -369,7 +369,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
         HashSet(cnt, setStore)
 
 
-    /// creates a new map (with the same keys) by applying the given function to all entries.
+    /// Creates a new map (with the same keys) by applying the given function to all entries.
     /// `O(N)`
     member x.Map(mapping: 'K -> 'V -> 'V2) =
         let newStore = 
@@ -377,7 +377,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
                 |> IntMap.map (fun l -> l |> List.map (fun struct (k,v) -> struct (k, mapping k v)))
         HashMap(cnt, newStore)
 
-    /// creates two maps (with the same keys) by applying the given function to all entries.
+    /// Creates two maps (with the same keys) by applying the given function to all entries.
     /// `O(N)`
     member x.ChooseTup(mapping: 'K -> 'V -> option<'V2 * 'V3>) =
         let mutable cnt = 0
@@ -401,7 +401,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
                    )
         HashMap(cnt, a), HashMap(cnt, b)
         
-    /// creates a new map (with the same keys) by applying the given function to all entries.
+    /// Creates a new map (with the same keys) by applying the given function to all entries.
     /// `O(N)`
     member x.Choose(mapping: 'K -> 'V -> option<'V2>) =
         let mutable cnt = 0
@@ -422,7 +422,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
                    )
         HashMap(cnt, newStore)
 
-    /// creates a new map (with the same keys) that contains all entries for which predicate was true.
+    /// Creates a new map (with the same keys) that contains all entries for which predicate was true.
     /// `O(N)`
     member x.Filter(predicate: 'K -> 'V -> bool) =
         let mutable cnt = 0
@@ -441,37 +441,37 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
             )
         HashMap(cnt, newStore)
 
-    /// applies the iter function to all entries of the map.
+    /// Applies the iter function to all entries of the map.
     /// `O(N)`
     member x.Iter(iter: 'K -> 'V -> unit) =
         store |> IntMap.toSeq |> Seq.iter (fun (_,l) ->
             l |> List.iter (fun struct(k,v) -> iter k v)
         )
         
-    /// tests whether an entry making the predicate true exists.
+    /// Tests whether an entry making the predicate true exists.
     /// `O(N)`
     member x.Exists(predicate: 'K -> 'V -> bool) =
         store |> IntMap.toSeq |> Seq.exists (fun (_,v) ->
             v |> List.exists (fun struct(k,v) -> predicate k v)
         )
 
-    /// tests whether all entries fulfil the given predicate.
+    /// Tests whether all entries fulfil the given predicate.
     /// `O(N)`
     member x.Forall(predicate: 'K -> 'V -> bool) =
         store |> IntMap.toSeq |> Seq.forall (fun (_,v) ->
             v |> List.forall (fun struct (k,v) -> predicate k v)
         )
 
-    /// folds over all entries of the map.
-    /// note that the order for elements is undefined.
+    /// Folds over all entries of the map.
+    /// Note that the order for elements is undefined.
     /// `O(N)`
     member x.Fold(seed: 'State, folder: 'State -> 'K -> 'V -> 'State) =
         store |> IntMap.fold (fun s l ->
             l |> List.fold (fun s struct (k,v) -> folder s k v) s
         ) seed
         
-    /// creates a new map containing all elements from this and other.
-    /// the collide functions is used to resolve conflicts.
+    /// Creates a new map containing all elements from this and other.
+    /// The collide functions is used to resolve conflicts.
     /// `O(N + M)`
     member x.UnionWith(other: HashMap<'K, 'V>, collide: 'K -> 'V -> 'V -> 'V) =
         let mutable cnt = cnt + other.Count
@@ -484,9 +484,9 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
         
         HashMap(cnt, newStore)
         
-    /// creates a new map by applying the mapping function to all entries.
-    /// the respective option-arguments are some whenever the left/right map has an entry for the current key.
-    /// note that one of the options will always be some.
+    /// Creates a new map by applying the mapping function to all entries.
+    /// The respective option-arguments are some whenever the left/right map has an entry for the current key.
+    /// Note that one of the options will always be some.
     /// `O(N + M)`
     member x.Choose2(other: HashMap<'K, 'V2>, mapping: 'K -> option<'V> -> option<'V2> -> option<'V3>) =
         let mutable cnt = 0
@@ -522,9 +522,9 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
 
         HashMap(cnt, newStore)
     
-    /// creates a new map by applying the mapping function to all entries.
-    /// the respective option-arguments are some whenever the left/right map has an entry for the current key.
-    /// note that one of the options will always be some.
+    /// Creates a new map by applying the mapping function to all entries.
+    /// The respective option-arguments are some whenever the left/right map has an entry for the current key.
+    /// Note that one of the options will always be some.
     /// `O(N + M)`
     member x.Choose2SetMap(other: HashSet<'K>, mapping: 'K -> option<'V> -> bool -> option<'V3>) =
         let mutable cnt = 0
@@ -560,9 +560,9 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
 
         HashMap(cnt, newStore)
     
-    /// creates a new set by applying the mapping function to all entries.
-    /// the respective option-arguments are some whenever the left/right map has an entry for the current key.
-    /// note that one of the options will always be some.
+    /// Creates a new set by applying the mapping function to all entries.
+    /// The respective option-arguments are some whenever the left/right map has an entry for the current key.
+    /// Note that one of the options will always be some.
     /// `O(N + M)`
     member x.Choose2SetSet(other: HashSet<'K>, mapping: 'K -> option<'V> -> bool -> bool) =
         let mutable cnt = 0
@@ -598,9 +598,9 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
 
         HashSet(cnt, newStore)
 
-    /// creates a new map by applying the mapping function to all entries.
-    /// the respective option-arguments are some whenever the left/right map has an entry for the current key.
-    /// note that one of the options will always be some.
+    /// Creates a new map by applying the mapping function to all entries.
+    /// The respective option-arguments are some whenever the left/right map has an entry for the current key.
+    /// Note that one of the options will always be some.
     /// `O(N + M)`
     member x.Map2(other: HashMap<'K, 'V2>, f: 'K -> option<'V> -> option<'V2> -> 'V3) =
         let mutable cnt = 0
@@ -632,13 +632,13 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
 
         HashMap(cnt, newStore)
     
-    /// creates a new map containing all elements from this and other.
-    /// colliding entries are taken from other.
+    /// Creates a new map containing all elements from this and other.
+    /// Colliding entries are taken from other.
     /// `O(N + M)`
     member x.Union(other: HashMap<'K, 'V>) =
         x.UnionWith(other, fun _ _ r -> r)
 
-    /// tries to remove the entry for the given key from the map and returns its value and the rest of the map.
+    /// Tries to remove the entry for the given key from the map and returns its value and the rest of the map.
     /// `O(log N)`
     member x.TryRemove(key: 'K) =
         let hash = Unchecked.hash key
@@ -659,7 +659,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
         | Some rem -> Some(rem, HashMap(cnt - 1, newStore))
         | None -> None
        
-    /// tries to find the value for the given key.
+    /// Tries to find the value for the given key.
     /// `O(log N)`
     member x.TryFind(key: 'K) =
         let hash = Unchecked.hash key
@@ -674,29 +674,29 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
         | None ->
             None
 
-    /// finds the value for the given key and raises KeyNotFoundException on failure.
+    /// Finds the value for the given key and raises KeyNotFoundException on failure.
     /// `O(log N)`
     member x.Find(key: 'K) =
         match x.TryFind key with
         | Some v -> v
         | None -> raise <| System.Collections.Generic.KeyNotFoundException()
             
-    /// finds the value for the given key and raises KeyNotFoundException on failure.
+    /// Finds the value for the given key and raises KeyNotFoundException on failure.
     /// `O(log N)`
     member x.Item
         with get (key: 'K) = x.Find key
 
-    /// creates a seq holding all tuples contained in the map.
+    /// Creates a seq holding all tuples contained in the map.
     /// `O(N)`
     member x.ToSeq() =
         store |> IntMap.toSeq |> Seq.collect (fun (_,l) -> l |> Seq.map (fun struct(k,v) -> (k,v)))
         
-    /// creates a list holding all tuples contained in the map.
+    /// Creates a list holding all tuples contained in the map.
     /// `O(N)`
     member x.ToList() =
         store |> IntMap.toList |> List.collect (fun (_,l) -> l |> List.map (fun struct(k,v) -> (k,v)))
         
-    /// creates a list holding all tuples contained in the map.
+    /// Creates a list holding all tuples contained in the map.
     /// `O(N)`
     member x.ToArray() =
         let result = Array.zeroCreate x.Count
@@ -707,13 +707,13 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
                 i <- i + 1
         result
 
-    /// creates a map with a single entry.
+    /// Creates a map with a single entry.
     /// `O(1)`
     static member Single (k: 'K) (v: 'V) =
         let hash = Unchecked.hash k
         HashMap(1, IntMap.single hash [(k, v)])
         
-    /// creates a map with all entries from the seq.
+    /// Creates a map with all entries from the seq.
     /// `O(N * log N)`
     static member OfSeq (seq: seq<'K * 'V>) =
         match seq with
@@ -725,12 +725,12 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
                 res <- res.Add(k,v)
             res
         
-    /// creates a map with all entries from the list.
+    /// Creates a map with all entries from the list.
     /// `O(N * log N)`
     static member OfList (list: list<'K * 'V>) =
         HashMap.OfSeq list
         
-    /// creates a map with all entries from the array.
+    /// Creates a map with all entries from the array.
     /// `O(N * log N)`
     static member OfArray (list: array<'K * 'V>) =
         HashMap.OfSeq list
@@ -752,7 +752,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
             (0, store) ||> Seq.fold (fun s (h,vs) ->
                 let listHash = 
                     (0, vs) ||> List.fold (fun s struct (_,v) -> 
-                        /// need unordered hash combine here
+                        /// Need unordered hash combine here
                         s ^^^ (Unchecked.hash v)
                     )
                 HashMapList.combineHash h listHash
@@ -846,48 +846,48 @@ module HashMap =
     [<GeneralizableValue>]
     let empty<'K, 'V> = HashMap<'K, 'V>.Empty
     
-    /// creates a map with a single entry.
+    /// Creates a map with a single entry.
     /// `O(1)`
     let inline single (k: 'K) (v: 'V) = 
         HashMap.Single k v
 
-    /// creates a map with all entries from the seq.
+    /// Creates a map with all entries from the seq.
     /// `O(N * log N)`
     let inline ofSeq (seq: seq<'K * 'V>) = 
         HashMap.OfSeq seq
 
-    /// creates a map with all entries from the map.
+    /// Creates a map with all entries from the map.
     /// `O(N * log N)`
     let inline ofMap (map: Map<'K, 'V>) = 
         map |> Map.toSeq |> ofSeq
 
-    /// creates a map with all entries from the list.
+    /// Creates a map with all entries from the list.
     /// `O(N * log N)`
     let inline ofList (list: list<'K * 'V>) = 
         HashMap.OfList list
         
-    /// creates a map with all entries from the array.
+    /// Creates a map with all entries from the array.
     /// `O(N * log N)`
     let inline ofArray (arr: array<'K * 'V>) = 
         HashMap.OfArray arr
 
     
-    /// creates a seq holding all tuples contained in the map.
+    /// Creates a seq holding all tuples contained in the map.
     /// `O(N)`
     let inline toSeq (map: HashMap<'K, 'V>) = 
         map.ToSeq()
 
-    /// creates a list holding all tuples contained in the map.
+    /// Creates a list holding all tuples contained in the map.
     /// `O(N)`
     let inline toList (map: HashMap<'K, 'V>) = 
         map.ToList()
 
-    /// creates a list holding all tuples contained in the map.
+    /// Creates a list holding all tuples contained in the map.
     /// `O(N)`
     let inline toArray (map: HashMap<'K, 'V>) = 
         map.ToArray()
 
-    /// creates a Map holding all entries contained in the HashMap.
+    /// Creates a Map holding all entries contained in the HashMap.
     /// `O(N)`
     let inline toMap (map: HashMap<'K, 'V>) = 
         let mutable res = Map.empty
@@ -896,115 +896,115 @@ module HashMap =
         res
 
 
-    /// adds or updates the entry for the given key. `O(log N)`
+    /// Adds or updates the entry for the given key. `O(log N)`
     let inline add (key: 'K) (value: 'V) (map: HashMap<'K, 'V>) =
         map.Add(key, value)
 
-    /// removes the entry for the given key. `O(log N)`
+    /// Removes the entry for the given key. `O(log N)`
     let inline remove (key: 'K) (map: HashMap<'K, 'V>) =
         map.Remove(key)
 
-    /// adds, deletes or updates the entry for the given key.
-    /// the update functions gets the optional old value and may optionally return
-    /// a new value (or None for deleting the entry).
+    /// Adds, deletes or updates the entry for the given key.
+    /// The update functions gets the optional old value and may optionally return
+    /// A new value (or None for deleting the entry).
     /// `O(log N)`
     let inline alter (key: 'K) (mapping: option<'V> -> option<'V>) (map: HashMap<'K, 'V>) =
         map.Alter(key, mapping)
         
-    /// adds or updates the entry for the given key based on the optional current value. 
+    /// Adds or updates the entry for the given key based on the optional current value. 
     /// `O(log N)`
     let inline update (key: 'K) (mapping: option<'V> -> 'V) (map: HashMap<'K, 'V>) =
         map.Update(key, mapping)
 
-    /// creates a new map containing all elements from l and r.
-    /// the resolve functions is used to resolve conflicts.
+    /// Creates a new map containing all elements from l and r.
+    /// The resolve functions is used to resolve conflicts.
     /// `O(N + M)`
     let inline unionWith (resolve: 'K -> 'V -> 'V -> 'V) (l: HashMap<'K, 'V>) (r: HashMap<'K, 'V>) =
         l.UnionWith(r, resolve)
         
-    /// creates a new map containing all elements from l and r.
-    /// colliding entries are taken from r.
+    /// Creates a new map containing all elements from l and r.
+    /// Colliding entries are taken from r.
     /// `O(N + M)`
     let inline union (l: HashMap<'K, 'V>) (r: HashMap<'K, 'V>) =
         l.Union r
 
-    /// tries to remove the entry for the given key from the map and returns its value and the rest of the map.
+    /// Tries to remove the entry for the given key from the map and returns its value and the rest of the map.
     /// `O(log N)`
     let inline tryRemove (key: 'K) (map: HashMap<'K, 'V>) =
         map.TryRemove key
 
 
-    /// creates a new map (with the same keys) by applying the given function to all entries.
+    /// Creates a new map (with the same keys) by applying the given function to all entries.
     /// `O(N)`
     let inline map (mapping: 'K -> 'V -> 'V2) (map: HashMap<'K, 'V>) =
         map.Map(mapping)
         
-    /// creates a new map (with the same keys) by applying the given function to all entries.
+    /// Creates a new map (with the same keys) by applying the given function to all entries.
     /// `O(N)`
     let inline choose (mapping: 'K -> 'V -> option<'V2>) (map: HashMap<'K, 'V>) =
         map.Choose mapping
 
-    /// creates a new map (with the same keys) that contains all entries for which predicate was true.
+    /// Creates a new map (with the same keys) that contains all entries for which predicate was true.
     /// `O(N)`
     let inline filter (predicate: 'K -> 'V -> bool) (map: HashMap<'K, 'V>) =
         map.Filter predicate
 
-    /// applies the iter function to all entries of the map.
+    /// Applies the iter function to all entries of the map.
     /// `O(N)`
     let inline iter (iter: 'K -> 'V -> unit) (map: HashMap<'K, 'V>) =
         map.Iter iter
 
-    /// folds over all entries of the map.
-    /// note that the order for elements is undefined.
+    /// Folds over all entries of the map.
+    /// Note that the order for elements is undefined.
     /// `O(N)`
     let inline fold (folder: 'State -> 'K -> 'V -> 'State) (seed: 'State) (map: HashMap<'K, 'V>) =
         map.Fold(seed, folder)
         
-    /// tests whether an entry making the predicate true exists.
+    /// Tests whether an entry making the predicate true exists.
     /// `O(N)`
     let inline exists (predicate: 'K -> 'V -> bool) (map: HashMap<'K, 'V>) =
         map.Exists(predicate)
 
-    /// tests whether all entries fulfil the given predicate.
+    /// Tests whether all entries fulfil the given predicate.
     /// `O(N)`
     let inline forall (predicate: 'K -> 'V -> bool) (map: HashMap<'K, 'V>) =
         map.Forall(predicate)
 
-    /// creates a new map by applying the mapping function to all entries.
-    /// the respective option-arguments are some whenever the left/right map has an entry for the current key.
-    /// note that one of the options will always be some.
+    /// Creates a new map by applying the mapping function to all entries.
+    /// The respective option-arguments are some whenever the left/right map has an entry for the current key.
+    /// Note that one of the options will always be some.
     /// `O(N + M)`
     let inline map2 (mapping: 'K -> option<'V> -> option<'V2> -> 'V3) (l: HashMap<'K, 'V>) (r: HashMap<'K, 'V2>) =
         l.Map2(r, mapping)
 
-    /// creates a new map by applying the mapping function to all entries.
-    /// the respective option-arguments are some whenever the left/right map has an entry for the current key.
-    /// note that one of the options will always be some.
+    /// Creates a new map by applying the mapping function to all entries.
+    /// The respective option-arguments are some whenever the left/right map has an entry for the current key.
+    /// Note that one of the options will always be some.
     /// `O(N + M)`
     let inline choose2 (mapping: 'K -> option<'V1> -> option<'V2> -> option<'V3>) (l: HashMap<'K, 'V1>) (r: HashMap<'K, 'V2>) =
         l.Choose2(r, mapping)
 
-    /// tries to find the value for the given key.
+    /// Tries to find the value for the given key.
     /// `O(log N)`
     let inline tryFind (key: 'K) (map: HashMap<'K, 'V>) =
         map.TryFind key
         
-    /// finds the value for the given key and raises KeyNotFoundException on failure.
+    /// Finds the value for the given key and raises KeyNotFoundException on failure.
     /// `O(log N)`
     let inline find (key: 'K) (map: HashMap<'K, 'V>) =
         map.Find key
         
-    /// tests if an entry for the given key exists. `O(log N)`
+    /// Tests if an entry for the given key exists. `O(log N)`
     let inline containsKey (key: 'K) (map: HashMap<'K, 'V>) =
         map.ContainsKey key
 
-    /// creates a HashSet holding all keys from the map.
+    /// Creates a HashSet holding all keys from the map.
     /// `O(N)`
     let inline keys (map: HashMap<'K, 'V>) = map.GetKeys()
 
-    /// the number of elements in the map `O(1)`
+    /// The number of elements in the map `O(1)`
     let inline count (map: HashMap<'K, 'V>) = map.Count
     
-    /// is the map empty? `O(1)`
+    /// Is the map empty? `O(1)`
     let inline isEmpty (map: HashMap<'K, 'V>) = map.IsEmpty
 

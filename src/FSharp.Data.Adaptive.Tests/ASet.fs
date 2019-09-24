@@ -45,7 +45,7 @@ let ``[CSet] reader add/remove/clear/union/except`` () =
     r |> check |> should setequal [Rem 1; Rem 3]
     r.Adaptive.State |> should setequal [2]
 
-    /// clear
+    /// Clear
     transact (fun () -> set.Clear())
     set.Value |> should setequal List.empty<int>
     r |> check |> should setequal [Rem 2]

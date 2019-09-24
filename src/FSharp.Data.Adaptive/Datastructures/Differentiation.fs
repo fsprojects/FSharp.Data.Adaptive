@@ -1,13 +1,13 @@
 ﻿namespace FSharp.Data.Adaptive
 
-/// differentiation extensions for several immutable datastructures.
+/// Differentiation extensions for several immutable datastructures.
 [<AutoOpen>]
 module DifferentiationExtensions =
 
     /// Functional programming operators related to the HashSet<_> type.
     module HashSet =
 
-        /// determines the operations needed to transform l into r.
+        /// Determines the operations needed to transform l into r.
         /// Returns a HashSetDelta containing these operations.
         let differentiate (l: HashSet<'T>) (r: HashSet<'T>) =
             // O(1)
@@ -110,18 +110,18 @@ module DifferentiationExtensions =
                 let store = IntMap.computeDelta both (IntMap.map del) (IntMap.map add) l.Store r.Store
                 HashSetDelta(HashMap(cnt, store))
             
-        /// same as differentiate set empty
+        /// Same as differentiate set empty
         let removeAll (set: HashSet<'T>) =
             let store = set.Store |> IntMap.map (List.map (fun v -> struct (v, -1)))
             HashMap(set.Count, store) |> HashSetDelta
             
-        /// same as differentiate empty set
+        /// Same as differentiate empty set
         let addAll (set: HashSet<'T>) =
             let store = set.Store |> IntMap.map (List.map (fun v -> struct (v, 1)))
             HashMap(set.Count, store) |> HashSetDelta
 
-        /// applies the given operations to the set. 
-        /// returns the new set and the 'effective' operations.
+        /// Applies the given operations to the set. 
+        /// Returns the new set and the 'effective' operations.
         let integrate (value: HashSet<'T>) (delta: HashSetDelta<'T>) =
             // O(1)
             if delta.IsEmpty then
@@ -208,8 +208,8 @@ module DifferentiationExtensions =
     /// Functional programming operators related to the HashMap<_,_> type.
     module HashMap =
     
-        /// determines the operations needed to transform l into r.
-        /// returns a HashMapDelta containing all the needed operations.
+        /// Determines the operations needed to transform l into r.
+        /// Returns a HashMapDelta containing all the needed operations.
         let differentiate (l: HashMap<'A, 'B>) (r: HashMap<'A, 'B>): HashMapDelta<'A, 'B> =
             if System.Object.ReferenceEquals(l.Store, r.Store) then
                 HashMapDelta.empty
@@ -231,8 +231,8 @@ module DifferentiationExtensions =
                             else Some (Set r)
                 HashMap.choose2 merge l r |> HashMapDelta
                 
-        /// applies the given operations to the map. 
-        /// returns the new map and the 'effective' operations.
+        /// Applies the given operations to the map. 
+        /// Returns the new map and the 'effective' operations.
         let integrate (m: HashMap<'A, 'B>) (delta: HashMapDelta<'A, 'B>) =
             if delta.Store.Count = 0 then
                 m, delta

@@ -3,19 +3,19 @@
 open FSharp.Data.Adaptive
 open FSharp.Data.Adaptive.Reference
 
-/// the reference implementation for IOpReader<_>.
+/// The reference implementation for IOpReader<_>.
 type IOpReader<'Delta> =
     abstract member GetChanges: AdaptiveToken -> 'Delta
     
-/// the reference implementation for IOpReader<_,_>.
+/// The reference implementation for IOpReader<_,_>.
 type IOpReader<'State, 'Delta> =
     inherit IOpReader<'Delta>
     abstract member State: 'State
     
-/// the reference implementation for IHashSetReader.
+/// The reference implementation for IHashSetReader.
 type IHashSetReader<'T> = IOpReader<HashSet<'T>, HashSetDelta<'T>>
 
-/// the reference implementation for aset.
+/// The reference implementation for aset.
 type AdaptiveHashSet<'T> =
     abstract member GetReader: unit -> IHashSetReader<'T>
     abstract member Content: aval<HashSet<'T>>
@@ -90,7 +90,7 @@ type ChangeableHashSet<'T>(value: HashSet<'T>) =
         with get() = content
         and set v = content <- v
 
-    interface aset<'T> with
+    interface AdaptiveHashSet<'T> with
         member x.Content = contentRef
         member x.GetReader() = ASetReader(x) :> IHashSetReader<_>
 
@@ -102,7 +102,7 @@ type ChangeableHashSet<'T>(value: HashSet<'T>) =
 
 and cset<'T> = ChangeableHashSet<'T>
 
-/// functional operators for the aset reference-implementation.
+/// Functional operators for the aset reference-implementation.
 module ASet =
 
     /// Creates an aset from the given aval.

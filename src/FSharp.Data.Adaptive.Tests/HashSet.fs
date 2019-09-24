@@ -26,10 +26,8 @@ type StupidHash = { value : int } with
             | :? StupidHash as o -> x.value = o.value
             | _ -> false
 
-
-/// avoid obj defaulting
+/// Avoid obj defaulting
 let emptyDelta : HashSetDelta<int> = HashSetDelta.empty
-
 
 [<Property>]
 let ``[HashSet] integrate drops useless removes``() =

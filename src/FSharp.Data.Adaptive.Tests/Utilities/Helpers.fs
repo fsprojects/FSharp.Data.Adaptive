@@ -36,7 +36,7 @@ module Helpers =
         }
 
 
-    /// force full garbage collection
+    /// Force full garbage collection
     let ensureGC() =
         GC.Collect(3, GCCollectionMode.Forced, true, true)
         GC.WaitForFullGCComplete() |> ignore
@@ -89,7 +89,7 @@ module Helpers =
     let arrayOverhead = getArrayOverhead()
 
 
-    /// tries hard to get the actual amount of memory used.
+    /// Tries hard to get the actual amount of memory used.
     let inline getRealMemory() =
         ensureGC()
         allocDummy()

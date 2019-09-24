@@ -3,22 +3,23 @@
 /// Represents a dependency-aware value that may change as changes are fed into the system.
 /// An AdaptiveValue cannot be changed directly but gets updated by the dependency graph. 
 /// For changeable inputs see cval<'T>
+[<Interface>]
 type AdaptiveValue<'T> =
     inherit IAdaptiveObject
 
-    /// evaluates the AdaptiveValue<'T> using the given token and returns the current value.
-    /// dependencies will be tracked automatically when the token is correctly passed to all inner evaluation-calls.
+    /// Evaluates the AdaptiveValue<'T> using the given token and returns the current value.
+    /// Dependencies will be tracked automatically when the token is correctly passed to all inner evaluation-calls.
     abstract member GetValue : token : AdaptiveToken -> 'T
 
 /// An abbreviation for AdaptiveValue
 and aval<'T> = AdaptiveValue<'T>
 
 /// Represents an adaptive value that can be changed by application code and
-/// used in dependency-aware computations.
+/// Used in dependency-aware computations.
 [<Sealed; Class>]
 type ChangeableValue<'T> =
     inherit AdaptiveObject
-    interface aval<'T>
+    interface AdaptiveValue<'T>
 
     /// Gets or sets the current value.
     /// Setting the value requires a Transaction to be active using `transact`.
@@ -39,13 +40,13 @@ module AVal =
     [<AbstractClass>]
     type internal AbstractVal<'T> =
         inherit AdaptiveObject
-        interface aval<'T>
+        interface AdaptiveValue<'T>
         new : unit -> AbstractVal<'T>
         abstract member Compute : AdaptiveToken -> 'T
 
     /// Evaluates the given adaptive value and returns its current value.
     /// This should not be used inside the adaptive evaluation
-    /// of other AdaptiveObjects since it does not track dependencies.
+    /// Of other AdaptiveObjects since it does not track dependencies.
     val inline force : value : aval<'T> -> 'T
 
     /// Creates a changeable adaptive value intially holding the given value
@@ -60,24 +61,24 @@ module AVal =
     val delay : create : (unit -> 'T) -> aval<'T>
 
     /// Returns a new adaptive value that adaptively applies the mapping function to the given 
-    /// adaptive inputs.
+    /// Adaptive inputs.
     val map : mapping : ('T1 -> 'T2) -> value : aval<'T1> -> aval<'T2>
 
     /// Returns a new adaptive value that adaptively applies the mapping function to the given 
-    /// adaptive inputs.
+    /// Adaptive inputs.
     val map2 : mapping : ('T1 -> 'T2 -> 'T3) -> value1 : aval<'T1> -> value2 : aval<'T2> -> aval<'T3>
     
     /// Returns a new adaptive value that adaptively applies the mapping function to the given 
-    /// adaptive inputs.
+    /// Adaptive inputs.
     val map3 : mapping : ('T1 -> 'T2 -> 'T3 -> 'T4) -> value1 : aval<'T1> -> value2 : aval<'T2> -> value3 : aval<'T3> -> aval<'T4>
 
     /// Returns a new adaptive value that adaptively applies the mapping function to the given 
-    /// input and adaptively depends on the resulting adaptive value.
+    /// Input and adaptively depends on the resulting adaptive value.
     /// The resulting adaptive value  will hold the latest value of the aval<_> returned by mapping.
     val bind : mapping : ('T1 -> aval<'T2>) -> value : aval<'T1> -> aval<'T2>
 
     /// Adaptively applies the mapping function to the given adaptive values and
-    /// adaptively depends on the adaptive value returned by mapping.
+    /// Adaptively depends on the adaptive value returned by mapping.
     /// The resulting aval<'T3> will hold the latest value of the aval<_> returned by mapping.
     val bind2 : mapping : ('T1 -> 'T2 -> aval<'T3>) -> value1 : aval<'T1> -> value2 : aval<'T2> -> aval<'T3>
 

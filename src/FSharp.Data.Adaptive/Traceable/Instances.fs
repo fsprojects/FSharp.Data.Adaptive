@@ -2,10 +2,10 @@
 
 open FSharp.Data.Adaptive
 
-/// functional operators for HashSetDelta.
+/// Functional operators for HashSetDelta.
 module HashSetDelta =
     type private Monoid<'T> private() =
-        /// the monoid instance for HashSetDelta
+        /// The monoid instance for HashSetDelta
         static let monoid  =
             {
                 mempty = HashSetDelta<'T>(HashMap.empty)
@@ -14,14 +14,14 @@ module HashSetDelta =
             } 
         static member Instance = monoid
 
-    /// the monoid instance for HashSetDelta
+    /// The monoid instance for HashSetDelta
     [<GeneralizableValue>]
     let monoid<'T> = Monoid<'T>.Instance
    
-/// functional operators for HashMapDelta.
+/// Functional operators for HashMapDelta.
 module HashMapDelta =
     type private Monoid<'K, 'V> private() =
-        /// the monoid instance for HashMapDelta
+        /// The monoid instance for HashMapDelta
         static let monoid =
             {
                 mempty = HashMapDelta.empty<'K, 'V>
@@ -30,14 +30,14 @@ module HashMapDelta =
             }
         static member Instance = monoid
 
-    /// the monoid instance for HashMapDelta
+    /// The monoid instance for HashMapDelta
     [<GeneralizableValue>]
     let monoid<'K, 'V> = Monoid<'K, 'V>.Instance
     
-/// functional operators for HashSet.
+/// Functional operators for HashSet.
 module HashSet =
 
-    /// type for caching the Traceable<_> instance for HashSet<_>
+    /// Type for caching the Traceable<_> instance for HashSet<_>
     type private Traceable<'T> private() =
         static let trace : Traceable<HashSet<'T>, HashSetDelta<'T>> =
             {
@@ -50,13 +50,13 @@ module HashSet =
             }
         static member Instance = trace
 
-    /// the traceable instance for HashSet.
+    /// The traceable instance for HashSet.
     let trace<'T> = Traceable<'T>.Instance
  
-/// functional operators for HashMap.
+/// Functional operators for HashMap.
 module HashMap =
 
-    /// type for caching the Traceable<_> instance for HashMap<_,_>
+    /// Type for caching the Traceable<_> instance for HashMap<_,_>
     type private TraceableInstance<'K, 'V> private() =
         static let trace : Traceable<HashMap<'K, 'V>, HashMapDelta<'K, 'V>> =
             {
@@ -69,6 +69,6 @@ module HashMap =
             }
         static member Instance = trace
 
-    /// the traceable instance for HashSet.
+    /// The traceable instance for HashSet.
     let trace<'K, 'V> = TraceableInstance<'K, 'V>.Instance
      

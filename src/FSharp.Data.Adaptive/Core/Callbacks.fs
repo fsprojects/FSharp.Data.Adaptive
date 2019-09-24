@@ -51,9 +51,9 @@ module CallbackExtensions =
     
     type IAdaptiveObject with
         /// Registers a callback with the given object that will be executed
-        /// whenever the object gets marked out-of-date.
-        /// note that it does not trigger when the object is currently out-of-date.
-        /// returns a disposable for removing the callback.
+        /// Whenever the object gets marked out-of-date.
+        /// Note that it does not trigger when the object is currently out-of-date.
+        /// Returns a disposable for removing the callback.
         member x.AddMarkingCallback (callback: unit -> unit) =
             let cb =
                 new CallbackObject(x, fun self ->
@@ -64,10 +64,10 @@ module CallbackExtensions =
             x.Outputs.Add cb |> ignore
             cb :> IDisposable
             
-        /// registers a callback with the given object that will be executed
+        /// Registers a callback with the given object that will be executed
         /// ONCE! when the next out-of-date marking visits the object.
-        /// note that it does not trigger when the object is currently out-of-date.
-        /// returns a disposable for removing the callback.
+        /// Note that it does not trigger when the object is currently out-of-date.
+        /// Returns a disposable for removing the callback.
         member x.OnNextMarking (callback: unit -> unit) =
             let cb =
                 new CallbackObject(x, fun self ->

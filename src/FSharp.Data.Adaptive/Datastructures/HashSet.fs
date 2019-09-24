@@ -3,8 +3,8 @@
 open System.Collections
 open System.Collections.Generic
 
-/// helper functions for hash-collision lists.
-/// most members have bad runtime, but the lists should be quite small when using appropriate hashCodes.
+/// Helper functions for hash-collision lists.
+/// Most members have bad runtime, but the lists should be quite small when using appropriate hashCodes.
 module internal HashSetList =
 
     let inline combineHash (a : int) (b : int) =
@@ -120,25 +120,25 @@ module internal HashSetList =
         c = 0 && List.isEmpty r
 
 /// Immutable hash-based set datastructure.
-/// hash/equality are determined using the Unchecked module
+/// Hash/equality are determined using the Unchecked module
 [<Struct; NoComparison; CustomEquality>]
 [<StructuredFormatDisplay("{AsString}")>]
 type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
     static let empty = HashSet(0, IntMap.empty)
 
-    /// internal for getting the IntMap store
+    /// Internal for getting the IntMap store
     member internal x.Store = store
 
-    /// the empty HashSet
+    /// The empty HashSet
     static member Empty : HashSet<'T> = empty
     
-    /// is the set empty? `O(1)`
+    /// Is the set empty? `O(1)`
     member x.IsEmpty = cnt = 0
 
-    /// the number of elements in the set `O(1)`    
+    /// The number of elements in the set `O(1)`    
     member x.Count = cnt
 
-    /// adds the given entry. `O(log N)`
+    /// Adds the given entry. `O(log N)`
     member x.Add (value : 'T) =
         let hash = Unchecked.hash value
         let mutable cnt = cnt
@@ -155,13 +155,13 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
 
         HashSet(cnt, newStore)
   
-    /// adds the given entry and returns none if it was already existing. `O(log N)`
+    /// Adds the given entry and returns none if it was already existing. `O(log N)`
     member x.TryAdd (value : 'T) =
         let res = x.Add value
         if res.Count <> cnt then Some res
         else None
       
-    /// removes the given entry. `O(log N)`
+    /// Removes the given entry. `O(log N)`
     member x.Remove (value : 'T) =
         let hash = Unchecked.hash value
         let mutable cnt = cnt
@@ -175,22 +175,22 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
 
         HashSet(cnt, newStore)
         
-    /// removes the given entry and returns none if it was not existing. `O(log N)`
+    /// Removes the given entry and returns none if it was not existing. `O(log N)`
     member x.TryRemove (value : 'T) =
         let res = x.Remove value
         if res.Count <> cnt then Some res
         else None
 
-    /// tests if the given key exists. `O(log N)`
+    /// Tests if the given key exists. `O(log N)`
     member x.Contains (value : 'T) =
         let hash = Unchecked.hash value
         match IntMap.tryFind hash store with
             | Some l -> l |> List.exists (Unchecked.equals value)
             | None -> false
     
-    /// adds or deletes the given key.
-    /// the update functions gets a boolean indicating whether the key was contained and
-    /// can return a new "contained-value".
+    /// Adds or deletes the given key.
+    /// The update functions gets a boolean indicating whether the key was contained and
+    /// Can return a new "contained-value".
     /// `O(log N)`     
     member x.Alter(key : 'T, f : bool -> bool) =
         let hash = Unchecked.hash key
@@ -222,7 +222,7 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
 
         HashSet(cnt, newStore)
 
-    /// creates a new set by applying the given function to all entries.
+    /// Creates a new set by applying the given function to all entries.
     /// `O(N * log N)`
     member x.Map (mapping : 'T -> 'B) =
         let mutable res = HashSet.Empty
@@ -230,7 +230,7 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
             res <- res.Add(mapping e)
         res
 
-    /// creates a new set by applying the given function to all entries.
+    /// Creates a new set by applying the given function to all entries.
     /// `O(N * log N)`
     member x.Choose (mapping : 'T -> option<'B>) =
         let mutable res = HashSet.Empty
@@ -242,7 +242,7 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
                     ()
         res
 
-    /// creates a new set that contains all entries for which predicate was true.
+    /// Creates a new set that contains all entries for which predicate was true.
     /// `O(N * log N)`
     member x.Filter (predicate : 'T -> bool) =
         let mutable cnt = 0
@@ -262,7 +262,7 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
 
         HashSet(cnt, newStore)
     
-    /// creates a new set by applying the mapping function to each entry and unioning the results.
+    /// Creates a new set by applying the mapping function to each entry and unioning the results.
     /// `O(N * log N)`
     member x.Collect (mapping : 'T -> HashSet<'B>) =
         let mutable res = HashSet<'B>.Empty
@@ -271,37 +271,37 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
                 res <- res.Union (mapping e)
         res
 
-    /// applies the iter function to all entries of the set.
+    /// Applies the iter function to all entries of the set.
     /// `O(N)`
     member x.Iter (iter : 'T -> unit) =
         store |> IntMap.toSeq |> Seq.iter (fun (_,l) -> l |> List.iter iter)
     
-    /// tests whether an entry making the predicate true exists.
+    /// Tests whether an entry making the predicate true exists.
     /// `O(N)`
     member x.Exists (predicate : 'T -> bool) =
         store |> IntMap.toSeq |> Seq.exists (fun (_,l) -> l |> List.exists predicate)
 
-    /// tests whether all entries fulfil the given predicate.
+    /// Tests whether all entries fulfil the given predicate.
     /// `O(N)`
     member x.Forall (predicate : 'T -> bool) =
         store |> IntMap.toSeq |> Seq.forall (fun (_,l) -> l |> List.forall predicate)
 
-    /// folds over all entries of the set.
-    /// note that the order for elements is undefined.
+    /// Folds over all entries of the set.
+    /// Note that the order for elements is undefined.
     /// `O(N)`
     member x.Fold (seed : 'S, folder : 'S -> 'T -> 'S) =
         store |> IntMap.toSeq |> Seq.fold (fun s (_,l) ->
             l |> List.fold folder s
         ) seed
 
-    /// creates a new set containing all elements from this and other.
+    /// Creates a new set containing all elements from this and other.
     /// `O(N + M)`
     member x.Union (other : HashSet<'T>) : HashSet<'T> =
         let mutable dupl = 0
         let newStore = IntMap.appendWith (fun l r -> HashSetList.union &dupl l r) store other.Store
         HashSet(cnt + other.Count - dupl, newStore)
 
-    /// creates a new set containing all elements from this that are not in other.
+    /// Creates a new set containing all elements from this that are not in other.
     /// `O(N + M)`
     member x.Difference (other : HashSet<'T>) : HashSet<'T> =
         let mutable cnt = 0
@@ -315,7 +315,7 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
 
         HashSet(cnt, newStore)
     
-    /// creates a new set containing all elements that are present in both sets.
+    /// Creates a new set containing all elements that are present in both sets.
     /// `O(N + M)`
     member x.Intersect (other : HashSet<'T>) : HashSet<'T> =
         let mutable cnt = 0
@@ -329,17 +329,17 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
 
         HashSet(cnt, newStore)
        
-    /// creates a seq holding all values contained in the set.
+    /// Creates a seq holding all values contained in the set.
     /// `O(N)`
     member x.ToSeq() =
         store |> IntMap.toSeq |> Seq.collect snd
        
-    /// creates a list holding all values contained in the set.
+    /// Creates a list holding all values contained in the set.
     /// `O(N)`
     member x.ToList() =
         store |> IntMap.toList |> List.collect snd
                
-    /// creates an array holding all values contained in the set.
+    /// Creates an array holding all values contained in the set.
     /// `O(N)`
     member x.ToArray() =
         let result = Array.zeroCreate cnt
@@ -350,12 +350,12 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
                 i <- i + 1
         result
 
-    /// creates a set with a single entry
+    /// Creates a set with a single entry
     /// `O(1)`
     static member Single (value : 'T) =
         empty.Add value
 
-    /// creates a set with all entries from the seq.
+    /// Creates a set with all entries from the seq.
     /// `O(N * log N)`
     static member OfSeq (seq : seq<'T>) =
         match seq with
@@ -366,12 +366,12 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
                 res <- res.Add e
             res
         
-    /// creates a set with all entries from the list.
+    /// Creates a set with all entries from the list.
     /// `O(N * log N)`
     static member OfList (list : list<'T>) =
         HashSet.OfSeq list
         
-    /// creates a set with all entries from the array.
+    /// Creates a set with all entries from the array.
     /// `O(N * log N)`
     static member OfArray (arr : array<'T>) =
         HashSet.OfSeq arr
@@ -458,137 +458,137 @@ and private HashSetEnumerator<'T>(store : intmap<list<'T>>) =
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module HashSet =
 
-    /// the empty set.
+    /// The empty set.
     [<GeneralizableValue>]
     let empty<'T> = HashSet<'T>.Empty
 
-    /// creates a set with a single entry
+    /// Creates a set with a single entry
     /// `O(1)`
     let inline single (value : 'T) =
         HashSet.Single value
 
-    /// creates a set with all entries from the seq.
+    /// Creates a set with all entries from the seq.
     /// `O(N * log N)`
     let inline ofSeq (seq : seq<'T>) =
         HashSet.OfSeq seq
 
-    /// creates a set with all entries from the list.
+    /// Creates a set with all entries from the list.
     /// `O(N * log N)`
     let inline ofList (list : list<'T>) =
         HashSet.OfList list
 
-    /// creates a set with all entries from the array.
+    /// Creates a set with all entries from the array.
     /// `O(N * log N)`
     let inline ofArray (arr : 'T[]) =
         HashSet.OfArray arr
 
-    /// creates a seq holding all values contained in the set.
+    /// Creates a seq holding all values contained in the set.
     /// `O(N)`
     let inline toSeq (set : HashSet<'T>) =
         set.ToSeq()
 
-    /// creates a list holding all values contained in the set.
+    /// Creates a list holding all values contained in the set.
     /// `O(N)`
     let inline toList (set : HashSet<'T>) =
         set.ToList()
 
-    /// creates an array holding all values contained in the set.
+    /// Creates an array holding all values contained in the set.
     /// `O(N)`
     let inline toArray (set : HashSet<'T>) =
         set.ToArray()
 
-    /// adds the given entry. `O(log N)`
+    /// Adds the given entry. `O(log N)`
     let inline add (value : 'T) (set : HashSet<'T>) =
         set.Add value
         
-    /// adds the given entry and returns none if it was already existing. `O(log N)`
+    /// Adds the given entry and returns none if it was already existing. `O(log N)`
     let inline tryAdd (value : 'T) (set : HashSet<'T>) =
         set.TryAdd value
 
-    /// removes the given entry. `O(log N)`
+    /// Removes the given entry. `O(log N)`
     let inline remove (value : 'T) (set : HashSet<'T>) =
         set.Remove value
         
-    /// removes the given entry and returns none if it was not existing. `O(log N)`
+    /// Removes the given entry and returns none if it was not existing. `O(log N)`
     let inline tryRemove (value : 'T) (set : HashSet<'T>) =
         set.TryRemove value
 
-    /// adds or deletes the given key.
-    /// the update functions gets a boolean indicating whether the key was contained and
-    /// can return a new "contained-value".
+    /// Adds or deletes the given key.
+    /// The update functions gets a boolean indicating whether the key was contained and
+    /// Can return a new "contained-value".
     /// `O(log N)`   
     let inline alter (value : 'T) (mapping : bool -> bool) (set : HashSet<'T>) =
         set.Alter(value, mapping)
 
-    /// creates a new set containing all elements from l and r.
+    /// Creates a new set containing all elements from l and r.
     /// `O(N + M)`
     let inline union (l : HashSet<'T>) (r : HashSet<'T>) =
         l.Union r
 
-    /// creates a new set containing all elements from the given sets.
+    /// Creates a new set containing all elements from the given sets.
     /// `O(N + M)`
     let inline unionMany (sets : seq<HashSet<'T>>) =
         sets |> Seq.fold union empty
 
-    /// creates a new set containing all elements from l that are not in r.
+    /// Creates a new set containing all elements from l that are not in r.
     /// `O(N + M)`
     let inline difference (l : HashSet<'T>) (r : HashSet<'T>) =
         l.Difference r
 
-    /// creates a new set containing all elements that are present in both sets.
+    /// Creates a new set containing all elements that are present in both sets.
     /// `O(N + M)`
     let inline intersect (l : HashSet<'T>) (r : HashSet<'T>) =
         l.Intersect r
 
-    /// creates a new set by applying the given function to all entries.
+    /// Creates a new set by applying the given function to all entries.
     /// `O(N * log N)`
     let inline map (mapping : 'A -> 'B) (set : HashSet<'A>) =
         set.Map mapping
 
-    /// creates a new set by applying the given function to all entries.
+    /// Creates a new set by applying the given function to all entries.
     /// `O(N * log N)`
     let inline choose (mapping : 'A -> option<'B>) (set : HashSet<'A>) =
         set.Choose mapping
 
-    /// creates a new set that contains all entries for which predicate was true.
+    /// Creates a new set that contains all entries for which predicate was true.
     /// `O(N * log N)`
     let inline filter (predicate : 'T -> bool) (set : HashSet<'T>) =
         set.Filter predicate
 
-    /// creates a new set by applying the mapping function to each entry and unioning the results.
+    /// Creates a new set by applying the mapping function to each entry and unioning the results.
     /// `O(N * log N)`
     let inline collect (mapping : 'A -> HashSet<'B>) (set : HashSet<'A>) =
         set.Collect mapping
 
-    /// applies the iter function to all entries of the set.
+    /// Applies the iter function to all entries of the set.
     /// `O(N)`
     let inline iter (mapping : 'T -> unit) (set : HashSet<'T>) =
         set.Iter mapping
 
-    /// tests whether an entry making the predicate true exists.
+    /// Tests whether an entry making the predicate true exists.
     /// `O(N)`
     let inline exists (predicate : 'T -> bool) (set : HashSet<'T>) =
         set.Exists predicate
 
-    /// tests whether all entries fulfil the given predicate.
+    /// Tests whether all entries fulfil the given predicate.
     /// `O(N)`
     let inline forall (predicate : 'T -> bool) (set : HashSet<'T>) =
         set.Forall predicate
 
-    /// folds over all entries of the set.
-    /// note that the order for elements is undefined.
+    /// Folds over all entries of the set.
+    /// Note that the order for elements is undefined.
     /// `O(N)`
     let inline fold (folder : 'S -> 'T -> 'S) (seed : 'S) (set : HashSet<'T>) =
         set.Fold(seed, folder)
 
-    /// is the set empty? `O(1)`
+    /// Is the set empty? `O(1)`
     let inline isEmpty (set : HashSet<'T>) =
         set.IsEmpty
 
-    /// the number of elements in the set `O(1)` 
+    /// The number of elements in the set `O(1)` 
     let inline count (set : HashSet<'T>) =
         set.Count
 
-    /// tests if the given key exists. `O(log N)`
+    /// Tests if the given key exists. `O(log N)`
     let inline contains (value : 'T) (set : HashSet<'T>) =
         set.Contains value

@@ -21,12 +21,12 @@ type internal PriorityQueue<'T>(cmp: 'T -> 'T -> int) =
         store.Count
 
     /// Gets the current minimal value (according to cmp) contained
-    /// and fails if the queue is empty.
+    /// And fails if the queue is empty.
     member x.Min = store.[0]
 
 /// Implements a queue with "incomparable" duplicates. 
 /// This is helpful since regular heap implementation cannot
-/// deal with a large number of duplicated keys efficiently.
+/// Deal with a large number of duplicated keys efficiently.
 /// Note: the duplicated values will be returned in the order they were enqueued
 type internal DuplicatePriorityQueue<'T, 'Key when 'Key: comparison>(extract: 'T -> 'Key) =
     let q = PriorityQueue<'Key> compare
@@ -34,7 +34,7 @@ type internal DuplicatePriorityQueue<'T, 'Key when 'Key: comparison>(extract: 'T
     let mutable count = 0
     let mutable currentQueue = Unchecked.defaultof<_>
 
-    /// enqueues a new element
+    /// Enqueues a new element
     member x.Enqueue(v: 'T) =
         let k = extract v
         count <- count + 1

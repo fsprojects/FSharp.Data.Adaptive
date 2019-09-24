@@ -3,7 +3,7 @@
 open System
 
 /// Core implementation of IAdaptiveObject containing tools for evaluation
-/// and locking
+/// And locking
 type AdaptiveObject =
     
     [<DefaultValue; ThreadStatic>]
@@ -14,14 +14,14 @@ type AdaptiveObject =
     val mutable private outputs : WeakOutputSet
     val mutable private weak : WeakReference<IAdaptiveObject>
     
-    /// used for resetting EvaluationDepth in eager evaluation
+    /// Used for resetting EvaluationDepth in eager evaluation
     static member internal UnsafeEvaluationDepth
         with get() = AdaptiveObject.CurrentEvaluationDepth
         and set v = AdaptiveObject.CurrentEvaluationDepth <- v
 
     /// Utility function for evaluating an object even if it
-    /// is not marked as outOfDate.
-    /// this method takes care of appropriate locking
+    /// Is not marked as outOfDate.
+    /// This method takes care of appropriate locking
     member x.EvaluateAlways (token : AdaptiveToken) (f : AdaptiveToken -> 'T) =
         let caller = token.caller
         let depth = AdaptiveObject.CurrentEvaluationDepth
@@ -75,10 +75,10 @@ type AdaptiveObject =
         res
 
     /// Utility function for evaluating an object if
-    /// it is marked as outOfDate. If the object is actually
-    /// outOfDate the given function is executed and otherwise
-    /// the given default value is returned.
-    /// this method takes care of appropriate locking
+    /// It is marked as outOfDate. If the object is actually
+    /// OutOfDate the given function is executed and otherwise
+    /// The given default value is returned.
+    /// This method takes care of appropriate locking
     member inline x.EvaluateIfNeeded (token : AdaptiveToken) (otherwise : 'T) (f : AdaptiveToken -> 'T) =
         x.EvaluateAlways token (fun token ->
             if x.OutOfDate then 
@@ -87,7 +87,7 @@ type AdaptiveObject =
                 otherwise
         )
 
-    /// see IAdaptiveObject.Weak
+    /// See IAdaptiveObject.Weak
     member x.Weak =
         // Note that we accept the race conditon here since locking the object
         // would potentially cause deadlocks and the worst case is, that we
@@ -100,28 +100,28 @@ type AdaptiveObject =
         else
             w
             
-    /// see IAdaptiveObject.OutOfDate
+    /// See IAdaptiveObject.OutOfDate
     member x.OutOfDate
         with get() = x.outOfDate
         and set o = x.outOfDate <- o
         
-    /// see IAdaptiveObject.Level
+    /// See IAdaptiveObject.Level
     member x.Level
         with get() = x.level
         and set l = x.level <- l
         
-    /// see IAdaptiveObject.Outputs
+    /// See IAdaptiveObject.Outputs
     member x.Outputs = x.outputs :> IWeakOutputSet
     
-    /// see IAdaptiveObject.Mark()
+    /// See IAdaptiveObject.Mark()
     abstract Mark : unit -> bool
     default x.Mark() = true
     
-    /// see IAdaptiveObject.AllInputsProcessed(transaction)
+    /// See IAdaptiveObject.AllInputsProcessed(transaction)
     abstract AllInputsProcessed : obj -> unit
     default x.AllInputsProcessed _ = ()
     
-    /// see IAdaptiveObject.InputChanged(transaction, object)
+    /// See IAdaptiveObject.InputChanged(transaction, object)
     abstract InputChanged : obj * IAdaptiveObject -> unit
     default x.InputChanged(_,_) = ()
 
@@ -141,7 +141,7 @@ type AdaptiveObject =
             with get() = x.Level
             and set l = x.Level <- l
         
-    /// creates a new (out-of-date) AdaptiveObject
+    /// Creates a new (out-of-date) AdaptiveObject
     new() =
         { 
             outOfDate = true
@@ -151,7 +151,7 @@ type AdaptiveObject =
         }
 
 /// Core implementation of IAdaptiveObject for constant objects.
-/// the main goal of this implementation is to save memory when IAdaptiveObjects are known to be constant.
+/// The main goal of this implementation is to save memory when IAdaptiveObjects are known to be constant.
 type ConstantObject() =
     let mutable weak : WeakReference<IAdaptiveObject> = null
     static let outputs = EmptyOutputSet() :> IWeakOutputSet
