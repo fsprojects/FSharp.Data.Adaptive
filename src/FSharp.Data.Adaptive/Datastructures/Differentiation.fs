@@ -274,7 +274,7 @@ module DifferentiationExtensions =
         
         /// Determines the operations needed to transform l into r.
         /// Returns a IndexListDelta containing these operations.
-        let integrate (x : IndexList<'a>) (deltas : IndexListDelta<'a>) =
+        let integrate (x : IndexList<'T>) (deltas : IndexListDelta<'T>) =
             if deltas.Count = 0 then
                 x, deltas
             else
@@ -298,7 +298,7 @@ module DifferentiationExtensions =
 
         /// Applies the given operations to the list. 
         /// Returns the new list and the 'effective' operations.
-        let differentiate (l : IndexList<'a>) (r : IndexList<'a>) : IndexListDelta<'a> =
+        let differentiate (l : IndexList<'T>) (r : IndexList<'T>) : IndexListDelta<'T> =
             if l.Count = 0 && r.Count = 0 then
                 IndexListDelta.empty
 
@@ -313,7 +313,7 @@ module DifferentiationExtensions =
 
             else
                 // TODO: one small???
-                let merge (k : Index) (l : Option<'a>) (r : Option<'a>) =
+                let merge (k : Index) (l : Option<'T>) (r : Option<'T>) =
                     match l, r with
                     | Some l, Some r when Unchecked.equals l r -> 
                         None

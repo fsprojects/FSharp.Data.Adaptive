@@ -26,11 +26,11 @@ module internal MapExtImplementation =
         | Existing of index : int * value : 'v
 
 
-    type internal EnumeratorEnumerable<'a>(get : unit -> IEnumerator<'a>) =
+    type internal EnumeratorEnumerable<'T>(get : unit -> IEnumerator<'T>) =
         interface System.Collections.IEnumerable with
             member x.GetEnumerator() = get() :> System.Collections.IEnumerator
 
-        interface IEnumerable<'a> with
+        interface IEnumerable<'T> with
             member x.GetEnumerator() = get()
 
     
@@ -541,7 +541,7 @@ module internal MapExtImplementation =
 
         let mapiMonotonic f m = mapiMonotonicAux (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
     
-        let rec chooseiOpt (f:OptimizedClosures.FSharpFunc<'k,'a,Option<'b>>) m =
+        let rec chooseiOpt (f:OptimizedClosures.FSharpFunc<'Key,'T1,Option<'T2>>) m =
             match m with
                 | MapEmpty -> empty
                 | MapOne(k,v) ->
@@ -782,7 +782,7 @@ module internal MapExtImplementation =
                                     let k,v,r = spliceOutSuccessor r
                                     join l k v r
 
-        let rec intersectWithAux (f:OptimizedClosures.FSharpFunc<'a,'b,'c>) (comparer: IComparer<'k>) (l : MapTree<'k, 'a>) (r : MapTree<'k, 'b>) : MapTree<'k, 'c> =
+        let rec intersectWithAux (f:OptimizedClosures.FSharpFunc<'Key,'T1,'T2>) (comparer: IComparer<'k>) (l : MapTree<'k, 'Key>) (r : MapTree<'k, 'T1>) : MapTree<'k, 'T2> =
             match l with
             | MapEmpty -> 
                 MapEmpty
@@ -810,7 +810,7 @@ module internal MapExtImplementation =
                             let k,v,r' = spliceOutSuccessor r
                             rebalance l k v r'
 
-        let intersectWith (f : 'a -> 'b -> 'c) (comparer : IComparer<'k>) (l : MapTree<'k, 'a>) (r : MapTree<'k, 'b>) =
+        let intersectWith (f : 'Key -> 'T1 -> 'T2) (comparer : IComparer<'k>) (l : MapTree<'k, 'Key>) (r : MapTree<'k, 'T1>) =
             let lc = size l
             let rc = size r
             if lc <= rc then
@@ -1088,9 +1088,9 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
 
     member m.Iterate f = MapTree.iter f tree
 
-    member m.MapRange f  = new MapExt<'Key,'b>(comparer,MapTree.map f tree)
+    member m.MapRange f  = new MapExt<'Key,'T2>(comparer,MapTree.map f tree)
 
-    member m.MapExt f  = new MapExt<'Key,'b>(comparer,MapTree.mapi f tree)
+    member m.MapExt f  = new MapExt<'Key,'T2>(comparer,MapTree.mapi f tree)
     
     member m.MapMonotonic<'Key2, 'Value2 when 'Key2 : comparison> (f : 'Key -> 'Value -> 'Key2 * 'Value2) : MapExt<'Key2,'Value2> = new MapExt<'Key2,'Value2>(LanguagePrimitives.FastGenericComparer<'Key2>, MapTree.mapiMonotonic f tree)
    
