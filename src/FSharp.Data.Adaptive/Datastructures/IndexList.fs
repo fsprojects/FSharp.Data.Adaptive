@@ -143,10 +143,10 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
             | Some (id, _) -> x.Remove id
             | _ -> x
 
-    member x.Map<'b>(mapping : Index -> 'T -> 'b) : IndexList<'b> =
+    member x.Map<'T2>(mapping : Index -> 'T -> 'T2) : IndexList<'T2> =
         IndexList(l, h, MapExt.map mapping content)
         
-    member x.Choose(mapping : Index -> 'T -> Option<'b>) =
+    member x.Choose(mapping : Index -> 'T -> option<'T2>) =
         let res = MapExt.choose mapping content
         if res.IsEmpty then 
             IndexList.Empty
@@ -161,7 +161,7 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
             IndexList(MapExt.min res, MapExt.max res, res)
 
     // O(n)
-    member x.TryFind(item : 'T) : Option<Index> =
+    member x.TryFind(item : 'T) : option<Index> =
         match content |> MapExt.toSeq |> Seq.tryFind (fun (k,v) -> Unchecked.equals v item) with
         | Some (k, v) -> Some k
         | _ -> None
@@ -248,24 +248,24 @@ and private IndexListEnumerator<'T>(content : IEnumerable<KeyValuePair<Index, 'T
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module IndexList =
 
-    let internal ofMap (m : MapExt<Index, 'a>) =
+    let internal ofMap (m : MapExt<Index, 'T>) =
         if MapExt.isEmpty m then
-            IndexList<'a>.Empty
+            IndexList<'T>.Empty
         else
             let min = m.TryMinKey
             let max = m.TryMaxKey
-            IndexList<'a>(min.Value, max.Value, m)
+            IndexList<'T>(min.Value, max.Value, m)
        
 
     /// the empty list.
     let empty<'T> = IndexList<'T>.Empty
 
     /// is the list empty?
-    let inline isEmpty (list : IndexList<'a>) = 
+    let inline isEmpty (list : IndexList<'T>) = 
         list.IsEmpty
 
     /// the number of entries in the list.
-    let inline count (list : IndexList<'a>) = 
+    let inline count (list : IndexList<'T>) = 
         list.Count
 
     /// adds an element at the end of the list.
@@ -299,29 +299,29 @@ module IndexList =
     /// adds, deletes or updates the element for the given index.
     /// the update functions gets the optional old value and may optionally return
     /// a new value (or None for deleting the entry).
-    let alter (index : Index) (mapping : Option<'a> -> Option<'a>) (l : IndexList<'a>) =
+    let alter (index : Index) (mapping : option<'T> -> option<'T>) (l : IndexList<'T>) =
         MapExt.alter index mapping l.Content |> ofMap
 
     /// updates the element at the given index (if any).
-    let update (index : Index) (mapping : 'a -> 'a) (l : IndexList<'a>) =
+    let update (index : Index) (mapping : 'T -> 'T) (l : IndexList<'T>) =
         alter index (Option.map mapping) l
 
     /// splits the list at the given index and returns both (possibly empty) halves and (optional) splitting element.
-    let split (index : Index) (list : IndexList<'a>) =
+    let split (index : Index) (list : IndexList<'T>) =
         let (l,s,r) = list.Content.Split(index)
 
         match MapExt.isEmpty l, MapExt.isEmpty r with
         | true, true -> empty, s, empty
         | true, false -> 
             let rmin = r.TryMinKey |> Option.defaultValue Index.zero
-            empty, s, IndexList<'a>(rmin, list.MaxIndex, r)
+            empty, s, IndexList<'T>(rmin, list.MaxIndex, r)
         | false, true ->
             let lmax = l.TryMaxKey |> Option.defaultValue Index.zero
-            IndexList<'a>(list.MinIndex, lmax, l), s, empty
+            IndexList<'T>(list.MinIndex, lmax, l), s, empty
         | false, false ->
             let lmax = l.TryMaxKey |> Option.defaultValue Index.zero
             let rmin = r.TryMinKey |> Option.defaultValue Index.zero
-            IndexList<'a>(list.MinIndex, lmax, l), s, IndexList<'a>(rmin, list.MaxIndex, r)
+            IndexList<'T>(list.MinIndex, lmax, l), s, IndexList<'T>(rmin, list.MaxIndex, r)
 
     /// updates or creates the element at the given index.
     /// note that out-of-bounds-indices will be ineffective.
@@ -343,7 +343,7 @@ module IndexList =
     /// adds, deletes or updates the element for the given index.
     /// the update functions gets the optional old value and may optionally return
     /// a new value (or None for deleting the entry).
-    let alterAt (i : int) (mapping : Option<'a> -> Option<'a>) (list : IndexList<'a>) =
+    let alterAt (i : int) (mapping : option<'T> -> option<'T>) (list : IndexList<'T>) =
         if i < -1 || i > list.Count then
             list
         else
@@ -352,12 +352,12 @@ module IndexList =
             | Some (si, sv) ->
                 match mapping (Some sv) with
                 | Some r ->
-                    IndexList<'a>(list.MinIndex, list.MaxIndex, MapExt.add si r list.Content)
+                    IndexList<'T>(list.MinIndex, list.MaxIndex, MapExt.add si r list.Content)
                 | None ->
                     let m = MapExt.remove si list.Content
                     let min = match l with | None -> MapExt.tryMin m |> Option.get | Some _ -> list.MinIndex
                     let max = match r with | None -> MapExt.tryMax m |> Option.get | Some _ -> list.MaxIndex
-                    IndexList<'a>(min, max, m)
+                    IndexList<'T>(min, max, m)
             | None ->
                 match mapping None with
                 | Some res ->
@@ -380,16 +380,16 @@ module IndexList =
 
                     let min = if minChanged then idx else list.MinIndex
                     let max = if maxChanged then idx else list.MaxIndex
-                    IndexList<'a>(min, max, MapExt.add idx res list.Content)
+                    IndexList<'T>(min, max, MapExt.add idx res list.Content)
                 | None ->
                     list
 
     /// updates the element at the given index (if any).
-    let updateAt (index : int) (mapping : 'a -> 'a) (l : IndexList<'a>) =
+    let updateAt (index : int) (mapping : 'T -> 'T) (l : IndexList<'T>) =
         alterAt index (Option.map mapping) l
 
     /// splits the list at the given index and returns both (possibly empty) halves and (optional) splitting element.
-    let splitAt (index : int) (list : IndexList<'a>) =
+    let splitAt (index : int) (list : IndexList<'T>) =
         if index < 0 then
             empty, None, list
         elif index >= list.Count then
@@ -404,84 +404,84 @@ module IndexList =
     let tryFirstIndex (list : IndexList<'T>) = list.Content.TryMinKey
 
     /// gets the optional max-index used by the list.
-    let tryLastIndex (list : IndexList<'a>) = list.Content.TryMaxKey
+    let tryLastIndex (list : IndexList<'T>) = list.Content.TryMaxKey
 
     /// gets the min-index used by the list or fails if empty.
-    let firstIndex (list : IndexList<'a>) = tryFirstIndex list |> Option.get
+    let firstIndex (list : IndexList<'T>) = tryFirstIndex list |> Option.get
     
     /// gets the max-index used by the list or fails if empty.
-    let lastIndex (list : IndexList<'a>) = tryLastIndex list |> Option.get
+    let lastIndex (list : IndexList<'T>) = tryLastIndex list |> Option.get
 
     /// gets the optional first element from the list.
-    let tryFirst (list : IndexList<'a>) = list.Content.TryMinValue
+    let tryFirst (list : IndexList<'T>) = list.Content.TryMinValue
 
     /// gets the optional last element from the list.
-    let tryLast (list : IndexList<'a>) = list.Content.TryMaxValue
+    let tryLast (list : IndexList<'T>) = list.Content.TryMaxValue
 
     
     /// gets the first element from the list or fails if empty.
-    let first (list : IndexList<'a>) = tryFirst list |> Option.get
+    let first (list : IndexList<'T>) = tryFirst list |> Option.get
 
     /// gets the last element from the list or fails if empty.
-    let last (list : IndexList<'a>) = tryLast list |> Option.get
+    let last (list : IndexList<'T>) = tryLast list |> Option.get
 
     /// tries to get the index for the first occurrence of element in the list.
-    let tryFindIndex (element : 'a) (list : IndexList<'a>) = 
+    let tryFindIndex (element : 'T) (list : IndexList<'T>) = 
         list.Content |> MapExt.tryPick (fun k v -> if v = element then Some k else None)
         
     /// tries to get the index for the last occurrence of element in the list.
-    let tryFindIndexBack (element : 'a) (list : IndexList<'a>) = 
+    let tryFindIndexBack (element : 'T) (list : IndexList<'T>) = 
         list.Content |> MapExt.tryPickBack (fun k v -> if v = element then Some k else None)
         
     /// gets the index for the first occurrence of element in the list or fails if not existing.
-    let findIndex (element : 'a) (list : IndexList<'a>) = 
+    let findIndex (element : 'T) (list : IndexList<'T>) = 
         tryFindIndex element list |> Option.get
 
     /// gets the index for the last occurrence of element in the list or fails if not existing.
-    let findIndexBack (element : 'a) (list : IndexList<'a>) = 
+    let findIndexBack (element : 'T) (list : IndexList<'T>) = 
         tryFindIndexBack element list |> Option.get
 
     /// checks whether any element in the list fulfills the given predicate.
-    let exists (f : Index -> 'a -> bool) (list : IndexList<'a>) = 
+    let exists (f : Index -> 'T -> bool) (list : IndexList<'T>) = 
         list.Content |> Seq.exists (fun kv -> f kv.Key kv.Value)
 
     /// checks if all elements in the list fulfill the given predicate.
-    let forall (f : Index -> 'a -> bool) (list : IndexList<'a>) =   
+    let forall (f : Index -> 'T -> bool) (list : IndexList<'T>) =   
         list.Content |> Seq.forall (fun kv -> f kv.Key kv.Value)
     
     /// tries to find the first entry satisfying the predicate.
-    let tryFind (predicate : Index -> 'a -> bool) (list : IndexList<'a>) = 
+    let tryFind (predicate : Index -> 'T -> bool) (list : IndexList<'T>) = 
         list.Content |> MapExt.tryPick (fun k v -> if predicate k v then Some v else None)
         
     /// tries to find the last entry satisfying the predicate.
-    let tryFindBack (predicate : Index -> 'a -> bool) (list : IndexList<'a>) = 
+    let tryFindBack (predicate : Index -> 'T -> bool) (list : IndexList<'T>) = 
         list.Content |> MapExt.tryPickBack (fun k v -> if predicate k v then Some v else None)
         
     /// finds the first entry satisfying the predicate or fails if none.
-    let find (predicate : Index -> 'a -> bool) (list : IndexList<'a>) = 
+    let find (predicate : Index -> 'T -> bool) (list : IndexList<'T>) = 
         tryFind predicate list |> Option.get
         
     /// finds the last entry satisfying the predicate or fails if none.
-    let findBack (predicate : Index -> 'a -> bool) (list : IndexList<'a>) = 
+    let findBack (predicate : Index -> 'T -> bool) (list : IndexList<'T>) = 
         tryFindBack predicate list |> Option.get
     
     /// tries to pick the first Some - value.
-    let tryPick (mapping : Index -> 'a -> Option<'b>) (list : IndexList<'a>) = 
+    let tryPick (mapping : Index -> 'T1 -> option<'T2>) (list : IndexList<'T1>) = 
         list.Content |> MapExt.tryPick mapping
 
     /// tries to pick the last Some - value.
-    let tryPickBack (mapping : Index -> 'a -> Option<'b>) (list : IndexList<'a>) = 
+    let tryPickBack (mapping : Index -> 'T1 -> option<'T2>) (list : IndexList<'T1>) = 
         list.Content |> MapExt.tryPickBack mapping
     
     /// concats the given lists.
-    let append (l : IndexList<'a>) (r : IndexList<'a>) =
+    let append (l : IndexList<'T>) (r : IndexList<'T>) =
         if l.Count = 0 then r
         elif r.Count = 0 then l
         elif l.MaxIndex < r.MinIndex then
-            IndexList<'a>(l.MinIndex, r.MaxIndex, MapExt.union l.Content r.Content)
+            IndexList<'T>(l.MinIndex, r.MaxIndex, MapExt.union l.Content r.Content)
             
         elif r.MaxIndex < l.MinIndex then
-            IndexList<'a>(r.MinIndex, l.MaxIndex, MapExt.union l.Content r.Content)
+            IndexList<'T>(r.MinIndex, l.MaxIndex, MapExt.union l.Content r.Content)
 
         elif l.Count < r.Count then
             let mutable res = r
@@ -495,11 +495,11 @@ module IndexList =
             res
 
     /// concats the given lists.
-    let concat (s : #seq<IndexList<'a>>) =
+    let concat (s : #seq<IndexList<'T>>) =
         s |> Seq.fold append empty
         
     /// takes the first n elements from the list.
-    let take (n : int) (list : IndexList<'a>) =
+    let take (n : int) (list : IndexList<'T>) =
         if n <= 0 then empty
         elif n > list.Count then list
         else
@@ -507,7 +507,7 @@ module IndexList =
             l
 
     /// skips the first n elements from the list.
-    let skip (n : int) (list : IndexList<'a>) =
+    let skip (n : int) (list : IndexList<'T>) =
         if n <= 0 then list
         elif n > list.Count then empty
         else
@@ -515,85 +515,85 @@ module IndexList =
             r
 
     /// creates a list containing a single element.
-    let single (v : 'a) =
+    let single (v : 'T) =
         let t = Index.after Index.zero
         IndexList(t, t, MapExt.ofList [t, v])
 
     /// all elements from the list.
-    let inline toSeq (list : IndexList<'a>) = list :> seq<_>
+    let inline toSeq (list : IndexList<'T>) = list :> seq<_>
 
     /// all elements from the list.
-    let inline toList (list : IndexList<'a>) = list.AsList
+    let inline toList (list : IndexList<'T>) = list.AsList
 
     /// all elements from the list.
-    let inline toArray (list : IndexList<'a>) = list.AsArray
+    let inline toArray (list : IndexList<'T>) = list.AsArray
     
     /// all elements from the list in reversed order.
-    let inline toSeqBack (list : IndexList<'a>) = 
+    let inline toSeqBack (list : IndexList<'T>) = 
         list.AsSeqBackward :> seq<_>
 
     /// all elements from the list in reversed order.
-    let inline toListBack (list : IndexList<'a>) = 
+    let inline toListBack (list : IndexList<'T>) = 
         list.AsListBackward
 
     /// all elements from the list in reversed order.
-    let inline toArrayBack (list : IndexList<'a>) = 
+    let inline toArrayBack (list : IndexList<'T>) = 
         list.AsArrayBackward
 
     /// creates a list from the given elements.
-    let ofSeq (seq : seq<'a>) =
+    let ofSeq (seq : seq<'T>) =
         let mutable res = empty
         for e in seq do res <- add e res
         res
         
     /// creates a list from the given elements.
-    let inline ofList (list : list<'a>) = 
+    let inline ofList (list : list<'T>) = 
         ofSeq list
         
     /// creates a list from the given elements.
-    let inline ofArray (arr : 'a[]) = 
+    let inline ofArray (arr : 'T[]) = 
         ofSeq arr
 
     /// applies the mapping function to all elements and concats the resulting lists.
-    let collecti (mapping : Index -> 'a -> IndexList<'b>) (l : IndexList<'a>) = 
+    let collecti (mapping : Index -> 'T1 -> IndexList<'T2>) (l : IndexList<'T1>) = 
         l.Map(mapping) |> concat
         
     /// applies the mapping function to all elements and concats the resulting lists.
-    let collect (mapping : 'a -> IndexList<'b>) (l : IndexList<'a>) = 
+    let collect (mapping : 'T1 -> IndexList<'T2>) (l : IndexList<'T1>) = 
         l.Map(fun _ v -> mapping v) |> concat
 
     /// applies the mapping function to all elements in the list.
-    let inline mapi (mapping : Index -> 'a -> 'b) (list : IndexList<'a>) = 
+    let inline mapi (mapping : Index -> 'T1 -> 'T2) (list : IndexList<'T1>) = 
         list.Map mapping
 
     /// applies the mapping function to all elements in the list.
-    let inline map (mapping : 'a -> 'b) (list : IndexList<'a>) = 
+    let inline map (mapping : 'T1 -> 'T2) (list : IndexList<'T1>) = 
         list.Map (fun _ v -> mapping v)
         
     /// applies the mapping function to all elements in the list and drops None results.
-    let inline choosei (mapping : Index -> 'a -> Option<'b>) (list : IndexList<'a>) = 
+    let inline choosei (mapping : Index -> 'T1 -> option<'T2>) (list : IndexList<'T1>) = 
         list.Choose mapping
 
     /// applies the mapping function to all elements in the list and drops None results.
-    let inline choose (mapping : 'a -> Option<'b>) (list : IndexList<'a>) = 
+    let inline choose (mapping : 'T1 -> option<'T2>) (list : IndexList<'T1>) = 
         list.Choose (fun _ v -> mapping v)
     
     /// filters the list using the given predicate.
-    let inline filteri (predicate : Index -> 'a -> bool) (list : IndexList<'a>) = 
+    let inline filteri (predicate : Index -> 'T -> bool) (list : IndexList<'T>) = 
         list.Filter predicate
         
     /// filters the list using the given predicate.
-    let inline filter (predicate : 'a -> bool) (list : IndexList<'a>) = 
+    let inline filter (predicate : 'T -> bool) (list : IndexList<'T>) = 
         list.Filter (fun _ v -> predicate v)
 
     /// sorts the list by the given mapping.
-    let sortBy (mapping : 'a -> 'b) (l : IndexList<'a>) =
+    let sortBy (mapping : 'T1 -> 'T2) (l : IndexList<'T1>) =
         let arr = l.AsArray
         Array.sortInPlaceBy mapping arr
         ofArray arr
         
     /// sorts the list using the given compare function.
-    let sortWith (compare : 'a -> 'a -> int) (l : IndexList<'a>) =
+    let sortWith (compare : 'T -> 'T -> int) (l : IndexList<'T>) =
         let arr = l.AsArray
         Array.sortInPlaceWith compare arr
         ofArray arr
