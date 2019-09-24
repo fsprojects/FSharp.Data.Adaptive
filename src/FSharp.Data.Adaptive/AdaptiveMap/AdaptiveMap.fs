@@ -280,8 +280,8 @@ module AdaptiveHashMapImplementation =
             |> HashMapDelta
 
 
-    type internal KeyedMod<'k, 'a>(key : 'k, m : aval<'a>) =
-        inherit AVal.AbstractVal<'k * 'a>()
+    type internal KeyedMod<'Key, 'Value>(key : 'Key, m : aval<'Value>) =
+        inherit AVal.AbstractVal<'Key * 'Value>()
 
         let mutable last = None
             
@@ -331,7 +331,7 @@ module AMap =
         constant (fun () -> HashMap.ofArray elements)
         
     /// creates an aval providing access to the current content of the map.
-    let toAVal (map : amap<'k, 'v>) = map.Content
+    let toAVal (map : amap<'Key, 'Value>) = map.Content
 
     /// adaptively maps over the given map.
     let map (mapping : 'Key -> 'Value1 -> 'Value2) (map : amap<'Key, 'Value1>) =
@@ -373,11 +373,11 @@ module AMap =
             create (fun () -> ChooseReader(map, mapping))
  
     /// adaptively filters the set using the given predicate.
-    let filter (predicate : 'k -> 'a -> bool) (map : amap<'k, 'a>) =
+    let filter (predicate : 'Key -> 'Value -> bool) (map : amap<'Key, 'Value>) =
         choose (fun k v -> if predicate k v then Some v else None) map
 
     /// adaptively filters the set using the given predicate without exposing keys.
-    let filter' (predicate : 'a -> bool) (map : amap<'k, 'a>) =
+    let filter' (predicate : 'Value -> bool) (map : amap<'Key, 'Value>) =
         choose' (fun v -> if predicate v then Some v else None) map
 
     /// adaptively unions both maps using the given resolve functions when colliding entries are found.

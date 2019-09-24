@@ -33,7 +33,7 @@ module AMap =
     val ofArray : elements:('Key * 'Value) array -> amap<'Key,'Value>
 
     /// creates an aval providing access to the current content of the map.
-    val toAVal : map:amap<'k,'v> -> aval<HashMap<'k,'v>>
+    val toAVal : map:amap<'Key, 'Value> -> aval<HashMap<'Key,'Value>>
 
     /// adaptively maps over the given map.
     val map : mapping:('Key -> 'Value1 -> 'Value2) -> map:amap<'Key,'Value1> -> amap<'Key,'Value2>
@@ -51,10 +51,10 @@ module AMap =
     val choose' : mapping:('Value1 -> 'Value2 option) -> map:amap<'Key,'Value1> -> amap<'Key,'Value2>
 
     /// adaptively filters the set using the given predicate.
-    val filter : predicate:('k -> 'a -> bool) -> map:amap<'k,'a> -> amap<'k,'a>
+    val filter : predicate:('Key -> 'Value -> bool) -> map:amap<'Key,'Value> -> amap<'Key,'Value>
 
     /// adaptively filters the set using the given predicate without exposing keys.
-    val filter' : predicate:('a -> bool) -> map:amap<'k,'a> -> amap<'k,'a>
+    val filter' : predicate:('Value -> bool) -> map:amap<'Key,'Value> -> amap<'Key,'Value>
 
     /// adaptively unions both maps using the given resolve functions when colliding entries are found.
     val unionWith : resolve:('Key -> 'Value -> 'Value -> 'Value) -> a:amap<'Key,'Value> -> b:amap<'Key,'Value> -> amap<'Key,'Value>
