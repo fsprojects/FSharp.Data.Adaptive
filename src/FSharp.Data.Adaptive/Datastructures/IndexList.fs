@@ -401,29 +401,29 @@ module IndexList =
       
         
     /// gets the optional min-index used by the list.
-    let inline tryFirstIndex (list : IndexList<'T>) = list.Content.TryMinKey
+    let tryFirstIndex (list : IndexList<'T>) = list.Content.TryMinKey
 
     /// gets the optional max-index used by the list.
-    let inline tryLastIndex (list : IndexList<'a>) = list.Content.TryMaxKey
+    let tryLastIndex (list : IndexList<'a>) = list.Content.TryMaxKey
 
     /// gets the min-index used by the list or fails if empty.
-    let inline firstIndex (list : IndexList<'a>) = tryFirstIndex list |> Option.get
+    let firstIndex (list : IndexList<'a>) = tryFirstIndex list |> Option.get
     
     /// gets the max-index used by the list or fails if empty.
-    let inline lastIndex (list : IndexList<'a>) = tryLastIndex list |> Option.get
+    let lastIndex (list : IndexList<'a>) = tryLastIndex list |> Option.get
 
     /// gets the optional first element from the list.
-    let inline tryFirst (list : IndexList<'a>) = list.Content.TryMinValue
+    let tryFirst (list : IndexList<'a>) = list.Content.TryMinValue
 
     /// gets the optional last element from the list.
-    let inline tryLast (list : IndexList<'a>) = list.Content.TryMaxValue
+    let tryLast (list : IndexList<'a>) = list.Content.TryMaxValue
 
     
     /// gets the first element from the list or fails if empty.
-    let inline first (list : IndexList<'a>) = tryFirst list |> Option.get
+    let first (list : IndexList<'a>) = tryFirst list |> Option.get
 
     /// gets the last element from the list or fails if empty.
-    let inline last (list : IndexList<'a>) = tryLast list |> Option.get
+    let last (list : IndexList<'a>) = tryLast list |> Option.get
 
     /// tries to get the index for the first occurrence of element in the list.
     let tryFindIndex (element : 'a) (list : IndexList<'a>) = 
