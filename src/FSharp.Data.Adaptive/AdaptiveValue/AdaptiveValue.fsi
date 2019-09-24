@@ -46,7 +46,7 @@ module AVal =
 
     /// Evaluates the given adaptive value and returns its current value.
     /// This should not be used inside the adaptive evaluation
-    /// Of other AdaptiveObjects since it does not track dependencies.
+    /// of other AdaptiveObjects since it does not track dependencies.
     val inline force : value : aval<'T> -> 'T
 
     /// Creates a changeable adaptive value intially holding the given value
@@ -61,24 +61,24 @@ module AVal =
     val delay : create : (unit -> 'T) -> aval<'T>
 
     /// Returns a new adaptive value that adaptively applies the mapping function to the given 
-    /// Adaptive inputs.
+    /// adaptive inputs.
     val map : mapping : ('T1 -> 'T2) -> value : aval<'T1> -> aval<'T2>
 
     /// Returns a new adaptive value that adaptively applies the mapping function to the given 
-    /// Adaptive inputs.
+    /// adaptive inputs.
     val map2 : mapping : ('T1 -> 'T2 -> 'T3) -> value1 : aval<'T1> -> value2 : aval<'T2> -> aval<'T3>
     
     /// Returns a new adaptive value that adaptively applies the mapping function to the given 
-    /// Adaptive inputs.
+    /// adaptive inputs.
     val map3 : mapping : ('T1 -> 'T2 -> 'T3 -> 'T4) -> value1 : aval<'T1> -> value2 : aval<'T2> -> value3 : aval<'T3> -> aval<'T4>
 
     /// Returns a new adaptive value that adaptively applies the mapping function to the given 
-    /// Input and adaptively depends on the resulting adaptive value.
+    /// input and adaptively depends on the resulting adaptive value.
     /// The resulting adaptive value  will hold the latest value of the aval<_> returned by mapping.
     val bind : mapping : ('T1 -> aval<'T2>) -> value : aval<'T1> -> aval<'T2>
 
     /// Adaptively applies the mapping function to the given adaptive values and
-    /// Adaptively depends on the adaptive value returned by mapping.
+    /// adaptively depends on the adaptive value returned by mapping.
     /// The resulting aval<'T3> will hold the latest value of the aval<_> returned by mapping.
     val bind2 : mapping : ('T1 -> 'T2 -> aval<'T3>) -> value1 : aval<'T1> -> value2 : aval<'T2> -> aval<'T3>
 

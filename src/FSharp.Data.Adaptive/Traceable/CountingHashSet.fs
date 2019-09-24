@@ -432,7 +432,7 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
             CountingHashSet newStore, effective
 
-    /// Comares two sets.
+    /// Compares two sets.
     static member internal Compare(l : CountingHashSet<'T>, r : CountingHashSet<'T>) =
         let i = l.Intersect r
         let b = i.Count

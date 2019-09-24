@@ -7,7 +7,7 @@ open FSharp.Data.Adaptive
 
 /// Represents the difference of two HashSets.
 /// Internally uses reference counts to represent deltas and provides 
-/// Convenient combine functions.
+/// convenient combine functions.
 [<Struct; CustomEquality; NoComparison>]
 [<StructuredFormatDisplay("{AsString}")>]
 type HashSetDelta<'T>(store: HashMap<'T, int>) =

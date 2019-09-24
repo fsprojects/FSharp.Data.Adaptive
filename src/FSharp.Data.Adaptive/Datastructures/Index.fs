@@ -8,18 +8,23 @@ open System.Collections.Generic
 [<StructuredFormatDisplay("{AsString}")>]
 type IndexNode =
     class
-        /// root-node for this cycle
+
+        /// Root-node for this cycle
         val mutable public Root : IndexNode
-        /// prev node in the cycle
+
+        /// Prev node in the cycle
         val mutable public Prev : IndexNode
-        /// next node in the cycle
+
+        /// Next node in the cycle
         val mutable public Next : IndexNode
+
         /// the current tag (must only be modified when holding a lock to the Value)
         val mutable public Tag : uint64
-        /// the current reference count of the value (used for tracking disposal)
+
+        /// The current reference count of the value (used for tracking disposal)
         val mutable public RefCount : int
 
-        /// relabel a part of the list starting at start until distance(start, a) >= cnt^2 + 1.
+        /// Relabel a part of the list starting at start until distance(start, a) >= cnt^2 + 1.
         /// this should ensure amortized costs of O(log N) for insert.
         static member private Relabel(start : IndexNode) =
             let all = List<IndexNode>()
@@ -85,7 +90,7 @@ type IndexNode =
                 res
             )
 
-        /// delete a node from the cycle.
+        /// Delete a node from the cycle.
         member x.Delete() =
             let prev = x.Prev
             Monitor.Enter prev
@@ -112,32 +117,32 @@ type IndexNode =
                 x.RefCount <- x.RefCount + 1
             )
 
-        /// compare me to another node.
+        /// Compare me to another node.
         member x.CompareTo(o : IndexNode) =
             match Monitor.TryEnter x, Monitor.TryEnter o with
-                | true, true ->
-                    try 
-                        compare x.Key o.Key
-                    finally
-                        Monitor.Exit x
-                        Monitor.Exit o
-
-                | true, false ->
+            | true, true ->
+                try 
+                    compare x.Key o.Key
+                finally
                     Monitor.Exit x
-                    x.CompareTo o
-
-                | false, true ->
                     Monitor.Exit o
-                    x.CompareTo o
 
-                | false, false ->
-                    x.CompareTo o
+            | true, false ->
+                Monitor.Exit x
+                x.CompareTo o
+
+            | false, true ->
+                Monitor.Exit o
+                x.CompareTo o
+
+            | false, false ->
+                x.CompareTo o
 
         interface IComparable with
             member x.CompareTo (o : obj) =
                 match o with
-                    | :? IndexNode as o -> x.CompareTo o
-                    | _ -> failwithf "[Real] cannot compare real to %A" o
+                | :? IndexNode as o -> x.CompareTo o
+                | _ -> failwithf "[Real] cannot compare real to %A" o
 
         override x.GetHashCode() = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(x)
         override x.Equals o = System.Object.ReferenceEquals(x,o)
@@ -240,14 +245,10 @@ type Index private(real : IndexNode) =
 module Index =
     let private root = Index()
 
-    /// the root index.
     let zero = root.After()
 
-    /// gets an index after the given one.
     let after (r : Index) = r.After()
 
-    /// gets an index before the given one.
     let before (r : Index) = r.Before()
 
-    /// gets an index between the given ones.
     let between (l : Index) (r : Index) = l.Between r

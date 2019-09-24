@@ -105,7 +105,7 @@ type internal RelevantNode<'State, 'T> =
 
 /// History and HistoryReader are the central implementation for traceable data-types.
 /// The allow to construct a dependent History (by passing an input-reader) or imperatively
-/// Performing operations on the history while keeping track of all output-versions that may exist.
+/// performing operations on the history while keeping track of all output-versions that may exist.
 type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: Traceable<'State, 'Delta>, finalize: 'Delta -> unit) =
     inherit AdaptiveObject()
 

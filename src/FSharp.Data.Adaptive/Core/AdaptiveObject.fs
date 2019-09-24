@@ -3,7 +3,7 @@
 open System
 
 /// Core implementation of IAdaptiveObject containing tools for evaluation
-/// And locking
+/// and locking
 type AdaptiveObject =
     
     [<DefaultValue; ThreadStatic>]
@@ -19,8 +19,7 @@ type AdaptiveObject =
         with get() = AdaptiveObject.CurrentEvaluationDepth
         and set v = AdaptiveObject.CurrentEvaluationDepth <- v
 
-    /// Utility function for evaluating an object even if it
-    /// Is not marked as outOfDate.
+    /// Utility function for evaluating an object even if it is not marked as outOfDate.
     /// This method takes care of appropriate locking
     member x.EvaluateAlways (token : AdaptiveToken) (f : AdaptiveToken -> 'T) =
         let caller = token.caller
@@ -74,11 +73,9 @@ type AdaptiveObject =
 
         res
 
-    /// Utility function for evaluating an object if
-    /// It is marked as outOfDate. If the object is actually
-    /// OutOfDate the given function is executed and otherwise
-    /// The given default value is returned.
-    /// This method takes care of appropriate locking
+    /// Utility function for evaluating an object if it is marked as outOfDate.
+    /// If the object is actually outOfDate the given function is executed and otherwise
+    /// The given default value is returned. This method takes care of appropriate locking
     member inline x.EvaluateIfNeeded (token : AdaptiveToken) (otherwise : 'T) (f : AdaptiveToken -> 'T) =
         x.EvaluateAlways token (fun token ->
             if x.OutOfDate then 

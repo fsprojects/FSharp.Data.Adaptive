@@ -6,6 +6,7 @@ open System.Collections.Generic
 
 [<AutoOpen>]
 module internal HeapExtensions =
+
     /// Swaps the given elements inside the list.
     let inline private swap (heap: List<'T>) (l: int) (r: int) =
         let t = heap.[l]
@@ -111,6 +112,7 @@ module internal InterlockedExtensions =
 
             computed
             
+#if UNUSED
         /// Changes the byref by applying the given function in a thread-safe way. 
         /// NOTE that the function might be evaluated multiple times.
         static member Change(location: byref<'T>, f: 'T -> 'T * 'U) =
@@ -126,7 +128,6 @@ module internal InterlockedExtensions =
                 result <- r
 
             result
-
             
         /// Changes the byref by applying the given function in a thread-safe way. 
         /// NOTE that the function might be evaluated multiple times.
@@ -183,6 +184,7 @@ module internal InterlockedExtensions =
                 result <- r
 
             result
+#endif
 
 [<AutoOpen>]
 module internal CheapEquality =

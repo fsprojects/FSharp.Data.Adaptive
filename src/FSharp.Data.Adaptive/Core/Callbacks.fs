@@ -51,7 +51,7 @@ module CallbackExtensions =
     
     type IAdaptiveObject with
         /// Registers a callback with the given object that will be executed
-        /// Whenever the object gets marked out-of-date.
+        /// whenever the object gets marked out-of-date.
         /// Note that it does not trigger when the object is currently out-of-date.
         /// Returns a disposable for removing the callback.
         member x.AddMarkingCallback (callback: unit -> unit) =

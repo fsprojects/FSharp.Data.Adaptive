@@ -15,11 +15,11 @@ type internal UEq<'T> =
         | _ -> false
 
 /// Cache represents a cached function which can be 
-/// Invoked and revoked. invoke increments the reference
-/// Count for a specific argument (possibly causing the 
-/// Function to be executed) whereas revoke decreases the
-/// Reference count and removes the cache entry whenever
-/// The reference count is 0.
+/// invoked and revoked. invoke increments the reference
+/// count for a specific argument (possibly causing the 
+/// function to be executed) whereas revoke decreases the
+/// eeference count and removes the cache entry whenever
+/// the reference count is 0.
 type internal Cache<'A, 'B>(mapping : 'A -> 'B) =  
     static let isNull =
         if typeof<'A>.IsValueType then fun (_o : 'A) -> false
@@ -29,9 +29,9 @@ type internal Cache<'A, 'B>(mapping : 'A -> 'B) =
     let mutable nullCache = None
 
     /// Clear removes all entries from the Cache and
-    /// Executes a function for all removed cache entries.
+    /// executes a function for all removed cache entries.
     /// This function is helpful if the contained values
-    /// Are (for example) disposable resources.
+    /// are (for example) disposable resources.
     member x.Clear(remove : 'B -> unit) =
         for (KeyValue(_,(v,_))) in cache do 
             remove v

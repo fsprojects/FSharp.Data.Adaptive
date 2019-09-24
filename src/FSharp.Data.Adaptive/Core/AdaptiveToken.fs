@@ -3,18 +3,18 @@
 open System.Threading
 
 /// AdaptiveToken represents a token that can be passed to
-/// Inner AdaptiveObjects for evaluation.
-/// When passing an AdaptiveToken to the evaluation-function of 
-/// A cell the system will create a dependency edge internally and
-/// Future marking of the inner cell will also cause the calling cell to
-/// Be marked.
+/// inner AdaptiveObjects for evaluation.
+/// when passing an AdaptiveToken to the evaluation-function of 
+/// a cell the system will create a dependency edge internally and
+/// future marking of the inner cell will also cause the calling cell to
+/// be marked.
 [<Struct>]
 type AdaptiveToken =
 
     /// Represents the calling IAdaptiveObject or null if none.
     ///
     /// Note, this is only mutable because that exposes the underlying field
-    /// For (reportedly) more performant access.
+    /// for (reportedly) more performant access.
     val mutable internal caller : IAdaptiveObject
 
     member x.Caller =
