@@ -19,13 +19,14 @@
 	<Compile Include="Datastructures\HashSet.fs" />
 	<Compile Include="Datastructures\HashMap.fs" />
 	<Compile Include="Datastructures\Operations.fs" />
-	<Compile Include="Datastructures\HashSetDelta.fs" />
-	<Compile Include="Datastructures\HashMapDelta.fs" />
-	<Compile Include="Datastructures\Differentiation.fs" />
 	<Compile Include="Datastructures\Index.fsi" />
 	<Compile Include="Datastructures\Index.fs" />
 	<Compile Include="Datastructures\MapExt.fs" />
 	<Compile Include="Datastructures\IndexList.fs" />
+	<Compile Include="Datastructures\HashSetDelta.fs" />
+	<Compile Include="Datastructures\HashMapDelta.fs" />
+	<Compile Include="Datastructures\IndexListDelta.fs" />
+	<Compile Include="Datastructures\Differentiation.fs" />
 	<Compile Include="Utilities\Utilities.fs" />
 	<Compile Include="Utilities\PriorityQueue.fs" />
 	<Compile Include="Utilities\Cache.fs" />
@@ -48,6 +49,7 @@
 	<Compile Include="AdaptiveHashMap\AdaptiveHashMap.fs" />
 	<Compile Include="AdaptiveHashMap\ChangeableHashMap.fsi" />
 	<Compile Include="AdaptiveHashMap\ChangeableHashMap.fs" />
+	<Compile Include="AdaptiveList\AdaptiveList.fs" />
 	</ItemGroup>
 	<Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

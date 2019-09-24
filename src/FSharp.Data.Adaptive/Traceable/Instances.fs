@@ -17,7 +17,23 @@ module HashSetDelta =
     /// The monoid instance for HashSetDelta
     [<GeneralizableValue>]
     let monoid<'T> = Monoid<'T>.Instance
-   
+ 
+/// Functional operators for IndexListDelta.
+module IndexListDelta =
+    type private Monoid<'T> private() =
+        /// The monoid instance for HashSetDelta
+        static let monoid  =
+            {
+                mempty = IndexListDelta<'T>.Empty
+                mappend = fun l r -> l.Combine r
+                misEmpty = fun s -> s.IsEmpty
+            } 
+        static member Instance = monoid
+
+    /// The monoid instance for HashSetDelta
+    [<GeneralizableValue>]
+    let monoid<'T> = Monoid<'T>.Instance
+     
 /// Functional operators for HashMapDelta.
 module HashMapDelta =
     type private Monoid<'K, 'V> private() =
@@ -71,4 +87,23 @@ module HashMap =
 
     /// The traceable instance for HashSet.
     let trace<'K, 'V> = TraceableInstance<'K, 'V>.Instance
-     
+   
+/// Functional operators for IndexList.
+module IndexList =
+
+    /// Type for caching the Traceable<_> instance for IndexList<_>
+    type private Traceable<'T> private() =
+        static let trace : Traceable<IndexList<'T>, IndexListDelta<'T>> =
+            {
+                tempty = IndexList.empty
+                tdifferentiate = IndexList.differentiate
+                tintegrate = IndexList.integrate
+                tmonoid = IndexListDelta.monoid
+                tprune = None
+                tsize = fun s -> s.Count
+            }
+        static member Instance = trace
+
+    /// The traceable instance for HashSet.
+    let trace<'T> = Traceable<'T>.Instance
+ 

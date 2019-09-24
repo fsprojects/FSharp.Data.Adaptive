@@ -269,3 +269,60 @@ module DifferentiationExtensions =
 
                 m, HashMapDelta effective
 
+    /// Functional programming operators related to the IndexList<_> type.
+    module IndexList =
+        
+        /// Determines the operations needed to transform l into r.
+        /// Returns a IndexListDelta containing these operations.
+        let integrate (x : IndexList<'a>) (deltas : IndexListDelta<'a>) =
+            if deltas.Count = 0 then
+                x, deltas
+            else
+                let mutable res = x
+                let finalDeltas =
+                    deltas |> IndexListDelta.filter (fun i op ->
+                        match op with
+                        | Remove -> 
+                            res <- res.Remove i
+                            true
+                        | Set v -> 
+                            match res.TryGet i with
+                            | Some o when Unchecked.equals o v -> 
+                                false
+                            | _ -> 
+                                res <- res.Set(i,v)
+                                true
+                    )
+
+                res, finalDeltas
+
+        /// Applies the given operations to the list. 
+        /// Returns the new list and the 'effective' operations.
+        let differentiate (l : IndexList<'a>) (r : IndexList<'a>) : IndexListDelta<'a> =
+            if l.Count = 0 && r.Count = 0 then
+                IndexListDelta.empty
+
+            elif l.Count = 0 then
+                r.Content |> MapExt.map (fun i v -> Set v) |> IndexListDelta.ofMap
+                
+            elif r.Count = 0 then
+                l.Content |> MapExt.map (fun i v -> Remove) |> IndexListDelta.ofMap
+
+            elif System.Object.ReferenceEquals (l.Content, r.Content) then
+                IndexListDelta.empty
+
+            else
+                // TODO: one small???
+                let merge (k : Index) (l : Option<'a>) (r : Option<'a>) =
+                    match l, r with
+                    | Some l, Some r when Unchecked.equals l r -> 
+                        None
+                    | _, Some r -> 
+                        Some (Set r)
+                    | Some _l, None -> 
+                        Some Remove
+                    | None, None ->
+                        None
+
+                MapExt.choose2 merge l.Content r.Content |> IndexListDelta.ofMap
+
