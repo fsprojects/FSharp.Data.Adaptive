@@ -25,7 +25,7 @@ module Helpers =
 type Record<'T> = { value : 'T }
 
 [<Property(Arbitrary = [| typeof<AdaptiveGenerators> |])>]
-let ``[AVal] reference tests``() ({ real = real; ref = ref; expression = str; changes = changes } : Val<obj>) =
+let ``[AVal] reference tests``() ({ real = real; ref = ref; expression = str; changes = changes } : VVal<obj>) =
     printfn "VALIDATE"
     printfn "%s" (Generators.Generators.indent (Generators.Generators.indent str))
     let check() = 

@@ -20,6 +20,59 @@ module Helpers =
 
 let emptyDelta = HashSetDelta.empty<int>
 
+open FSharp.Data
+open Generators
+[<Property(Arbitrary = [| typeof<Generators.AdaptiveGenerators> |])>]
+let ``[ASet] reference tests``() ({ sreal = real; sref = ref; sexpression = str; schanges = changes } : VSet<int>) =
+    printfn "VALIDATE"
+    printfn "%s" (Generators.Generators.indent (Generators.Generators.indent str))
+     
+    let r = real.GetReader()
+
+    let check() = 
+        r.GetChanges AdaptiveToken.Top |> ignore
+        let vReal = real.Content.GetValue AdaptiveToken.Top // |> CountingHashSet.toHashSet
+        let vRef = ref.Content.GetValue Reference.AdaptiveToken.Top
+        vReal |> should setequal vRef
+        vRef
+        //printfn "    VALUE => %A" vRef
+             
+    let mutable lastValue = check()
+
+    let run = 
+        gen {
+            let mutable effective = 0
+
+            while effective < 20 do
+                let all = changes() 
+                match all with
+                | [] -> 
+                    effective <- System.Int32.MaxValue
+                | _ -> 
+                    let! some = 
+                        all
+                        |> List.map (fun g -> g.change) 
+                        |> Gen.subListOf
+                        |> Gen.filter (List.isEmpty >> not)
+
+                    let! changeAll = Gen.collect id some
+                    transact (fun () ->
+                        changeAll |> List.map (fun c -> c()) |> ignore
+                    )
+                    let v = check()
+                    if not (Unchecked.equals v lastValue) then
+                        printfn "  change %d => %A" effective v
+                        lastValue <- v
+
+                    effective <- effective + 1
+        }
+
+    Gen.eval 15 (Random.newSeed()) run
+
+
+
+
+
 [<Test>]
 let ``[CSet] reader add/remove/clear/union/except`` () =
     let set = cset<int>(HashSet.empty)
