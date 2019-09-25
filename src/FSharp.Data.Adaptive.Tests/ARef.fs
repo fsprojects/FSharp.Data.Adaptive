@@ -4,7 +4,10 @@ open FSharp.Data.Adaptive
 open FSharp.Data.Adaptive.Validation
 open NUnit.Framework
 open FsUnit
+open FsCheck
 open FsCheck.NUnit
+open FSharp.Data
+open Generators
 
 [<AutoOpen>]
 module Helpers =
@@ -20,6 +23,51 @@ module Helpers =
 
 
 type Record<'T> = { value : 'T }
+
+[<Property(Arbitrary = [| typeof<AdaptiveGenerators> |])>]
+let ``[AVal] reference tests``() ({ real = real; ref = ref; expression = str; changes = changes } : Val<obj>) =
+    printfn "VALIDATE %s" str
+    let check() = 
+        let vReal = Adaptive.AVal.force real
+        let vRef = Reference.AVal.force ref
+        vReal |> should equal vRef
+        vRef
+        //printfn "    VALUE => %A" vRef
+             
+    let mutable lastValue = check()
+
+    let run = 
+        gen {
+            let mutable effective = 0
+
+            while effective < 20 do
+                let all = changes() 
+                match all with
+                | [] -> 
+                    effective <- System.Int32.MaxValue
+                | _ -> 
+                    let! some = 
+                        all
+                        |> List.map (fun g -> g.change) 
+                        |> Gen.subListOf
+                        |> Gen.filter (List.isEmpty >> not)
+
+                    let! changeAll = Gen.collect id some
+                    transact (fun () ->
+                        changeAll |> List.map (fun c -> c()) |> ignore
+                    )
+                    let v = check()
+                    if not (Unchecked.equals v lastValue) then
+                        printfn "  change %d => %A" effective v
+                        lastValue <- v
+
+                    effective <- effective + 1
+        }
+
+    Gen.eval 15 (Random.newSeed()) run
+
+
+
 
 [<Property>]
 let ``[AVal] constant equality`` (value : obj) =

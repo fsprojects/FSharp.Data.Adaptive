@@ -14,6 +14,7 @@
   <ItemGroup>
     <Compile Include="Utilities\Helpers.fs" />
     <Compile Include="Utilities\AdaptiveValidation.fs" />
+    <Compile Include="Utilities\Generators.fs" />
     <Compile Include="IntMap.fs" />
     <Compile Include="HashMap.fs" />
     <Compile Include="HashSet.fs" />
