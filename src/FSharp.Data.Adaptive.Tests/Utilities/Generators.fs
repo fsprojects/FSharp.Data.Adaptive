@@ -76,9 +76,12 @@ module Generators =
             )
         fun a b -> cache.Invoke(a,b)
 
+    let indent (str : string) =
+        str.Split("\r\n") |> Array.map (fun s -> "  " + s) |> String.concat "\r\n"
+
     let init<'a>() =
         gen {
-            let! id = Gen.choose(1, 4096)
+            let! id = Gen.choose(1, 128)
             let! value = Arb.generate<'a>
 
             let real = Adaptive.AVal.init value
@@ -102,7 +105,7 @@ module Generators =
                 create 
                     (real :> Adaptive.aval<_>)
                     (ref :> Reference.aval<_>)
-                    (sprintf "C%d" id)
+                    (sprintf "c%d" id)
                     (fun () -> [change])
         }
 
@@ -118,7 +121,7 @@ module Generators =
                 create
                     (Adaptive.AVal.constant value)
                     (Reference.AVal.constant value)
-                    (sprintf "constant(%s)" asString)
+                    (sprintf "v (%s)" asString)
                     (fun () -> [])
         }
 
@@ -131,7 +134,7 @@ module Generators =
                 create 
                     (Adaptive.AVal.map f value.real)
                     (Reference.AVal.map f value.ref)
-                    (sprintf "map(%s)" value.expression)
+                    (sprintf "map (\r\n%s\r\n)" (indent value.expression))
                     value.changes
         }
 
@@ -144,7 +147,7 @@ module Generators =
                 create 
                     (Adaptive.AVal.map2 f value0.real value1.real)
                     (Reference.AVal.map2 f value0.ref value1.ref)
-                    (sprintf "map2(%s, %s)" value0.expression value1.expression)
+                    (sprintf "map2 (\r\n%s\r\n%s\r\n)" (indent value0.expression) (indent value1.expression))
                     (fun () -> List.append (value0.changes()) (value1.changes()))
         }
 
@@ -172,7 +175,7 @@ module Generators =
                 create 
                     (Adaptive.AVal.bind (fun v -> (mapping v).real) value.real)
                     (Reference.AVal.bind (fun v -> (mapping v).ref) value.ref)
-                    (sprintf "bind(%s)" value.expression)
+                    (sprintf "bind (\r\n%s\r\n)" (indent value.expression))
                     getChanges
         }
 
@@ -210,8 +213,22 @@ type AdaptiveGenerators() =
             member x.Generator =
                 Gen.sized (fun size ->
                     gen {
-                        let maxValue = if size = 0 then 1 else 4
-                        match! Gen.choose (0, maxValue) with
+                        let! kind = 
+                            if size = 0 then
+                                Gen.frequency [
+                                    1, Gen.constant 0
+                                    5, Gen.constant 1
+                                ]
+                            else 
+                                Gen.frequency [
+                                    1, Gen.constant 0
+                                    5, Gen.constant 1
+                                    5, Gen.constant 2
+                                    5, Gen.constant 3
+                                    5, Gen.constant 4
+                                    
+                                ]
+                        match kind with
                         | 0 -> return! Generators.constant<'a>()
                         | 1 -> return! Generators.init<'a>()
                         | 2 ->

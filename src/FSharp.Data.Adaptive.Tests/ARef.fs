@@ -26,7 +26,8 @@ type Record<'T> = { value : 'T }
 
 [<Property(Arbitrary = [| typeof<AdaptiveGenerators> |])>]
 let ``[AVal] reference tests``() ({ real = real; ref = ref; expression = str; changes = changes } : Val<obj>) =
-    printfn "VALIDATE %s" str
+    printfn "VALIDATE"
+    printfn "%s" (Generators.Generators.indent (Generators.Generators.indent str))
     let check() = 
         let vReal = Adaptive.AVal.force real
         let vRef = Reference.AVal.force ref
