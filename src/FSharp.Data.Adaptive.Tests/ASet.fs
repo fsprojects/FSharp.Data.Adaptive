@@ -22,22 +22,20 @@ let emptyDelta = HashSetDelta.empty<int>
 
 open FSharp.Data
 open Generators
-[<Property(Arbitrary = [| typeof<Generators.AdaptiveGenerators> |])>]
+[<Property(Arbitrary = [| typeof<Generators.AdaptiveGenerators> |]); Timeout(60000)>]
 let ``[ASet] reference tests``() ({ sreal = real; sref = ref; sexpression = str; schanges = changes } : VSet<int>) =
     printfn "VALIDATE"
 
+
     let str b =
         let m, str = str b
-        
         String.concat "\r\n" [
             for (k,v) in Map.toSeq m do
                 yield sprintf "let %s = %s" k v
             yield str
         ]
 
-
     printfn "%s" (Generators.Generators.indent (Generators.Generators.indent (str false)))
-     
     let r = real.GetReader()
 
     let check (beforeChangeStr : string) (beforeChange : list<string>) (latestChanges : list<string>) = 
@@ -113,9 +111,12 @@ let ``[ASet] reference tests``() ({ sreal = real; sref = ref; sexpression = str;
                         )
                     let v = check beforeChangeStr beforeChange latestChange
                     if not (Unchecked.equals v lastValue) then
+                        
                         printfn "  change %d => %A" effective v
                         lastValue <- v
+                    
 
+     
                     effective <- effective + 1
         }
 
@@ -411,12 +412,12 @@ let ``[ASet] filter``(values : list<Set<int>>) =
         i <- i + 1
 
 [<Property>]
-let ``[ASet] union``(all : list<list<Set<int>>>) =
+let ``[ASet] unionMany``(all : list<list<Set<int>>>) =
     
     let initial = cset<aset<int>>(HashSet.empty)
     let innerSets = System.Collections.Generic.List<cset<int>>()
 
-    let derived = ASet.union initial
+    let derived = ASet.unionMany initial
     let reader = derived.GetReader()
 
     reader |> check |> should setequal emptyDelta

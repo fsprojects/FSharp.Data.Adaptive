@@ -195,10 +195,10 @@ module ASet =
             (Adaptive.ASet.filter predicate set.Adaptive)
             (Reference.ASet.filter predicate set.Reference)
             
-    let union (sets : aset<aset<'T1>>) =
+    let unionMany (sets : aset<aset<'T1>>) =
         create
-            (Adaptive.ASet.union (sets.Adaptive |> Adaptive.ASet.map (fun s -> s.Adaptive)))
-            (Reference.ASet.union (sets.Reference |> Reference.ASet.map (fun s -> s.Reference)))
+            (Adaptive.ASet.unionMany (sets.Adaptive |> Adaptive.ASet.map (fun s -> s.Adaptive)))
+            (Reference.ASet.unionMany (sets.Reference |> Reference.ASet.map (fun s -> s.Reference)))
 
     let collect (mapping : 'T1 -> aset<'T2>) (set : aset<'T1>) =
         create

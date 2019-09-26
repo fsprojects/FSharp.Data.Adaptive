@@ -53,9 +53,12 @@ module ASet =
     
     /// Adaptively filters the set using the given predicate.
     val filter : predicate : ('A -> bool) -> set : aset<'A> -> aset<'A>
+    
+    /// Adaptively unions the given sets
+    val union : a : aset<'A> -> b : aset<'A> -> aset<'A>
 
     /// Adaptively unions all the given sets
-    val union : sets : aset<aset<'A>> -> aset<'A>
+    val unionMany : sets : aset<aset<'A>> -> aset<'A>
 
     /// Adaptively maps over the given set and unions all resulting sets.
     val collect : mapping : ('A -> aset<'B>) -> set : aset<'A> -> aset<'B>

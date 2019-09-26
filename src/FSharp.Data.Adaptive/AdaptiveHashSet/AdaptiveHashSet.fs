@@ -549,9 +549,22 @@ module ASet =
             constant (fun () -> set |> force |> HashSet.filter predicate)
         else
             create (fun () -> FilterReader(set, predicate))
+            
+    /// Adaptively unions the given sets
+    let union (a : aset<'A>) (b : aset<'A>) =
+        if a = b then
+            a
+        elif a.IsConstant && b.IsConstant then
+            let va = force a
+            let vb = force b
+            if va.IsEmpty && vb.IsEmpty then empty
+            else constant (fun () -> HashSet.union va vb)
+        else
+            // TODO: can be optimized in case one of the two sets is constant.
+            create (fun () -> UnionConstantReader (HashSet.ofList [a;b]))
 
     /// Adaptively unions all the given sets
-    let union (sets : aset<aset<'A>>) = 
+    let unionMany (sets : aset<aset<'A>>) = 
         if sets.IsConstant then
             // outer set is constant
             let all = force sets

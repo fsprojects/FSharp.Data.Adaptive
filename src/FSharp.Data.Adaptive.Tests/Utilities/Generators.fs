@@ -61,12 +61,20 @@ type VSet<'a> =
 module Generators =
     let rand = Random()
     
-    let internal randomFunction<'a, 'b>() =
+    module Map =
+        let union (a: Map<'K, 'V>) (b: Map<'K, 'V>) =
+            let mutable res = a 
+            for kvp in b do
+                res <- Map.add kvp.Key kvp.Value res
+            res
+
+
+    let internal randomFunction<'a, 'b>(size : int) =
         let cache = 
             Cache<'a, 'b>(fun _ -> 
                 let a = rand.Next()
                 let b = rand.Next()
-                let res = Arb.generate<'b> |> Gen.eval 30 (Random.StdGen(a, b))
+                let res = Arb.generate<'b> |> Gen.eval size (Random.StdGen(a, b))
 
                 res
             )
@@ -143,7 +151,7 @@ module Generators =
             gen {
                 let! value = Arb.generate<_>
                 //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
-                let _table, f = randomFunction<'a, 'b>()
+                let _table, f = randomFunction<'a, 'b> 40
                 return 
                     create 
                         (Adaptive.AVal.map f value.real)
@@ -167,9 +175,10 @@ module Generators =
 
         let bind<'a, 'b>() =
             gen {
-                let! value = Arb.generate<VVal<'a>>
+                let mutable mySize = ref 0
+                let! value = Arb.generate<VVal<'a>> |> Gen.scaleSize (fun s -> mySize := s; s - 1)
                 //let! mapping = Arb.generate<'a -> Val<'b>> |> Gen.scaleSize (fun _ -> 50)
-                let _table, mapping = randomFunction<'a, VVal<'b>>()
+                let _table, mapping = randomFunction<'a, VVal<'b>>(!mySize / 2)
 
                 let changes = value.changes
 
@@ -195,6 +204,7 @@ module Generators =
 
     module Set =
         let mutable cid = 0
+
         let create a b s c = 
             {
                 sreal = a
@@ -250,7 +260,7 @@ module Generators =
                         (Adaptive.ASet.ofHashSet value)
                         (Reference.ASet.ofHashSet value)
                         (function 
-                            | false -> Map.empty, sprintf "v%d = %A" id value
+                            | false -> Map.empty, sprintf "%A" value
                             | true -> 
                                 let m = Map.ofList [sprintf "v%d" id, sprintf "ASet.ofList [%s]" (value |> Seq.map (sprintf "%A") |> String.concat "; ")]
                                 m, sprintf "v%d" id
@@ -260,9 +270,10 @@ module Generators =
 
         let map<'a, 'b>() =
             gen {
-                let! value = Arb.generate<_>
+                let mySize = ref 0
+                let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> mySize := s; s - 2)
                 //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
-                let table, f = randomFunction<'a, 'b>()
+                let table, f = randomFunction<'a, 'b> (!mySize / 2)
                 return 
                     create 
                         (Adaptive.ASet.map f value.sreal)
@@ -270,7 +281,7 @@ module Generators =
                         (function
                             | false -> 
                                 let m, v = value.sexpression false
-                                m, sprintf "map (\r\n%s\r\n)" v
+                                m, sprintf "map (\r\n%s\r\n)" (indent v)
                             | true ->
                                 let realContent = value.sref.Content |> Reference.AVal.force
                                 let mi, input = value.sexpression true
@@ -284,12 +295,135 @@ module Generators =
                         )
                         value.schanges
             }
+            
+        let choose<'a, 'b>() =
+            gen {
+                let mySize = ref 0
+                let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> mySize := s; s - 2)
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let table, f = randomFunction<'a, Option<'b>> (!mySize / 2)
+                return 
+                    create 
+                        (Adaptive.ASet.choose f value.sreal)
+                        (Reference.ASet.choose f value.sref)
+                        (function
+                            | false -> 
+                                let m, v = value.sexpression false
+                                m, sprintf "choose (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.sref.Content |> Reference.AVal.force
+                                let mi, input = value.sexpression true
 
+                                let table =
+                                    realContent 
+                                    |> Seq.map (fun v -> sprintf "| %A -> %A" v (f v))
+                                    |> String.concat "\r\n"
+
+                                mi, sprintf "%s\r\n|> ASet.choose (\r\n  function\r\n%s\r\n)" (indent input) (indent table)
+                        )
+                        value.schanges
+            }
+                 
+        let filter<'a>() =
+            gen {
+                let mySize = ref 0
+                let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> mySize := s; s - 2)
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let table, f = randomFunction<'a, bool> (!mySize / 2)
+                return 
+                    create 
+                        (Adaptive.ASet.filter f value.sreal)
+                        (Reference.ASet.filter f value.sref)
+                        (function
+                            | false -> 
+                                let m, v = value.sexpression false
+                                m, sprintf "filter (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.sref.Content |> Reference.AVal.force
+                                let mi, input = value.sexpression true
+
+                                let table =
+                                    realContent 
+                                    |> Seq.map (fun v -> sprintf "| %A -> %A" v (f v))
+                                    |> String.concat "\r\n"
+
+                                mi, sprintf "%s\r\n|> ASet.filter (\r\n  function\r\n%s\r\n)" (indent input) (indent table)
+                        )
+                        value.schanges
+            }
+
+        let union<'a> () =
+            gen {
+                let! a = Arb.generate<VSet<'a>> |> Gen.scaleSize (fun v -> v / 2)
+                let! b = Arb.generate<VSet<'a>> |> Gen.scaleSize (fun v -> v / 2)
+                return 
+                    create 
+                        (Adaptive.ASet.union a.sreal b.sreal)
+                        (Reference.ASet.union a.sref b.sref)
+                        (fun verbose ->
+                            let ma, a = a.sexpression verbose
+                            let mb, b = b.sexpression verbose
+                            let m = Map.union ma mb
+
+                            m, sprintf "union\r\n%s\r\n%s" (indent a) (indent b)
+                        )
+                        (fun () -> a.schanges() @ b.schanges())
+
+            }
+
+        let ofAVal<'a> () =
+            gen {
+                let! a = Arb.generate<VVal<HashSet<'a>>> |> Gen.scaleSize (fun v -> 0)
+                return 
+                    create
+                        (a.real |> Adaptive.ASet.ofAVal)
+                        (a.ref |> Reference.ASet.ofAVal)
+                        (fun _ -> Map.empty, sprintf "ofAVal\r\n%s" (indent a.expression))
+                        (fun () -> a.changes())
+            }
+
+        let bind<'a, 'b>() =
+            gen {
+                let mySize = ref 0
+                let! value = Arb.generate<VVal<'a>> |> Gen.scaleSize (fun s -> mySize := s; 0)
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let table, mapping = randomFunction<'a, VSet<'b>> (!mySize - 1)
+
+                
+                let mutable latest = None
+
+                let getChanges() =
+                    match latest with
+                    | Some l -> List.append (l.schanges()) (value.changes())
+                    | None -> value.changes()
+
+                let mapping (input : 'a) =
+                    let res = mapping input
+                    latest <- Some res
+                    res
+
+
+                return 
+                    create 
+                        (Adaptive.ASet.bind (fun a -> (mapping a).sreal) value.real)
+                        (Reference.ASet.bind (fun a -> (mapping a).sref) value.ref)
+                        (fun _ -> 
+                            let v = value.expression
+                            Map.empty, sprintf "bind (\r\n%s\r\n)" (indent v)
+                        )
+                        getChanges
+            }
+                
         let collect<'a, 'b>() =
             gen {
-                let! value = Arb.generate<_>
+                let mySize = ref 0
+                let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> mySize := s; s - 1)
                 //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
-                let table, mapping = randomFunction<'a, VSet<'b>>()
+                let innerSize = 
+                    let s = !mySize
+                    if s > 0 then int (sqrt (float s))
+                    else 0
+                let table, mapping = randomFunction<'a, VSet<'b>> innerSize
 
                 let cache = Cache<'a, VSet<'b>>(mapping)
 
@@ -308,7 +442,7 @@ module Generators =
                         (function
                             | false ->  
                                 let m, v = value.sexpression false
-                                m, sprintf "collect (\r\n%s\r\n)" v
+                                m, sprintf "collect (\r\n%s\r\n)" (indent v)
                             | true ->
                                 let realContent = value.sref.Content |> Reference.AVal.force
                                 let it, input = value.sexpression true
@@ -344,9 +478,9 @@ type AdaptiveGenerators() =
     static let relevantTypes = 
         [
             typeof<int>
-            typeof<bool>
-            //typeof<HashSet<int>>
-            //typeof<HashSet<obj>>
+            typeof<obj>
+            typeof<HashSet<int>>
+            typeof<HashSet<obj>>
         ]
 
     
@@ -434,31 +568,52 @@ type AdaptiveGenerators() =
                         let! kind = 
                             if size = 0 then
                                 Gen.frequency [
-                                    1, Gen.constant 0
-                                    5, Gen.constant 1
+                                    1, Gen.constant "constant"
+                                    5, Gen.constant "cset"
                                 ]
                             else 
                                 Gen.frequency [
-                                    1, Gen.constant 0
-                                    5, Gen.constant 1
-                                    5, Gen.constant 2
-                                    2, Gen.constant 3
-                                    
+                                    1, Gen.constant "constant"
+                                    3, Gen.constant "cset"
+                                    3, Gen.constant "map"
+                                    3, Gen.constant "choose"
+                                    3, Gen.constant "filter"
+                                    3, Gen.constant "union"
+                                    2, Gen.constant "collect"
+                                    1, Gen.constant "aval"
+                                    1, Gen.constant "bind"
                                 ]
                         match kind with
-                        | 0 -> return! Generators.Set.constant<'a>()
-                        | 1 -> return! Generators.Set.init<'a>()
-                        | 2 -> 
+                        | "constant" -> 
+                            return! Generators.Set.constant<'a>()
+                        | "cset" -> 
+                            return! Generators.Set.init<'a>()
+                        | "union" ->
+                            return! Generators.Set.union<'a>()
+                        | "aval" ->
+                            return! Generators.Set.ofAVal<'a>() 
+                        | "filter" ->
+                            return! Generators.Set.filter<'a>()
+
+                        | "map" -> 
                             let! t = Gen.elements relevantTypes
                             return!
                                 t.Visit { new TypeVisitor<_> with member __.Accept<'z>() = Generators.Set.map<'z, 'a>() }
-                                |> Gen.scaleSize (fun s -> s - 1)
-                        | _ -> 
+                        | "bind" -> 
+                            let! t = Gen.elements relevantTypes
+                            return!
+                                t.Visit { new TypeVisitor<_> with member __.Accept<'z>() = Generators.Set.bind<'z, 'a>() }
+                        
+                        | "choose" -> 
+                            let! t = Gen.elements relevantTypes
+                            return!
+                                t.Visit { new TypeVisitor<_> with member __.Accept<'z>() = Generators.Set.choose<'z, 'a>() }
+                        | "collect" -> 
                             let! t = Gen.elements relevantTypes
                             return!
                                 t.Visit { new TypeVisitor<_> with member __.Accept<'z>() = Generators.Set.collect<'z, 'a>() }
-                                |> Gen.scaleSize (fun s -> 0)
-
+                        | kind ->
+                            return failwithf "unknown operation: %s" kind
                     }
                 )
             member x.Shrinker _ =

@@ -144,9 +144,13 @@ module ASet =
     /// Filters the set using the given predicate.
     let filter (predicate: 'T -> bool) (set: aset<'T>) =
         set.Content |> AVal.map (HashSet.filter predicate) |> ofRef
+        
+    /// Unions the sets.
+    let union (a: aset<'T>) (b: aset<'T>) =
+        AVal.map2 (HashSet.union) a.Content b.Content |> ofRef
 
     /// Unions all the sets.
-    let union (sets: aset<aset<'T>>) =
+    let unionMany (sets: aset<aset<'T>>) =
         sets.Content |> AVal.map (fun sets ->
             sets |> HashSet.collect (fun s -> s.Content.GetValue AdaptiveToken.Top)
         ) |> ofRef
