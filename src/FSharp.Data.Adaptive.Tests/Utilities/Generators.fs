@@ -311,6 +311,45 @@ module Generators =
                         getChanges
             }
 
+        let ofASet<'i, 'a>() =
+            let transform =
+                if typeof<'a> = typeof<HashSet<'i>> then
+                    fun (v : HashSet<'i>) -> unbox v
+                elif typeof<'a> = typeof<string> then 
+                    fun (v : HashSet<'i>) -> string v |> unbox<'a>
+                elif typeof<'a> = typeof<obj> then  
+                    fun (v : HashSet<'i>) -> string v :> obj |> unbox<'a>
+                elif typeof<'a> = typeof<int> then 
+                    fun (v : HashSet<'i>) -> v.GetHashCode() |> unbox<'a>
+                else
+                    fun (v : HashSet<'i>) -> Arb.generate<'a> |> Gen.eval 1 (Random.newSeed())
+
+            gen {
+                let mutable mySize = ref 0
+                let! set = Arb.generate<VSet<'i>> |> Gen.scaleSize (fun _s -> 0)
+
+                let cache = 
+                    System.Collections.Concurrent.ConcurrentDictionary<HashSet<'i>, 'a>()
+
+
+                let reduce (set : HashSet<'i>) =
+                    cache.GetOrAdd(set, fun set ->
+                        transform set
+                    )
+
+                let real = set.sreal |> Adaptive.ASet.toAVal |> Adaptive.AVal.map reduce
+                let ref = set.sref |> Reference.ASet.toAVal |> Reference.AVal.map reduce
+
+
+                return
+                    create
+                        real
+                        ref
+                        (sprintf "ofASet\r\n%s" (indent (set.sexpression false |> snd)))
+                        (fun () -> set.schanges())
+            }
+            
+
 
     module Set =
         let mutable cid = 0
@@ -481,6 +520,50 @@ module Generators =
 
             }
 
+        let unionMany<'a> () =
+            gen {
+                let! a = 
+                    Arb.generate<VSet<VSet<'a>>> 
+                    |> Gen.scaleSize (fun v -> 
+                        if v <= 1 then 0
+                        else int (sqrt (float v))
+                    )
+
+                let real = a.sreal |> Adaptive.ASet.map (fun v -> v.sreal)
+                let ref = a.sref |> Reference.ASet.map (fun v -> v.sref)
+
+                return 
+                    create 
+                        (Adaptive.ASet.unionMany real)
+                        (Reference.ASet.unionMany ref)
+                        (fun verbose ->
+                            let m, e = a.sexpression verbose
+                            let current = a.sref.Content |> Reference.AVal.force
+
+                            let current, m = 
+                                (([], m), current)
+                                ||> Seq.fold (fun (str, map) s -> 
+                                    let m, a = s.sexpression verbose
+                                    (str @ [a], Map.union map m)
+                                )
+
+                            let current =
+                                current |> String.concat "\r\n"
+
+                            m, sprintf "unionMany\r\n%s\r\n%s" (indent e) (indent (indent current))
+                        )
+                        (fun () -> 
+                            let current = 
+                                a.sref.Content 
+                                |> Reference.AVal.force
+                                |> Seq.collect (fun s -> s.schanges())
+                                |> Seq.toList
+                            
+                            a.schanges() @ current
+                        )
+
+            }
+
         let ofAVal<'a> () =
             gen {
                 let! a = Arb.generate<VVal<HashSet<'a>>> |> Gen.scaleSize (fun v -> 0)
@@ -630,11 +713,16 @@ type AdaptiveGenerators() =
                                     5, Gen.constant "map3"
                                     5, Gen.constant "bind"
                                     5, Gen.constant "bind2"
+                                    3, Gen.constant "ofASet"
                                     
                                 ]
                         match kind with
                         | "constant" -> return! Generators.Val.constant<'a>()
                         | "cval" -> return! Generators.Val.init<'a>()
+                        | "ofASet" -> 
+                            let! t = Gen.elements relevantTypes
+                            return!
+                                t.Visit { new TypeVisitor<_> with member __.Accept<'z>() = Generators.Val.ofASet<'z, 'a>() }
                         | "map" ->
                             let! t = Gen.elements relevantTypes
                             return!
@@ -703,6 +791,7 @@ type AdaptiveGenerators() =
                                     3, Gen.constant "filter"
                                     3, Gen.constant "union"
                                     2, Gen.constant "collect"
+                                    1, Gen.constant "unionMany"
                                     1, Gen.constant "aval"
                                     1, Gen.constant "bind"
                                 ]
@@ -713,6 +802,8 @@ type AdaptiveGenerators() =
                             return! Generators.Set.init<'a>()
                         | "union" ->
                             return! Generators.Set.union<'a>()
+                        | "unionMany" ->
+                            return! Generators.Set.unionMany<'a>()
                         | "aval" ->
                             return! Generators.Set.ofAVal<'a>() 
                         | "filter" ->
