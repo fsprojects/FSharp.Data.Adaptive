@@ -29,6 +29,41 @@ type StupidHash = { value : int } with
 /// Avoid obj defaulting
 let emptyDelta : HashSetDelta<int> = HashSetDelta.empty
 
+
+[<Property>]
+let ``[CountingHashSet] ref counts`` (input : Set<int>) =
+    let set = 
+        input 
+        |> Seq.map (fun v -> v, 2) 
+        |> HashMap.ofSeq
+        |> CountingHashSet.ofHashMap
+
+    let direct =
+        CountingHashSet.ofSeq input
+
+    input 
+    |> Set.fold (fun s v -> CountingHashSet.remove v s) set
+    |> should setequal set
+
+    input 
+    |> Set.fold (fun s v -> CountingHashSet.remove v (CountingHashSet.remove v s)) set
+    |> should setequal CountingHashSet.empty<int>
+
+    let ops =
+        set |> Seq.map Rem |> HashSetDelta.ofSeq
+
+    let s, e = CountingHashSet.integrate set ops
+    e |> should setequal HashSet.empty<SetOperation<int>>
+    s |> should setequal set
+
+    
+    let s, e = CountingHashSet.integrate s ops
+    e |> should setequal (set |> Seq.map Rem |> HashSet.ofSeq)
+    s |> should setequal HashSet.empty<int>
+
+    ()
+
+
 [<Property>]
 let ``[HashSet] integrate drops useless removes``() =
 

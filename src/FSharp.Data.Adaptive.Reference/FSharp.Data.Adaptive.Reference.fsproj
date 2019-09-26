@@ -12,6 +12,7 @@
   <ItemGroup>
     <Compile Include="AdaptiveValue.fs" />
     <Compile Include="AdaptiveHashSet.fs" />
+    <Compile Include="AdaptiveHashMap.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FSharp.Data.Adaptive\FSharp.Data.Adaptive.fsproj" />

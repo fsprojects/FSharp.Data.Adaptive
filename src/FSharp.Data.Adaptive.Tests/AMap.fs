@@ -1,4 +1,4 @@
-﻿module ASet
+﻿module AMap
 
 open NUnit.Framework
 open FsCheck
@@ -6,23 +6,11 @@ open FSharp.Data.Adaptive
 open FSharp.Data.Traceable
 open FsUnit
 open FsCheck.NUnit
-
-type Record<'T> = { value : 'T }
-
-//[<AutoOpen>]
-//module Helpers =
-//    let check (r : IHashSetReader<'T>) =
-//        let a = r.Adaptive.GetChanges FSharp.Data.Adaptive.AdaptiveToken.Top
-//        let r = r.Reference.GetChanges FSharp.Data.Adaptive.Reference.AdaptiveToken.Top
-//        a |> should setequal r
-//        r
-
-let emptyDelta = HashSetDelta.empty<int>
-
 open FSharp.Data
 open Generators
+
 [<Property(Arbitrary = [| typeof<Generators.AdaptiveGenerators> |]); Timeout(60000)>]
-let ``[ASet] reference impl``() ({ sreal = real; sref = ref; sexpression = str; schanges = changes } : VSet<int>) =
+let ``[AMap] reference impl``() ({ mreal = real; mref = ref; mexpression = str; mchanges = changes } : VMap<int, int>) =
     printfn "VALIDATE"
 
 
@@ -42,14 +30,14 @@ let ``[ASet] reference impl``() ({ sreal = real; sref = ref; sexpression = str; 
         let vReal = real.Content.GetValue AdaptiveToken.Top // |> CountingHashSet.toHashSet
         let vRef = ref.Content.GetValue Reference.AdaptiveToken.Top
 
-        let delta = HashSet.differentiate vReal vRef |> HashSetDelta.toList
+        let delta = HashMap.differentiate vReal vRef |> Seq.toList
         match delta with
         | [] ->
             vRef
         | delta ->
             let real = vReal |> Seq.sort |> Seq.map string |> String.concat "; " |> sprintf "[%s]"
             let ref = vRef |> Seq.sort |> Seq.map string |> String.concat "; " |> sprintf "[%s]"
-            let delta = delta |> Seq.sortBy (fun v -> v.Value) |> Seq.map string |> String.concat "; "  |> sprintf "[%s]"
+            let delta = delta |> Seq.sortBy (fun (k, _) -> k) |> Seq.map string |> String.concat "; "  |> sprintf "[%s]"
             
             let inputs = changes() |> List.map (fun i -> i.cell)
 
@@ -120,39 +108,3 @@ let ``[ASet] reference impl``() ({ sreal = real; sref = ref; sexpression = str; 
         }
 
     Gen.eval 15 (Random.newSeed()) run
-
-[<Test>]
-let ``[CSet] contains/isEmpty/count`` () =
-    let set = cset(HashSet.ofList [1;2])
-
-    set.IsEmpty |> should be False
-    set.Count |> should equal 2
-    set.Contains 1 |> should be True
-    set.Contains 2 |> should be True
-
-    transact (fun () ->
-        set.Remove 2 |> should be True
-    )
-    
-    set.IsEmpty |> should be False
-    set.Count |> should equal 1
-    set.Contains 1 |> should be True
-    set.Contains 2 |> should be False
-
-    
-    transact (fun () ->
-        set.Remove 1 |> should be True
-    )
-    
-    set.IsEmpty |> should be True
-    set.Count |> should equal 0
-    set.Contains 1 |> should be False
-    set.Contains 2 |> should be False
-
-
-
-
-
-
-
-

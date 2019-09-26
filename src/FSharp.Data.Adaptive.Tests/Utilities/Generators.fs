@@ -91,6 +91,8 @@ type refval<'a> = Reference.aval<'a>
 type realval<'a> = Adaptive.aval<'a>
 type refset<'a> = Reference.aset<'a>
 type realset<'a> = Adaptive.aset<'a>
+type refmap<'a, 'b> = Reference.amap<'a, 'b>
+type realmap<'a, 'b> = Adaptive.amap<'a, 'b>
 
 type ChangeGen = 
     {
@@ -112,6 +114,14 @@ type VSet<'a> =
         sref : refset<'a>
         sexpression : bool -> Map<string, string> * string
         schanges : unit -> list<ChangeGen>
+    }
+    
+type VMap<'a, 'b> =
+    {
+        mreal : realmap<'a, 'b>
+        mref : refmap<'a, 'b>
+        mexpression : bool -> Map<string, string> * string
+        mchanges : unit -> list<ChangeGen>
     }
 
 module Generators =
@@ -318,7 +328,7 @@ module Generators =
                 elif typeof<'a> = typeof<string> then 
                     fun (v : HashSet<'i>) -> string v |> unbox<'a>
                 elif typeof<'a> = typeof<obj> then  
-                    fun (v : HashSet<'i>) -> string v :> obj |> unbox<'a>
+                    fun (v : HashSet<'i>) -> v :> obj |> unbox<'a>
                 elif typeof<'a> = typeof<int> then 
                     fun (v : HashSet<'i>) -> v.GetHashCode() |> unbox<'a>
                 else
@@ -349,7 +359,43 @@ module Generators =
                         (fun () -> set.schanges())
             }
             
+        let ofAMap<'k, 'v, 'a>() =
+            let transform =
+                if typeof<'a> = typeof<HashMap<'k, 'v>> then
+                    fun (v : HashMap<'k, 'v>) -> unbox v
+                elif typeof<'a> = typeof<string> then 
+                    fun (v : HashMap<'k, 'v>) -> string v |> unbox<'a>
+                elif typeof<'a> = typeof<obj> then  
+                    fun (v : HashMap<'k, 'v>) -> string v :> obj |> unbox<'a>
+                elif typeof<'a> = typeof<int> then 
+                    fun (v : HashMap<'k, 'v>) -> Unchecked.hash v |> unbox<'a>
+                else
+                    fun (v : HashMap<'k, 'v>) -> Arb.generate<'a> |> Gen.eval 1 (Random.newSeed())
 
+            gen {
+                let mutable mySize = ref 0
+                let! set = Arb.generate<VMap<'k, 'v>> |> Gen.scaleSize (fun _s -> 0)
+
+                let cache = 
+                    System.Collections.Concurrent.ConcurrentDictionary<HashMap<'k, 'v>, 'a>()
+
+
+                let reduce (set : HashMap<'k, 'v>) =
+                    cache.GetOrAdd(set, fun set ->
+                        transform set
+                    )
+
+                let real = set.mreal |> Adaptive.AMap.toAVal |> Adaptive.AVal.map reduce
+                let ref = set.mref |> Reference.AMap.toAVal |> Reference.AVal.map reduce
+
+
+                return
+                    create
+                        real
+                        ref
+                        (sprintf "ofAMap\r\n%s" (indent (set.mexpression false |> snd)))
+                        (fun () -> set.mchanges())
+            }
 
     module Set =
         let mutable cid = 0
@@ -665,15 +711,363 @@ module Generators =
                         )
                         getChanges
             }
+      
+        let ofAMap<'a, 'b> () =
+            gen {
+                let! a = Arb.generate<VMap<'a, 'b>> |> Gen.scaleSize (fun v -> 0)
+                return 
+                    create 
+                        (Adaptive.AMap.toASet a.mreal |> ASet.map fst)
+                        (Reference.AMap.toASet a.mref |> Reference.ASet.map fst)
+                        (fun verbose ->
+                            let ma, a = a.mexpression verbose
+                            ma, sprintf "ofAMap\r\n%s" (indent a)
+                        )
+                        (fun () -> a.mchanges())
 
+            }
+   
+    module VMap =
+        let mutable cid = 0
+
+        let create a b s c = 
+            {
+                mreal = a
+                mref = b
+                mexpression = s
+                mchanges = c
+            }
+        
+        let constant<'a, 'b>() =
+            gen {
+                let! value = Arb.generate<HashMap<'a, 'b>>
+
+                let asString = sprintf "%A" value
+                return 
+                    create
+                        (Adaptive.AMap.ofSeq value)
+                        (Reference.AMap.ofSeq value)
+                        (fun _ -> Map.empty, sprintf "v(%s)" asString)
+                        (fun () -> [])
+            }
+
+        let init<'a, 'b>() =
+            gen {
+                let id = System.Threading.Interlocked.Increment(&cid)
+                let! value = Arb.generate<HashMap<'a, 'b>>
+
+                let real = Adaptive.cmap value
+                let ref = Reference.cmap value
+
+                let change =    
+                    { 
+                        cell = (real, id) :> obj
+                        change = 
+                            gen {
+                                let! newValue = Arb.generate<HashMap<'a, 'b>>
+                                return fun () ->    
+                                    real.Value <- newValue
+                                    ref.Value <- newValue
+                                    sprintf "C%d <- %A" id newValue
+
+                            }
+                    }
+
+                return 
+                    create 
+                        (real :> Adaptive.amap<_,_>)
+                        (ref :> Reference.amap<_,_>)
+                        (function 
+                            | false -> 
+                                Map.empty, sprintf "c%d" id
+                            | true -> 
+                                let c = real.Value |> Seq.map (sprintf "%A") |> String.concat "; "
+                                let m = Map.ofList [sprintf "c%d" id, sprintf "cmap [%s]" c]
+                                m, sprintf "c%d" id
+                        )
+                        (fun () -> [change])
+            }
+
+        let map<'a, 'b, 'c>() =
+            gen {
+                let mySize = ref 0
+                let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> mySize := s; s - 2)
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let table, f = randomFunction<'a * 'b, 'c> (!mySize / 2)
+
+                let mapping k v = f(k,v)
+
+                return 
+                    create 
+                        (Adaptive.AMap.map mapping value.mreal)
+                        (Reference.AMap.map mapping value.mref)
+                        (function
+                            | false -> 
+                                let m, v = value.mexpression false
+                                m, sprintf "map (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.mref.Content |> Reference.AVal.force
+                                let mi, input = value.mexpression true
+
+                                let table =
+                                    realContent 
+                                    |> Seq.map (fun v -> sprintf "| %A -> %A" v (f v))
+                                    |> String.concat "\r\n"
+
+                                mi, sprintf "%s\r\n|> AMap.map (\r\n  function\r\n%s\r\n)" (indent input) (indent table)
+                        )
+                        value.mchanges
+            }
+
+        let choose<'a, 'b, 'c>() =
+            gen {
+                let mySize = ref 0
+                let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> mySize := s; s - 2)
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let table, f = randomFunction<'a * 'b, Option<'c>> (!mySize / 2)
+
+                let mapping k v = f(k,v)
+
+                return 
+                    create 
+                        (Adaptive.AMap.choose mapping value.mreal)
+                        (Reference.AMap.choose mapping value.mref)
+                        (function
+                            | false -> 
+                                let m, v = value.mexpression false
+                                m, sprintf "choose (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.mref.Content |> Reference.AVal.force
+                                let mi, input = value.mexpression true
+
+                                let table =
+                                    realContent 
+                                    |> Seq.map (fun v -> sprintf "| %A -> %A" v (f v))
+                                    |> String.concat "\r\n"
+
+                                mi, sprintf "%s\r\n|> AMap.choose (\r\n  function\r\n%s\r\n)" (indent input) (indent table)
+                        )
+                        value.mchanges
+            }
+            
+        let filter<'a, 'b>() =
+            gen {
+                let mySize = ref 0
+                let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> mySize := s; s - 2)
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let table, f = randomFunction<'a * 'b, bool> (!mySize / 2)
+
+                let mapping k v = f(k,v)
+
+                return 
+                    create 
+                        (Adaptive.AMap.filter mapping value.mreal)
+                        (Reference.AMap.filter mapping value.mref)
+                        (function
+                            | false -> 
+                                let m, v = value.mexpression false
+                                m, sprintf "filter (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.mref.Content |> Reference.AVal.force
+                                let mi, input = value.mexpression true
+
+                                let table =
+                                    realContent 
+                                    |> Seq.map (fun v -> sprintf "| %A -> %A" v (f v))
+                                    |> String.concat "\r\n"
+
+                                mi, sprintf "%s\r\n|> AMap.filter (\r\n  function\r\n%s\r\n)" (indent input) (indent table)
+                        )
+                        value.mchanges
+            }
+
+        let map'<'a, 'b, 'c>() : Gen<VMap<'a, 'c>> =
+            gen {
+                let mySize = ref 0
+                let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> mySize := s; s - 2)
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let table, f = randomFunction<'b, 'c> (!mySize / 2)
+
+                return 
+                    create 
+                        (Adaptive.AMap.map' f value.mreal)
+                        (Reference.AMap.map' f value.mref)
+                        (function
+                            | false -> 
+                                let m, v = value.mexpression false
+                                m, sprintf "map' (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.mref.Content |> Reference.AVal.force
+                                let mi, input = value.mexpression true
+
+                                let table =
+                                    realContent 
+                                    |> Seq.map (fun (_,v) -> sprintf "| %A -> %A" v (f v))
+                                    |> String.concat "\r\n"
+
+                                mi, sprintf "%s\r\n|> AMap.map' (\r\n  function\r\n%s\r\n)" (indent input) (indent table)
+                        )
+                        value.mchanges
+            }
+
+        let choose'<'a, 'b, 'c>() : Gen<VMap<'a, 'c>> =
+            gen {
+                let mySize = ref 0
+                let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> mySize := s; s - 2)
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let table, f = randomFunction<'b, Option<'c>> (!mySize / 2)
+
+
+                return 
+                    create 
+                        (Adaptive.AMap.choose' f value.mreal)
+                        (Reference.AMap.choose' f value.mref)
+                        (function
+                            | false -> 
+                                let m, v = value.mexpression false
+                                m, sprintf "choose' (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.mref.Content |> Reference.AVal.force
+                                let mi, input = value.mexpression true
+
+                                let table =
+                                    realContent 
+                                    |> Seq.map (fun (_,v) -> sprintf "| %A -> %A" v (f v))
+                                    |> String.concat "\r\n"
+
+                                mi, sprintf "%s\r\n|> AMap.choose' (\r\n  function\r\n%s\r\n)" (indent input) (indent table)
+                        )
+                        value.mchanges
+            }
+            
+        let filter'<'a, 'b>() : Gen<VMap<'a, 'b>> =
+            gen {
+                let mySize = ref 0
+                let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> mySize := s; s - 2)
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let table, f = randomFunction<'b, bool> (!mySize / 2)
+
+                return 
+                    create 
+                        (Adaptive.AMap.filter' f value.mreal)
+                        (Reference.AMap.filter' f value.mref)
+                        (function
+                            | false -> 
+                                let m, v = value.mexpression false
+                                m, sprintf "filter' (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.mref.Content |> Reference.AVal.force
+                                let mi, input = value.mexpression true
+
+                                let table =
+                                    realContent 
+                                    |> Seq.map (fun (_,v) -> sprintf "| %A -> %A" v (f v))
+                                    |> String.concat "\r\n"
+
+                                mi, sprintf "%s\r\n|> AMap.filter' (\r\n  function\r\n%s\r\n)" (indent input) (indent table)
+                        )
+                        value.mchanges
+            }
+            
+        let union<'a, 'b> () =
+            gen {
+                let! a = Arb.generate<VMap<'a, 'b>> |> Gen.scaleSize (fun v -> v / 2)
+                let! b = Arb.generate<VMap<'a, 'b>> |> Gen.scaleSize (fun v -> v / 2)
+                return 
+                    create 
+                        (Adaptive.AMap.union a.mreal b.mreal)
+                        (Reference.AMap.union a.mref b.mref)
+                        (fun verbose ->
+                            let ma, a = a.mexpression verbose
+                            let mb, b = b.mexpression verbose
+                            let m = Map.union ma mb
+
+                            m, sprintf "union\r\n%s\r\n%s" (indent a) (indent b)
+                        )
+                        (fun () -> a.mchanges() @ b.mchanges())
+
+            }
+
+        let mapSet<'a, 'b>() =
+            gen {
+                let mySize = ref 0
+                let! value = Arb.generate<VSet<'a>> |> Gen.scaleSize (fun s -> mySize := s; 0)
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let table, f = randomFunction<'a, 'b> (!mySize - 1)
+
+                return 
+                    create 
+                        (Adaptive.AMap.mapSet f value.sreal)
+                        (Reference.AMap.mapSet f value.sref)
+                        (function
+                            | false -> 
+                                let m, v = value.sexpression false
+                                m, sprintf "mapSet (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.sref.Content |> Reference.AVal.force
+                                let mi, input = value.sexpression true
+
+                                let table =
+                                    realContent 
+                                    |> Seq.map (fun v -> sprintf "| %A -> %A" v (f v))
+                                    |> String.concat "\r\n"
+
+                                mi, sprintf "%s\r\n|> AMap.mapSet (\r\n  function\r\n%s\r\n)" (indent input) (indent table)
+                        )
+                        value.schanges
+            }
+
+        let ofAVal<'a, 'b> () =
+            gen {
+                let! a = Arb.generate<VVal<HashMap<'a, 'b>>> |> Gen.scaleSize (fun v -> 0)
+                return 
+                    create
+                        (a.real |> Adaptive.AMap.ofAVal)
+                        (a.ref |> Reference.AMap.ofAVal)
+                        (fun _ -> Map.empty, sprintf "ofAVal\r\n%s" (indent a.expression))
+                        (fun () -> a.changes())
+            }
+
+        let bind<'a, 'b, 'c>() =
+            gen {
+                let mySize = ref 0
+                let! value = Arb.generate<VVal<'a>> |> Gen.scaleSize (fun s -> mySize := s; 0)
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let table, mapping = randomFunction<'a, VMap<'b, 'c>> (!mySize - 1)
+
+                
+                let mutable latest = None
+
+                let getChanges() =
+                    match latest with
+                    | Some l -> List.append (l.mchanges()) (value.changes())
+                    | None -> value.changes()
+
+                let mapping (input : 'a) =
+                    let res = mapping input
+                    latest <- Some res
+                    res
+
+
+                return 
+                    create 
+                        (Adaptive.AMap.bind (fun a -> (mapping a).mreal) value.real)
+                        (Reference.AMap.bind (fun a -> (mapping a).mref) value.ref)
+                        (fun _ -> 
+                            let v = value.expression
+                            Map.empty, sprintf "bind (\r\n%s\r\n)" (indent v)
+                        )
+                        getChanges
+            }
+     
 type AdaptiveGenerators() =
 
     static let relevantTypes = 
         [
             typeof<int>
             typeof<obj>
-            typeof<HashSet<int>>
-            typeof<HashSet<obj>>
+            //typeof<HashSet<int>>
+            //typeof<HashSet<obj>>
         ]
 
 
@@ -714,6 +1108,7 @@ type AdaptiveGenerators() =
                                     5, Gen.constant "bind"
                                     5, Gen.constant "bind2"
                                     3, Gen.constant "ofASet"
+                                    3, Gen.constant "ofAMap"
                                     
                                 ]
                         match kind with
@@ -723,6 +1118,15 @@ type AdaptiveGenerators() =
                             let! t = Gen.elements relevantTypes
                             return!
                                 t.Visit { new TypeVisitor<_> with member __.Accept<'z>() = Generators.Val.ofASet<'z, 'a>() }
+                        | "ofAMap" -> 
+                            let! t1 = Gen.elements relevantTypes
+                            let! t2 = Gen.elements relevantTypes
+                            return!
+                                (t1, t2) ||> visit2 { new TypeVisitor2<_> with 
+                                    member __.Accept<'t1, 't2>() = Generators.Val.ofAMap<'t1, 't2, 'a>() 
+                                }
+                        
+                        
                         | "map" ->
                             let! t = Gen.elements relevantTypes
                             return!
@@ -794,6 +1198,7 @@ type AdaptiveGenerators() =
                                     1, Gen.constant "unionMany"
                                     1, Gen.constant "aval"
                                     1, Gen.constant "bind"
+                                    3, Gen.constant "ofAMap"
                                 ]
                         match kind with
                         | "constant" -> 
@@ -808,6 +1213,13 @@ type AdaptiveGenerators() =
                             return! Generators.Set.ofAVal<'a>() 
                         | "filter" ->
                             return! Generators.Set.filter<'a>()
+
+                        | "ofAMap" ->
+                            let! t = Gen.elements relevantTypes
+                            return!
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.Set.ofAMap<'a, 'z>() 
+                                }
 
                         | "map" -> 
                             let! t = Gen.elements relevantTypes
@@ -834,6 +1246,87 @@ type AdaptiveGenerators() =
                                 t |> visit { new TypeVisitor<_> with 
                                     member __.Accept<'z>() = Generators.Set.collect<'z, 'a>() 
                                 }
+                        | kind ->
+                            return failwithf "unknown operation: %s" kind
+                    }
+                )
+            member x.Shrinker _ =
+                Seq.empty
+        }
+
+    static member Map<'a, 'b>() = 
+        { new Arbitrary<VMap<'a, 'b>>() with
+            member x.Generator =
+                Gen.sized (fun size ->
+                    gen {
+                        let! kind = 
+                            Gen.frequency [
+                                yield 1, Gen.constant "constant"
+                                yield 3, Gen.constant "cmap"
+                                if size > 0 then
+                                    yield 3, Gen.constant "map"
+                                    yield 3, Gen.constant "choose"
+                                    yield 3, Gen.constant "filter"
+                                    yield 3, Gen.constant "map'"
+                                    yield 3, Gen.constant "choose'"
+                                    yield 3, Gen.constant "filter'"
+                                    yield 3, Gen.constant "union"
+                                    yield 3, Gen.constant "mapSet"
+                                    yield 3, Gen.constant "bind"
+                                    yield 3, Gen.constant "ofAVal"
+                                    
+                            ]
+                        match kind with
+                        | "constant" -> 
+                            return! Generators.VMap.constant<'a, 'b>()
+                        | "cmap" -> 
+                            return! Generators.VMap.init<'a, 'b>()
+                        | "filter" -> 
+                            return! Generators.VMap.filter<'a, 'b>()
+                        | "union" -> 
+                            return! Generators.VMap.union<'a, 'b>()
+                        | "mapSet" ->
+                            return! Generators.VMap.mapSet<'a, 'b>()
+                        | "ofAVal" ->
+                            return! Generators.VMap.ofAVal<'a, 'b>()
+                            
+                        | "bind" -> 
+                            let! t = Gen.elements relevantTypes
+                            return!
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.VMap.bind<'z, 'a, 'b>() 
+                                }
+                        
+                        | "map" -> 
+                            let! t = Gen.elements relevantTypes
+                            return!
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.VMap.map<'a, 'z, 'b>() 
+                                }
+                    
+                        | "choose" -> 
+                            let! t = Gen.elements relevantTypes
+                            return!
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.VMap.choose<'a, 'z, 'b>() 
+                                }
+
+                        | "filter'" -> 
+                            return! Generators.VMap.filter'<'a, 'b>()
+                        | "map'" -> 
+                            let! t = Gen.elements relevantTypes
+                            return!
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.VMap.map'<'a, 'z, 'b>() 
+                                }
+                    
+                        | "choose'" -> 
+                            let! t = Gen.elements relevantTypes
+                            return!
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.VMap.choose'<'a, 'z, 'b>() 
+                                }
+
                         | kind ->
                             return failwithf "unknown operation: %s" kind
                     }

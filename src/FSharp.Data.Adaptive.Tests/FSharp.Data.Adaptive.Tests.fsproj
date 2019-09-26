@@ -13,7 +13,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Utilities\Helpers.fs" />
-    <Compile Include="Utilities\AdaptiveValidation.fs" />
     <Compile Include="Utilities\Generators.fs" />
     <Compile Include="IntMap.fs" />
     <Compile Include="HashMap.fs" />
@@ -22,8 +21,8 @@
     <Compile Include="WeakOutputSet.fs" />
     <Compile Include="History.fs" />
     <Compile Include="AVal.fs" />
-    <Compile Include="AValNoReference.fs" />
     <Compile Include="ASet.fs" />
+    <Compile Include="AMap.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

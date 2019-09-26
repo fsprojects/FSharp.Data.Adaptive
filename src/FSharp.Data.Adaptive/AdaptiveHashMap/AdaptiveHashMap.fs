@@ -139,6 +139,7 @@ module AdaptiveHashMapImplementation =
 
         let reader = input.GetReader()
         let cache = Cache f
+        let livingKeys = System.Collections.Generic.HashSet<'Key>()
 
         override x.Compute(token) =
             let oldState = reader.State
@@ -147,16 +148,21 @@ module AdaptiveHashMapImplementation =
                 match op with
                 | Set v -> 
                     match cache.Invoke v with
-                    | Some r -> Some (Set r)
-                    | None -> None
+                    | Some r -> 
+                        livingKeys.Add k |> ignore
+                        Some (Set r)
+                    | None -> 
+                        match HashMap.tryFind k oldState with
+                        | Some ov -> 
+                            livingKeys.Remove k |> ignore
+                            cache.Revoke ov |> ignore
+                            Some Remove
+                        | _ -> 
+                            None
                 | Remove -> 
-                    match HashMap.tryFind k oldState with
-                    | Some oldValue -> 
-                        match cache.Revoke oldValue with
-                        | Some _r -> Some Remove
-                        | None -> None
-                    | None ->
-                        // strange
+                    if livingKeys.Remove k then 
+                        Some Remove
+                    else
                         None
             ) |> HashMapDelta
 
