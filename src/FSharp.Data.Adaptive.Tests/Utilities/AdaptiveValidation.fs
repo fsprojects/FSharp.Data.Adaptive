@@ -156,7 +156,8 @@ module ASet =
             member x.Reference = r
         }
 
-    let empty<'T> = 
+    [<GeneralizableValue>]
+    let empty<'T> : aset<'T> = 
         create (Adaptive.ASet.empty) (Reference.ASet.empty)
             
     let single (value : 'T) = 

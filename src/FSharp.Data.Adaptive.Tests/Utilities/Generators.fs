@@ -49,35 +49,37 @@ type VVal<'a> =
         expression : string
         changes : unit -> list<ChangeGen>
     }
-    
+
 type VSet<'a> =
     {
         sreal : realset<'a>
         sref : refset<'a>
-        sexpression : string
+        sexpression : bool -> Map<string, string> * string
         schanges : unit -> list<ChangeGen>
     }
 
 module Generators =
     let rand = Random()
     
-    let randomFunction<'a, 'b>() =
+    let internal randomFunction<'a, 'b>() =
         let cache = 
             Cache<'a, 'b>(fun _ -> 
                 let a = rand.Next()
                 let b = rand.Next()
-                Arb.generate<'b> |> Gen.eval 30 (Random.StdGen(a, b))
-            )
-        cache.Invoke
+                let res = Arb.generate<'b> |> Gen.eval 30 (Random.StdGen(a, b))
 
-    let randomFunction2<'a, 'b, 'c>() =
+                res
+            )
+        cache, cache.Invoke
+
+    let internal randomFunction2<'a, 'b, 'c>() =
         let cache = 
             Cache<'a * 'b, 'c>(fun _ -> 
                 let a = rand.Next()
                 let b = rand.Next()
                 Arb.generate<'c> |> Gen.eval 30 (Random.StdGen(a, b))
             )
-        fun a b -> cache.Invoke(a,b)
+        cache, fun a b -> cache.Invoke(a,b)
 
     let indent (str : string) =
         str.Split("\r\n") |> Array.map (fun s -> "  " + s) |> String.concat "\r\n"
@@ -101,7 +103,7 @@ module Generators =
 
                 let change =    
                     { 
-                        cell = real :> IAdaptiveObject
+                        cell = (real, id) :> obj
                         change = 
                             gen {
                                 let! newValue = Arb.generate<'a>
@@ -141,7 +143,7 @@ module Generators =
             gen {
                 let! value = Arb.generate<_>
                 //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
-                let f = randomFunction<'a, 'b>()
+                let _table, f = randomFunction<'a, 'b>()
                 return 
                     create 
                         (Adaptive.AVal.map f value.real)
@@ -154,7 +156,7 @@ module Generators =
             gen {
                 let! value0 = Arb.generate<_>
                 let! value1 = Arb.generate<_>
-                let f = randomFunction2<'a, 'b, 'c>() //let! f = Arb.generate<'a -> 'b -> 'c> |> Gen.scaleSize (fun _ -> 50)
+                let _table, f = randomFunction2<'a, 'b, 'c>() //let! f = Arb.generate<'a -> 'b -> 'c> |> Gen.scaleSize (fun _ -> 50)
                 return 
                     create 
                         (Adaptive.AVal.map2 f value0.real value1.real)
@@ -167,7 +169,7 @@ module Generators =
             gen {
                 let! value = Arb.generate<VVal<'a>>
                 //let! mapping = Arb.generate<'a -> Val<'b>> |> Gen.scaleSize (fun _ -> 50)
-                let mapping = randomFunction<'a, VVal<'b>>()
+                let _table, mapping = randomFunction<'a, VVal<'b>>()
 
                 let changes = value.changes
 
@@ -192,6 +194,7 @@ module Generators =
             }
 
     module Set =
+        let mutable cid = 0
         let create a b s c = 
             {
                 sreal = a
@@ -202,7 +205,7 @@ module Generators =
 
         let init<'a>() =
             gen {
-                let! id = Gen.choose(1, 128)
+                let id = System.Threading.Interlocked.Increment(&cid)
                 let! value = Arb.generate<HashSet<'a>>
 
                 let real = Adaptive.cset value
@@ -210,7 +213,7 @@ module Generators =
 
                 let change =    
                     { 
-                        cell = real :> obj
+                        cell = (real, id) :> obj
                         change = 
                             gen {
                                 let! newValue = Arb.generate<HashSet<'a>>
@@ -226,19 +229,32 @@ module Generators =
                     create 
                         (real :> Adaptive.aset<_>)
                         (ref :> Reference.aset<_>)
-                        (sprintf "c%d" id)
+                        (function 
+                            | false -> 
+                                Map.empty, sprintf "c%d" id
+                            | true -> 
+                                let c = real.Value |> Seq.map (sprintf "%A") |> String.concat "; "
+                                let m = Map.ofList [sprintf "c%d" id, sprintf "cset [%s]" c]
+                                m, sprintf "c%d" id
+                        )
                         (fun () -> [change])
             }
 
         let constant<'a>() =
             gen {
                 let! value = Arb.generate<HashSet<'a>>
+                let id = System.Threading.Interlocked.Increment(&cid)
 
                 return 
                     create
                         (Adaptive.ASet.ofHashSet value)
                         (Reference.ASet.ofHashSet value)
-                        (sprintf "v(%A)" value)
+                        (function 
+                            | false -> Map.empty, sprintf "v%d = %A" id value
+                            | true -> 
+                                let m = Map.ofList [sprintf "v%d" id, sprintf "ASet.ofList [%s]" (value |> Seq.map (sprintf "%A") |> String.concat "; ")]
+                                m, sprintf "v%d" id
+                        )
                         (fun () -> [])
             }
 
@@ -246,12 +262,26 @@ module Generators =
             gen {
                 let! value = Arb.generate<_>
                 //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
-                let f = randomFunction<'a, 'b>()
+                let table, f = randomFunction<'a, 'b>()
                 return 
                     create 
                         (Adaptive.ASet.map f value.sreal)
                         (Reference.ASet.map f value.sref)
-                        (sprintf "map (\r\n%s\r\n)" (indent value.sexpression))
+                        (function
+                            | false -> 
+                                let m, v = value.sexpression false
+                                m, sprintf "map (\r\n%s\r\n)" v
+                            | true ->
+                                let realContent = value.sref.Content |> Reference.AVal.force
+                                let mi, input = value.sexpression true
+
+                                let table =
+                                    realContent 
+                                    |> Seq.map (fun v -> sprintf "| %A -> %A" v (f v))
+                                    |> String.concat "\r\n"
+
+                                mi, sprintf "%s\r\n|> ASet.map (\r\n  function\r\n%s\r\n)" (indent input) (indent table)
+                        )
                         value.schanges
             }
 
@@ -259,26 +289,53 @@ module Generators =
             gen {
                 let! value = Arb.generate<_>
                 //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
-                let mapping = randomFunction<'a, VSet<'b>>()
+                let table, mapping = randomFunction<'a, VSet<'b>>()
 
-                let mutable latest = None
+                let cache = Cache<'a, VSet<'b>>(mapping)
 
-                let changes = value.schanges
                 let getChanges() =
-                    match latest with
-                    | Some l -> List.append (l.schanges()) (changes())
-                    | None -> changes()
+                    value.sref.Content 
+                    |> Reference.AVal.force 
+                    |> Seq.toList 
+                    |> List.collect (fun v -> cache.Invoke(v).schanges())
+                    |> List.append (value.schanges())
 
-                let mapping (input : 'a) =
-                    let res = mapping input
-                    latest <- Some res
-                    res
-
+                let mapping (input : 'a) = cache.Invoke input
                 return 
                     create 
                         (Adaptive.ASet.collect (fun a -> (mapping a).sreal) value.sreal)
                         (Reference.ASet.collect (fun a -> (mapping a).sref) value.sref)
-                        (sprintf "collect (\r\n%s\r\n)" (indent value.sexpression))
+                        (function
+                            | false ->  
+                                let m, v = value.sexpression false
+                                m, sprintf "collect (\r\n%s\r\n)" v
+                            | true ->
+                                let realContent = value.sref.Content |> Reference.AVal.force
+                                let it, input = value.sexpression true
+
+                                let maps, kv =
+                                    realContent 
+                                    |> Seq.toList
+                                    |> List.map (fun v -> 
+                                        let m, b = (mapping v).sexpression true
+                                        m, (v,b)
+                                    )
+                                    |> List.unzip
+                                    //|> String.concat "\r\n"
+                                    
+                                let table = 
+                                    kv 
+                                    |> List.map (fun (k,v) -> sprintf "| %A ->\r\n  %s" k v)
+                                    |> String.concat "\r\n"
+
+                                let res = 
+                                    maps 
+                                    |> Seq.map (Map.toSeq >> HashMap.ofSeq) 
+                                    |> Seq.fold HashMap.union (HashMap.ofSeq (Map.toSeq it))
+                                    |> Map.ofSeq
+
+                                res, sprintf "%s\r\n  |> ASet.collect (\r\n    function\r\n%s\r\n  )" input (indent (indent table))
+                        )
                         getChanges
             }
 
@@ -287,9 +344,9 @@ type AdaptiveGenerators() =
     static let relevantTypes = 
         [
             typeof<int>
-            typeof<obj>
-            typeof<HashSet<int>>
-            typeof<HashSet<obj>>
+            typeof<bool>
+            //typeof<HashSet<int>>
+            //typeof<HashSet<obj>>
         ]
 
     
@@ -400,7 +457,7 @@ type AdaptiveGenerators() =
                             let! t = Gen.elements relevantTypes
                             return!
                                 t.Visit { new TypeVisitor<_> with member __.Accept<'z>() = Generators.Set.collect<'z, 'a>() }
-                                |> Gen.scaleSize (fun s -> s / 4)
+                                |> Gen.scaleSize (fun s -> 0)
 
                     }
                 )

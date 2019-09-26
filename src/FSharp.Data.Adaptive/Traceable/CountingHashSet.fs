@@ -296,11 +296,11 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
     /// Same as x.Differentiate(empty)
     member x.RemoveAll() =
-        store |> HashMap.map (fun _ v -> -v) |> HashSetDelta
+        store |> HashMap.map (fun _ v -> -1) |> HashSetDelta
         
     /// Same as empty.Differentiate(x)
     member x.AddAll() =
-        store |> HashSetDelta
+        store |> HashMap.map (fun _ v -> 1) |> HashSetDelta
 
     /// Integrates the given delta into the set, returns a new set and the effective deltas.
     member x.Integrate (deltas : HashSetDelta<'T>) =
