@@ -21,8 +21,8 @@
     <Compile Include="PriorityQueue.fs" />
     <Compile Include="WeakOutputSet.fs" />
     <Compile Include="History.fs" />
-    <Compile Include="ARef.fs" />
-    <Compile Include="ARefNoReference.fs" />
+    <Compile Include="AVal.fs" />
+    <Compile Include="AValNoReference.fs" />
     <Compile Include="ASet.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
