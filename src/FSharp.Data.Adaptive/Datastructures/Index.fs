@@ -245,7 +245,7 @@ type Index private(real : IndexNode) =
 module Index =
     let private root = Index()
 
-    let zero = root.After()
+    let zero = root
 
     let after (r : Index) = r.After()
 

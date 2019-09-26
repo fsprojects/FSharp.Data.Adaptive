@@ -93,6 +93,9 @@ type refset<'a> = Reference.aset<'a>
 type realset<'a> = Adaptive.aset<'a>
 type refmap<'a, 'b> = Reference.amap<'a, 'b>
 type realmap<'a, 'b> = Adaptive.amap<'a, 'b>
+type reflist<'a> = Reference.alist<'a>
+type reallist<'a> = Adaptive.alist<'a>
+
 
 type ChangeGen = 
     {
@@ -124,6 +127,14 @@ type VMap<'a, 'b> =
         mchanges : unit -> list<ChangeGen>
     }
 
+type VList<'a> =
+    {
+        lreal : reallist<'a>
+        lref : reflist<'a>
+        lexpression : bool -> Map<string, string> * string
+        lchanges : unit -> list<ChangeGen>
+    }
+    
 module Generators =
     let rand = Random()
     
@@ -1059,7 +1070,164 @@ module Generators =
                         )
                         getChanges
             }
-     
+
+    module List =
+        let mutable cid = 0
+
+        let create a b s c = 
+            {
+                lreal = a
+                lref = b
+                lexpression = s
+                lchanges = c
+            }
+
+
+
+        let init<'a>() =
+            gen {
+                let id = System.Threading.Interlocked.Increment(&cid)
+                let! value = Arb.generate<IndexList<'a>>
+
+                let real = Adaptive.clist value
+                let ref = Reference.clist value
+
+                let change =    
+                    { 
+                        cell = (real, id) :> obj
+                        change = 
+                            gen {
+                                let! newValue = Arb.generate<IndexList<'a>>
+                                return fun () ->    
+                                    real.Value <- newValue
+                                    ref.Value <- newValue
+                                    sprintf "C%d <- %A" id newValue
+
+                            }
+                    }
+
+                return 
+                    create 
+                        (real :> Adaptive.alist<_>)
+                        (ref :> Reference.alist<_>)
+                        (function 
+                            | false -> 
+                                Map.empty, sprintf "c%d" id
+                            | true -> 
+                                let c = real.Value |> Seq.map (sprintf "%A") |> String.concat "; "
+                                let m = Map.ofList [sprintf "c%d" id, sprintf "clist [%s]" c]
+                                m, sprintf "c%d" id
+                        )
+                        (fun () -> [change])
+            }
+
+        let constant<'a>() =
+            gen {
+                let! value = Arb.generate<IndexList<'a>>
+                let id = System.Threading.Interlocked.Increment(&cid)
+
+                return 
+                    create
+                        (Adaptive.AList.ofIndexList value)
+                        (Reference.AList.ofIndexList value)
+                        (function 
+                            | false -> Map.empty, sprintf "%A" value
+                            | true -> 
+                                let m = Map.ofList [sprintf "v%d" id, sprintf "AList.ofList [%s]" (value |> Seq.map (sprintf "%A") |> String.concat "; ")]
+                                m, sprintf "v%d" id
+                        )
+                        (fun () -> [])
+            }
+
+        let map<'a, 'b>() =
+            gen {
+                let mySize = ref 0
+                let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> mySize := s; s - 2)
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let table, f = randomFunction<'a, 'b> (!mySize / 2)
+                return 
+                    create 
+                        (Adaptive.AList.map f value.lreal)
+                        (Reference.AList.map f value.lref)
+                        (function
+                            | false -> 
+                                let m, v = value.lexpression false
+                                m, sprintf "map (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.lref.Content |> Reference.AVal.force
+                                let mi, input = value.lexpression true
+
+                                let table =
+                                    realContent 
+                                    |> Seq.map (fun v -> sprintf "| %A -> %A" v (f v))
+                                    |> String.concat "\r\n"
+
+                                mi, sprintf "%s\r\n|> AList.map (\r\n  function\r\n%s\r\n)" (indent input) (indent table)
+                        )
+                        value.lchanges
+            }
+                
+        let collect<'a, 'b>() =
+            gen {
+                let mySize = ref 0
+                let! value = 
+                    Arb.generate<_> |> Gen.scaleSize (fun s -> 
+                        mySize := 0
+                            //if s <= 1 then 0
+                            //else int (sqrt (float s))
+                        !mySize
+                    )
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let innerSize =  !mySize
+                let table, mapping = randomFunction<Index * 'a, VList<'b>> innerSize
+
+                //let cache = Cache<Index * 'a, VList<'b>>(mapping)
+
+                let getChanges() =
+                    (Reference.AVal.force  value.lref.Content).Content
+                    |> MapExt.toList 
+                    |> List.collect (fun v -> table.Invoke(v).lchanges())
+                    |> List.append (value.lchanges())
+
+                let mapping (i : Index) (input : 'a) = mapping(i, input)
+                return 
+                    create 
+                        (Adaptive.AList.collecti (fun i a -> (mapping i a).lreal) value.lreal)
+                        (Reference.AList.collecti (fun i a -> (mapping i a).lref) value.lref)
+                        (function
+                            | false ->  
+                                let m, v = value.lexpression false
+                                m, sprintf "collect (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.lref.Content |> Reference.AVal.force
+                                let it, input = value.lexpression true
+
+                                let maps, kv =
+                                    realContent.Content
+                                    |> MapExt.toList
+                                    |> List.map (fun (i, v) -> 
+                                        let m, b = (mapping i v).lexpression true
+                                        m, (v,b)
+                                    )
+                                    |> List.unzip
+                                    //|> String.concat "\r\n"
+                                    
+                                let table = 
+                                    kv 
+                                    |> List.map (fun (k,v) -> sprintf "| %A ->\r\n  %s" k v)
+                                    |> String.concat "\r\n"
+
+                                let res = 
+                                    maps 
+                                    |> Seq.map (Map.toSeq >> HashMap.ofSeq) 
+                                    |> Seq.fold HashMap.union (HashMap.ofSeq (Map.toSeq it))
+                                    |> Map.ofSeq
+
+                                res, sprintf "%s\r\n  |> AList.collect (\r\n    function\r\n%s\r\n  )" input (indent (indent table))
+                        )
+                        getChanges
+            }
+                     
 type AdaptiveGenerators() =
 
     static let relevantTypes = 
@@ -1069,7 +1237,14 @@ type AdaptiveGenerators() =
             //typeof<HashSet<int>>
             //typeof<HashSet<obj>>
         ]
-
+        
+    static member IndexList<'a>() =
+        { new Arbitrary<IndexList<'a>>() with
+            member x.Generator =
+                Arb.generate<list<'a>> |> Gen.map IndexList.ofList
+            member x.Shrinker _ =
+                Seq.empty
+        }
 
     static member HashSet<'a>() =
         { new Arbitrary<HashSet<'a>>() with
@@ -1245,6 +1420,50 @@ type AdaptiveGenerators() =
                             return!
                                 t |> visit { new TypeVisitor<_> with 
                                     member __.Accept<'z>() = Generators.Set.collect<'z, 'a>() 
+                                }
+                        | kind ->
+                            return failwithf "unknown operation: %s" kind
+                    }
+                )
+            member x.Shrinker _ =
+                Seq.empty
+        }
+
+    static member List<'a>() = 
+        { new Arbitrary<VList<'a>>() with
+            member x.Generator =
+                Gen.sized (fun size ->
+                    gen {
+                        let! kind = 
+                            if size = 0 then
+                                Gen.frequency [
+                                    1, Gen.constant "constant"
+                                    5, Gen.constant "clist"
+                                ]
+                            else 
+                                Gen.frequency [
+                                    1, Gen.constant "constant"
+                                    3, Gen.constant "clist"
+                                    3, Gen.constant "map"
+                                    //3, Gen.constant "collect"
+                                ]
+                        match kind with
+                        | "constant" -> 
+                            return! Generators.List.constant<'a>()
+                        | "clist" -> 
+                            return! Generators.List.init<'a>()
+                        | "map" -> 
+                            let! t = Gen.elements relevantTypes
+                            return!
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.List.map<'z, 'a>() 
+                                }
+                 
+                        | "collect" -> 
+                            let! t = Gen.elements relevantTypes
+                            return!
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.List.collect<'z, 'a>() 
                                 }
                         | kind ->
                             return failwithf "unknown operation: %s" kind

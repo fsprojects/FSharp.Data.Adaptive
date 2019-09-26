@@ -23,6 +23,7 @@
     <Compile Include="AVal.fs" />
     <Compile Include="ASet.fs" />
     <Compile Include="AMap.fs" />
+    <Compile Include="AList.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
