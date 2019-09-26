@@ -9,27 +9,83 @@ open System.Text.RegularExpressions
 open FSharp.Data.Adaptive
 open FsUnit
 
+/// reflection helpers for existential types.
 [<AutoOpen>]
 module Helpers =
 
     type TypeVisitor<'r> =
         abstract member Accept<'a> : unit -> 'r
+        
+    type TypeVisitor2<'r> =
+        abstract member Accept<'a, 'b> : unit -> 'r
+        
+    type TypeVisitor3<'r> =
+        abstract member Accept<'a, 'b, 'c> : unit -> 'r
 
-    let private def = typedefof<TypeVisitor<_>>
+    let private def1 = typedefof<TypeVisitor<_>>
+    let private def2 = typedefof<TypeVisitor2<_>>
+    let private def3 = typedefof<TypeVisitor3<_>>
 
-    let private getMethod =
-        let cache = System.Collections.Concurrent.ConcurrentDictionary<Type * Type, MethodInfo>()
+    open System.Reflection.Emit
 
+    let private invoker (mi : MethodInfo) =
+        let dargs = [|typeof<obj>|]
+        let m = DynamicMethod("invoker", MethodAttributes.Static ||| MethodAttributes.Public, CallingConventions.Standard, typeof<obj>, dargs, typeof<obj>, true)
+
+        let il = m.GetILGenerator()
+        il.Emit(OpCodes.Ldarg_0)
+        il.EmitCall(OpCodes.Call, mi, null)
+        il.Emit(OpCodes.Ret)
+
+        let invoke = 
+            m.CreateDelegate(typeof<Func<obj, obj>>)
+            |> unbox<Func<obj, obj>>
+
+        invoke.Invoke
+
+    let private getMethod1 =
+        let cache = System.Collections.Concurrent.ConcurrentDictionary<Type * Type, obj -> obj>()
         fun (t : Type) (tr : Type) ->
-            cache.GetOrAdd((t, tr), fun (t, tr) -> 
-                let tv = def.MakeGenericType [|tr|]
-                tv.GetMethod("Accept").MakeGenericMethod [| t |]
-            )
+            cache.GetOrAdd((t, tr), Func<_,_>(fun (t, tr) -> 
+                let tv = def1.MakeGenericType [|tr|]
+                let mi = tv.GetMethod("Accept").MakeGenericMethod [| t |]
+                invoker mi
+            ))
+            
+    let private getMethod2 =
+        let cache = System.Collections.Concurrent.ConcurrentDictionary<Type * Type * Type, obj -> obj>()
+        fun (t1 : Type) (t2 : Type) (tr : Type) ->
+            cache.GetOrAdd((t1, t2, tr), Func<_,_>(fun (t1, t2, tr) -> 
+                let tv = def2.MakeGenericType [|tr|]
+                let mi = tv.GetMethod("Accept").MakeGenericMethod [| t1; t2 |]
+                invoker mi
+            ))
+            
+    let private getMethod3 =
+        let cache = System.Collections.Concurrent.ConcurrentDictionary<Type * Type * Type * Type, obj -> obj>()
+        fun (t1 : Type) (t2 : Type) (t3 : Type) (tr : Type) ->
+            cache.GetOrAdd((t1, t2, t3, tr), Func<_,_>(fun (t1, t2, t3, tr) -> 
+                let tv = def3.MakeGenericType [|tr|]
+                let mi = tv.GetMethod("Accept").MakeGenericMethod [| t1; t2; t3 |]
+                invoker mi
+            ))
+
+    let visit (v : TypeVisitor<'r>) (t0 : Type) =
+        let mi = getMethod1 t0 typeof<'r>
+        mi v |> unbox<'r>
+        
+    let visit2 (v : TypeVisitor2<'r>) (t0 : Type) (t1 : Type) =
+        let mi = getMethod2 t0 t1 typeof<'r>
+        mi v |> unbox<'r>
+        
+    let visit3 (v : TypeVisitor3<'r>) (t0 : Type) (t1 : Type) (t2 : Type) =
+        let mi = getMethod3 t0 t1 t2 typeof<'r>
+        mi v |> unbox<'r>
 
     type Type with
         member x.Visit(v : TypeVisitor<'r>) =
-            let mi = getMethod x typeof<'r>
-            mi.Invoke(v, [||]) |> unbox<'r>
+            let mi = getMethod1 x typeof<'r>
+            mi v |> unbox<'r>
    
 type refval<'a> = Reference.aval<'a>
 type realval<'a> = Adaptive.aval<'a>
@@ -88,6 +144,15 @@ module Generators =
                 Arb.generate<'c> |> Gen.eval 30 (Random.StdGen(a, b))
             )
         cache, fun a b -> cache.Invoke(a,b)
+        
+    let internal randomFunction3<'a, 'b, 'c, 'd>() =
+        let cache = 
+            Cache<'a * 'b * 'c, 'd>(fun _ -> 
+                let a = rand.Next()
+                let b = rand.Next()
+                Arb.generate<'d> |> Gen.eval 30 (Random.StdGen(a, b))
+            )
+        cache, fun a b c -> cache.Invoke(a,b,c)
 
     let indent (str : string) =
         str.Split("\r\n") |> Array.map (fun s -> "  " + s) |> String.concat "\r\n"
@@ -172,6 +237,20 @@ module Generators =
                         (fun () -> List.append (value0.changes()) (value1.changes()))
             }
 
+        let map3<'a, 'b, 'c, 'd>() =
+            gen {
+                let! value0 = Arb.generate<_> |> Gen.scaleSize (fun s -> s / 3)
+                let! value1 = Arb.generate<_> |> Gen.scaleSize (fun s -> s / 3)
+                let! value2 = Arb.generate<_> |> Gen.scaleSize (fun s -> s / 3)
+                let _table, f = randomFunction3<'a, 'b, 'c, 'd>() //let! f = Arb.generate<'a -> 'b -> 'c> |> Gen.scaleSize (fun _ -> 50)
+                return 
+                    create 
+                        (Adaptive.AVal.map3 f value0.real value1.real value2.real)
+                        (Reference.AVal.map3 f value0.ref value1.ref value2.ref)
+                        (sprintf "map3 (\r\n%s\r\n%s\r\n%s\r\n)" (indent value0.expression) (indent value1.expression) (indent value2.expression))
+                        (fun () -> value0.changes() @ value1.changes() @ value2.changes())
+            }
+
         let bind<'a, 'b>() =
             gen {
                 let mutable mySize = ref 0
@@ -200,6 +279,38 @@ module Generators =
                         (sprintf "bind (\r\n%s\r\n)" (indent value.expression))
                         getChanges
             }
+
+        let bind2<'a, 'b, 'c>() =
+            gen {
+                let mutable mySize = ref 0
+                let! v1 = Arb.generate<VVal<'a>> |> Gen.scaleSize (fun s -> mySize := s; s / 2)
+                let! v2 = Arb.generate<VVal<'b>> |> Gen.scaleSize (fun s -> s / 2)
+
+                let _table, mapping = randomFunction<'a * 'b, VVal<'c>>(!mySize / 2)
+
+                let changes() = 
+                    v1.changes() @ v2.changes()
+
+                let mutable latest = None
+
+                let getChanges() =
+                    match latest with
+                    | Some l -> List.append (l.changes()) (changes())
+                    | None -> changes()
+
+                let mapping (a : 'a) (b : 'b) =
+                    let res = mapping(a,b)
+                    latest <- Some res
+                    res
+
+                return 
+                    create 
+                        (Adaptive.AVal.bind2 (fun a b -> (mapping a b).real) v1.real v2.real)
+                        (Reference.AVal.bind2 (fun a b -> (mapping a b).ref) v1.ref v2.ref)
+                        (sprintf "bind2 (\r\n%s\r\n%s\r\n)" (indent v1.expression) (indent v2.expression))
+                        getChanges
+            }
+
 
     module Set =
         let mutable cid = 0
@@ -482,8 +593,6 @@ type AdaptiveGenerators() =
             typeof<HashSet<obj>>
         ]
 
-    
-    
 
     static member HashSet<'a>() =
         { new Arbitrary<HashSet<'a>>() with
@@ -509,48 +618,63 @@ type AdaptiveGenerators() =
                         let! kind = 
                             if size = 0 then
                                 Gen.frequency [
-                                    1, Gen.constant 0
-                                    5, Gen.constant 1
+                                    1, Gen.constant "constant"
+                                    5, Gen.constant "cval"
                                 ]
                             else 
                                 Gen.frequency [
-                                    1, Gen.constant 0
-                                    5, Gen.constant 1
-                                    5, Gen.constant 2
-                                    5, Gen.constant 3
-                                    5, Gen.constant 4
+                                    1, Gen.constant "constant"
+                                    5, Gen.constant "cval"
+                                    5, Gen.constant "map"
+                                    5, Gen.constant "map2"
+                                    5, Gen.constant "map3"
+                                    5, Gen.constant "bind"
+                                    5, Gen.constant "bind2"
                                     
                                 ]
                         match kind with
-                        | 0 -> return! Generators.Val.constant<'a>()
-                        | 1 -> return! Generators.Val.init<'a>()
-                        | 2 ->
+                        | "constant" -> return! Generators.Val.constant<'a>()
+                        | "cval" -> return! Generators.Val.init<'a>()
+                        | "map" ->
                             let! t = Gen.elements relevantTypes
                             return!
                                 t.Visit { new TypeVisitor<_> with member __.Accept<'z>() = Generators.Val.map<'z, 'a>() }
-                                |> Gen.scaleSize (fun s -> s - 1)
-                        | 3 ->
+                        | "map2" ->
                             let! t1 = Gen.elements relevantTypes
                             let! t2 = Gen.elements relevantTypes
                             return!
-                                t1.Visit { new TypeVisitor<_> with 
-                                member __.Accept<'t1>() =
-                                    t2.Visit { new TypeVisitor<_> with 
-                                    member __.Accept<'t2>() =
+                                (t1, t2) ||> visit2 { new TypeVisitor2<_> with 
+                                    member __.Accept<'t1, 't2>() =
                                         Generators.Val.map2<'t1, 't2, 'a>()
-                                    }
                                 }
-                                |> Gen.scaleSize (fun s -> s / 2)
+                                
+                        | "map3" ->
+                            let! t1 = Gen.elements relevantTypes
+                            let! t2 = Gen.elements relevantTypes
+                            let! t3 = Gen.elements relevantTypes
+                            return!
+                                (t1, t2, t3) |||> visit3 { new TypeVisitor3<_> with 
+                                    member __.Accept<'t1, 't2, 't3>() =
+                                        Generators.Val.map3<'t1, 't2, 't3, 'a>()
+                                }
 
-                        | 4 ->
+                        | "bind" ->
                             let! t = Gen.elements relevantTypes
                             return!
                                 t.Visit { new TypeVisitor<_> with
                                 member __.Accept<'z>() =
                                     Generators.Val.bind<'z, 'a>()
                                 }
-                                |> Gen.scaleSize (fun s -> s - 1)
 
+                        | "bind2" ->
+                            let! t1 = Gen.elements relevantTypes
+                            let! t2 = Gen.elements relevantTypes
+                            return!
+                                (t1, t2) ||> visit2 { new TypeVisitor2<_> with 
+                                    member __.Accept<'t1, 't2>() =
+                                        Generators.Val.bind2<'t1, 't2, 'a>()
+                                }
+                                
                         | _ ->
                             return failwith ""
                     }
@@ -597,20 +721,28 @@ type AdaptiveGenerators() =
                         | "map" -> 
                             let! t = Gen.elements relevantTypes
                             return!
-                                t.Visit { new TypeVisitor<_> with member __.Accept<'z>() = Generators.Set.map<'z, 'a>() }
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.Set.map<'z, 'a>() 
+                                }
                         | "bind" -> 
                             let! t = Gen.elements relevantTypes
                             return!
-                                t.Visit { new TypeVisitor<_> with member __.Accept<'z>() = Generators.Set.bind<'z, 'a>() }
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.Set.bind<'z, 'a>() 
+                                }
                         
                         | "choose" -> 
                             let! t = Gen.elements relevantTypes
                             return!
-                                t.Visit { new TypeVisitor<_> with member __.Accept<'z>() = Generators.Set.choose<'z, 'a>() }
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.Set.choose<'z, 'a>() 
+                                }
                         | "collect" -> 
                             let! t = Gen.elements relevantTypes
                             return!
-                                t.Visit { new TypeVisitor<_> with member __.Accept<'z>() = Generators.Set.collect<'z, 'a>() }
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.Set.collect<'z, 'a>() 
+                                }
                         | kind ->
                             return failwithf "unknown operation: %s" kind
                     }
