@@ -149,8 +149,7 @@ module Generators =
 
         let map<'a, 'b>() =
             gen {
-                let! value = Arb.generate<_>
-                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> s - 1)
                 let _table, f = randomFunction<'a, 'b> 40
                 return 
                     create 
@@ -162,8 +161,8 @@ module Generators =
 
         let map2<'a, 'b, 'c>() =
             gen {
-                let! value0 = Arb.generate<_>
-                let! value1 = Arb.generate<_>
+                let! value0 = Arb.generate<_> |> Gen.scaleSize (fun s -> s / 2)
+                let! value1 = Arb.generate<_> |> Gen.scaleSize (fun s -> s / 2)
                 let _table, f = randomFunction2<'a, 'b, 'c>() //let! f = Arb.generate<'a -> 'b -> 'c> |> Gen.scaleSize (fun _ -> 50)
                 return 
                     create 
