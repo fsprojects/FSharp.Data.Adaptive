@@ -342,17 +342,27 @@ module AdaptiveIndexListImplementation =
             match cache.TryGetValue(i) with
             | (true, (oldValue, oldList)) ->
                 if Unchecked.equals oldValue v then
-                    dirty.Add (getReader(oldList)) |> ignore
+                    let r = getReader(oldList)
+                    dirty.Add r |> ignore
                     IndexListDelta.empty
                 else
                     let newList = f i v
                     cache.[i] <- (v, newList)
-                    let newReader = getReader(newList)
+                    if newList <> oldList then
+                        let newReader = getReader(newList)
+                        let add = newReader.AddTarget i
+                        let rem = 
+                            match readers.TryGetValue oldList with
+                            | (true, r) -> r.RemoveTarget(dirty, i)
+                            | _ -> IndexListDelta.empty
 
-                    let rem = getReader(oldList).RemoveTarget(dirty, i)
-                    let add = newReader.AddTarget i
-                    dirty.Add newReader |> ignore
-                    IndexListDelta.combine rem add 
+                        dirty.Add newReader |> ignore
+                        IndexListDelta.combine add rem 
+                    else
+                        let r = getReader(oldList)
+                        dirty.Add r |> ignore
+                        IndexListDelta.empty
+                        
 
             | _ ->
                 let newList = f i v
@@ -443,6 +453,7 @@ module AList =
             create (fun () -> MapReader(list, fun _ -> mapping))
   
     let collecti (mapping: Index -> 'T1 -> alist<'T2>) (list : alist<'T1>) =
+        // TODO: better implementation when outer constant
         create (fun () -> CollectReader(list, mapping))
                      
 

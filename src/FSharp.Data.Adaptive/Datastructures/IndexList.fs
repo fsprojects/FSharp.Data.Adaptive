@@ -480,9 +480,6 @@ module IndexList =
         elif l.MaxIndex < r.MinIndex then
             IndexList<'T>(l.MinIndex, r.MaxIndex, MapExt.union l.Content r.Content)
             
-        elif r.MaxIndex < l.MinIndex then
-            IndexList<'T>(r.MinIndex, l.MaxIndex, MapExt.union l.Content r.Content)
-
         elif l.Count < r.Count then
             let mutable res = r
             for lv in l.AsSeqBackward do
@@ -556,11 +553,19 @@ module IndexList =
 
     /// applies the mapping function to all elements and concats the resulting lists.
     let collecti (mapping : Index -> 'T1 -> IndexList<'T2>) (l : IndexList<'T1>) = 
-        l.Map(mapping) |> concat
+        use e = (l.Content :> seq<_>).GetEnumerator()
+        if e.MoveNext() then 
+            let mutable res = mapping e.Current.Key e.Current.Value
+            while e.MoveNext() do
+                let v = mapping e.Current.Key e.Current.Value
+                res <- append res v
+            res
+        else
+            IndexList.Empty
         
     /// applies the mapping function to all elements and concats the resulting lists.
     let collect (mapping : 'T1 -> IndexList<'T2>) (l : IndexList<'T1>) = 
-        l.Map(fun _ v -> mapping v) |> concat
+        collecti (fun _ v -> mapping v) l
 
     /// applies the mapping function to all elements in the list.
     let inline mapi (mapping : Index -> 'T1 -> 'T2) (list : IndexList<'T1>) = 

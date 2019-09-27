@@ -10,6 +10,9 @@ type ChangeableIndexList<'T>(initial: IndexList<'T>) =
         h.Perform(IndexList.differentiate IndexList.empty initial) |> ignore
         h
 
+    override x.ToString() =
+        history.State |> Seq.map (sprintf "%A") |> String.concat "; " |> sprintf "clist [%s]"
+
     member x.Count = history.State.Count
 
     member x.IsEmpty = history.State.IsEmpty

@@ -1445,7 +1445,7 @@ type AdaptiveGenerators() =
                                     1, Gen.constant "constant"
                                     3, Gen.constant "clist"
                                     3, Gen.constant "map"
-                                    //3, Gen.constant "collect"
+                                    3, Gen.constant "collect"
                                 ]
                         match kind with
                         | "constant" -> 
