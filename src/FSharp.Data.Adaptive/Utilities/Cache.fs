@@ -2,6 +2,8 @@
 
 open System.Collections.Generic
 
+/// Internal datastructure used for 'magically' making types equatable.
+/// Workaround for `when 'T : equality`
 [<Struct; CustomEquality; NoComparison>]
 type internal UEq<'T> =
     val mutable public Value : 'T
@@ -20,19 +22,23 @@ type internal UEq<'T> =
 /// function to be executed) whereas revoke decreases the
 /// eeference count and removes the cache entry whenever
 /// the reference count is 0.
-type internal Cache<'A, 'B>(mapping : 'A -> 'B) =  
+type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =  
+    /// utility checking for null (if possible)
     static let isNull =
-        if typeof<'A>.IsValueType then fun (_o : 'A) -> false
-        else fun (o : 'A) -> isNull (o :> obj)
+        if typeof<'T1>.IsValueType then fun (_o : 'T1) -> false
+        else fun (o : 'T1) -> isNull (o :> obj)
 
-    let cache = Dictionary<UEq<'A>, 'B * ref<int>>(1)
+    /// cache for non-null values.
+    let cache = Dictionary<UEq<'T1>, 'T2 * ref<int>>(1)
+
+    /// cache for null values (needed for option, unit, etc.)
     let mutable nullCache = None
 
     /// Clear removes all entries from the Cache and
     /// executes a function for all removed cache entries.
     /// This function is helpful if the contained values
     /// are (for example) disposable resources.
-    member x.Clear(remove : 'B -> unit) =
+    member x.Clear(remove : 'T2 -> unit) =
         for (KeyValue(_,(v,_))) in cache do 
             remove v
         cache.Clear()
@@ -45,7 +51,7 @@ type internal Cache<'A, 'B>(mapping : 'A -> 'B) =
     /// Invoke returns the function value associated
     /// With the given argument (possibly executing the function)
     /// And increases the associated reference count.
-    member x.Invoke (v : 'A) =
+    member x.Invoke (v : 'T1) =
         if isNull v then
             match nullCache with
                 | Some (r, ref) -> 
@@ -66,7 +72,7 @@ type internal Cache<'A, 'B>(mapping : 'A -> 'B) =
                     r
     /// Revoke returns the function value associated
     /// With the given argument and decreases its reference count.
-    member x.RevokeAndGetDeleted (v : 'A) =
+    member x.RevokeAndGetDeleted (v : 'T1) =
         if isNull v then
             match nullCache with
                 | Some (r, ref) -> 
@@ -90,7 +96,7 @@ type internal Cache<'A, 'B>(mapping : 'A -> 'B) =
                 
     /// Revoke returns the function value associated
     /// With the given argument and decreases its reference count.
-    member x.RevokeAndGetDeletedTotal (v : 'A) =
+    member x.RevokeAndGetDeletedTotal (v : 'T1) =
         if isNull v then
             match nullCache with
                 | Some (r, ref) -> 
@@ -115,7 +121,7 @@ type internal Cache<'A, 'B>(mapping : 'A -> 'B) =
                     None
 
     /// Revoke the value and return its associated cache value.
-    member x.Revoke (v : 'A) =
+    member x.Revoke (v : 'T1) =
         x.RevokeAndGetDeleted v |> snd
 
     /// Enumerate over all cache values.

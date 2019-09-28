@@ -394,6 +394,80 @@ module AdaptiveIndexListImplementation =
 
             result
 
+    /// Helper for ConcatReader.
+    type IndexedReader<'a>(mapping : IndexMapping<Index * Index>, index : Index, input : alist<'a>) =
+        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.monoid) 
+
+        let reader = input.GetReader()
+
+        override x.Compute(token : AdaptiveToken) =
+            reader.GetChanges token |> IndexListDelta.mapMonotonic (fun i op ->
+                match op with
+                | Set v ->
+                    let index = mapping.Invoke(index, i)
+                    index, Set v
+                | Remove ->
+                    let index = mapping.Revoke(index, i)
+                    match index with
+                    | Some index ->
+                        index, Remove
+                    | None ->
+                        unexpected()
+            )
+
+    /// Reader for concat operations.
+    type ConcatReader<'a>(inputs : IndexList<alist<'a>>) =
+        inherit AbstractDirtyReader<IndexedReader<'a>, IndexListDelta<'a>>(IndexListDelta.monoid)
+
+        let mapping = IndexMapping<Index * Index>()
+        let readers = inputs |> IndexList.mapi (fun i l -> IndexedReader(mapping, i, l))
+
+        let mutable initial = true
+
+        override x.Compute(token : AdaptiveToken, dirty : System.Collections.Generic.HashSet<_>) =
+            if initial then
+                initial <- false
+                let mutable result = IndexListDelta.empty
+                for r in readers do
+                    result <- IndexListDelta.combine result (r.GetChanges token)
+                result
+            else
+                let mutable result = IndexListDelta.empty
+                for r in dirty do
+                    result <- IndexListDelta.combine result (r.GetChanges token)
+                result
+
+    /// Reader for bind operations.
+    type BindReader<'a, 'b>(input : aval<'a>, mapping : 'a -> alist<'b>) =
+        inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.monoid)
+
+        let mutable inputChanged = 1
+        let mutable reader : Option<'a * IIndexListReader<'b>> = None
+
+        override x.InputChanged(t : obj, o : IAdaptiveObject) =
+            if System.Object.ReferenceEquals(input, o) then
+                inputChanged <- 1
+
+        override x.Compute(token) =
+            let v = input.GetValue token
+            let inputChanged = System.Threading.Interlocked.Exchange(&inputChanged, 0)
+            match reader with
+            | Some (oldA, oldReader) when inputChanged = 0 || cheapEqual v oldA ->
+                oldReader.GetChanges token
+            | _ -> 
+                let newReader = mapping(v).GetReader()
+                let deltas = 
+                    let addNew = newReader.GetChanges token
+                    match reader with
+                        | Some(_,old) ->
+                            let remOld = IndexList.computeDelta old.State IndexList.empty
+                            old.Outputs.Consume() |> ignore
+                            IndexListDelta.combine remOld addNew
+                        | None ->
+                            addNew
+                reader <- Some (v,newReader)
+                deltas
+
 
 
     /// Gets the current content of the alist as IndexList.
@@ -439,12 +513,14 @@ module AList =
     let ofIndexList (elements : IndexList<'T>) =
         ConstantList(lazy elements) :> alist<_>
 
+    /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
     let mapi (mapping: Index -> 'T1 -> 'T2) (list : alist<'T1>) =
         if list.IsConstant then
             constant (fun () -> list |> force |> IndexList.mapi mapping)
         else
             create (fun () -> MapReader(list, mapping))
 
+    /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
     let map (mapping: 'T1 -> 'T2) (list : alist<'T1>) =
         if list.IsConstant then
             constant (fun () -> list |> force |> IndexList.map mapping)
@@ -452,11 +528,72 @@ module AList =
             // TODO: better implementation (caching possible since no Index needed)
             create (fun () -> MapReader(list, fun _ -> mapping))
   
+    /// Adaptively chooses all elements returned by mapping.  
+    let choosei (mapping: Index -> 'T1 -> option<'T2>) (list: alist<'T1>) =
+        if list.IsConstant then
+            constant (fun () -> list |> force |> IndexList.choosei mapping)
+        else
+            create (fun () -> ChooseReader(list, mapping))
+  
+    /// Adaptively chooses all elements returned by mapping.  
+    let choose (mapping: 'T1 -> option<'T2>) (list: alist<'T1>) =
+        if list.IsConstant then
+            constant (fun () -> list |> force |> IndexList.choose mapping)
+        else
+            create (fun () -> ChooseReader(list, fun _ v -> mapping v))
+
+    /// Adaptively filters the list using the given predicate.
+    let filteri (predicate : Index -> 'T -> bool) (list: alist<'T>) =
+        if list.IsConstant then
+            constant (fun () -> list |> force |> IndexList.filteri predicate)
+        else
+            create (fun () -> FilterReader(list, predicate))
+        
+    /// Adaptively filters the list using the given predicate.
+    let filter (predicate : 'T -> bool) (list: alist<'T>) =
+        if list.IsConstant then
+            constant (fun () -> list |> force |> IndexList.filter predicate)
+        else
+            create (fun () -> FilterReader(list, fun _ v -> predicate v))
+        
+    /// Adaptively applies the given mapping function to all elements and returns a new alist holding the concatenated results.
     let collecti (mapping: Index -> 'T1 -> alist<'T2>) (list : alist<'T1>) =
-        // TODO: better implementation when outer constant
-        create (fun () -> CollectReader(list, mapping))
+        if list.IsConstant then
+            let content = force list |> IndexList.mapi mapping
+            if content |> Seq.forall (fun l -> l.IsConstant) then
+                constant (fun () -> content |> IndexList.collect force)
+            else
+                create (fun () -> ConcatReader(content))
+        else
+            create (fun () -> CollectReader(list, mapping))
                      
+    /// Adaptively applies the given mapping function to all elements and returns a new alist holding the concatenated results.
+    let collect (mapping: 'T1 -> alist<'T2>) (list : alist<'T1>) =
+        // TODO: better implementation possible (caching?)
+        collecti (fun _ v -> mapping v) list
+         
+    /// Adaptively concatenates the given lists.
+    let concat (lists : #seq<alist<'T>>) =
+        let lists = IndexList.ofSeq lists
+        if lists.IsEmpty then 
+            empty
+        elif lists |> Seq.forall (fun l -> l.IsConstant) then
+            constant (fun () -> lists |> IndexList.collect force)
+        else
+            create (fun () -> ConcatReader(lists))
+
+    /// Adaptively concatenates the given lists.
+    let append (l: alist<'T>) (r: alist<'T>) =
+        concat [l; r]
 
     /// Creates an aval providing access to the current content of the list.
     let toAVal (list : alist<'T>) =
         list.Content
+
+
+    /// Adaptively maps over the given aval and returns the resulting list.
+    let bind (mapping: 'T1 -> alist<'T2>) (value: aval<'T1>) =
+        if value.IsConstant then
+            value |> AVal.force |> mapping
+        else
+            create (fun () -> BindReader(value, mapping))
