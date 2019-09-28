@@ -26,7 +26,7 @@
 	<Compile Include="Datastructures\HashSetDelta.fs" />
 	<Compile Include="Datastructures\HashMapDelta.fs" />
 	<Compile Include="Datastructures\IndexListDelta.fs" />
-	<Compile Include="Datastructures\Differentiation.fs" />
+	<Compile Include="Datastructures\Deltas.fs" />
 	<Compile Include="Utilities\Utilities.fs" />
 	<Compile Include="Utilities\PriorityQueue.fs" />
 	<Compile Include="Utilities\Cache.fs" />
