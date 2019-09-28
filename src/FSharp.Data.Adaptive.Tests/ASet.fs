@@ -42,7 +42,7 @@ let ``[ASet] reference impl``() ({ sreal = real; sref = ref; sexpression = str; 
         let vReal = real.Content.GetValue AdaptiveToken.Top // |> CountingHashSet.toHashSet
         let vRef = ref.Content.GetValue Reference.AdaptiveToken.Top
 
-        let delta = HashSet.differentiate vReal vRef |> HashSetDelta.toList
+        let delta = HashSet.computeDelta vReal vRef |> HashSetDelta.toList
         match delta with
         | [] ->
             vRef

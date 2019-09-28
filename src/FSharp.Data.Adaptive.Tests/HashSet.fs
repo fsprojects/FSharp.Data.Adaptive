@@ -52,12 +52,12 @@ let ``[CountingHashSet] ref counts`` (input : Set<int>) =
     let ops =
         set |> Seq.map Rem |> HashSetDelta.ofSeq
 
-    let s, e = CountingHashSet.integrate set ops
+    let s, e = CountingHashSet.applyDelta set ops
     e |> should setequal HashSet.empty<SetOperation<int>>
     s |> should setequal set
 
     
-    let s, e = CountingHashSet.integrate s ops
+    let s, e = CountingHashSet.applyDelta s ops
     e |> should setequal (set |> Seq.map Rem |> HashSet.ofSeq)
     s |> should setequal HashSet.empty<int>
 
@@ -65,88 +65,88 @@ let ``[CountingHashSet] ref counts`` (input : Set<int>) =
 
 
 [<Property>]
-let ``[HashSet] integrate drops useless removes``() =
+let ``[HashSet] applyDelta drops useless removes``() =
 
     // value empty
-    // integrate({}, {Rem 1}) = ({}, {})
+    // applyDelta({}, {Rem 1}) = ({}, {})
     let set = HashSet.empty<int>
     let delta = HashSetDelta.ofList [Rem 1]
-    let res, eff = HashSet.integrate set delta
+    let res, eff = HashSet.applyDelta set delta
     res |> should setequal set
     eff |> should setequal emptyDelta
   
     // delta empty
-    // integrate({1}, {}) = ({1}, {})
+    // applyDelta({1}, {}) = ({1}, {})
     let set = HashSet.ofList [1]
     let delta = HashSetDelta.empty
-    let res, eff = HashSet.integrate set delta
+    let res, eff = HashSet.applyDelta set delta
     res |> should setequal set
     eff |> should setequal emptyDelta  
 
     // delta small
-    // integrate({2..20}, {Rem 1}) = ({2..20}, {})
+    // applyDelta({2..20}, {Rem 1}) = ({2..20}, {})
     let set = HashSet.ofList [2..20]
     let delta = HashSetDelta.ofList [Rem 1]
-    let res, eff = HashSet.integrate set delta
+    let res, eff = HashSet.applyDelta set delta
     res |> should setequal set
     eff |> should setequal emptyDelta
     
     // value small
-    // integrate({21}, {Rem 1..20}) = ({21}, {})
+    // applyDelta({21}, {Rem 1..20}) = ({21}, {})
     let set = HashSet.single 21
     let delta = HashSetDelta.ofList ([1..20] |> List.map Rem)
-    let res, eff = HashSet.integrate set delta
+    let res, eff = HashSet.applyDelta set delta
     res |> should setequal set
     eff |> should setequal emptyDelta
     
     // similar size
-    // integrate({1..20}, {Rem 21..40}) = ({1..20}, {})
+    // applyDelta({1..20}, {Rem 21..40}) = ({1..20}, {})
     let set = HashSet.ofList [1..20]
     let delta = HashSetDelta.ofList ([21..40] |> List.map Rem)
-    let res, eff = HashSet.integrate set delta
+    let res, eff = HashSet.applyDelta set delta
     res |> should setequal set
     eff |> should setequal emptyDelta
     
 
 [<Property>]
-let ``[HashSet] integrate drops useless adds``() =
-    // integrate({1}, {Add 1}) = ({1}, {})
+let ``[HashSet] applyDelta drops useless adds``() =
+    // applyDelta({1}, {Add 1}) = ({1}, {})
     let set = HashSet.single 1
     let delta = HashSetDelta.ofList [Add 1]
-    let res, eff = HashSet.integrate set delta
+    let res, eff = HashSet.applyDelta set delta
     res |> should setequal set
     eff |> should setequal emptyDelta
 
-    // integrate({1..20}, {Add 1}) = ({1..20}, {})
+    // applyDelta({1..20}, {Add 1}) = ({1..20}, {})
     let set = HashSet.ofList [1..20]
     let delta = HashSetDelta.ofList [Add 1]
-    let res, eff = HashSet.integrate set delta
+    let res, eff = HashSet.applyDelta set delta
     res |> should setequal set
     eff |> should setequal emptyDelta
     
-    // integrate({1..20}, {Add 1..20}) = ({1..20}, {})
+    // applyDelta({1..20}, {Add 1..20}) = ({1..20}, {})
     let set = HashSet.ofList [1..20]
     let delta = HashSetDelta.ofList ([1..20] |> List.map Add)
-    let res, eff = HashSet.integrate set delta
+    let res, eff = HashSet.applyDelta set delta
     res |> should setequal set
     eff |> should setequal emptyDelta
 
 [<Property>]
-let ``[HashSet] integrate basic``() =  
-    // integrate({1..19}, {Add 20}) = ({1..20}, {Add 20})
+let ``[HashSet] applyDelta basic``() =  
+    // applyDelta({1..19}, {Add 20}) = ({1..20}, {Add 20})
     let delta = HashSetDelta.ofList [Add 20]
-    let set, eff = HashSet.integrate (HashSet.ofList [1..19]) delta
+    let set, eff = HashSet.applyDelta (HashSet.ofList [1..19]) delta
     set |> should setequal (HashSet.ofList [1..20])
     eff |> should setequal delta
     
-    // integrate({1}, {Add 1..20}) = ({1..20}, {Add 2..20})
+    // applyDelta({1}, {Add 1..20}) = ({1..20}, {Add 2..20})
     let delta = HashSetDelta.ofList ([1..20] |> List.map Add)
-    let set, eff = HashSet.integrate (HashSet.ofList [1]) delta
+    let set, eff = HashSet.applyDelta (HashSet.ofList [1]) delta
     set |> should setequal (HashSet.ofList [1..20])
     eff |> should setequal (HashSetDelta.ofList ([2..20] |> List.map Add))
 
 [<Property>]
-let ``[HashSet] differentiate/integrate`` (set1 : Set<int>) (set2 : Set<int>) (set3 : Set<int>) =
+let ``[HashSet] computeDelta/applyDelta`` (set1 : Set<int>) (set2 : Set<int>) (set3 : Set<int>) =
     let set1 = HashSet.ofSeq set1
     let set2 = HashSet.ofSeq set2
     let set3 = HashSet.ofSeq set3
@@ -154,34 +154,34 @@ let ``[HashSet] differentiate/integrate`` (set1 : Set<int>) (set2 : Set<int>) (s
 
 
     // diff(A, A) = 0
-    HashSet.differentiate set1 set1 |> should setequal emptyDelta
-    HashSet.differentiate set2 set2 |> should setequal emptyDelta
+    HashSet.computeDelta set1 set1 |> should setequal emptyDelta
+    HashSet.computeDelta set2 set2 |> should setequal emptyDelta
 
-    // integrate(A, 0) = (A, _)
-    HashSet.integrate set1 emptyDelta |> fst |> should setequal set1
-    HashSet.integrate set2 emptyDelta |> fst |> should setequal set2
+    // applyDelta(A, 0) = (A, _)
+    HashSet.applyDelta set1 emptyDelta |> fst |> should setequal set1
+    HashSet.applyDelta set2 emptyDelta |> fst |> should setequal set2
     
-    // integrate(A, 0) = (_, 0)
-    HashSet.integrate set1 emptyDelta |> snd |> should setequal emptyDelta
-    HashSet.integrate set2 emptyDelta |> snd |> should setequal emptyDelta
+    // applyDelta(A, 0) = (_, 0)
+    HashSet.applyDelta set1 emptyDelta |> snd |> should setequal emptyDelta
+    HashSet.applyDelta set2 emptyDelta |> snd |> should setequal emptyDelta
 
-    // integrate(A, diff(A, B)) = (A, _)
-    // integrate(A, diff(A, B)) = (_, diff(A, B))
-    let fw = HashSet.differentiate set1 set2
-    let t2, d1 = HashSet.integrate set1 fw
+    // applyDelta(A, diff(A, B)) = (A, _)
+    // applyDelta(A, diff(A, B)) = (_, diff(A, B))
+    let fw = HashSet.computeDelta set1 set2
+    let t2, d1 = HashSet.applyDelta set1 fw
     t2 |> should setequal set2
     d1 |> should setequal fw
 
     // diff(A, B) = -diff(B, A)
-    let bw = HashSet.differentiate set2 set1
+    let bw = HashSet.computeDelta set2 set1
     bw.Inverse |> should setequal fw
 
     // diff(A, B) + diff(B, A) = 0
     HashSetDelta.combine fw bw |> should setequal emptyDelta
 
-    let d12 = HashSet.differentiate set1 set2
-    let d23 = HashSet.differentiate set2 set3
-    let d31 = HashSet.differentiate set3 set1
+    let d12 = HashSet.computeDelta set1 set2
+    let d23 = HashSet.computeDelta set2 set3
+    let d31 = HashSet.computeDelta set3 set1
 
     // diff(A, B) + diff(B, C) + diff(C, A) = 0
     HashSetDelta.combine (HashSetDelta.combine d12 d23) d31 |> should setequal emptyDelta
@@ -190,52 +190,52 @@ let ``[HashSet] differentiate/integrate`` (set1 : Set<int>) (set2 : Set<int>) (s
     HashSetDelta.combine d12 d23 |> should setequal d31.Inverse
 
 [<Property>]
-let ``[CountingHashSet] differentiate/integrate`` (set1 : Set<int>) (set2 : Set<int>) (set3 : Set<int>) =
+let ``[CountingHashSet] computeDelta/applyDelta`` (set1 : Set<int>) (set2 : Set<int>) (set3 : Set<int>) =
     let set1 = CountingHashSet.ofSeq set1
     let set2 = CountingHashSet.ofSeq set2
     let set3 = CountingHashSet.ofSeq set3
 
-    // integrate({}, {Rem 1}) = ({}, {})
+    // applyDelta({}, {Rem 1}) = ({}, {})
     let delta = HashSetDelta.ofList [Rem 1]
-    let set, eff = CountingHashSet.integrate CountingHashSet.empty delta
+    let set, eff = CountingHashSet.applyDelta CountingHashSet.empty delta
     set |> should setequal CountingHashSet.empty<int>
     eff |> should setequal emptyDelta
     
-    // integrate({1}, {Add 1}) = ({1}, {})
+    // applyDelta({1}, {Add 1}) = ({1}, {})
     let delta = HashSetDelta.ofList [Add 1]
-    let set, eff = CountingHashSet.integrate (CountingHashSet.single 1) delta
+    let set, eff = CountingHashSet.applyDelta (CountingHashSet.single 1) delta
     set |> should setequal (CountingHashSet.single 1)
     eff |> should setequal emptyDelta
 
     // diff(A, A) = 0
-    CountingHashSet.differentiate set1 set1 |> should setequal emptyDelta
-    CountingHashSet.differentiate set2 set2 |> should setequal emptyDelta
+    CountingHashSet.computeDelta set1 set1 |> should setequal emptyDelta
+    CountingHashSet.computeDelta set2 set2 |> should setequal emptyDelta
 
-    // integrate(A, 0) = (A, _)
-    CountingHashSet.integrate set1 emptyDelta |> fst |> should setequal set1
-    CountingHashSet.integrate set2 emptyDelta |> fst |> should setequal set2
+    // applyDelta(A, 0) = (A, _)
+    CountingHashSet.applyDelta set1 emptyDelta |> fst |> should setequal set1
+    CountingHashSet.applyDelta set2 emptyDelta |> fst |> should setequal set2
     
-    // integrate(A, 0) = (_, 0)
-    CountingHashSet.integrate set1 emptyDelta |> snd |> should setequal emptyDelta
-    CountingHashSet.integrate set2 emptyDelta |> snd |> should setequal emptyDelta
+    // applyDelta(A, 0) = (_, 0)
+    CountingHashSet.applyDelta set1 emptyDelta |> snd |> should setequal emptyDelta
+    CountingHashSet.applyDelta set2 emptyDelta |> snd |> should setequal emptyDelta
 
-    // integrate(A, diff(A, B)) = (A, _)
-    // integrate(A, diff(A, B)) = (_, diff(A, B))
-    let fw = CountingHashSet.differentiate set1 set2
-    let t2, d1 = CountingHashSet.integrate set1 fw
+    // applyDelta(A, diff(A, B)) = (A, _)
+    // applyDelta(A, diff(A, B)) = (_, diff(A, B))
+    let fw = CountingHashSet.computeDelta set1 set2
+    let t2, d1 = CountingHashSet.applyDelta set1 fw
     t2 |> should setequal set2
     d1 |> should setequal fw
 
     // diff(A, B) = -diff(B, A)
-    let bw = CountingHashSet.differentiate set2 set1
+    let bw = CountingHashSet.computeDelta set2 set1
     bw.Inverse |> should setequal fw
 
     // diff(A, B) + diff(B, A) = 0
     HashSetDelta.combine fw bw |> should setequal emptyDelta
 
-    let d12 = CountingHashSet.differentiate set1 set2
-    let d23 = CountingHashSet.differentiate set2 set3
-    let d31 = CountingHashSet.differentiate set3 set1
+    let d12 = CountingHashSet.computeDelta set1 set2
+    let d23 = CountingHashSet.computeDelta set2 set3
+    let d31 = CountingHashSet.computeDelta set3 set1
 
     // diff(A, B) + diff(B, C) + diff(C, A) = 0
     HashSetDelta.combine (HashSetDelta.combine d12 d23) d31 |> should setequal emptyDelta
@@ -245,82 +245,82 @@ let ``[CountingHashSet] differentiate/integrate`` (set1 : Set<int>) (set2 : Set<
 
 
 [<Property>]
-let ``[CountingHashSet] integrate drops useless removes``() =
+let ``[CountingHashSet] applyDelta drops useless removes``() =
 
     // value empty
-    // integrate({}, {Rem 1}) = ({}, {})
+    // applyDelta({}, {Rem 1}) = ({}, {})
     let set = CountingHashSet.empty<int>
     let delta = HashSetDelta.ofList [Rem 1]
-    let res, eff = CountingHashSet.integrate set delta
+    let res, eff = CountingHashSet.applyDelta set delta
     res |> should setequal set
     eff |> should setequal emptyDelta
   
     // delta empty
-    // integrate({1}, {}) = ({1}, {})
+    // applyDelta({1}, {}) = ({1}, {})
     let set = CountingHashSet.ofList [1]
     let delta = HashSetDelta.empty
-    let res, eff = CountingHashSet.integrate set delta
+    let res, eff = CountingHashSet.applyDelta set delta
     res |> should setequal set
     eff |> should setequal emptyDelta  
 
     // delta small
-    // integrate({2..20}, {Rem 1}) = ({2..20}, {})
+    // applyDelta({2..20}, {Rem 1}) = ({2..20}, {})
     let set = CountingHashSet.ofList [2..20]
     let delta = HashSetDelta.ofList [Rem 1]
-    let res, eff = CountingHashSet.integrate set delta
+    let res, eff = CountingHashSet.applyDelta set delta
     res |> should setequal set
     eff |> should setequal emptyDelta
     
     // value small
-    // integrate({21}, {Rem 1..20}) = ({21}, {})
+    // applyDelta({21}, {Rem 1..20}) = ({21}, {})
     let set = CountingHashSet.single 21
     let delta = HashSetDelta.ofList ([1..20] |> List.map Rem)
-    let res, eff = CountingHashSet.integrate set delta
+    let res, eff = CountingHashSet.applyDelta set delta
     res |> should setequal set
     eff |> should setequal emptyDelta
     
     // similar size
-    // integrate({1..20}, {Rem 21..40}) = ({1..20}, {})
+    // applyDelta({1..20}, {Rem 21..40}) = ({1..20}, {})
     let set = CountingHashSet.ofList [1..20]
     let delta = HashSetDelta.ofList ([21..40] |> List.map Rem)
-    let res, eff = CountingHashSet.integrate set delta
+    let res, eff = CountingHashSet.applyDelta set delta
     res |> should setequal set
     eff |> should setequal emptyDelta
 
 [<Property>]
-let ``[CountingHashSet] integrate drops useless adds``() =
-    // integrate({1}, {Add 1}) = ({1}, {})
+let ``[CountingHashSet] applyDelta drops useless adds``() =
+    // applyDelta({1}, {Add 1}) = ({1}, {})
     let set = CountingHashSet.single 1
     let delta = HashSetDelta.ofList [Add 1]
-    let res, eff = CountingHashSet.integrate set delta
+    let res, eff = CountingHashSet.applyDelta set delta
     res |> should setequal set
     eff |> should setequal emptyDelta
 
-    // integrate({1..20}, {Add 1}) = ({1..20}, {})
+    // applyDelta({1..20}, {Add 1}) = ({1..20}, {})
     let set = CountingHashSet.ofList [1..20]
     let delta = HashSetDelta.ofList [Add 1]
-    let res, eff = CountingHashSet.integrate set delta
+    let res, eff = CountingHashSet.applyDelta set delta
     res |> should setequal set
     eff |> should setequal emptyDelta
     
-    // integrate({1..20}, {Add 1..20}) = ({1..20}, {})
+    // applyDelta({1..20}, {Add 1..20}) = ({1..20}, {})
     let set = CountingHashSet.ofList [1..20]
     let delta = HashSetDelta.ofList ([1..20] |> List.map Add)
-    let res, eff = CountingHashSet.integrate set delta
+    let res, eff = CountingHashSet.applyDelta set delta
     res |> should setequal set
     eff |> should setequal emptyDelta
 
 [<Property>]
-let ``[CountingHashSet] integrate basic``() =  
-    // integrate({1..19}, {Add 20}) = ({1..20}, {Add 20})
+let ``[CountingHashSet] applyDelta basic``() =  
+    // applyDelta({1..19}, {Add 20}) = ({1..20}, {Add 20})
     let delta = HashSetDelta.ofList [Add 20]
-    let set, eff = CountingHashSet.integrate (CountingHashSet.ofList [1..19]) delta
+    let set, eff = CountingHashSet.applyDelta (CountingHashSet.ofList [1..19]) delta
     set |> should setequal (CountingHashSet.ofList [1..20])
     eff |> should setequal delta
     
-    // integrate({1}, {Add 1..20}) = ({1..20}, {Add 2..20})
+    // applyDelta({1}, {Add 1..20}) = ({1..20}, {Add 2..20})
     let delta = HashSetDelta.ofList ([1..20] |> List.map Add)
-    let set, eff = CountingHashSet.integrate (CountingHashSet.ofList [1]) delta
+    let set, eff = CountingHashSet.applyDelta (CountingHashSet.ofList [1]) delta
     set |> should setequal (CountingHashSet.ofList [1..20])
     eff |> should setequal (HashSetDelta.ofList ([2..20] |> List.map Add))
 

@@ -13,7 +13,7 @@ type AdaptiveIndexList<'T> =
 
 and alist<'T> = AdaptiveIndexList<'T>
 
-/// A simple reader using differentiate for getting deltas.
+/// A simple reader using computeDelta for getting deltas.
 type internal AListReader<'T>(list: alist<'T>) =
 
     let mutable last = IndexList.empty
@@ -23,7 +23,7 @@ type internal AListReader<'T>(list: alist<'T>) =
 
     member x.GetChanges(t : FSharp.Data.Adaptive.Reference.AdaptiveToken) =
         let c = list.Content.GetValue t
-        let ops = IndexList.differentiate last c
+        let ops = IndexList.computeDelta last c
         last <- c
         ops
 

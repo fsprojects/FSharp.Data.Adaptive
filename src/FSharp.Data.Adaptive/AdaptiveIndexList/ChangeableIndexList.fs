@@ -7,7 +7,7 @@ open FSharp.Data.Traceable
 type ChangeableIndexList<'T>(initial: IndexList<'T>) =
     let history = 
         let h = History(IndexList.trace)
-        h.Perform(IndexList.differentiate IndexList.empty initial) |> ignore
+        h.Perform(IndexList.computeDelta IndexList.empty initial) |> ignore
         h
 
     override x.ToString() =
@@ -22,7 +22,7 @@ type ChangeableIndexList<'T>(initial: IndexList<'T>) =
             history.State
 
         and set (state: IndexList<'T>) =
-            let delta = IndexList.differentiate history.State state
+            let delta = IndexList.computeDelta history.State state
             if not (IndexListDelta.isEmpty delta) then
                 history.Perform delta |> ignore
 

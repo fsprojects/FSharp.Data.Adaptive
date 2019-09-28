@@ -62,7 +62,7 @@ module AdaptiveHashMapImplementation =
         member x.GetReader() =
             new History.Readers.ConstantReader<_,_>(
                 HashMap.trace,
-                lazy (HashMap.differentiate HashMap.empty content.Value),
+                lazy (HashMap.computeDelta HashMap.empty content.Value),
                 content
             ) :> IHashMapReader<_,_>
 
@@ -207,7 +207,7 @@ module AdaptiveHashMapImplementation =
             input.GetValue token
             :> seq<_>
             |> HashMap.ofSeq
-            |> HashMap.differentiate x.State
+            |> HashMap.computeDelta x.State
 
     /// Reader for bind.
     type BindReader<'T, 'Key, 'Value>(value : aval<'T>, mapping : 'T -> amap<'Key, 'Value>) =
@@ -225,7 +225,7 @@ module AdaptiveHashMapImplementation =
                 let rem =
                     match oldValue with
                     | Some (_, oldReader) ->
-                        let res = HashMap.differentiate oldReader.State HashMap.empty
+                        let res = HashMap.computeDelta oldReader.State HashMap.empty
                         oldReader.Outputs.Remove x |> ignore
                         res.Store
                     | _ ->

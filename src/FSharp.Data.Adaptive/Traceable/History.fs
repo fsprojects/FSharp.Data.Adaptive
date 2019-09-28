@@ -48,7 +48,7 @@ type AbstractReader<'State, 'Delta>(t: Traceable<'State, 'Delta>) =
     let mutable state = t.tempty
 
     override x.Apply o =
-        let (s, o) = t.tintegrate state o
+        let (s, o) = t.tapplyDelta state o
         state <- s
         o
     member x.State = state
@@ -178,7 +178,7 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
         // only append non-empty ops
         if not (t.tmonoid.misEmpty op) then
             // apply the op to the state
-            let s, op = t.tintegrate state op
+            let s, op = t.tapplyDelta state op
             state <- s
 
             // if op got empty do not append it
@@ -292,13 +292,13 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
 
     /// Used by HistoryReader to pull the operations since the old RelevantNode.
     /// Additionaly the reader provides its latest state. 
-    /// This way the history can differentiate the state in case it decided to drop the old version.
+    /// This way the history can computeDelta the state in case it decided to drop the old version.
     member internal x.Read(token: AdaptiveToken, old: RelevantNode<'State, 'Delta>, oldState: 'State) =
         x.EvaluateAlways token (fun token ->
             x.Update token
 
             if isInvalid old then
-                let ops = t.tdifferentiate oldState state
+                let ops = t.tcomputeDelta oldState state
                 let node = addRefToLast()
 
                 node, ops

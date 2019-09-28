@@ -249,7 +249,7 @@ module AdaptiveHashSetImplementation =
 
         override x.Compute(token) =
             let newSet = input.GetValue token :> seq<_> |> HashSet.ofSeq
-            let deltas = HashSet.differentiate oldSet newSet
+            let deltas = HashSet.computeDelta oldSet newSet
             oldSet <- newSet
             deltas
 

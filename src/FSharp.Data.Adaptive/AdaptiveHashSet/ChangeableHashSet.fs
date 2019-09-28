@@ -8,7 +8,7 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
     let history = 
         let h = History(CountingHashSet.traceNoRefCount)
         if not initial.IsEmpty then 
-            let delta = HashSet.differentiate HashSet.empty initial
+            let delta = HashSet.computeDelta HashSet.empty initial
             h.Perform delta |> ignore
         h
 
@@ -27,7 +27,7 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
         with get() = 
             AVal.force content
         and set newSet =
-            HashSet.differentiate (AVal.force content) newSet
+            HashSet.computeDelta (AVal.force content) newSet
             |> history.Perform
             |> ignore
 
@@ -39,7 +39,7 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
 
     member x.Clear() =
         if not history.State.IsEmpty then
-            let ops = CountingHashSet.differentiate history.State CountingHashSet.empty
+            let ops = CountingHashSet.computeDelta history.State CountingHashSet.empty
             history.Perform ops |> ignore
 
     member x.UnionWith (other : seq<'T>) =

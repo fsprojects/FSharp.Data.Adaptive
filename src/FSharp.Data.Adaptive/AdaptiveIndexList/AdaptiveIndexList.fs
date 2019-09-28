@@ -162,7 +162,7 @@ module AdaptiveIndexListImplementation =
         member x.GetReader() =
             new History.Readers.ConstantReader<_,_>(
                 IndexList.trace,
-                lazy (IndexList.differentiate IndexList.empty content.Value),
+                lazy (IndexList.computeDelta IndexList.empty content.Value),
                 content
             ) :> IIndexListReader<_>
 

@@ -58,8 +58,8 @@ module HashSet =
         static let trace : Traceable<HashSet<'T>, HashSetDelta<'T>> =
             {
                 tempty = HashSet.empty
-                tdifferentiate = HashSet.differentiate
-                tintegrate = HashSet.integrate
+                tcomputeDelta = HashSet.computeDelta
+                tapplyDelta = HashSet.applyDelta
                 tmonoid = HashSetDelta.monoid
                 tprune = None
                 tsize = fun s -> s.Count
@@ -77,8 +77,8 @@ module HashMap =
         static let trace : Traceable<HashMap<'K, 'V>, HashMapDelta<'K, 'V>> =
             {
                 tempty = HashMap.empty
-                tdifferentiate = HashMap.differentiate
-                tintegrate = HashMap.integrate
+                tcomputeDelta = HashMap.computeDelta
+                tapplyDelta = HashMap.applyDelta
                 tmonoid = HashMapDelta.monoid
                 tprune = None
                 tsize = fun s -> s.Store.Count
@@ -96,8 +96,8 @@ module IndexList =
         static let trace : Traceable<IndexList<'T>, IndexListDelta<'T>> =
             {
                 tempty = IndexList.empty
-                tdifferentiate = IndexList.differentiate
-                tintegrate = IndexList.integrate
+                tcomputeDelta = IndexList.computeDelta
+                tapplyDelta = IndexList.applyDelta
                 tmonoid = IndexListDelta.monoid
                 tprune = None
                 tsize = fun s -> s.Count

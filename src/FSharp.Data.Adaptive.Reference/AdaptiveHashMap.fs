@@ -14,7 +14,7 @@ type AdaptiveHashMap<'Key, 'Value> =
 
 and amap<'Key, 'Value> = AdaptiveHashMap<'Key, 'Value>
 
-/// A simple reader using differentiate for getting deltas.
+/// A simple reader using computeDelta for getting deltas.
 type internal AMapReader<'Key, 'Value>(set: amap<'Key, 'Value>) =
 
     let mutable last = HashMap.empty
@@ -24,7 +24,7 @@ type internal AMapReader<'Key, 'Value>(set: amap<'Key, 'Value>) =
 
     member x.GetChanges(t) =
         let c = set.Content.GetValue t
-        let ops = HashMap.differentiate last c
+        let ops = HashMap.computeDelta last c
         last <- c
         ops
 

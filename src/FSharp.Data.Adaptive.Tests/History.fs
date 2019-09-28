@@ -30,8 +30,8 @@ type Number(value : int) =
         {
             tmonoid = HugeOp.Monoid
             tempty = Number(0)
-            tintegrate = fun n o -> Number(n.Value + o.Delta), o
-            tdifferentiate = fun l r -> HugeOp(r.Value - l.Value)
+            tapplyDelta = fun n o -> Number(n.Value + o.Delta), o
+            tcomputeDelta = fun l r -> HugeOp(r.Value - l.Value)
             tprune = None
             tsize = fun s -> 1
         }

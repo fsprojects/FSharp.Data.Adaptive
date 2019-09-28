@@ -34,8 +34,8 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
         {
             tmonoid = HashSetDelta.monoid
             tempty = CountingHashSet<'T>(HashMap.empty)
-            tintegrate = fun s d -> s.Integrate d
-            tdifferentiate = fun l r -> l.Differentiate r
+            tapplyDelta = fun s d -> s.ApplyDelta d
+            tcomputeDelta = fun l r -> l.ComputeDelta r
             tprune = None
             tsize = fun s -> s.Count
         }
@@ -45,8 +45,8 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
         {
             tmonoid = HashSetDelta.monoid
             tempty = CountingHashSet<'T>(HashMap.empty)
-            tintegrate = fun s d -> s.IntegrateNoRefCount d
-            tdifferentiate = fun l r -> l.Differentiate r
+            tapplyDelta = fun s d -> s.ApplyDeltaNoRefCount d
+            tcomputeDelta = fun l r -> l.ComputeDelta r
             tprune = None
             tsize = fun s -> s.Count
         }
@@ -260,7 +260,7 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
         CountingHashSet(HashMap(set.Count, mapStore))
 
     /// Differentiates two sets returning a HashSetDelta.
-    member x.Differentiate(other : CountingHashSet<'T>) =
+    member x.ComputeDelta(other : CountingHashSet<'T>) =
         // O(1)
         if Object.ReferenceEquals(store.Store, other.Store.Store) then
             HashSetDelta.empty
@@ -294,16 +294,16 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
             let store = IntMap.computeDelta both (IntMap.map del) (IntMap.map add) store.Store other.Store.Store
             HashSetDelta (HashMap(cnt, store))
 
-    /// Same as x.Differentiate(empty)
+    /// Same as x.ComputeDelta(empty)
     member x.RemoveAll() =
         store |> HashMap.map (fun _ v -> -1) |> HashSetDelta
         
-    /// Same as empty.Differentiate(x)
+    /// Same as empty.ComputeDelta(x)
     member x.AddAll() =
         store |> HashMap.map (fun _ v -> 1) |> HashSetDelta
 
     /// Integrates the given delta into the set, returns a new set and the effective deltas.
-    member x.Integrate (deltas : HashSetDelta<'T>) =
+    member x.ApplyDelta (deltas : HashSetDelta<'T>) =
         // O(1)
         if deltas.IsEmpty then
             x, deltas
@@ -368,7 +368,7 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
             CountingHashSet newStore, effective
 
     /// Integrates the given delta into the set without ref-counting, returns a new set and the effective deltas.
-    member x.IntegrateNoRefCount (deltas : HashSetDelta<'T>) =
+    member x.ApplyDeltaNoRefCount (deltas : HashSetDelta<'T>) =
         // O(1)
         if deltas.IsEmpty then
             x, deltas
@@ -600,24 +600,24 @@ module CountingHashSet =
     let inline traceNoRefCount<'T> = CountingHashSet<'T>.TraceNoRefCount
 
     /// Differentiates two sets returning a HashSetDelta.
-    let inline differentiate (src : CountingHashSet<'T>) (dst : CountingHashSet<'T>) =
-        src.Differentiate dst
+    let inline computeDelta (src : CountingHashSet<'T>) (dst : CountingHashSet<'T>) =
+        src.ComputeDelta dst
 
-    /// Same as differentiate src empty.
+    /// Same as computeDelta src empty.
     let inline removeAll (src : CountingHashSet<'T>) =
         src.RemoveAll()
         
-    /// Same as differentiate empty src.
+    /// Same as computeDelta empty src.
     let inline addAll (src : CountingHashSet<'T>) =
         src.AddAll()
 
     /// Integrates the given delta into the set, returns a new set and the effective deltas.
-    let inline integrate (set : CountingHashSet<'T>) (delta : HashSetDelta<'T>) =
-        set.Integrate delta
+    let inline applyDelta (set : CountingHashSet<'T>) (delta : HashSetDelta<'T>) =
+        set.ApplyDelta delta
 
     /// Integrates the given delta into the set without ref-counting, returns a new set and the effective deltas.
-    let inline integrateNoRefCount (set : CountingHashSet<'T>) (delta : HashSetDelta<'T>) =
-        set.IntegrateNoRefCount delta
+    let inline applyDeltaNoRefCount (set : CountingHashSet<'T>) (delta : HashSetDelta<'T>) =
+        set.ApplyDeltaNoRefCount delta
         
     /// Compares two sets.
     let internal compare (l : CountingHashSet<'T>) (r : CountingHashSet<'T>) =

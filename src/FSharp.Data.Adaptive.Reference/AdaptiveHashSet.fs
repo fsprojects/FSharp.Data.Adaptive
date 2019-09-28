@@ -22,7 +22,7 @@ type AdaptiveHashSet<'T> =
 
 and aset<'T> = AdaptiveHashSet<'T>
 
-/// A simple reader using differentiate for getting deltas.
+/// A simple reader using computeDelta for getting deltas.
 type internal ASetReader<'T>(set: aset<'T>) =
 
     let mutable last = HashSet.empty
@@ -32,7 +32,7 @@ type internal ASetReader<'T>(set: aset<'T>) =
 
     member x.GetChanges(t) =
         let c = set.Content.GetValue t
-        let ops = HashSet.differentiate last c
+        let ops = HashSet.computeDelta last c
         last <- c
         ops
 

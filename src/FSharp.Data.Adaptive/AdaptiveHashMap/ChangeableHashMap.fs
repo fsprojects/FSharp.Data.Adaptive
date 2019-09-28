@@ -7,7 +7,7 @@ open FSharp.Data.Traceable
 type ChangeableMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
     let history = 
         let h = History(HashMap.trace)
-        h.Perform(HashMap.differentiate HashMap.empty initial) |> ignore
+        h.Perform(HashMap.computeDelta HashMap.empty initial) |> ignore
         h
 
     /// The number of entries currently in the map.
@@ -29,7 +29,7 @@ type ChangeableMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
     /// Clears the map.
     member x.Clear() =
         if not (HashMap.isEmpty history.State) then
-            let ops = HashMap.differentiate history.State HashMap.empty
+            let ops = HashMap.computeDelta history.State HashMap.empty
             history.Perform ops |> ignore
         
 
@@ -38,7 +38,7 @@ type ChangeableMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
         with get() = 
             history.State
         and set value =
-            let ops = HashMap.differentiate history.State value
+            let ops = HashMap.computeDelta history.State value
             history.Perform ops |> ignore
         
 

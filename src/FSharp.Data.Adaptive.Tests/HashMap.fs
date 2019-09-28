@@ -27,49 +27,49 @@ type StupidHash = { value : int } with
             | _ -> false
 
 [<Property>]
-let ``[HashMap] differentiate / integrate`` (map1 : Map<int, int>) (map2 : Map<int, int>) (map3 : Map<int, int>) =
+let ``[HashMap] computeDelta / applyDelta`` (map1 : Map<int, int>) (map2 : Map<int, int>) (map3 : Map<int, int>) =
     let map1 = HashMap.ofMap map1
     let map2 = HashMap.ofMap map2
     let map3 = HashMap.ofMap map3
 
-    // integrate({}, {Rem 1}) = ({}, {})
+    // applyDelta({}, {Rem 1}) = ({}, {})
     let delta = HashMapDelta.ofList [1, Remove]
-    let map, eff = HashMap.integrate HashMap.empty<int, int> delta
+    let map, eff = HashMap.applyDelta HashMap.empty<int, int> delta
     map |> should mapequal HashMap.empty<int, int>
     eff |> should mapequal HashMapDelta.empty<int, int>
     
-    // integrate({1}, {Add 1}) = ({1}, {})
+    // applyDelta({1}, {Add 1}) = ({1}, {})
     let delta = HashMapDelta.ofList [1, Set 1]
-    let set, eff = HashMap.integrate (HashMap.single 1 1) delta
+    let set, eff = HashMap.applyDelta (HashMap.single 1 1) delta
     set |> should mapequal (HashMap.single 1 1)
     eff |> should mapequal HashMapDelta.empty<int, int>
 
     // diff(A, A) = 0
-    HashMap.differentiate map1 map1 |> should mapequal HashMapDelta.empty<int, int>
-    HashMap.differentiate map2 map2 |> should mapequal HashMapDelta.empty<int, int>
+    HashMap.computeDelta map1 map1 |> should mapequal HashMapDelta.empty<int, int>
+    HashMap.computeDelta map2 map2 |> should mapequal HashMapDelta.empty<int, int>
 
-    // integrate(A, 0) = (A, _)
-    HashMap.integrate map1 HashMapDelta.empty |> fst |> should mapequal map1
-    HashMap.integrate map2 HashMapDelta.empty |> fst |> should mapequal map2
+    // applyDelta(A, 0) = (A, _)
+    HashMap.applyDelta map1 HashMapDelta.empty |> fst |> should mapequal map1
+    HashMap.applyDelta map2 HashMapDelta.empty |> fst |> should mapequal map2
     
-    // integrate(A, 0) = (_, 0)
-    HashMap.integrate map1 HashMapDelta.empty |> snd |> should mapequal HashMapDelta.empty<int, int>
-    HashMap.integrate map2 HashMapDelta.empty |> snd |> should mapequal HashMapDelta.empty<int, int>
+    // applyDelta(A, 0) = (_, 0)
+    HashMap.applyDelta map1 HashMapDelta.empty |> snd |> should mapequal HashMapDelta.empty<int, int>
+    HashMap.applyDelta map2 HashMapDelta.empty |> snd |> should mapequal HashMapDelta.empty<int, int>
 
-    // integrate(A, diff(A, B)) = (B, _)
-    // integrate(A, diff(A, B)) = (_, diff(A, B))
-    let fw = HashMap.differentiate map1 map2
-    let t2, d1 = HashMap.integrate map1 fw
+    // applyDelta(A, diff(A, B)) = (B, _)
+    // applyDelta(A, diff(A, B)) = (_, diff(A, B))
+    let fw = HashMap.computeDelta map1 map2
+    let t2, d1 = HashMap.applyDelta map1 fw
     t2 |> should mapequal map2
     d1 |> should mapequal fw
 
-    let d12 = HashMap.differentiate map1 map2
-    let d23 = HashMap.differentiate map2 map3
-    let d31 = HashMap.differentiate map3 map1
+    let d12 = HashMap.computeDelta map1 map2
+    let d23 = HashMap.computeDelta map2 map3
+    let d31 = HashMap.computeDelta map3 map1
 
     // diff(A, B) + diff(B, C) + diff(C, A) = 0
     let d0 = HashMapDelta.combine (HashMapDelta.combine d12 d23) d31 
-    HashMap.integrate map1 d0 |> fst |> should mapequal map1
+    HashMap.applyDelta map1 d0 |> fst |> should mapequal map1
 
 
 

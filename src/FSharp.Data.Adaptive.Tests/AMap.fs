@@ -30,7 +30,7 @@ let ``[AMap] reference impl``() ({ mreal = real; mref = ref; mexpression = str; 
         let vReal = real.Content.GetValue AdaptiveToken.Top // |> CountingHashSet.toHashSet
         let vRef = ref.Content.GetValue Reference.AdaptiveToken.Top
 
-        let delta = HashMap.differentiate vReal vRef |> Seq.toList
+        let delta = HashMap.computeDelta vReal vRef |> Seq.toList
         match delta with
         | [] ->
             vRef
