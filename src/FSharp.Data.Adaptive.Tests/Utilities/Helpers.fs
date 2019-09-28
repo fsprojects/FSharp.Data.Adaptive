@@ -1,5 +1,6 @@
 ﻿namespace FsCheck
 
+open FSharp.Data.Adaptive
 open System
 
 [<AutoOpen>]
@@ -33,6 +34,49 @@ module Helpers =
                         
                 | _ -> 
                     ConstraintResult(x, o, false)
+        }
+
+
+    let mapequal (expected : seq<'K * 'V>) =
+        let expected = FSharp.Data.Adaptive.HashSet.ofSeq expected
+        { new Constraint() with 
+            override x.ApplyTo<'B>(o : 'B) =
+                x.Description <- string expected
+                let real =
+                    match o :> obj with
+                    | :? HashMap<'K, 'V> as o -> HashMap.toArray o |> Some
+                    | :? seq<'K * 'V> as o -> Seq.toArray o |> Some
+                    | :? seq<System.Collections.Generic.KeyValuePair<'K, 'V>> as o ->
+                        o |> Seq.map (fun kv -> kv.Key, kv.Value) |> Seq.toArray |> Some
+                    | _ -> None
+
+                match real with
+                | Some real -> 
+                    let expected = Seq.toArray expected
+
+                    let mutable errors = []
+                    let mutable rest = real
+                    for (ek, ev) in expected do
+                        match rest |> Array.tryFindIndex (fun (rk, rv) -> Unchecked.equals rk ek) with
+                        | Some idx ->
+                            let (rk, rv) = rest.[idx]
+                            if Unchecked.equals rv ev then
+                                rest <- Array.append (Array.take idx rest) (Array.skip (idx + 1) rest)
+                            else
+                                errors <- (sprintf "%A: %A vs %A" rk rv ev) :: errors
+                        | None ->
+                            errors <- (sprintf "%A: missing" ek) :: errors
+
+                    for (rk,_) in rest do
+                        errors <- (sprintf "%A: additional" rk) :: errors
+
+                    if List.isEmpty errors then
+                        ConstraintResult(x, real, true)
+                    else
+                        ConstraintResult(x, String.concat "\r\n" errors, false)
+
+                | None ->
+                    ConstraintResult(x, expected, false)
         }
 
 
