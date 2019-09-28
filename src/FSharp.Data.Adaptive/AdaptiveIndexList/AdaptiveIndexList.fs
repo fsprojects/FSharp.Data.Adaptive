@@ -401,18 +401,19 @@ module AdaptiveIndexListImplementation =
         let reader = input.GetReader()
 
         override x.Compute(token : AdaptiveToken) =
-            reader.GetChanges token |> IndexListDelta.mapMonotonic (fun i op ->
+            reader.GetChanges(token)
+            |> IndexListDelta.chooseMonotonic (fun i op ->
                 match op with
                 | Set v ->
-                    let index = mapping.Invoke(index, i)
-                    index, Set v
+                    let outIndex = mapping.Invoke(index, i)
+                    Some (outIndex, Set v)
                 | Remove ->
-                    let index = mapping.Revoke(index, i)
-                    match index with
-                    | Some index ->
-                        index, Remove
+                    let outIndex = mapping.Revoke(index, i)
+                    match outIndex with
+                    | Some outIndex ->
+                        Some (outIndex, Remove)
                     | None ->
-                        unexpected()
+                        None
             )
 
     /// Reader for concat operations.

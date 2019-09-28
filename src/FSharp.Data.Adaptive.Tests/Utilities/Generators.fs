@@ -1145,10 +1145,13 @@ module Generators =
                 let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> mySize := s; s - 2)
                 //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
                 let table, f = randomFunction<'a, 'b> (!mySize / 2)
+
+                let mapping i v =  f(v)
+
                 return 
                     create 
-                        (Adaptive.AList.map f value.lreal)
-                        (Reference.AList.map f value.lref)
+                        (Adaptive.AList.mapi mapping value.lreal)
+                        (Reference.AList.mapi mapping value.lref)
                         (function
                             | false -> 
                                 let m, v = value.lexpression false
@@ -1158,15 +1161,95 @@ module Generators =
                                 let mi, input = value.lexpression true
 
                                 let table =
-                                    realContent 
-                                    |> Seq.map (fun v -> sprintf "| %A -> %A" v (f v))
+                                    realContent .Content
+                                    |> Seq.map (fun (KeyValue(i, v)) -> sprintf "| %A, %A -> %A" i v (mapping i v))
                                     |> String.concat "\r\n"
 
                                 mi, sprintf "%s\r\n|> AList.map (\r\n  function\r\n%s\r\n)" (indent input) (indent table)
                         )
                         value.lchanges
             }
-                
+
+        let choose<'a, 'b>() =
+            gen {
+                let mySize = ref 0
+                let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> mySize := s; s - 2)
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let table, f = randomFunction<'a, option<'b>> (!mySize / 2)
+                let mapping i v = f(v)
+
+                return 
+                    create 
+                        (Adaptive.AList.choosei mapping value.lreal)
+                        (Reference.AList.choosei mapping value.lref)
+                        (function
+                            | false -> 
+                                let m, v = value.lexpression false
+                                m, sprintf "choose (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.lref.Content |> Reference.AVal.force
+                                let mi, input = value.lexpression true
+
+                                let table =
+                                    realContent.Content
+                                    |> Seq.map (fun (KeyValue(i, v)) -> sprintf "| %A,%A -> %A" i v (mapping i v))
+                                    |> String.concat "\r\n"
+
+                                mi, sprintf "%s\r\n|> AList.choose (\r\n  function\r\n%s\r\n)" (indent input) (indent table)
+                        )
+                        value.lchanges
+            }
+
+        let filter<'a>() =
+            gen {
+                let mySize = ref 0
+                let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> mySize := s; s - 2)
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let table, f = randomFunction<'a, bool> (!mySize / 2)
+                let pred i v = f(v)
+                return 
+                    create 
+                        (Adaptive.AList.filteri pred value.lreal)
+                        (Reference.AList.filteri pred value.lref)
+                        (function
+                            | false -> 
+                                let m, v = value.lexpression false
+                                m, sprintf "filter (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.lref.Content |> Reference.AVal.force
+                                let mi, input = value.lexpression true
+
+                                let table =
+                                    realContent.Content
+                                    |> Seq.map (fun (KeyValue(i,v)) -> sprintf "| %A,%A -> %A" i v (pred i v))
+                                    |> String.concat "\r\n"
+
+                                mi, sprintf "%s\r\n|> AList.filter (\r\n  function\r\n%s\r\n)" (indent input) (indent table)
+                        )
+                        value.lchanges
+            }
+            
+        let append<'a>() =
+            gen {
+                let! a = Arb.generate<VList<'a>> |> Gen.scaleSize (fun v -> v / 2)
+                let! b = Arb.generate<VList<'a>> |> Gen.scaleSize (fun v -> v / 2)
+                return 
+                    create 
+                        (Adaptive.AList.append a.lreal b.lreal)
+                        (Reference.AList.append a.lref b.lref)
+                        (fun verbose ->
+                            let ma, a = a.lexpression verbose
+                            let mb, b = b.lexpression verbose
+                            let m = Map.union ma mb
+
+                            m, sprintf "append\r\n%s\r\n%s" (indent a) (indent b)
+                        )
+                        (fun () -> a.lchanges() @ b.lchanges())
+
+            }
+            
+
+
         let collect<'a, 'b>() =
             gen {
                 let mySize = ref 0
@@ -1445,20 +1528,32 @@ type AdaptiveGenerators() =
                                     1, Gen.constant "constant"
                                     3, Gen.constant "clist"
                                     3, Gen.constant "map"
+                                    3, Gen.constant "choose"
+                                    3, Gen.constant "filter"
                                     3, Gen.constant "collect"
+                                    3, Gen.constant "append"
                                 ]
                         match kind with
                         | "constant" -> 
                             return! Generators.List.constant<'a>()
                         | "clist" -> 
                             return! Generators.List.init<'a>()
+                        | "filter" -> 
+                            return! Generators.List.filter<'a>()
+                        | "append" ->
+                            return! Generators.List.append<'a>()
                         | "map" -> 
                             let! t = Gen.elements relevantTypes
                             return!
                                 t |> visit { new TypeVisitor<_> with 
                                     member __.Accept<'z>() = Generators.List.map<'z, 'a>() 
                                 }
-                 
+                        | "choose" -> 
+                            let! t = Gen.elements relevantTypes
+                            return!
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.List.choose<'z, 'a>() 
+                                }
                         | "collect" -> 
                             let! t = Gen.elements relevantTypes
                             return!

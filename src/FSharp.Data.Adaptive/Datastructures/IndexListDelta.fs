@@ -54,6 +54,11 @@ type IndexListDelta< [<EqualityConditionalOn>] 'T> internal(content : MapExt<Ind
     /// Note that the indices need to be monotonic.
     member x.MapMonotonic(mapping : Index -> ElementOperation<'T> -> Index * ElementOperation<'T2>) =
         IndexListDelta(MapExt.mapMonotonic mapping content)
+        
+    /// Applies the given mapping function to all deltas in the list and returns a new list containing the 'Some'-results.
+    /// Note that the indices need to be monotonic.
+    member x.ChooseMonotonic(mapping : Index -> ElementOperation<'T> -> option<Index * ElementOperation<'T2>>) =
+        IndexListDelta(MapExt.chooseMonotonic mapping content)
 
     /// Filters the delta list using the given predicate.
     member x.Filter(mapping : Index -> ElementOperation<'T> -> bool) =
@@ -137,6 +142,11 @@ module IndexListDelta =
     /// Note that the indices need to be monotonic.
     let inline mapMonotonic (mapping : Index -> ElementOperation<'T1> -> Index * ElementOperation<'T2>) (l : IndexListDelta<'T1>) = 
         l.MapMonotonic mapping
+        
+    /// Applies the given mapping function to all deltas in the list and returns a new list containing the 'Some'-results.
+    /// Note that the indices need to be monotonic.
+    let inline chooseMonotonic (mapping : Index -> ElementOperation<'T1> -> option<Index * ElementOperation<'T2>>) (l : IndexListDelta<'T1>) = 
+        l.ChooseMonotonic mapping
 
     /// Applies the given mapping function to all deltas in the list and returns a new list containing the results.
     let inline map (mapping : Index -> ElementOperation<'T1> -> ElementOperation<'T2>) (l : IndexListDelta<'T1>) = 

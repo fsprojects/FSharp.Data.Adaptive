@@ -541,6 +541,35 @@ module internal MapExtImplementation =
 
         let mapiMonotonic f m = mapiMonotonicAux (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
     
+
+        let rec chooseiMonotonicAux (f:OptimizedClosures.FSharpFunc<_,_,_>) m =
+            match m with
+            | MapEmpty -> empty
+            | MapOne(k,v) -> 
+                match f.Invoke(k, v) with
+                | Some (k2, v2) ->
+                    MapOne(k2, v2)
+                | None ->
+                    MapEmpty
+            | MapNode(k,v,l,r,h,c) -> 
+                let l2 = chooseiMonotonicAux f l 
+                let self = f.Invoke(k, v) 
+                let r2 = chooseiMonotonicAux f r 
+                match self with
+                | Some (k2, v2) ->
+                    join l2 k2 v2 r2
+                | None ->
+                    match l2 with
+                    | MapEmpty -> r2
+                    | _ ->
+                        match r2 with
+                        | MapEmpty -> l2
+                        | _ ->
+                            let k,v,r2 = spliceOutSuccessor r2
+                            join l2 k v r2
+
+        let chooseiMonotonic f m = chooseiMonotonicAux (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
+    
         let rec chooseiOpt (f:OptimizedClosures.FSharpFunc<'Key,'T1,option<'T2>>) m =
             match m with
                 | MapEmpty -> empty
@@ -1094,6 +1123,8 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
     
     member m.MapMonotonic<'Key2, 'Value2 when 'Key2 : comparison> (f : 'Key -> 'Value -> 'Key2 * 'Value2) : MapExt<'Key2,'Value2> = new MapExt<'Key2,'Value2>(LanguagePrimitives.FastGenericComparer<'Key2>, MapTree.mapiMonotonic f tree)
    
+    member m.ChooseMonotonic<'Key2, 'Value2 when 'Key2 : comparison> (f : 'Key -> 'Value -> option<'Key2 * 'Value2>) : MapExt<'Key2,'Value2> = new MapExt<'Key2,'Value2>(LanguagePrimitives.FastGenericComparer<'Key2>, MapTree.chooseiMonotonic f tree)
+   
     member x.GetReference key =
         MapTree.getReference comparer 0 key tree
         
@@ -1410,6 +1441,9 @@ module internal MapExt =
     
     [<CompiledName("MapMonotonic")>]
     let mapMonotonic f (m:MapExt<_,_>) = m.MapMonotonic(f)
+    
+    [<CompiledName("ChooseMonotonic")>]
+    let chooseMonotonic f (m:MapExt<_,_>) = m.ChooseMonotonic(f)
 
     [<CompiledName("Split")>]
     let split k (m:MapExt<_,_>) = m.Split k

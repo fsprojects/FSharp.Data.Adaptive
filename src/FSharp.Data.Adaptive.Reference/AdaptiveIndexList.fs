@@ -96,6 +96,25 @@ module AList =
     let map (mapping: 'T1 -> 'T2) (list: alist<'T1>) =
         list.Content |> AVal.map (IndexList.map mapping) |> ofRef
 
+    let choosei (mapping: Index -> 'T1 -> option<'T2>) (list : alist<'T1>) =
+        list.Content |> AVal.map (IndexList.choosei mapping) |> ofRef
+        
+    let choose (mapping: 'T1 -> option<'T2>) (list : alist<'T1>) =
+        list.Content |> AVal.map (IndexList.choose mapping) |> ofRef
+
+    let filteri (predicate: Index -> 'T -> bool) (list: alist<'T>) =
+        list.Content |> AVal.map (IndexList.filteri predicate) |> ofRef
+
+    let filter (predicate: 'T -> bool) (list: alist<'T>) =
+        list.Content |> AVal.map (IndexList.filter predicate) |> ofRef
+        
+    let append (l : alist<'T>) (r : alist<'T>) =
+        (l.Content, r.Content) ||> AVal.map2 IndexList.append |> ofRef
+
+
     let collecti (mapping: Index -> 'T1 -> alist<'T2>) (list: alist<'T1>) =
         list.Content |> AVal.map (IndexList.collecti (fun i v -> (mapping i v).Content |> AVal.force)) |> ofRef
+        
+    let collect (mapping: 'T1 -> alist<'T2>) (list: alist<'T1>) =
+        list.Content |> AVal.map (IndexList.collect (fun v -> (mapping v).Content |> AVal.force)) |> ofRef
         
