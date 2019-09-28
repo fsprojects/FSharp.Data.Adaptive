@@ -12,5 +12,7 @@ Aims at making Aardvark.Base.Incremental's functionality available as a standalo
 
 [Lightning talk slides and 10 line demo script by @dsyme](https://github.com/dsyme/fsharp-presentations/tree/master/2019-09-27-openfsharp)
 
+Join us on discord https://discord.gg/UyecnhM
+
 This project is in a very early stage and we're currently working on migrating the base-implementation here.
 While doing so we intend to clean things up and create documentation, so please be patient ;)
