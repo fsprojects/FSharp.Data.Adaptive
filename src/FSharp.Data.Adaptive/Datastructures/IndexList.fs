@@ -6,86 +6,108 @@ open System.Collections
 open System.Collections.Generic
 
 
+/// A persitent array-like structure that allows lookup/insertion/deletion of entries in O(log N).
+/// Note that datastructure uses Index instead of int as index type which allows for these efficient implementations.
+/// However the datastructure also has accessors that allow getting/setting/deleting entries via an int-index in O(log N).
 [<Struct; StructuralEquality; NoComparison>]
 [<StructuredFormatDisplay("{AsString}")>]
 type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, content : MapExt<Index, 'T>) =
     
     static let empty = IndexList<'T>(Index.zero, Index.zero, MapExt.empty)
 
-
+    /// The empty list.
     static member Empty = empty
 
-
+    /// The smallest Index contained in the list or Index.zero if the list is empty.
     member x.MinIndex = l
+
+    /// The largest Index contained in the list or Index.zero if the list is empty.
     member x.MaxIndex = h
 
+    /// Is the list empty?
     member x.IsEmpty = content.IsEmpty
+
+    /// The number of entries in the list.
     member x.Count = content.Count
 
+    /// Internal for getting the underlying store.
     member internal x.Content = content
 
+    /// Gets the entry associated to the given index (if any).
     member x.TryGet (i : Index) =
         MapExt.tryFind i content
         
+    /// Gets the entry at the given index (if any).
     member x.TryGet (i : int) =
         match MapExt.tryItem i content with
             | Some (_,v) -> Some v
             | None -> None
 
+    /// Gets the entry associated to the given index or fails if not existing.
     member x.Item
         with get(i : Index) = MapExt.find i content
         
-    // O(log(n))
+    /// Gets the entry at the given index or fails if not existing.
     member x.Item
         with get(i : int) = MapExt.item i content |> snd
 
-    member x.Add(v : 'T) =
+    /// Appends the given element to the list.
+    member x.Add(element : 'T) =
         if content.Count = 0 then
             let t = Index.after Index.zero
-            IndexList(t, t, MapExt.ofList [t, v])
+            IndexList(t, t, MapExt.ofList [t, element])
         else
             let t = Index.after h
-            IndexList(l, t, MapExt.add t v content)
+            IndexList(l, t, MapExt.add t element content)
         
-    member x.Prepend(v : 'T) =
+    /// Prepends the given element to the list.
+    member x.Prepend(element : 'T) =
         if content.Count = 0 then
             let t = Index.after Index.zero
-            IndexList(t, t, MapExt.ofList [t, v])
+            IndexList(t, t, MapExt.ofList [t, element])
         else
             let t = Index.before l
-            IndexList(t, h, MapExt.add t v content)
+            IndexList(t, h, MapExt.add t element content)
 
-    member x.Set(key : Index, value : 'T) =
+    /// Adds or updates the element associated to index.
+    member x.Set(index : Index, value : 'T) =
         if content.Count = 0 then
-            IndexList(key, key, MapExt.ofList [key, value])
+            IndexList(index, index, MapExt.ofList [index, value])
 
-        elif key < l then
-            IndexList(key, h, MapExt.add key value content)
+        elif index < l then
+            IndexList(index, h, MapExt.add index value content)
 
-        elif key > h then
-            IndexList(l, key, MapExt.add key value content)
+        elif index > h then
+            IndexList(l, index, MapExt.add index value content)
 
         else 
-            IndexList(l, h, MapExt.add key value content)
+            IndexList(l, h, MapExt.add index value content)
 
-    member x.Set(i : int, value : 'T) =
-        match MapExt.tryItem i content with
-            | Some (id,_) -> x.Set(id, value)
-            | None -> x
+    /// Updates the element at the given position or returns the unmodified list if the index was out of bounds.
+    member x.Set(index : int, value : 'T) =
+        if index < 0 || index >= content.Count then
+            x
+        else
+            match MapExt.tryItem index content with
+                | Some (id,_) -> x.Set(id, value)
+                | None -> x
 
-    member x.Update(i : int, f : 'T -> 'T) =
-        match MapExt.tryItem i content with
+    /// Updates the element at the given position or returns the unmodified list if the index was out of bounds.
+    member x.Update(index : int, update : 'T -> 'T) =
+        match MapExt.tryItem index content with
             | Some (id,v) -> 
-                let newContent = MapExt.add id (f v) content
+                let newContent = MapExt.add id (update v) content
                 IndexList(l, h, newContent)
             | None -> 
                 x
 
-    member x.InsertAt(i : int, value : 'T) =
-        if i < 0 || i > content.Count then
+    /// Inserts the element at the given position or returns the unmodified list if the index is not in [0..count].
+    /// Note that InsertAt works with index = count.
+    member x.InsertAt(index : int, value : 'T) =
+        if index < 0 || index > content.Count then
             x
         else
-            let l, s, r = MapExt.neighboursAt i content
+            let l, s, r = MapExt.neighboursAt index content
 
             let r = 
                 match s with
@@ -100,52 +122,57 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
                     | None,            None           -> Index.after Index.zero
             x.Set(index, value)
 
-    member x.InsertBefore(i : Index, value : 'T) =
-        let str = Guid.NewGuid() |> string
-        let l, s, r = MapExt.neighbours i content
+    /// Inserts the element directly before the given index.
+    member x.InsertBefore(index : Index, value : 'T) =
+        let l, s, _r = MapExt.neighbours index content
         match s with
             | None ->
-                x.Set(i, value)
-            | Some _ ->
+                x.Set(index, value)
+            | Some (s, _) ->
                 let index = 
                     match l with
-                        | Some (before,_) -> Index.between before i
-                        | None -> Index.before i
+                    | Some (l,_) -> Index.between l s
+                    | None -> Index.before index
                 x.Set(index, value)
-
-    member x.InsertAfter(i : Index, value : 'T) =
-        let str = Guid.NewGuid() |> string
-        let l, s, r = MapExt.neighbours i content
+                
+    /// Inserts the element directly after the given index.
+    member x.InsertAfter(index : Index, value : 'T) =
+        let _l, s, r = MapExt.neighbours index content
         match s with
             | None ->
-                x.Set(i, value)
-            | Some _ ->
+                x.Set(index, value)
+            | Some (s, _) ->
                 let index =
                     match r with
-                        | Some (after,_) -> Index.between i after
-                        | None -> Index.after i
+                        | Some (r,_) -> Index.between s r
+                        | None -> Index.after index
                 x.Set(index, value)
 
-    member x.TryGetIndex(i : int) =
-        match MapExt.tryItem i content with
+    /// Gets the index for the given position or None if the index is out of bounds.
+    member x.TryGetIndex(index : int) =
+        match MapExt.tryItem index content with
             | Some (id,_) -> Some id
             | None -> None
 
-    member x.Remove(key : Index) =
-        let c = MapExt.remove key content
+    /// Removes the entry associated to the given index.
+    member x.Remove(index : Index) =
+        let c = MapExt.remove index content
         if c.Count = 0 then empty
-        elif l = key then IndexList(MapExt.min c, h, c)
-        elif h = key then IndexList(l, MapExt.max c, c)
+        elif l = index then IndexList(MapExt.min c, h, c)
+        elif h = index then IndexList(l, MapExt.max c, c)
         else IndexList(l, h, c)
-
-    member x.RemoveAt(i : int) =
-        match MapExt.tryItem i content with
+        
+    /// Removes the entry at the given position (if any).
+    member x.RemoveAt(index : int) =
+        match MapExt.tryItem index content with
             | Some (id, _) -> x.Remove id
             | _ -> x
 
+    /// Applies the mapping function to all elements of the list and returns a new list containing the results.
     member x.Map<'T2>(mapping : Index -> 'T -> 'T2) : IndexList<'T2> =
         IndexList(l, h, MapExt.map mapping content)
         
+    /// Applies the mapping function to all elements of the list and returns a new list containing all Some entries.
     member x.Choose(mapping : Index -> 'T -> option<'T2>) =
         let res = MapExt.choose mapping content
         if res.IsEmpty then 
@@ -153,6 +180,7 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
         else
             IndexList(MapExt.min res, MapExt.max res, res)
 
+    /// Filters the list using the given predicate.
     member x.Filter(predicate : Index -> 'T -> bool) =
         let res = MapExt.filter predicate content
         if res.IsEmpty then 
@@ -160,33 +188,39 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
         else
             IndexList(MapExt.min res, MapExt.max res, res)
 
-    // O(n)
-    member x.TryFind(item : 'T) : option<Index> =
-        match content |> MapExt.toSeq |> Seq.tryFind (fun (k,v) -> Unchecked.equals v item) with
+    /// Tries to find the smallest index for the given element.
+    member x.TryFind(element : 'T) : option<Index> =
+        match content |> MapExt.toSeq |> Seq.tryFind (fun (k,v) -> Unchecked.equals v element) with
         | Some (k, v) -> Some k
         | _ -> None
 
-    // O(n)
+    /// Removes the first occurrence of the given element (if any).
     member x.Remove(item : 'T) : IndexList<'T> =
         match x.TryFind(item) with
         | Some index -> x.Remove(index)
         | None -> x
           
+    /// Returns all entres from the list in back-to-front order.
     member x.AsSeqBackward =
         content |> MapExt.toSeqBack |> Seq.map snd
         
+    /// Returns all entres from the list in back-to-front order.
     member x.AsListBackward =
         x.AsSeqBackward |> Seq.toList
-
+        
+    /// Returns all entres from the list in back-to-front order.
     member x.AsArrayBackward =
         x.AsSeqBackward |> Seq.toArray
-
+        
+    /// Returns all entres from the list.
     member x.AsSeq =
         content |> MapExt.toSeq |> Seq.map snd
-
+        
+    /// Returns all entres from the list.
     member x.AsList =
         content |> MapExt.toList |> List.map snd
-
+        
+    /// Returns all entres from the list.
     member x.AsArray =
         content |> MapExt.toArray |> Array.map snd
         
@@ -206,13 +240,16 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
 
     member private x.AsString = x.ToString()
     
-    member x.CopyTo(arr : 'T[], i : int) = 
-        let mutable i = i
-        content |> MapExt.iter (fun k v -> arr.[i] <- v; i <- i + 1)
+    /// Copies the list to the given array (starting at index)
+    member x.CopyTo(dst : 'T[], dstIndex : int) = 
+        let mutable i = dstIndex
+        content |> MapExt.iter (fun k v -> dst.[i] <- v; i <- i + 1)
 
+    /// Tries to find the position for the given entry or -1 if the entry does not exist. O(N)
     member x.IndexOf(item : 'T) =
         x |> Seq.tryFindIndex (Unchecked.equals item) |> Option.defaultValue -1
 
+    /// Tries to find the position for the given Index or -1 if the Index does not exist. O(N)
     member x.IndexOf(index : Index) =
         MapExt.tryIndexOf index content |> Option.defaultValue -1
         
@@ -239,6 +276,7 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
     interface IEnumerable<'T> with
         member x.GetEnumerator() = new IndexListEnumerator<'T>(content :> seq<_>) :> _
 
+/// Enumerator for IndexList.
 and private IndexListEnumerator<'T>(content : IEnumerable<KeyValuePair<Index, 'T>>) =
     let r = content.GetEnumerator()
 
@@ -254,10 +292,11 @@ and private IndexListEnumerator<'T>(content : IEnumerable<KeyValuePair<Index, 'T
         member x.Current = x.Current
         member x.Dispose() = r.Dispose()
 
-/// functional operators for IndexList.
+/// Functional operators for IndexList.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module IndexList =
 
+    /// Internal utility for creating IndexLists from MapExt.
     let internal ofMap (m : MapExt<Index, 'T>) =
         if MapExt.isEmpty m then
             IndexList<'T>.Empty
