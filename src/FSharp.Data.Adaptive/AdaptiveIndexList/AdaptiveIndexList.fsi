@@ -81,3 +81,28 @@ module AList =
 
     /// Adaptively maps over the given aval and returns the resulting list.
     val bind : mapping: ('T1 -> alist<'T2>) -> list: alist<'T1> -> alist<'T2>
+
+    /// Adaptively folds over the list using add for additions and trySubtract for removals.
+    /// Note the trySubtract may return None indicating that the result needs to be recomputed.
+    /// Also note that the order of elements given to add/trySubtract is undefined.
+    val foldHalfGroup : add : ('S -> 'A -> 'S) -> trySubtract : ('S -> 'A -> option<'S>) -> zero : 'S -> list : alist<'A> -> aval<'S>
+    
+    /// Adaptively folds over the list using add for additions and subtract for removals.
+    /// Note that the order of elements given to add/subtract is undefined.
+    val foldGroup : add : ('S -> 'A -> 'S) -> subtract : ('S -> 'A -> 'S) -> zero : 'S -> list : alist<'A> -> aval<'S>
+
+    /// Adaptively folds over the list using add for additions and recomputes the value on every removal.
+    /// Note that the order of elements given to add is undefined.
+    val fold : add : ('S -> 'A -> 'S) -> zero : 'S -> list : alist<'A> -> aval<'S>
+
+    /// Adaptively computes the sum all entries in the list.
+    val inline sum<'A, 'B 
+                    when ('A or 'B) : (static member (+) : 'B -> 'A -> 'B) 
+                    and ('A or 'B) : (static member (-) : 'B -> 'A -> 'B) 
+                    and 'B : (static member Zero : 'B)> : list : alist<'A> -> aval<'B>
+
+    /// Adaptively computes the product of all entries in the list.
+    val inline product<'A, 'B 
+                        when ('A or 'B) : (static member (*) : 'B -> 'A -> 'B) 
+                        and ('A or 'B) : (static member (/) : 'B -> 'A -> 'B) 
+                        and 'B : (static member One : 'B)> : list : alist<'A> -> aval<'B>

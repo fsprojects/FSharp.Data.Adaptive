@@ -590,10 +590,66 @@ module AList =
     let toAVal (list : alist<'T>) =
         list.Content
 
-
     /// Adaptively maps over the given aval and returns the resulting list.
     let bind (mapping: 'T1 -> alist<'T2>) (value: aval<'T1>) =
         if value.IsConstant then
             value |> AVal.force |> mapping
         else
             create (fun () -> BindReader(value, mapping))
+
+    /// Adaptively folds over the list using add for additions and trySubtract for removals.
+    /// Note the trySubtract may return None indicating that the result needs to be recomputed.
+    /// Also note that the order of elements given to add/trySubtract is undefined.
+    let foldHalfGroup (add : 's -> 'a -> 's) (trySub : 's -> 'a -> Option<'s>) (zero : 's) (l : alist<'a>) =
+        let r = l.GetReader()
+        let mutable res = zero
+        AVal.custom (fun token ->
+            let old = r.State
+            let ops = r.GetChanges token
+
+            use e = (IndexListDelta.toSeq ops).GetEnumerator()
+            let mutable working = true
+
+            while working && e.MoveNext() do
+                let (idx, op) = e.Current
+                match op with
+                | Remove ->
+                    match IndexList.tryGet idx old with
+                    | Some o -> 
+                        match trySub res o with
+                        | Some r -> res <- r
+                        | None -> working <- false
+                    | None -> 
+                        () // strange
+                | Set v ->
+                    match IndexList.tryGet idx old with
+                    | Some o ->
+                        match trySub res o with
+                        | Some r -> res <- add r v
+                        | None -> working <- false
+                    | None -> 
+                        res <- add res v
+               
+            if not working then
+                res <- r.State |> Seq.fold add zero
+
+            res
+
+        )
+
+    /// Adaptively folds over the list using add for additions and subtract for removals.
+    /// Note that the order of elements given to add/subtract is undefined.
+    let foldGroup (add : 's -> 'a -> 's) (sub : 's -> 'a -> 's) (zero : 's) (s : alist<'a>) =
+        foldHalfGroup add (fun a b -> Some (sub a b)) zero s
+
+    /// Adaptively folds over the list using add for additions and recomputes the value on every removal.
+    /// Note that the order of elements given to add is undefined.
+    let fold (f : 's -> 'a -> 's) (seed : 's) (s : alist<'a>) = 
+        foldHalfGroup f (fun _ _ -> None) seed s
+        
+    /// Adaptively computes the sum all entries in the list.
+    let inline sum (s : alist<'a>) = foldGroup (+) (-) LanguagePrimitives.GenericZero s
+    
+    /// Adaptively computes the product of all entries in the list.
+    let inline product (s : alist<'a>) = foldGroup (*) (/) LanguagePrimitives.GenericOne s
+
