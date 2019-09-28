@@ -192,7 +192,17 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
         
 
     override x.ToString() =
-        content |> MapExt.toSeq |> Seq.map (snd >> sprintf "%A") |> String.concat "; " |> sprintf "IndexList [%s]"
+        let suffix =
+            if x.Count > 5 then "; ..."
+            else ""
+        let elements = 
+            content 
+            |> MapExt.toSeq 
+            |> Seq.truncate 5
+            |> Seq.map (snd >> sprintf "%A") 
+            |> String.concat "; "
+
+        sprintf "IndexList [%s%s]" elements suffix
 
     member private x.AsString = x.ToString()
     

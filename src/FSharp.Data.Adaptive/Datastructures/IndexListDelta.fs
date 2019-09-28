@@ -45,14 +45,14 @@ type IndexListDelta< [<EqualityConditionalOn>] 'T> internal(content : MapExt<Ind
         
     override x.ToString() =
         let suffix =
-            if content.Count > 4 then "; ..."
+            if content.Count > 5 then "; ..."
             else ""
         
         let content =
-            content |> Seq.truncate 4 |> Seq.map (fun (KeyValue(i,op)) ->
+            content |> Seq.truncate 5 |> Seq.map (fun (KeyValue(i,op)) ->
                 match op with
-                    | Set v -> sprintf "set(%A,%A)" i v
-                    | Remove -> sprintf "rem(%A)" i
+                    | Set v -> sprintf "[%A]<-%A" i v
+                    | Remove -> sprintf "Rem(%A)" i
             ) |> String.concat "; "
 
         "IndexListDelta [" + content + suffix + "]"
