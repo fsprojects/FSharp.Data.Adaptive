@@ -334,6 +334,10 @@ module AMap =
     let ofArray (elements : array<'Key * 'Value>) =
         constant (fun () -> HashMap.ofArray elements)
         
+    /// Creates an amap holding the given entries.
+    let ofHashMap (elements : HashMap<'Key, 'Value>) =
+        constant (fun () -> elements)
+
     /// Creates an aval providing access to the current content of the map.
     let toAVal (map : amap<'Key, 'Value>) = map.Content
 

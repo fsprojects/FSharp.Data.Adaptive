@@ -37,6 +37,9 @@ module AMap =
 
     /// Creates an amap holding the given entries.
     val ofArray : elements:('Key * 'Value) array -> amap<'Key,'Value>
+    
+    /// Creates an amap holding the given entries.
+    val ofHashMap : elements:HashMap<'Key, 'Value> -> amap<'Key, 'Value>
 
     /// Creates an aval providing access to the current content of the map.
     val toAVal : map:amap<'Key, 'Value> -> aval<HashMap<'Key,'Value>>
