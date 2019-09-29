@@ -641,13 +641,25 @@ module IndexList =
         list.Filter (fun _ v -> predicate v)
 
     /// sorts the list by the given mapping.
+    let sortByi (mapping : Index -> 'T1 -> 'T2) (l : IndexList<'T1>) =
+        let arr = l.Content |> MapExt.toArray
+        Array.sortInPlaceBy (fun (i,v) -> mapping i v, i) arr
+        ofArray (Array.map snd arr)
+
+    /// sorts the list by the given mapping.
     let sortBy (mapping : 'T1 -> 'T2) (l : IndexList<'T1>) =
-        let arr = l.AsArray
-        Array.sortInPlaceBy mapping arr
-        ofArray arr
+        let arr = l.Content |> MapExt.toArray
+        Array.sortInPlaceBy (fun (i, v) -> mapping v, i) arr
+        ofArray (Array.map snd arr)
         
     /// sorts the list using the given compare function.
-    let sortWith (compare : 'T -> 'T -> int) (l : IndexList<'T>) =
-        let arr = l.AsArray
-        Array.sortInPlaceWith compare arr
-        ofArray arr
+    let sortWith (cmp : 'T -> 'T -> int) (l : IndexList<'T>) =
+        let arr = l.Content |> MapExt.toArray
+        let cmp (li: Index, lv: 'T) (ri: Index, rv: 'T) =
+            let c = cmp lv rv
+            if c = 0 then compare li ri
+            else c
+
+        Array.sortInPlaceWith cmp arr
+        ofArray (Array.map snd arr)
+        

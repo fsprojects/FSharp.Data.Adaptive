@@ -1248,6 +1248,27 @@ module Generators =
 
             }
             
+            
+        let sortBy<'a>() =
+            gen {
+                let! list = Arb.generate<VList<'a>> |> Gen.scaleSize (fun v -> v - 1)
+                
+                let mapping = 
+                    let _, mapping = randomFunction<'a, int> 20
+                    mapping
+
+                return 
+                    create 
+                        (Adaptive.AList.sortBy mapping list.lreal)
+                        (Reference.AList.sortBy mapping list.lref)
+                        (fun verbose ->
+                            let ma, a = list.lexpression verbose
+                            ma, sprintf "sortBy\r\n%s" (indent a)
+                        )
+                        list.lchanges
+
+            }
+            
 
 
         let collect<'a, 'b>() =
@@ -1532,6 +1553,7 @@ type AdaptiveGenerators() =
                                     3, Gen.constant "filter"
                                     3, Gen.constant "collect"
                                     3, Gen.constant "append"
+                                    3, Gen.constant "sortBy"
                                 ]
                         match kind with
                         | "constant" -> 
@@ -1542,6 +1564,8 @@ type AdaptiveGenerators() =
                             return! Generators.List.filter<'a>()
                         | "append" ->
                             return! Generators.List.append<'a>()
+                        | "sortBy" ->
+                            return! Generators.List.sortBy<'a>()
                         | "map" -> 
                             let! t = Gen.elements relevantTypes
                             return!

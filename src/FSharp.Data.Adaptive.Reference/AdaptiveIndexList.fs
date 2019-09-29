@@ -118,3 +118,8 @@ module AList =
     let collect (mapping: 'T1 -> alist<'T2>) (list: alist<'T1>) =
         list.Content |> AVal.map (IndexList.collect (fun v -> (mapping v).Content |> AVal.force)) |> ofRef
         
+    let sortBy (mapping: 'T1 -> 'T2) (list : alist<'T1>) =
+        list.Content |> AVal.map (IndexList.sortBy mapping) |> ofRef
+
+    let sortWith (compare: 'T -> 'T -> int) (list : alist<'T>) =
+        list.Content |> AVal.map (IndexList.sortWith compare) |> ofRef

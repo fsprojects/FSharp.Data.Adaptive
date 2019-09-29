@@ -29,6 +29,27 @@ module AdaptiveIndexListHelpers =
     let inline combineHash (a: int) (b: int) =
         uint32 a ^^^ uint32 b + 0x9e3779b9u + ((uint32 a) <<< 6) + ((uint32 a) >>> 2) |> int
 
+    [<Struct; CustomEquality; CustomComparison>]
+    type UCmp<'a>(compare : OptimizedClosures.FSharpFunc<'a, 'a, int>, value : 'a) =
+
+        member x.Value = value
+
+        override x.GetHashCode() = Unchecked.hash value
+        override x.Equals o =
+            match o with
+            | :? UCmp<'a> as o -> Unchecked.equals value o.Value
+            | _ -> false
+            
+        member x.CompareTo(o : UCmp<'a>) = compare.Invoke(value, o.Value)
+
+        interface IComparable<UCmp<'a>> with
+            member x.CompareTo(o) = compare.Invoke(value, o.Value)
+        interface IComparable with
+            member x.CompareTo(o) =
+                match o with
+                | :? UCmp<'a> as o -> compare.Invoke(value, o.Value)
+                | _ -> 0
+
     type IndexMapping<'k when 'k : comparison>() =
         let mutable store = MapExt.empty<'k, Index>
 
@@ -49,6 +70,38 @@ module AdaptiveIndexListHelpers =
                     result
 
         member x.Revoke(k : 'k) =
+            match MapExt.tryRemove k store with
+            | Some(i, rest) ->
+                store <- rest
+                Some i
+            | None -> 
+                None
+
+        member x.Clear() =
+            store <- MapExt.empty
+            
+    type CustomIndexMapping<'k>(cmp : OptimizedClosures.FSharpFunc<'k, 'k, int>) =
+        let mutable store = MapExt.empty<UCmp<'k>, Index>
+
+        member x.Invoke(k : 'k) =
+            let k = UCmp(cmp, k)
+            let (left, self, right) = MapExt.neighbours k store
+            match self with
+                | Some(_, i) -> 
+                    i 
+                | None ->
+                    let result = 
+                        match left, right with
+                        | None, None                -> Index.after Index.zero
+                        | Some(_,l), None           -> Index.after l
+                        | None, Some(_,r)           -> Index.before r
+                        | Some (_,l), Some(_,r)     -> Index.between l r
+
+                    store <- MapExt.add k result store
+                    result
+
+        member x.Revoke(k : 'k) =
+            let k = UCmp(cmp, k)
             match MapExt.tryRemove k store with
             | Some(i, rest) ->
                 store <- rest
@@ -469,6 +522,44 @@ module AdaptiveIndexListImplementation =
                 reader <- Some (v,newReader)
                 deltas
 
+    /// Reader for sortBy operations
+    type SortByReader<'a, 'b when 'b : comparison>(input : alist<'a>, mapping : Index -> 'a -> 'b) =
+        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.monoid)
+
+        let reader = input.GetReader()
+        let idx = IndexMapping<('b * Index)>()
+        let cache = System.Collections.Generic.Dictionary<Index, 'b>()
+
+        override x.Compute(token : AdaptiveToken) =
+            reader.GetChanges(token).Content
+            |> Seq.collect (fun (KeyValue(i, op)) ->
+                match op with
+                | Set v -> 
+                    let rem =
+                        match cache.TryGetValue i with
+                        | (true, b) ->
+                            match idx.Revoke((b, i)) with
+                            | Some oi -> Some (oi, Remove)
+                            | None -> None
+                        | _ ->
+                            None
+                    let b = mapping i v
+                    cache.[i] <- b
+                    let oi = idx.Invoke((b, i))
+                    match rem with
+                    | Some op -> [op; (oi, Set v)]
+                    | None -> [(oi, Set v)]
+                | Remove ->
+                    match cache.TryGetValue i with
+                    | (true, b) ->
+                        cache.Remove i |> ignore
+                        match idx.Revoke((b, i)) with
+                        | Some oi -> [(oi, Remove)]
+                        | None -> []
+                    | _ ->
+                        []
+            )
+            |> IndexListDelta.ofSeq
 
 
     /// Gets the current content of the alist as IndexList.
@@ -597,6 +688,22 @@ module AList =
             value |> AVal.force |> mapping
         else
             create (fun () -> BindReader(value, mapping))
+
+    /// Sorts the list using the keys given by projection.
+    /// Note that the sorting is stable.
+    let sortByi (projection : Index -> 'T1 -> 'T2) (list : alist<'T1>) =
+        if list.IsConstant then
+            constant (fun () -> force list |> IndexList.sortByi projection)
+        else
+            create (fun () -> SortByReader(list, projection))
+            
+    /// Sorts the list using the keys given by projection.
+    /// Note that the sorting is stable.
+    let sortBy (projection : 'T1 -> 'T2) (list : alist<'T1>) =
+        if list.IsConstant then
+            constant (fun () -> force list |> IndexList.sortBy projection)
+        else
+            create (fun () -> SortByReader(list, fun _ v -> projection v))
 
     /// Adaptively folds over the list using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.

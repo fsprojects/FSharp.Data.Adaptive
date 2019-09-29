@@ -82,6 +82,16 @@ module AList =
     /// Adaptively maps over the given aval and returns the resulting list.
     val bind : mapping: ('T1 -> alist<'T2>) -> list: alist<'T1> -> alist<'T2>
 
+    /// Sorts the list using the keys given by projection.
+    /// Note that the sorting is stable.
+    val sortByi : mapping: (Index -> 'T1 -> 'T2) -> list: alist<'T1> -> alist<'T1>
+        when 'T2 : comparison
+ 
+    /// Sorts the list using the keys given by projection.
+    /// Note that the sorting is stable.
+    val sortBy : mapping: ('T1 -> 'T2) -> list: alist<'T1> -> alist<'T1>
+        when 'T2 : comparison
+
     /// Adaptively folds over the list using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
     /// Also note that the order of elements given to add/trySubtract is undefined.
@@ -96,13 +106,13 @@ module AList =
     val fold : add : ('S -> 'A -> 'S) -> zero : 'S -> list : alist<'A> -> aval<'S>
 
     /// Adaptively computes the sum all entries in the list.
-    val inline sum<'A, 'B 
-                    when ('A or 'B) : (static member (+) : 'B -> 'A -> 'B) 
-                    and ('A or 'B) : (static member (-) : 'B -> 'A -> 'B) 
-                    and 'B : (static member Zero : 'B)> : list : alist<'A> -> aval<'B>
+    val inline sum : list : alist<'T> -> aval<'S>
+        when ('T or 'S) : (static member (+) : 'S -> 'T -> 'S) 
+        and  ('T or 'S) : (static member (-) : 'S -> 'T -> 'S) 
+        and   'S : (static member Zero : 'S)
 
     /// Adaptively computes the product of all entries in the list.
-    val inline product<'A, 'B 
-                        when ('A or 'B) : (static member (*) : 'B -> 'A -> 'B) 
-                        and ('A or 'B) : (static member (/) : 'B -> 'A -> 'B) 
-                        and 'B : (static member One : 'B)> : list : alist<'A> -> aval<'B>
+    val inline product : list : alist<'T> -> aval<'S>
+        when ('T or 'S) : (static member (*) : 'S -> 'T -> 'S) 
+        and  ('T or 'S) : (static member (/) : 'S -> 'T -> 'S) 
+        and   'S : (static member One : 'S)
