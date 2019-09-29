@@ -67,11 +67,10 @@ Target.create "Pack" (fun _ ->
     
     Paket.pack (fun o ->
         { o with
-            
             WorkingDir = Environment.CurrentDirectory
             OutputPath = "bin"
             PinProjectReferences = true
-            ProjectUrl = "https://github.com/krauthaufen/FSharp.Data.Adaptive"
+            ProjectUrl = "https://github.com/fsprojects/FSharp.Data.Adaptive"
             Version = notes.NugetVersion
             ReleaseNotes = String.concat "\n" notes.Notes
         }
