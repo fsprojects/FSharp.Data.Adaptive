@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>AList - FSharp.Data.Adaptive</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="description" content=""/>
+    <meta name="author" content="Georg Haaser, Don Syme"/>
+
+    <script src="https://code.jquery.com/jquery-1.8.0.js"></script>
+    <script src="https://code.jquery.com/ui/1.8.23/jquery-ui.js"></script>
+    <script src="https://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
+    <link href="https://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet"/>
+
+    <link type="text/css" rel="stylesheet" href="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/content/style.css" />
+    <script type="text/javascript" src="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/content/tips.js"></script>
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="https://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="container">
+      <div class="masthead">
+        <ul class="nav nav-pills pull-right">
+          <li><a href="http://mbrace.io/">mbrace</a></li>
+          <li><a href="http://github.com/fsprojects/FSharp.Data.Adaptive">github page</a></li>
+        </ul>
+        <h3 class="muted"><a href="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/index.html">FSharp.Data.Adaptive</a></h3>
+      </div>
+      <hr />
+      <div class="row">
+        <div class="span9" id="main">
+          
+
+
+
+<h1>AList</h1>
+<p>
+  <span>Namespace: FSharp.Data.Adaptive</span><br />
+        <span>
+          Attributes:<br />
+[&lt;CompilationRepresentation(4)&gt;]<br />
+          
+      </span>
+</p>
+<div class="xmldoc">
+<p>Functional operators for the alist<_> type.</p>
+
+</div>
+
+<!-- Render nested types and modules, if there are any -->
+
+  <h3>Functions and values</h3>
+  <table class="table table-bordered member-list">
+    <thead>
+      <tr><td>Function or value</td><td>Description</td></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '1', 1)" onmouseover="showTip(event, '1', 1)">
+            append l r
+          </code>
+          <div class="tip" id="1">
+            <strong>Signature:</strong> l:alist&lt;&#39;T&gt; -&gt; r:alist&lt;&#39;T&gt; -&gt; alist&lt;&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'T                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L577-577" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively concatenates the given lists.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '2', 2)" onmouseover="showTip(event, '2', 2)">
+            bind mapping value
+          </code>
+          <div class="tip" id="2">
+            <strong>Signature:</strong> mapping:(&#39;T1 -&gt; alist&lt;&#39;T2&gt;) -&gt; value:aval&lt;&#39;T1&gt; -&gt; alist&lt;&#39;T2&gt;<br />
+                          <strong>Type parameters:</strong> 'T1, 'T2                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L585-585" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively maps over the given aval and returns the resulting list.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '3', 3)" onmouseover="showTip(event, '3', 3)">
+            choose mapping list
+          </code>
+          <div class="tip" id="3">
+            <strong>Signature:</strong> mapping:(&#39;T1 -&gt; &#39;T2 option) -&gt; list:alist&lt;&#39;T1&gt; -&gt; alist&lt;&#39;T2&gt;<br />
+                          <strong>Type parameters:</strong> 'T1, 'T2                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L530-530" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively chooses all elements returned by mapping.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '4', 4)" onmouseover="showTip(event, '4', 4)">
+            choosei mapping list
+          </code>
+          <div class="tip" id="4">
+            <strong>Signature:</strong> mapping:(Index -&gt; &#39;T1 -&gt; &#39;T2 option) -&gt; list:alist&lt;&#39;T1&gt; -&gt; alist&lt;&#39;T2&gt;<br />
+                          <strong>Type parameters:</strong> 'T1, 'T2                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L523-523" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively chooses all elements returned by mapping.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '5', 5)" onmouseover="showTip(event, '5', 5)">
+            collect mapping list
+          </code>
+          <div class="tip" id="5">
+            <strong>Signature:</strong> mapping:(&#39;T1 -&gt; alist&lt;&#39;T2&gt;) -&gt; list:alist&lt;&#39;T1&gt; -&gt; alist&lt;&#39;T2&gt;<br />
+                          <strong>Type parameters:</strong> 'T1, 'T2                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L562-562" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively applies the given mapping function to all elements and returns a new alist holding the concatenated results.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '6', 6)" onmouseover="showTip(event, '6', 6)">
+            collecti mapping list
+          </code>
+          <div class="tip" id="6">
+            <strong>Signature:</strong> mapping:(Index -&gt; &#39;T1 -&gt; alist&lt;&#39;T2&gt;) -&gt; list:alist&lt;&#39;T1&gt; -&gt; alist&lt;&#39;T2&gt;<br />
+                          <strong>Type parameters:</strong> 'T1, 'T2                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L551-551" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively applies the given mapping function to all elements and returns a new alist holding the concatenated results.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '7', 7)" onmouseover="showTip(event, '7', 7)">
+            concat(lists)
+          </code>
+          <div class="tip" id="7">
+            <strong>Signature:</strong> lists:&#39;a -&gt; alist&lt;&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'a, 'T                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L567-567" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively concatenates the given lists.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '8', 8)" onmouseover="showTip(event, '8', 8)">
+            empty
+          </code>
+          <div class="tip" id="8">
+            <strong>Signature:</strong> alist&lt;&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'T                        <span>
+            <strong>Attributes:</strong><br />
+[&lt;GeneralizableValue&gt;]<br />
+          </span>
+          </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L480-480" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>The empty alist.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '9', 9)" onmouseover="showTip(event, '9', 9)">
+            filter predicate list
+          </code>
+          <div class="tip" id="9">
+            <strong>Signature:</strong> predicate:(&#39;T -&gt; bool) -&gt; list:alist&lt;&#39;T&gt; -&gt; alist&lt;&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'T                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L544-544" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively filters the list using the given predicate.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '10', 10)" onmouseover="showTip(event, '10', 10)">
+            filteri predicate list
+          </code>
+          <div class="tip" id="10">
+            <strong>Signature:</strong> predicate:(Index -&gt; &#39;T -&gt; bool) -&gt; list:alist&lt;&#39;T&gt; -&gt; alist&lt;&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'T                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L537-537" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively filters the list using the given predicate.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '11', 11)" onmouseover="showTip(event, '11', 11)">
+            fold f seed s
+          </code>
+          <div class="tip" id="11">
+            <strong>Signature:</strong> f:(&#39;s -&gt; &#39;a -&gt; &#39;s) -&gt; seed:&#39;s -&gt; s:alist&lt;&#39;a&gt; -&gt; aval&lt;&#39;s&gt;<br />
+                          <strong>Type parameters:</strong> 's, 'a                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L665-665" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively folds over the list using add for additions and recomputes the value on every removal.
+Note that the order of elements given to add is undefined.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '12', 12)" onmouseover="showTip(event, '12', 12)">
+            foldGroup add sub zero s
+          </code>
+          <div class="tip" id="12">
+            <strong>Signature:</strong> add:(&#39;s -&gt; &#39;a -&gt; &#39;s) -&gt; sub:(&#39;s -&gt; &#39;a -&gt; &#39;s) -&gt; zero:&#39;s -&gt; s:alist&lt;&#39;a&gt; -&gt; aval&lt;&#39;s&gt;<br />
+                          <strong>Type parameters:</strong> 's, 'a                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L660-660" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively folds over the list using add for additions and subtract for removals.
+Note that the order of elements given to add/subtract is undefined.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '13', 13)" onmouseover="showTip(event, '13', 13)">
+            foldHalfGroup add trySub zero l
+          </code>
+          <div class="tip" id="13">
+            <strong>Signature:</strong> add:(&#39;s -&gt; &#39;a -&gt; &#39;s) -&gt; trySub:(&#39;s -&gt; &#39;a -&gt; Option&lt;&#39;s&gt;) -&gt; zero:&#39;s -&gt; l:alist&lt;&#39;a&gt; -&gt; aval&lt;&#39;s&gt;<br />
+                          <strong>Type parameters:</strong> 's, 'a                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L621-621" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively folds over the list using add for additions and trySubtract for removals.
+Note the trySubtract may return None indicating that the result needs to be recomputed.
+Also note that the order of elements given to add/trySubtract is undefined.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '14', 14)" onmouseover="showTip(event, '14', 14)">
+            map mapping list
+          </code>
+          <div class="tip" id="14">
+            <strong>Signature:</strong> mapping:(&#39;T1 -&gt; &#39;T2) -&gt; list:alist&lt;&#39;T1&gt; -&gt; alist&lt;&#39;T2&gt;<br />
+                          <strong>Type parameters:</strong> 'T1, 'T2                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L515-515" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively applies the given mapping function to all elements and returns a new alist containing the results.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '15', 15)" onmouseover="showTip(event, '15', 15)">
+            mapi mapping list
+          </code>
+          <div class="tip" id="15">
+            <strong>Signature:</strong> mapping:(Index -&gt; &#39;T1 -&gt; &#39;T2) -&gt; list:alist&lt;&#39;T1&gt; -&gt; alist&lt;&#39;T2&gt;<br />
+                          <strong>Type parameters:</strong> 'T1, 'T2                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L508-508" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively applies the given mapping function to all elements and returns a new alist containing the results.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '16', 16)" onmouseover="showTip(event, '16', 16)">
+            ofArray(s)
+          </code>
+          <div class="tip" id="16">
+            <strong>Signature:</strong> s:&#39;T [] -&gt; alist&lt;&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'T                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L496-496" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an alist holding the given values.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '17', 17)" onmouseover="showTip(event, '17', 17)">
+            ofIndexList(elements)
+          </code>
+          <div class="tip" id="17">
+            <strong>Signature:</strong> elements:IndexList&lt;&#39;T&gt; -&gt; alist&lt;&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'T                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L500-500" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an alist holding the given values. <code>O(1)</code></p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '18', 18)" onmouseover="showTip(event, '18', 18)">
+            ofList(s)
+          </code>
+          <div class="tip" id="18">
+            <strong>Signature:</strong> s:&#39;T list -&gt; alist&lt;&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'T                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L492-492" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an alist holding the given values.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '19', 19)" onmouseover="showTip(event, '19', 19)">
+            ofReader(creator)
+          </code>
+          <div class="tip" id="19">
+            <strong>Signature:</strong> creator:(unit -&gt; &#39;a) -&gt; alist&lt;&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'a, 'T                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L504-504" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an alist using the given reader-creator.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '20', 20)" onmouseover="showTip(event, '20', 20)">
+            ofSeq(s)
+          </code>
+          <div class="tip" id="20">
+            <strong>Signature:</strong> s:seq&lt;&#39;T&gt; -&gt; alist&lt;&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'T                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L488-488" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an alist holding the given values.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '21', 21)" onmouseover="showTip(event, '21', 21)">
+            product(s)
+          </code>
+          <div class="tip" id="21">
+            <strong>Signature:</strong> s:alist&lt;^a&gt; -&gt; aval&lt;^?35661&gt;<br />
+                          <strong>Type parameters:</strong> ^a, ^?35661                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L672-672" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively computes the product of all entries in the list.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '22', 22)" onmouseover="showTip(event, '22', 22)">
+            single(value)
+          </code>
+          <div class="tip" id="22">
+            <strong>Signature:</strong> value:&#39;T -&gt; alist&lt;&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'T                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L484-484" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>A constant alist holding a single value.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '23', 23)" onmouseover="showTip(event, '23', 23)">
+            sort(list)
+          </code>
+          <div class="tip" id="23">
+            <strong>Signature:</strong> list:alist&lt;&#39;T&gt; -&gt; alist&lt;&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'T                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L616-616" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Sorts the list.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '24', 24)" onmouseover="showTip(event, '24', 24)">
+            sortBy projection list
+          </code>
+          <div class="tip" id="24">
+            <strong>Signature:</strong> projection:(&#39;T1 -&gt; &#39;T2) -&gt; list:alist&lt;&#39;T1&gt; -&gt; alist&lt;&#39;T1&gt;<br />
+                          <strong>Type parameters:</strong> 'T1, 'T2                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L601-601" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Sorts the list using the keys given by projection.
+Note that the sorting is stable.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '25', 25)" onmouseover="showTip(event, '25', 25)">
+            sortByi projection list
+          </code>
+          <div class="tip" id="25">
+            <strong>Signature:</strong> projection:(Index -&gt; &#39;T1 -&gt; &#39;T2) -&gt; list:alist&lt;&#39;T1&gt; -&gt; alist&lt;&#39;T1&gt;<br />
+                          <strong>Type parameters:</strong> 'T1, 'T2                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L593-593" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Sorts the list using the keys given by projection.
+Note that the sorting is stable.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '26', 26)" onmouseover="showTip(event, '26', 26)">
+            sortWith compare list
+          </code>
+          <div class="tip" id="26">
+            <strong>Signature:</strong> compare:(&#39;T -&gt; &#39;T -&gt; int) -&gt; list:alist&lt;&#39;T&gt; -&gt; alist&lt;&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'T                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L609-609" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Sorts the list using the given compare function.
+Note that the sorting is stable.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '27', 27)" onmouseover="showTip(event, '27', 27)">
+            sum(s)
+          </code>
+          <div class="tip" id="27">
+            <strong>Signature:</strong> s:alist&lt;^a&gt; -&gt; aval&lt;^?35658&gt;<br />
+                          <strong>Type parameters:</strong> ^a, ^?35658                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L669-669" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively computes the sum all entries in the list.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '28', 28)" onmouseover="showTip(event, '28', 28)">
+            toAVal(list)
+          </code>
+          <div class="tip" id="28">
+            <strong>Signature:</strong> list:alist&lt;&#39;T&gt; -&gt; aval&lt;IndexList&lt;&#39;T&gt;&gt;<br />
+                          <strong>Type parameters:</strong> 'T                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L581-581" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an aval providing access to the current content of the list.</p>
+
+
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+        </div>
+        <div class="span3">
+          <a target="_blank" href="https://fsprojects.github.io/FSharp.Data.Adaptive">
+      <img src="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/img/logo.png" alt="F# Project" style="width:150px;margin:10px" /> 
+      </a>
+          <ul class="nav nav-list" id="menu" style="margin-top: 20px;">
+            <li class="nav-header">FSharp.Data.Adaptive</li>
+            <li><a href="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/index.html">Home page</a></li>
+            <li class="divider"></li>
+            <li><a href="http://www.nuget.org/packages/FSharp.Data.Adaptive">Get Library via NuGet</a></li>
+            <li><a href="http://github.com/fsprojects/FSharp.Data.Adaptive">Source Code on GitHub</a></li>
+            <li><a href="http://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/License">License</a></li>
+            <li><a href="http://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
+
+            <li class="nav-header">Documentation</li>
+            <li><a href="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/reference/index.html">API Reference</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <a href="http://github.com/fsprojects/FSharp.Data.Adaptive"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub"/></a>
+  </body>
+  </html>

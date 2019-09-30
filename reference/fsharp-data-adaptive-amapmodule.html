@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>AMap - FSharp.Data.Adaptive</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="description" content=""/>
+    <meta name="author" content="Georg Haaser, Don Syme"/>
+
+    <script src="https://code.jquery.com/jquery-1.8.0.js"></script>
+    <script src="https://code.jquery.com/ui/1.8.23/jquery-ui.js"></script>
+    <script src="https://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
+    <link href="https://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet"/>
+
+    <link type="text/css" rel="stylesheet" href="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/content/style.css" />
+    <script type="text/javascript" src="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/content/tips.js"></script>
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="https://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="container">
+      <div class="masthead">
+        <ul class="nav nav-pills pull-right">
+          <li><a href="http://mbrace.io/">mbrace</a></li>
+          <li><a href="http://github.com/fsprojects/FSharp.Data.Adaptive">github page</a></li>
+        </ul>
+        <h3 class="muted"><a href="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/index.html">FSharp.Data.Adaptive</a></h3>
+      </div>
+      <hr />
+      <div class="row">
+        <div class="span9" id="main">
+          
+
+
+
+<h1>AMap</h1>
+<p>
+  <span>Namespace: FSharp.Data.Adaptive</span><br />
+        <span>
+          Attributes:<br />
+[&lt;CompilationRepresentation(4)&gt;]<br />
+          
+      </span>
+</p>
+<div class="xmldoc">
+<p>Functional operators for amap<_,_></p>
+
+</div>
+
+<!-- Render nested types and modules, if there are any -->
+
+  <h3>Functions and values</h3>
+  <table class="table table-bordered member-list">
+    <thead>
+      <tr><td>Function or value</td><td>Description</td></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '29', 29)" onmouseover="showTip(event, '29', 29)">
+            bind mapping value
+          </code>
+          <div class="tip" id="29">
+            <strong>Signature:</strong> mapping:(&#39;T -&gt; amap&lt;&#39;Key,&#39;Value&gt;) -&gt; value:aval&lt;&#39;T&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'T, 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L415-415" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively maps over the given aval and returns the resulting map.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '30', 30)" onmouseover="showTip(event, '30', 30)">
+            choose mapping map
+          </code>
+          <div class="tip" id="30">
+            <strong>Signature:</strong> mapping:(&#39;Key -&gt; &#39;Value1 -&gt; &#39;Value2 option) -&gt; map:amap&lt;&#39;Key,&#39;Value1&gt; -&gt; amap&lt;&#39;Key,&#39;Value2&gt;<br />
+                          <strong>Type parameters:</strong> 'Key, 'Value1, 'Value2                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L371-371" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively chooses all elements returned by mapping.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '31', 31)" onmouseover="showTip(event, '31', 31)">
+            choose&#39; mapping map
+          </code>
+          <div class="tip" id="31">
+            <strong>Signature:</strong> mapping:(&#39;Value1 -&gt; &#39;Value2 option) -&gt; map:amap&lt;&#39;Key,&#39;Value1&gt; -&gt; amap&lt;&#39;Key,&#39;Value2&gt;<br />
+                          <strong>Type parameters:</strong> 'Value1, 'Value2, 'Key                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L378-378" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively chooses all elements returned by mapping without exposing keys.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '32', 32)" onmouseover="showTip(event, '32', 32)">
+            empty
+          </code>
+          <div class="tip" id="32">
+            <strong>Signature:</strong> amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L320-320" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>The empty map.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '33', 33)" onmouseover="showTip(event, '33', 33)">
+            filter predicate map
+          </code>
+          <div class="tip" id="33">
+            <strong>Signature:</strong> predicate:(&#39;Key -&gt; &#39;Value -&gt; bool) -&gt; map:amap&lt;&#39;Key,&#39;Value&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L385-385" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively filters the set using the given predicate.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '34', 34)" onmouseover="showTip(event, '34', 34)">
+            filter&#39; predicate map
+          </code>
+          <div class="tip" id="34">
+            <strong>Signature:</strong> predicate:(&#39;Value -&gt; bool) -&gt; map:amap&lt;&#39;Key,&#39;Value&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'Value, 'Key                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L389-389" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively filters the set using the given predicate without exposing keys.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '35', 35)" onmouseover="showTip(event, '35', 35)">
+            map mapping map
+          </code>
+          <div class="tip" id="35">
+            <strong>Signature:</strong> mapping:(&#39;Key -&gt; &#39;Value1 -&gt; &#39;Value2) -&gt; map:amap&lt;&#39;Key,&#39;Value1&gt; -&gt; amap&lt;&#39;Key,&#39;Value2&gt;<br />
+                          <strong>Type parameters:</strong> 'Key, 'Value1, 'Value2                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L346-346" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively maps over the given map.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '36', 36)" onmouseover="showTip(event, '36', 36)">
+            map&#39; mapping map
+          </code>
+          <div class="tip" id="36">
+            <strong>Signature:</strong> mapping:(&#39;Value1 -&gt; &#39;Value2) -&gt; map:amap&lt;&#39;Key,&#39;Value1&gt; -&gt; amap&lt;&#39;Key,&#39;Value2&gt;<br />
+                          <strong>Type parameters:</strong> 'Value1, 'Value2, 'Key                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L364-364" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively maps over the given map without exposing keys.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '37', 37)" onmouseover="showTip(event, '37', 37)">
+            mapSet mapping set
+          </code>
+          <div class="tip" id="37">
+            <strong>Signature:</strong> mapping:(&#39;Key -&gt; &#39;Value) -&gt; set:aset&lt;&#39;Key&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L353-353" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an amap with the keys from the set and the values given by mapping.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '38', 38)" onmouseover="showTip(event, '38', 38)">
+            ofArray(elements)
+          </code>
+          <div class="tip" id="38">
+            <strong>Signature:</strong> elements:(&#39;Key * &#39;Value) array -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L335-335" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an amap holding the given entries.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '39', 39)" onmouseover="showTip(event, '39', 39)">
+            ofAVal(value)
+          </code>
+          <div class="tip" id="39">
+            <strong>Signature:</strong> value:aval&lt;&#39;a&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'a, 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L408-408" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an amap for the given aval.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '40', 40)" onmouseover="showTip(event, '40', 40)">
+            ofHashMap(elements)
+          </code>
+          <div class="tip" id="40">
+            <strong>Signature:</strong> elements:HashMap&lt;&#39;Key,&#39;Value&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L339-339" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an amap holding the given entries.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '41', 41)" onmouseover="showTip(event, '41', 41)">
+            ofList(elements)
+          </code>
+          <div class="tip" id="41">
+            <strong>Signature:</strong> elements:(&#39;Key * &#39;Value) list -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L331-331" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an amap holding the given entries.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '42', 42)" onmouseover="showTip(event, '42', 42)">
+            ofSeq(elements)
+          </code>
+          <div class="tip" id="42">
+            <strong>Signature:</strong> elements:seq&lt;&#39;Key * &#39;Value&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L327-327" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an amap holding the given entries.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '43', 43)" onmouseover="showTip(event, '43', 43)">
+            single key value
+          </code>
+          <div class="tip" id="43">
+            <strong>Signature:</strong> key:&#39;Key -&gt; value:&#39;Value -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L323-323" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>A constant amap holding a single key/value.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '44', 44)" onmouseover="showTip(event, '44', 44)">
+            toASet(map)
+          </code>
+          <div class="tip" id="44">
+            <strong>Signature:</strong> map:amap&lt;&#39;Key,&#39;Value&gt; -&gt; aset&lt;&#39;Key * &#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L422-422" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an aset holding all key/value tuples from the map.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '45', 45)" onmouseover="showTip(event, '45', 45)">
+            toAVal(map)
+          </code>
+          <div class="tip" id="45">
+            <strong>Signature:</strong> map:amap&lt;&#39;Key,&#39;Value&gt; -&gt; aval&lt;HashMap&lt;&#39;Key,&#39;Value&gt;&gt;<br />
+                          <strong>Type parameters:</strong> 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L343-343" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an aval providing access to the current content of the map.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '46', 46)" onmouseover="showTip(event, '46', 46)">
+            union a b
+          </code>
+          <div class="tip" id="46">
+            <strong>Signature:</strong> a:amap&lt;&#39;Key,&#39;Value&gt; -&gt; b:amap&lt;&#39;Key,&#39;Value&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L404-404" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively unions both maps preferring the right value when colliding entries are found.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '47', 47)" onmouseover="showTip(event, '47', 47)">
+            unionWith resolve a b
+          </code>
+          <div class="tip" id="47">
+            <strong>Signature:</strong> resolve:(&#39;Key -&gt; &#39;Value -&gt; &#39;Value -&gt; &#39;Value) -&gt; a:amap&lt;&#39;Key,&#39;Value&gt; -&gt; b:amap&lt;&#39;Key,&#39;Value&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L393-393" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively unions both maps using the given resolve functions when colliding entries are found.</p>
+
+
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+        </div>
+        <div class="span3">
+          <a target="_blank" href="https://fsprojects.github.io/FSharp.Data.Adaptive">
+      <img src="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/img/logo.png" alt="F# Project" style="width:150px;margin:10px" /> 
+      </a>
+          <ul class="nav nav-list" id="menu" style="margin-top: 20px;">
+            <li class="nav-header">FSharp.Data.Adaptive</li>
+            <li><a href="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/index.html">Home page</a></li>
+            <li class="divider"></li>
+            <li><a href="http://www.nuget.org/packages/FSharp.Data.Adaptive">Get Library via NuGet</a></li>
+            <li><a href="http://github.com/fsprojects/FSharp.Data.Adaptive">Source Code on GitHub</a></li>
+            <li><a href="http://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/License">License</a></li>
+            <li><a href="http://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
+
+            <li class="nav-header">Documentation</li>
+            <li><a href="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/reference/index.html">API Reference</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <a href="http://github.com/fsprojects/FSharp.Data.Adaptive"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub"/></a>
+  </body>
+  </html>

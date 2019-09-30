@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>Namespaces - FSharp.Data.Adaptive</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="description" content=""/>
+    <meta name="author" content="Georg Haaser, Don Syme"/>
+
+    <script src="https://code.jquery.com/jquery-1.8.0.js"></script>
+    <script src="https://code.jquery.com/ui/1.8.23/jquery-ui.js"></script>
+    <script src="https://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
+    <link href="https://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet"/>
+
+    <link type="text/css" rel="stylesheet" href="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/content/style.css" />
+    <script type="text/javascript" src="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/content/tips.js"></script>
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="https://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="container">
+      <div class="masthead">
+        <ul class="nav nav-pills pull-right">
+          <li><a href="http://mbrace.io/">mbrace</a></li>
+          <li><a href="http://github.com/fsprojects/FSharp.Data.Adaptive">github page</a></li>
+        </ul>
+        <h3 class="muted"><a href="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/index.html">FSharp.Data.Adaptive</a></h3>
+      </div>
+      <hr />
+      <div class="row">
+        <div class="span9" id="main">
+          
+
+<h1>FSharp.Data.Adaptive</h1>
+
+
+  <h2>FSharp.Data.Adaptive Namespace</h2>
+    <div>
+      <table class="table table-bordered type-list">
+    <thead>
+      <tr><td>Type</td><td>Description</td></tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-adaptivehashmap-2.html">AdaptiveHashMap<'Key, 'Value></a>
+          </td>
+          <td class="xmldoc">
+          <p>Adaptive map datastructure.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-adaptivehashset-1.html">AdaptiveHashSet<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>Adaptive set datastructure.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-adaptiveindexlist-1.html">AdaptiveIndexList<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>Adaptive list datastructure.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-adaptivevalue-1.html">AdaptiveValue<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>Represents a dependency-aware value that may change as changes are fed into the system.
+An AdaptiveValue cannot be changed directly but gets updated by the dependency graph.
+For changeable inputs see cval<'T></p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-changeablehashset-1.html">ChangeableHashSet<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>Changeable adaptive set that allows mutation by user-code and implements aset.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-changeableindexlist-1.html">ChangeableIndexList<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>Changeable adaptive list that allows mutation by user-code and implements alist.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-changeablemap-2.html">ChangeableMap<'Key, 'Value></a>
+          </td>
+          <td class="xmldoc">
+          <p>Changeable adaptive map that allows mutation by user-code and implements amap.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-changeablevalue-1.html">ChangeableValue<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>Represents an adaptive value that can be changed by application code and
+Used in dependency-aware computations.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-constantobject.html">ConstantObject</a>
+          </td>
+          <td class="xmldoc">
+          <p>Core implementation of IAdaptiveObject for constant objects.
+The main goal of this implementation is to save memory when IAdaptiveObjects are known to be constant.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-elementoperation-1.html">ElementOperation<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>Reprensents a element operation (Set/Remove) without its key.
+Typically datastructures will hold (key * ElementOperation) tuples.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-ihashmapreader-2.html">IHashMapReader<'Key, 'Value></a>
+          </td>
+          <td class="xmldoc">
+          <p>An adaptive reader for amap that allows to pull operations and exposes its current state.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-ihashsetreader-1.html">IHashSetReader<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>An adaptive reader for aset that allows to pull operations and exposes its current state.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-iindexlistreader-1.html">IIndexListReader<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>An adaptive reader for alist that allows to pull operations and exposes its current state.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-iweakoutputset.html">IWeakOutputSet</a>
+          </td>
+          <td class="xmldoc">
+          <p>Represents a set of outputs for an AdaptiveObject. The references to all
+contained elements are weak and the datastructure allows to add/remove entries.
+the only other functionality is Consume which returns all the (currently alive)
+entries and clears the set.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-index.html">Index</a>
+          </td>
+          <td class="xmldoc">
+          <p>datastructure representing an abstract index.
+this is a 'simple' solution to the order-maintenance problem that has insert in O(log N), delete in O(1) and compare in O(1).
+Note that the implementation is quite obfuscated due to concurrency.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-levelchangedexception.html">LevelChangedException</a>
+          </td>
+          <td class="xmldoc">
+          <p>When evaluating AdaptiveObjects inside a Transaction
+(aka eager evaluation) their level might be inconsistent when
+attempting to evaluate. Therefore the evaluation may raise
+this exception causing the evaluation to be delayed to a later
+time in the Transaction.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-transaction.html">Transaction</a>
+          </td>
+          <td class="xmldoc">
+          <p>Holds a set of adaptive objects which have been changed and shall
+therefore be marked as outOfDate. Committing the transaction propagates
+these changes into the dependency-graph, takes care of the correct
+execution-order and acquires appropriate locks for all objects affected.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-alist-1.html">alist<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>Adaptive list datastructure.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-amap-2.html">amap<'Key, 'Value></a>
+          </td>
+          <td class="xmldoc">
+          <p>Adaptive map datastructure.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-aset-1.html">aset<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>Adaptive set datastructure.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-aval-1.html">aval<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>An abbreviation for AdaptiveValue</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-clist-1.html">clist<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>Changeable adaptive list that allows mutation by user-code and implements alist.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-cmap-2.html">cmap<'Key, 'Value></a>
+          </td>
+          <td class="xmldoc">
+          <p>Changeable adaptive map that allows mutation by user-code and implements amap.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-cset-1.html">cset<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>An abbreviation for ChangeableHashSet</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-cval-1.html">cval<'T></a>
+          </td>
+          <td class="xmldoc">
+          
+          </td>
+        </tr>
+    </tbody>
+  </table>
+  <table class="table table-bordered module-list">
+    <thead>
+      <tr><td>Module</td><td>Description</td></tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-alistmodule.html">AList</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators for the alist<_> type.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-amapmodule.html">AMap</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators for amap<_,_></p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-asetmodule.html">ASet</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators for aset<_></p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-avalmodule.html">AVal</a>
+          </td>
+          <td class="xmldoc">
+          <p>Operators related to the aval<_> type</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-callbackextensions.html">CallbackExtensions</a>
+          </td>
+          <td class="xmldoc">
+          
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-collectionextensions.html">CollectionExtensions</a>
+          </td>
+          <td class="xmldoc">
+          <p>Collection extensions for aset<_>, amap<_,_>, alist<_></p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-computationexpressions.html">ComputationExpressions</a>
+          </td>
+          <td class="xmldoc">
+          
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-differentiationextensions.html">DifferentiationExtensions</a>
+          </td>
+          <td class="xmldoc">
+          <p>Differentiation extensions for several immutable datastructures.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-hashmapmodule.html">HashMap</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional programming operators related to the HashMap<_,_> type.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-hashmapdelta.html">HashMapDelta</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators for HashMapDelta.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-hashsetmodule.html">HashSet</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional programming operators related to the HashSet<_> type.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-hashsetdeltamodule.html">HashSetDelta</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators for HashSetDelta.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-indexmodule.html">Index</a>
+          </td>
+          <td class="xmldoc">
+          <p>functional operators for the Index datastructure.
+supported operations are: Index.zero, Index.after(index), Index.before(index), Index.between(l, r).</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-indexlistmodule.html">IndexList</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators for IndexList.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-indexlistdeltamodule.html">IndexListDelta</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators for IndexListDelta.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-setdeltaextensions.html">SetDeltaExtensions</a>
+          </td>
+          <td class="xmldoc">
+          <p>SetOperation extensions making them look like a union-type.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-setoperationmodule.html">SetOperation</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators for SetOperation<_></p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-transactionmodule.html">Transaction</a>
+          </td>
+          <td class="xmldoc">
+          
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+    </div>
+  <h2>FSharp.Data.Traceable Namespace</h2>
+    <div>
+      <table class="table table-bordered type-list">
+    <thead>
+      <tr><td>Type</td><td>Description</td></tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-traceable-abstractreader-1.html">AbstractReader<'Delta></a>
+          </td>
+          <td class="xmldoc">
+          <p>Abstract base class for implementing IOpReader<_></p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-traceable-abstractreader-2.html">AbstractReader<'State, 'Delta></a>
+          </td>
+          <td class="xmldoc">
+          <p>Abstract base class for implementing IOpReader<_,_></p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-traceable-iopreader-1.html">IOpReader<'Delta></a>
+          </td>
+          <td class="xmldoc">
+          <p>An adaptive reader that allows to get operations since the last evaluation</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-traceable-iopreader-2.html">IOpReader<'State, 'Delta></a>
+          </td>
+          <td class="xmldoc">
+          <p>An adaptive reader thath allows to get operations and also exposes its current state.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-traceable-monoid-1.html">Monoid<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>Function table for a monoid instance</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-traceable-traceable-2.html">Traceable<'State, 'Delta></a>
+          </td>
+          <td class="xmldoc">
+          <p>Function table for a traceable instance</p>
+
+
+          </td>
+        </tr>
+    </tbody>
+  </table>
+  <table class="table table-bordered module-list">
+    <thead>
+      <tr><td>Module</td><td>Description</td></tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-traceable-countinghashsetmodule.html">CountingHashSet</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators for CountingHashSet.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-traceable-hashmap.html">HashMap</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators for HashMap.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-traceable-hashmapdelta.html">HashMapDelta</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators for HashMapDelta.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-traceable-hashset.html">HashSet</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators for HashSet.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-traceable-hashsetdelta.html">HashSetDelta</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators for HashSetDelta.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-traceable-history.html">History</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators related to the History<_,_> type.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-traceable-indexlist.html">IndexList</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators for IndexList.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-traceable-indexlistdelta.html">IndexListDelta</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators for IndexListDelta.</p>
+
+
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+    </div>
+  <h2>global Namespace</h2>
+    <div>
+      <table class="table table-bordered module-list">
+    <thead>
+      <tr><td>Module</td><td>Description</td></tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td class="module-name">
+            <a href="global-assemblyinfo.html">AssemblyInfo</a>
+          </td>
+          <td class="xmldoc">
+          
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+    </div>
+
+        </div>
+        <div class="span3">
+          <a target="_blank" href="https://fsprojects.github.io/FSharp.Data.Adaptive">
+      <img src="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/img/logo.png" alt="F# Project" style="width:150px;margin:10px" /> 
+      </a>
+          <ul class="nav nav-list" id="menu" style="margin-top: 20px;">
+            <li class="nav-header">FSharp.Data.Adaptive</li>
+            <li><a href="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/index.html">Home page</a></li>
+            <li class="divider"></li>
+            <li><a href="http://www.nuget.org/packages/FSharp.Data.Adaptive">Get Library via NuGet</a></li>
+            <li><a href="http://github.com/fsprojects/FSharp.Data.Adaptive">Source Code on GitHub</a></li>
+            <li><a href="http://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/License">License</a></li>
+            <li><a href="http://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
+
+            <li class="nav-header">Documentation</li>
+            <li><a href="file://C:\Users\Schorsch\Development\FSharp.Data.Adaptive\docs\tools\../output/reference/index.html">API Reference</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <a href="http://github.com/fsprojects/FSharp.Data.Adaptive"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub"/></a>
+  </body>
+  </html>
