@@ -164,7 +164,7 @@ Target.create "Default" ignore
 Target.create "GenerateDocs" (fun _ ->
     let path = Path.Combine(__SOURCE_DIRECTORY__, "packages/docs/FSharp.Compiler.Tools/tools/fsi.exe")
     let workingDir = "docs/tools"
-    let args = "generate.fsx"
+    let args = "--define:RELEASE generate.fsx"
     let command, args = 
         if false (* EnvironmentHelper.isMono *) then "mono", sprintf "'%s' %s" path args 
         else path, args

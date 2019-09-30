@@ -35,6 +35,8 @@ open Fake
 open System.IO
 open FSharp.Formatting.Razor
 
+let website = "https://fsprojects.github.io/FSharp.Data.Adaptive"
+
 // When called from 'build.fsx', use the public project URL as <root>
 // otherwise, use the current 'output' directory.
 #if RELEASE
