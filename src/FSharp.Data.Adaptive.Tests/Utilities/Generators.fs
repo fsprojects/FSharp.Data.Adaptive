@@ -1363,6 +1363,34 @@ module Generators =
             }
             
 
+        let setSortWith<'a>() =
+            gen {
+                let! list = Arb.generate<VSet<'a>> |> Gen.scaleSize (fun v -> 0)
+                
+                let compare = Unchecked.compare
+                    //let _, mapping = randomFunction<'a, int> 20
+                    //mapping
+
+                let reference =
+                    list.sref.Content |> Reference.AVal.map (fun set ->
+                        set 
+                        |> Seq.sortWith compare
+                        |> IndexList.ofSeq
+                    ) |> Reference.AList.ofRef
+
+                return 
+                    create 
+                        (Adaptive.CollectionExtensions.ASet.sortWith compare list.sreal)
+                        (reference)
+                        (fun verbose ->
+                            let ma, a = list.sexpression verbose
+                            ma, sprintf "setSortWith\r\n%s" (indent a)
+                        )
+                        list.schanges
+
+            }
+            
+
 
         let collect<'a, 'b>() =
             gen {
@@ -1662,6 +1690,7 @@ type AdaptiveGenerators() =
                                     yield 3, Gen.constant "sortWith"
                                     if typeof<IComparable>.IsAssignableFrom typeof<'a> then
                                         yield 3, Gen.constant "setSortBy"
+                                        yield 3, Gen.constant "setSortWith"
                                 ]
                         match kind with
                         | "constant" -> 
@@ -1678,6 +1707,8 @@ type AdaptiveGenerators() =
                             return! Generators.List.sortWith<'a>()
                         | "setSortBy" ->
                             return! Generators.List.setSortBy<'a>()
+                        | "setSortWith" ->
+                            return! Generators.List.setSortWith<'a>()
                         | "map" -> 
                             let! t = Gen.elements relevantTypes
                             return!

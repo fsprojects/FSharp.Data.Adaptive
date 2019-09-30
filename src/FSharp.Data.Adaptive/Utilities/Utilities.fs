@@ -319,6 +319,9 @@ module internal AdaptiveIndexListHelpers =
         member x.Clear() =
             store <- MapExt.empty
 
+        new(compare : 'k -> 'k -> int) =
+            CustomIndexMapping(OptimizedClosures.FSharpFunc<_,_,_>.Adapt compare)
+
     type IndexCache<'a, 'b>(f : Index -> 'a -> 'b, release : 'b -> unit) =
         let store = Dictionary<Index, 'a * 'b>()
 

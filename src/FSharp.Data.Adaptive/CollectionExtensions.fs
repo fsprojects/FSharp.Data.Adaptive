@@ -30,6 +30,26 @@ module CollectionExtensions =
                         | None -> None
                 )
                 |> IndexListDelta.ofSeq
+        
+        /// Reader for ASet.sortWith
+        type SetSortWithReader<'T>(set: aset<'T>, compare: 'T -> 'T -> int) =
+            inherit AbstractReader<IndexListDelta<'T>>(IndexListDelta.monoid)
+
+            let reader = set.GetReader()
+            let mapping = CustomIndexMapping<'T>(compare)
+
+            override x.Compute(token: AdaptiveToken) =
+                reader.GetChanges token |> Seq.choose (fun op ->
+                    match op with
+                    | Add(_, v) ->
+                        let idx = mapping.Invoke v
+                        Some (idx, Set v)
+                    | Rem(_, v) ->
+                        match mapping.Revoke v with
+                        | Some idx -> Some (idx, Remove)
+                        | None -> None
+                )
+                |> IndexListDelta.ofSeq
 
         /// Reader for AMap.keys
         type MapKeysReader<'Key, 'Value>(map: amap<'Key, 'Value>) =
@@ -117,8 +137,18 @@ module CollectionExtensions =
         /// Creates an amap with the keys from the set and the values given by mapping.
         let mapToAMap (mapping: 'Key -> 'Value) (set: aset<'Key>) = AMap.mapSet mapping set
 
+        /// Sorts the set using the given compare function.
+        let sortWith (compare: 'T -> 'T -> int) (set: aset<'T>) =
+            if set.IsConstant then
+                set.Content 
+                |> AVal.force
+                |> Seq.sortWith compare
+                |> AList.ofSeq
+            else
+                AList.ofReader (fun () -> SetSortWithReader(set, compare))
+
         /// Sorts the set using the keys given by projection.
-        let sortBy (projection: 'T1 -> 'T2) (set: aset<'T1>) : alist<'T1> =
+        let sortBy (projection: 'T1 -> 'T2) (set: aset<'T1>) =
             if set.IsConstant then
                 set.Content 
                 |> AVal.force
@@ -130,7 +160,7 @@ module CollectionExtensions =
                 AList.ofReader (fun () -> SetSortByReader(set, projection))
 
         /// Sorts the set.
-        let inline sort (set: aset<'T>) = sortBy id set
+        let inline sort (set: aset<'T>) = sortWith compare set
 
     /// Functional operators for alist<_>
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
