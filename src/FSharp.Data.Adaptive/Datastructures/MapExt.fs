@@ -1062,7 +1062,7 @@ open MapExtImplementation
 [<System.Diagnostics.DebuggerDisplay("Count = {Count}")>]
 [<Sealed>]
 [<StructuredFormatDisplay("{AsString}")>]
-type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;ComparisonConditionalOn>]'Value when 'Key : comparison >(comparer: IComparer<'Key>, tree: MapTree<'Key,'Value>) =
+type (* internal *) MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;ComparisonConditionalOn>]'Value when 'Key : comparison > internal (comparer: IComparer<'Key>, tree: MapTree<'Key,'Value>) =
 
     static let defaultComparer = LanguagePrimitives.FastGenericComparer<'Key> 
     // We use .NET generics per-instantiation static fields to avoid allocating a new object for each empty
@@ -1125,7 +1125,7 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
    
     member m.ChooseMonotonic<'Key2, 'Value2 when 'Key2 : comparison> (f : 'Key -> 'Value -> option<'Key2 * 'Value2>) : MapExt<'Key2,'Value2> = new MapExt<'Key2,'Value2>(LanguagePrimitives.FastGenericComparer<'Key2>, MapTree.chooseiMonotonic f tree)
    
-    member x.GetReference key =
+    member internal x.GetReference key =
         MapTree.getReference comparer 0 key tree
         
     member x.TryIndexOf key =
@@ -1300,7 +1300,7 @@ and
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 [<RequireQualifiedAccess>]
-module internal MapExt = 
+module (* internal *) MapExt = 
 
     [<CompiledName("IsEmpty")>]
     let isEmpty (m:MapExt<_,_>) = m.IsEmpty
@@ -1452,8 +1452,7 @@ module internal MapExt =
     let tryIndexOf i (m:MapExt<_,_>) = m.TryIndexOf i
 
     [<CompiledName("GetReference")>]
-    let reference i (m:MapExt<_,_>) = m.GetReference i
-
+    let internal reference i (m:MapExt<_,_>) = m.GetReference i
 
     [<CompiledName("Union")>]
     let union (l:MapExt<_,_>) r = l.UnionWith (r, fun _ r -> r)

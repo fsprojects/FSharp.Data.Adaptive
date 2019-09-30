@@ -216,6 +216,9 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
     member x.AsSeq =
         content |> MapExt.toSeq |> Seq.map snd
         
+    member x.AsSeqIndexed =
+        content |> MapExt.toSeq 
+        
     /// Returns all entres from the list.
     member x.AsList =
         content |> MapExt.toList |> List.map snd

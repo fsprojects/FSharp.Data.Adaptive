@@ -107,7 +107,7 @@ module IndexListDelta =
         list.Remove(index)
 
     /// Internal creating an IndexListDelta from the given map.
-    let internal ofMap (map : MapExt<Index, ElementOperation<'T>>) = 
+    let (* internal *) ofMap (map : MapExt<Index, ElementOperation<'T>>) = 
         IndexListDelta(map)
     
     /// Creates a delta containing a single operation.
