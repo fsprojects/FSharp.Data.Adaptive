@@ -17,6 +17,7 @@
     <Compile Include="IntMap.fs" />
     <Compile Include="HashMap.fs" />
     <Compile Include="HashSet.fs" />
+    <Compile Include="IndexList.fs" />
     <Compile Include="PriorityQueue.fs" />
     <Compile Include="WeakOutputSet.fs" />
     <Compile Include="History.fs" />
