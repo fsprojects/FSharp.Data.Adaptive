@@ -160,6 +160,86 @@ Target.create "Test" (fun _ -> ())
 
 Target.create "Default" ignore
 
+Target.create "Docs" (fun _ ->
+    let path = Path.Combine(__SOURCE_DIRECTORY__, "packages/docs/FSharp.Compiler.Tools/tools/fsi.exe")
+    let workingDir = "docs/tools"
+    let args = "generate.fsx"
+    let command, args = 
+        if false (* EnvironmentHelper.isMono *) then "mono", sprintf "'%s' %s" path args 
+        else path, args
+
+    if Shell.Exec(command, args, workingDir) <> 0 then
+        failwith "failed to generate docs"
+)
+Target.create "GenerateDocs" (fun _ ->
+    let path = Path.Combine(__SOURCE_DIRECTORY__, "packages/docs/FSharp.Compiler.Tools/tools/fsi.exe")
+    let workingDir = "docs/tools"
+    let args = "--define:RELEASE generate.fsx"
+    let command, args = 
+        if false (* EnvironmentHelper.isMono *) then "mono", sprintf "'%s' %s" path args 
+        else path, args
+
+    if Shell.Exec(command, args, workingDir) <> 0 then
+        failwith "failed to generate docs"
+)
+
+
+let cleanDir (dir : string) =
+    let info = DirectoryInfo(dir)
+    if info.Exists then
+        let children = info.GetFileSystemInfos()
+        for c in children do
+            Trace.tracefn "delete %s" c.Name
+            match c with
+            | :? DirectoryInfo as d -> 
+                if d.Name <> ".git" then d.Delete(true)
+            | _ -> c.Delete()
+
+let rec copyRecursive (src : string) (dst : string) =
+    let info = DirectoryInfo(src)
+    if info.Exists && not (info.Name.StartsWith ".") then
+        Directory.ensure dst
+        let children = info.GetFileSystemInfos()
+        for c in children do
+            Trace.tracefn "copy %s" c.Name
+            match c with
+            | :? DirectoryInfo as d -> copyRecursive d.FullName (Path.Combine(dst, d.Name))
+            | :? FileInfo as f -> f.CopyTo(Path.Combine(dst, f.Name)) |> ignore
+            | _ -> ()
+
+let gitOwner = "fsprojects"
+let gitHome = "https://github.com/" + gitOwner
+let gitName = "FSharp.Data.Adaptive"
+
+Target.create "ReleaseDocs" (fun _ ->
+    let name = Guid.NewGuid() |> string
+    let tempDocsDir = "temp/" + name
+    let outputDir = "docs/output"
+
+    Git.Repository.cloneSingleBranch "" (gitHome + "/" + gitName + ".git") "gh-pages" tempDocsDir
+    cleanDir tempDocsDir
+    
+    Directory.ensure outputDir
+    copyRecursive outputDir tempDocsDir 
+    Git.Staging.stageAll tempDocsDir
+    let info = Git.Information.describe __SOURCE_DIRECTORY__
+    Git.Commit.exec tempDocsDir (sprintf "Update generated documentation for version %s/%s" notes.NugetVersion info)
+    Git.Branches.push tempDocsDir
+
+    let rec reallyDelete (iter : int) =
+        if iter >= 0 then 
+            try Directory.Delete(tempDocsDir, true)
+            with _ -> reallyDelete (iter - 1)
+
+    reallyDelete 5
+)
+
+"Compile" ==> 
+    "Docs"
+    
+"Compile" ==> 
+    "GenerateDocs" ==> 
+    "ReleaseDocs"
 
 "RunTest" ==> "Test"
 

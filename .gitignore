@@ -16,3 +16,4 @@ bin/Debug
 *.trx
 symbolCache.db
 *.suo
+/docs/output
