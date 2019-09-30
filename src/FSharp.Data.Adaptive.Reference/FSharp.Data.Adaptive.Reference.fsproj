@@ -10,6 +10,7 @@
     <OutputPath>..\..\bin\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
     <Compile Include="AdaptiveValue.fs" />
     <Compile Include="AdaptiveHashSet.fs" />
     <Compile Include="AdaptiveHashMap.fs" />
