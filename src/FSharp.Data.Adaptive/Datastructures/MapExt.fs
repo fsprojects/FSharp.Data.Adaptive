@@ -1388,7 +1388,7 @@ module internal MapExt =
     [<CompiledName("OfSeq")>]
     let ofSeq l = MapExt<_,_>.Create(l)
     
-    [<CompiledName("OfSeq")>]
+    [<CompiledName("Singleton")>]
     let singleton k v = MapExt<_,_>(LanguagePrimitives.FastGenericComparer<_>,MapOne(k,v))
 
     [<CompiledName("OfArray")>]
@@ -1430,7 +1430,7 @@ module internal MapExt =
     [<CompiledName("TryItem")>]
     let tryItem i (m:MapExt<_,_>) = m.TryAt i
 
-    [<CompiledName("TryItem")>]
+    [<CompiledName("Item")>]
     let item i (m:MapExt<_,_>) = 
         match m.TryAt i with
             | Some t -> t
