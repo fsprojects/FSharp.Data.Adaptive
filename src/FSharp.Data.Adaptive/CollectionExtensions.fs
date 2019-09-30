@@ -88,3 +88,6 @@ module CollectionExtensions =
                 |> AList.ofSeq
             else
                 AList.ofReader (fun () -> SetSortByReader(set, projection))
+
+        /// Sorts the set.
+        let inline sort (set: aset<'T>) = sortBy id set

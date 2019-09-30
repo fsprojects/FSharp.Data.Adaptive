@@ -99,6 +99,9 @@ module AList =
     /// Note that the sorting is stable.
     val sortWith : compare: ('T -> 'T -> int) -> list: alist<'T> -> alist<'T>
 
+    /// Sorts the list.
+    val inline sort : list: alist<'T> -> alist<'T>
+        when 'T : comparison
 
     /// Adaptively folds over the list using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.

@@ -612,6 +612,9 @@ module AList =
         else
             create (fun () -> SortWithReader(list, compare))
 
+    /// Sorts the list.
+    let inline sort (list: alist<'T>) = sortWith compare list
+
     /// Adaptively folds over the list using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
     /// Also note that the order of elements given to add/trySubtract is undefined.
