@@ -1,0 +1,24 @@
+{
+  "name": "fsharp.data.adaptive",
+  "version": "0.0.1",
+  "description": "FSharp.Data.Adaptive for Fable",
+  "main": "index.js",
+  "scripts": {
+    "test": "build -t Test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fsprojects/FSharp.Data.Adaptive.git"
+  },
+  "author": "krauthaufen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fsprojects/FSharp.Data.Adaptive/issues"
+  },
+  "homepage": "https://github.com/fsprojects/FSharp.Data.Adaptive#readme",
+  "devDependencies": {
+    "fable-compiler": "^2.4.2",
+    "fable-splitter": "^2.1.11",
+    "npx": "^10.2.0"
+  }
+}

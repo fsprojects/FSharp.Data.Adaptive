@@ -63,6 +63,40 @@ Target.create "Compile" (fun _ ->
     DotNet.build options "FSharp.Data.Adaptive.sln"
 )
 
+Target.create "CompileFable" (fun _ ->
+    let npx = "node_modules/npx/index.js" |> Path.GetFullPath
+
+    if not (File.exists npx) then
+        Trace.trace "running `npm install`"
+        CreateProcess.fromRawCommand "npm" ["install"]
+        |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
+        |> CreateProcess.withStandardError StreamSpecification.Inherit
+        |> CreateProcess.withStandardOutput StreamSpecification.Inherit
+        |> CreateProcess.ensureExitCode
+        |> Proc.run
+        |> ignore
+
+        ()
+
+    let proj = "src/FSharp.Data.Adaptive/FSharp.Data.Adaptive.fsproj" |> Path.GetFullPath
+    let outDir = "bin/Fable" |> Path.GetFullPath
+
+    let old = Environment.CurrentDirectory
+    Environment.CurrentDirectory <- Path.GetDirectoryName proj
+    try
+        CreateProcess.fromRawCommand "node" [npx; "fable-splitter"; proj; "-o"; outDir]
+        |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
+        |> CreateProcess.withStandardError StreamSpecification.Inherit
+        |> CreateProcess.withStandardOutput StreamSpecification.Inherit
+        |> CreateProcess.ensureExitCode
+        |> Proc.run
+        |> ignore
+
+    finally
+        Environment.CurrentDirectory <- old
+)
+
+
 Target.create "Pack" (fun _ ->
     
     Paket.pack (fun o ->

@@ -1,5 +1,6 @@
 bin/Release
 bin/Debug
+bin/Fable
 *.swp
 *.userprefs
 **/obj
@@ -16,3 +17,5 @@ bin/Debug
 *.trx
 symbolCache.db
 *.suo
+/node_modules
+/.fable
