@@ -266,7 +266,11 @@ module AdaptiveHashSetImplementation =
 
         override x.Compute(token) =
             let newValue = input.GetValue token
+            #if FABLE_COMPILER
+            let valChanged = let v = valChanged in valChanged <- 0; v = 1
+            #else
             let valChanged = System.Threading.Interlocked.Exchange(&valChanged, 0) = 1
+            #endif 
 
             match cache with
             | Some(oldValue, oldReader) when valChanged && not (cheapEqual oldValue newValue) ->

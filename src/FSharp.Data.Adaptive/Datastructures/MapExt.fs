@@ -1246,30 +1246,30 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
     interface System.Collections.IEnumerable with
         member __.GetEnumerator() = (MapTree.mkIEnumerator tree :> System.Collections.IEnumerator)
 
-    interface IDictionary<'Key, 'Value> with 
-        member m.Item 
-            with get x = m.[x]            
-            and  set x v = ignore(x,v); raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"))
+    //interface IDictionary<'Key, 'Value> with 
+    //    member m.Item 
+    //        with get x = m.[x]            
+    //        and  set x v = ignore(x,v); raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"))
 
-        // REVIEW: this implementation could avoid copying the Values to an array    
-        member s.Keys = ([| for kvp in s -> kvp.Key |] :> ICollection<'Key>)
+    //    // REVIEW: this implementation could avoid copying the Values to an array    
+    //    member s.Keys = ([| for kvp in s -> kvp.Key |] :> ICollection<'Key>)
 
-        // REVIEW: this implementation could avoid copying the Values to an array    
-        member s.Values = ([| for kvp in s -> kvp.Value |] :> ICollection<'Value>)
+    //    // REVIEW: this implementation could avoid copying the Values to an array    
+    //    member s.Values = ([| for kvp in s -> kvp.Value |] :> ICollection<'Value>)
 
-        member s.Add(k,v) = ignore(k,v); raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"))
-        member s.ContainsKey(k) = s.ContainsKey(k)
-        member s.TryGetValue(k,r) = if s.ContainsKey(k) then (r <- s.[k]; true) else false
-        member s.Remove(k : 'Key) = ignore(k); (raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)")) : bool)
+    //    member s.Add(k,v) = ignore(k,v); raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"))
+    //    member s.ContainsKey(k) = s.ContainsKey(k)
+    //    member s.TryGetValue(k,r) = if s.ContainsKey(k) then (r <- s.[k]; true) else false
+    //    member s.Remove(k : 'Key) = ignore(k); (raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)")) : bool)
 
-    interface ICollection<KeyValuePair<'Key, 'Value>> with 
-        member __.Add(x) = ignore(x); raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"));
-        member __.Clear() = raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"));
-        member __.Remove(x) = ignore(x); raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"));
-        member s.Contains(x) = s.ContainsKey(x.Key) && Unchecked.equals s.[x.Key] x.Value
-        member __.CopyTo(arr,i) = MapTree.copyToArray tree arr i
-        member s.IsReadOnly = true
-        member s.Count = s.Count
+    //interface ICollection<KeyValuePair<'Key, 'Value>> with 
+    //    member __.Add(x) = ignore(x); raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"));
+    //    member __.Clear() = raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"));
+    //    member __.Remove(x) = ignore(x); raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"));
+    //    member s.Contains(x) = s.ContainsKey(x.Key) && Unchecked.equals s.[x.Key] x.Value
+    //    member __.CopyTo(arr,i) = MapTree.copyToArray tree arr i
+    //    member s.IsReadOnly = true
+    //    member s.Count = s.Count
 
     interface System.IComparable with 
         member m.CompareTo(obj: obj) = 

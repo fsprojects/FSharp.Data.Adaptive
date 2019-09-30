@@ -354,7 +354,11 @@ module internal AdaptiveIndexListImplementation =
 
         override x.Compute(token) =
             let v = input.GetValue token
+            #if FABLE_COMPILER
+            let inputChanged = let v = inputChanged in inputChanged <- 0; v
+            #else
             let inputChanged = System.Threading.Interlocked.Exchange(&inputChanged, 0)
+            #endif
             match reader with
             | Some (oldA, oldReader) when inputChanged = 0 || cheapEqual v oldA ->
                 oldReader.GetChanges token
