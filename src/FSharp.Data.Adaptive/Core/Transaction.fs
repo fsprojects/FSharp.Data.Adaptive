@@ -27,7 +27,9 @@ module internal LockingExtensions =
 /// attempting to evaluate. Therefore the evaluation may raise
 /// this exception causing the evaluation to be delayed to a later
 /// time in the Transaction.
-exception LevelChangedException of newLevel : int
+exception LevelChangedException of 
+    /// The new level for the top-level object.
+    newLevel : int
 
 
 /// Holds a set of adaptive objects which have been changed and shall
@@ -197,7 +199,7 @@ type Transaction() =
     interface IDisposable with
         member x.Dispose() = x.Dispose()
 
-
+/// Module for transaction related functions. (e.g. transact)
 [<AutoOpen>]
 module Transaction =
     /// Returns the currently running transaction or (if none)

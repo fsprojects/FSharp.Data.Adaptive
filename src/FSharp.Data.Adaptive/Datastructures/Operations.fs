@@ -45,14 +45,14 @@ module SetDeltaExtensions =
     /// Creates an add operation (reference delta +1)
     let inline Add(v : 'T) = SetOperation(v, 1)
 
-    // creates a remove operation (reference delta -1)
+    /// Creates a remove operation (reference delta -1)
     let inline Rem(v : 'T) = SetOperation(v, -1)
 
     type SetOperation<'T> with
         /// Creates an add operation (reference delta +1)
         static member inline Add v = SetOperation<'T>(v, 1)
 
-        // creates a remove operation (reference delta -1)
+        /// Creates a remove operation (reference delta -1)
         static member inline Rem v = SetOperation<'T>(v, -1)
 
     /// Active pattern for SetOperation.
@@ -65,5 +65,7 @@ module SetDeltaExtensions =
 /// Typically datastructures will hold (key * ElementOperation) tuples.
 [<Struct>]
 type ElementOperation<'T> =
+    /// Set the associated key to a specific value.
     | Set of 'T
+    /// Remove the associated key.
     | Remove

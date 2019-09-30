@@ -31,6 +31,8 @@ type ChangeableValue<'T> =
     /// Creates a new changeable value, intially holding the given value
     new : value : 'T -> cval<'T>
 
+/// Represents an adaptive value that can be changed by application code and
+/// Used in dependency-aware computations.
 and cval<'T> = ChangeableValue<'T>
 
 /// Operators related to the aval<_> type 

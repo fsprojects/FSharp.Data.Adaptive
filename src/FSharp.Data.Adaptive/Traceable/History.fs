@@ -23,12 +23,15 @@ type IOpReader<'State, 'Delta> =
 [<AbstractClass>]
 type AbstractReader<'Delta>(t: Monoid<'Delta>) =
     inherit AdaptiveObject()
-
+    
+    /// Adaptively compute deltas.
     abstract member Compute: AdaptiveToken -> 'Delta
 
+    /// Applies the delta to the current state and returns the 'effective' delta.
     abstract member Apply: 'Delta -> 'Delta
     default x.Apply o = o
-
+    
+    /// Adaptively get the latest deltas (or empty if up-to-date).
     member x.GetChanges(token: AdaptiveToken) =
         x.EvaluateAlways token (fun token ->
             if x.OutOfDate then
@@ -47,10 +50,13 @@ type AbstractReader<'State, 'Delta>(t: Traceable<'State, 'Delta>) =
 
     let mutable state = t.tempty
 
+    /// Applies the delta to the current state and returns the 'effective' delta.
     override x.Apply o =
         let (s, o) = t.tapplyDelta state o
         state <- s
         o
+
+    /// The reader's current content.
     member x.State = state
 
     interface IOpReader<'State, 'Delta> with
@@ -68,11 +74,14 @@ type AbstractDirtyReader<'T, 'Delta when 'T :> IAdaptiveObject>(t: Monoid<'Delta
         | :? 'T as o -> lock dirty (fun () -> dirty.Value.Add o |> ignore)
         | _ -> ()
 
+    /// Adaptively compute deltas.
     abstract member Compute: AdaptiveToken * System.Collections.Generic.HashSet<'T> -> 'Delta
 
+    /// Applies the delta to the current state and returns the 'effective' delta.
     abstract member Apply: 'Delta -> 'Delta
     default x.Apply o = o
 
+    /// Adaptively get the latest deltas (or empty if up-to-date).
     member x.GetChanges(token: AdaptiveToken) =
         x.EvaluateAlways token (fun token ->
             if x.OutOfDate then
@@ -367,8 +376,10 @@ and internal HistoryReader<'State, 'Delta>(h: History<'State, 'Delta>) =
 
 /// Functional operators related to the History<_,_> type.
 module History =
-
+    
+    /// Simple base-types for reader implementations.
     module Readers =
+        /// The empty reader.
         type EmptyReader<'State, 'Delta>(t: Traceable<'State, 'Delta>) =
             inherit ConstantObject()
 
@@ -378,6 +389,7 @@ module History =
             interface IOpReader<'State, 'Delta> with
                 member x.State = t.tempty
 
+        /// A constant reader.
         type ConstantReader<'State, 'Delta>(t: Traceable<'State, 'Delta>, ops: Lazy<'Delta>, finalState: Lazy<'State>) =
             inherit ConstantObject()
             
