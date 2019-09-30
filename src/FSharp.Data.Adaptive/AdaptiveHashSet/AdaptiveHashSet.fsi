@@ -22,6 +22,7 @@ type AdaptiveHashSet<'T> =
 and aset<'T> = AdaptiveHashSet<'T>
 
 /// Functional operators for aset<_>
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ASet =
     /// The empty aset.
     [<GeneralizableValue>]

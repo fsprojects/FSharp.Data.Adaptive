@@ -1293,6 +1293,37 @@ module Generators =
             }
             
 
+        let setSortBy<'a>() =
+            gen {
+                let! list = Arb.generate<VSet<'a>> |> Gen.scaleSize (fun v -> 0)
+                
+                let mapping = unbox
+                    //let _, mapping = randomFunction<'a, int> 20
+                    //mapping
+
+                let reference =
+                    list.sref.Content |> Reference.AVal.map (fun set ->
+                        set 
+                        |> Seq.indexed 
+                        |> Seq.sortBy (fun (i,k) -> mapping k, i) 
+                        |> Seq.map snd 
+                        |> IndexList.ofSeq
+
+                    ) |> Reference.AList.ofRef
+
+                return 
+                    create 
+                        (Adaptive.CollectionExtensions.ASet.sortBy mapping list.sreal)
+                        (reference)
+                        (fun verbose ->
+                            let ma, a = list.sexpression verbose
+                            ma, sprintf "setSortBy\r\n%s" (indent a)
+                        )
+                        list.schanges
+
+            }
+            
+
 
         let collect<'a, 'b>() =
             gen {
@@ -1359,6 +1390,7 @@ type AdaptiveGenerators() =
 
     static let relevantTypes = 
         [
+            typeof<int * int>
             typeof<int>
             typeof<obj>
             //typeof<HashSet<int>>
@@ -1569,15 +1601,17 @@ type AdaptiveGenerators() =
                                 ]
                             else 
                                 Gen.frequency [
-                                    1, Gen.constant "constant"
-                                    3, Gen.constant "clist"
-                                    3, Gen.constant "map"
-                                    3, Gen.constant "choose"
-                                    3, Gen.constant "filter"
-                                    3, Gen.constant "collect"
-                                    3, Gen.constant "append"
-                                    3, Gen.constant "sortBy"
-                                    3, Gen.constant "sortWith"
+                                    yield 1, Gen.constant "constant"
+                                    yield 3, Gen.constant "clist"
+                                    yield 3, Gen.constant "map"
+                                    yield 3, Gen.constant "choose"
+                                    yield 3, Gen.constant "filter"
+                                    yield 3, Gen.constant "collect"
+                                    yield 3, Gen.constant "append"
+                                    yield 3, Gen.constant "sortBy"
+                                    yield 3, Gen.constant "sortWith"
+                                    if typeof<IComparable>.IsAssignableFrom typeof<'a> then
+                                        yield 3, Gen.constant "setSortBy"
                                 ]
                         match kind with
                         | "constant" -> 
@@ -1592,6 +1626,8 @@ type AdaptiveGenerators() =
                             return! Generators.List.sortBy<'a>()
                         | "sortWith" ->
                             return! Generators.List.sortWith<'a>()
+                        | "setSortBy" ->
+                            return! Generators.List.setSortBy<'a>()
                         | "map" -> 
                             let! t = Gen.elements relevantTypes
                             return!

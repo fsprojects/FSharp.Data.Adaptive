@@ -53,6 +53,7 @@
 	<Compile Include="AdaptiveIndexList\AdaptiveIndexList.fs" />
 	<Compile Include="AdaptiveIndexList\ChangeableIndexList.fsi" />
 	<Compile Include="AdaptiveIndexList\ChangeableIndexList.fs" />
+	<Compile Include="CollectionExtensions.fs" />
 	<Compile Include="ComputationExpressions.fs" />
 	</ItemGroup>
 	<Import Project="..\..\.paket\Paket.Restore.targets" />

@@ -312,6 +312,7 @@ module AdaptiveHashMapImplementation =
         AdaptiveHashMapImpl(fun () -> reader() :> IOpReader<_>) :> amap<_,_>
 
 /// Functional operators for amap<_,_>
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module AMap =
     open AdaptiveHashMapImplementation
 

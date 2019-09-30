@@ -21,6 +21,7 @@ type AdaptiveHashMap<'Key,'Value> =
 type amap<'Key,'Value> = AdaptiveHashMap<'Key,'Value>
 
 /// Functional operators for amap<_,_>
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module AMap =
 
     /// The empty map.

@@ -44,7 +44,10 @@ module AList =
 
     /// Creates an alist holding the given values. `O(1)`
     val ofIndexList : elements: IndexList<'T> -> alist<'T>
-
+    
+    /// Creates an alist using the given reader-creator.
+    val ofReader : create : (unit -> #IOpReader<IndexListDelta<'T>>) -> aset<'T>
+    
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
     val mapi : mapping: (Index -> 'T1 -> 'T2) -> list: alist<'T1> -> alist<'T2>
 

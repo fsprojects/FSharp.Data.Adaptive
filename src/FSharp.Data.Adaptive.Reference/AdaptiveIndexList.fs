@@ -66,7 +66,7 @@ and clist<'T> = ChangeableIndexList<'T>
 module AList =
 
     /// Creates an alist from the given aval.
-    let internal ofRef (r: aval<IndexList<'T>>) =
+    let ofRef (r: aval<IndexList<'T>>) =
         { new alist<'T> with 
             member x.Content = r
             member x.GetReader() = AListReader(x) :> IIndexListReader<_>    

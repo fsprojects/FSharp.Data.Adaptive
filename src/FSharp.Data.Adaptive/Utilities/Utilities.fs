@@ -218,13 +218,162 @@ module internal CheapEquality =
     let cheapHash (a : 'T) = CheapEquality<'T>.Comparer.GetHashCode a
     let cheapEqual (a : 'T) (b : 'T) = CheapEquality<'T>.Comparer.Equals(a, b)
 
-module Unchecked =
+module internal Unchecked =
     let inline isNull<'T when 'T : not struct> (value : 'T) =
         isNull (value :> obj)
 
 [<AutoOpen>]
-module Failures =
+module internal Failures =
     let inline unexpected() = failwith "[Adaptive] encountered an invalid state"
 
 
 
+[<AutoOpen>]
+module internal AdaptiveIndexListHelpers = 
+    open System
+    open System.Collections.Generic
+
+    let inline combineHash (a: int) (b: int) =
+        uint32 a ^^^ uint32 b + 0x9e3779b9u + ((uint32 a) <<< 6) + ((uint32 a) >>> 2) |> int
+
+    [<Struct; CustomEquality; CustomComparison>]
+    type UCmp<'a>(compare : OptimizedClosures.FSharpFunc<'a, 'a, int>, value : 'a) =
+
+        member x.Value = value
+
+        override x.GetHashCode() = Unchecked.hash value
+        override x.Equals o =
+            match o with
+            | :? UCmp<'a> as o -> Unchecked.equals value o.Value
+            | _ -> false
+            
+        member x.CompareTo(o : UCmp<'a>) = compare.Invoke(value, o.Value)
+
+        interface IComparable<UCmp<'a>> with
+            member x.CompareTo(o) = compare.Invoke(value, o.Value)
+        interface IComparable with
+            member x.CompareTo(o) =
+                match o with
+                | :? UCmp<'a> as o -> compare.Invoke(value, o.Value)
+                | _ -> 0
+
+    type IndexMapping<'k when 'k : comparison>() =
+        let mutable store = MapExt.empty<'k, Index>
+
+        member x.Invoke(k : 'k) =
+            let (left, self, right) = MapExt.neighbours k store
+            match self with
+                | Some(_, i) -> 
+                    i 
+                | None ->
+                    let result = 
+                        match left, right with
+                        | None, None                -> Index.after Index.zero
+                        | Some(_,l), None           -> Index.after l
+                        | None, Some(_,r)           -> Index.before r
+                        | Some (_,l), Some(_,r)     -> Index.between l r
+
+                    store <- MapExt.add k result store
+                    result
+
+        member x.Revoke(k : 'k) =
+            match MapExt.tryRemove k store with
+            | Some(i, rest) ->
+                store <- rest
+                Some i
+            | None -> 
+                None
+
+        member x.Clear() =
+            store <- MapExt.empty
+            
+    type CustomIndexMapping<'k>(cmp : OptimizedClosures.FSharpFunc<'k, 'k, int>) =
+        let mutable store = MapExt.empty<UCmp<'k>, Index>
+
+        member x.Invoke(k : 'k) =
+            let k = UCmp(cmp, k)
+            let (left, self, right) = MapExt.neighbours k store
+            match self with
+                | Some(_, i) -> 
+                    i 
+                | None ->
+                    let result = 
+                        match left, right with
+                        | None, None                -> Index.after Index.zero
+                        | Some(_,l), None           -> Index.after l
+                        | None, Some(_,r)           -> Index.before r
+                        | Some (_,l), Some(_,r)     -> Index.between l r
+
+                    store <- MapExt.add k result store
+                    result
+
+        member x.Revoke(k : 'k) =
+            let k = UCmp(cmp, k)
+            match MapExt.tryRemove k store with
+            | Some(i, rest) ->
+                store <- rest
+                Some i
+            | None -> 
+                None
+
+        member x.Clear() =
+            store <- MapExt.empty
+
+    type IndexCache<'a, 'b>(f : Index -> 'a -> 'b, release : 'b -> unit) =
+        let store = Dictionary<Index, 'a * 'b>()
+
+        member x.InvokeAndGetOld(i : Index, a : 'a) =
+            match store.TryGetValue(i) with
+                | (true, (oa, old)) ->
+                    if Unchecked.equals oa a then
+                        None, old
+                    else
+                        let res = f i a
+                        store.[i] <- (a, res)
+                        Some old, res
+                | _ ->
+                    let res = f i a
+                    store.[i] <- (a, res)
+                    None, res       
+                                        
+        member x.Revoke(i : Index) =
+            match store.TryGetValue i with
+                | (true, (oa,ob)) -> 
+                    store.Remove i |> ignore
+                    release ob
+                    Some ob
+                | _ -> 
+                    None 
+
+        member x.Clear() =
+            store.Values |> Seq.iter (snd >> release)
+            store.Clear()
+
+        new(f : Index -> 'a -> 'b) = IndexCache(f, ignore)
+
+    type Unique<'b when 'b : comparison>(value : 'b) =
+        static let mutable currentId = 0
+        static let newId() = System.Threading.Interlocked.Increment(&currentId)
+
+        let id = newId()
+
+        member x.Value = value
+        member private x.Id = id
+
+        override x.ToString() = value.ToString()
+
+        override x.GetHashCode() = combineHash(Unchecked.hash value) id
+        override x.Equals o =
+            match o with
+                | :? Unique<'b> as o -> Unchecked.equals value o.Value && id = o.Id
+                | _ -> false
+
+        interface IComparable with
+            member x.CompareTo o =
+                match o with
+                    | :? Unique<'b> as o ->
+                        let c = compare value o.Value
+                        if c = 0 then compare id o.Id
+                        else c
+                    | _ ->
+                        failwith "uncomparable"

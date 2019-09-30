@@ -497,6 +497,7 @@ module AdaptiveHashSetImplementation =
         AdaptiveHashSetImpl(fun () -> reader() :> IOpReader<_>) :> aset<_>
 
 /// Functional operators for aset<_>
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ASet =
     open AdaptiveHashSetImplementation
 
