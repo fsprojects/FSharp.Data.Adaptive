@@ -4,15 +4,15 @@ open System
 
 /// Core implementation of IAdaptiveObject containing tools for evaluation
 /// and locking
-type AdaptiveObject =
+type AdaptiveObject() =
     
     [<DefaultValue; ThreadStatic>]
     static val mutable private CurrentEvaluationDepth : int
 
-    val mutable private outOfDate : bool
-    val mutable private level: int 
-    val mutable private outputs : WeakOutputSet
-    val mutable private weak : WeakReference<IAdaptiveObject>
+    let mutable outOfDate : bool = true
+    let mutable level: int = 0
+    let mutable outputs : WeakOutputSet = WeakOutputSet()
+    let mutable weak : WeakReference<IAdaptiveObject> = null
     
     /// Used for resetting EvaluationDepth in eager evaluation
     static member internal UnsafeEvaluationDepth
@@ -56,7 +56,7 @@ type AdaptiveObject =
             res <- r
 
             if not (Unchecked.isNull caller) then
-                x.outputs.Add caller |> ignore
+                outputs.Add caller |> ignore
                 caller.Level <- max caller.Level (x.Level + 1)
 
         with _ ->
@@ -89,26 +89,26 @@ type AdaptiveObject =
         // Note that we accept the race conditon here since locking the object
         // would potentially cause deadlocks and the worst case is, that we
         // create two different WeakReferences for the same object
-        let w = x.weak
+        let w = weak
         if isNull w then
             let w = WeakReference<_>(x :> IAdaptiveObject)
-            x.weak <- w
+            weak <- w
             w
         else
             w
             
     /// See IAdaptiveObject.OutOfDate
     member x.OutOfDate
-        with get() = x.outOfDate
-        and set o = x.outOfDate <- o
+        with get() = outOfDate
+        and set o = outOfDate <- o
         
     /// See IAdaptiveObject.Level
     member x.Level
-        with get() = x.level
-        and set l = x.level <- l
+        with get() = level
+        and set l = level <- l
         
     /// See IAdaptiveObject.Outputs
-    member x.Outputs = x.outputs :> IWeakOutputSet
+    member x.Outputs = outputs :> IWeakOutputSet
     
     /// See IAdaptiveObject.Mark()
     abstract Mark : unit -> bool
@@ -138,15 +138,7 @@ type AdaptiveObject =
             with get() = x.Level
             and set l = x.Level <- l
         
-    /// Creates a new (out-of-date) AdaptiveObject
-    new() =
-        { 
-            outOfDate = true
-            level = 0
-            outputs = WeakOutputSet()
-            weak = null
-        }
-
+   
 /// Core implementation of IAdaptiveObject for constant objects.
 /// The main goal of this implementation is to save memory when IAdaptiveObjects are known to be constant.
 type ConstantObject() =
