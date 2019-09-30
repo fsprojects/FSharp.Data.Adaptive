@@ -92,6 +92,11 @@ module AList =
     val sortBy : mapping: ('T1 -> 'T2) -> list: alist<'T1> -> alist<'T1>
         when 'T2 : comparison
 
+    /// Sorts the list using the given compare function.
+    /// Note that the sorting is stable.
+    val sortWith : compare: ('T -> 'T -> int) -> list: alist<'T> -> alist<'T>
+
+
     /// Adaptively folds over the list using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
     /// Also note that the order of elements given to add/trySubtract is undefined.

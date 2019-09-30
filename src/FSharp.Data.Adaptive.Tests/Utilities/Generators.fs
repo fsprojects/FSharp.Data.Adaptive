@@ -1247,8 +1247,7 @@ module Generators =
                         (fun () -> a.lchanges() @ b.lchanges())
 
             }
-            
-            
+
         let sortBy<'a>() =
             gen {
                 let! list = Arb.generate<VList<'a>> |> Gen.scaleSize (fun v -> v - 1)
@@ -1264,6 +1263,30 @@ module Generators =
                         (fun verbose ->
                             let ma, a = list.lexpression verbose
                             ma, sprintf "sortBy\r\n%s" (indent a)
+                        )
+                        list.lchanges
+
+            }
+            
+
+        let sortWith<'a>() =
+            gen {
+                let! list = Arb.generate<VList<'a>> |> Gen.scaleSize (fun v -> v - 1)
+                
+                let mapping = 
+                    let _, mapping = randomFunction<'a, int> 20
+                    mapping
+
+                let compare (l : 'a) (r : 'a) =
+                    compare (mapping l) (mapping r)
+
+                return 
+                    create 
+                        (Adaptive.AList.sortWith compare list.lreal)
+                        (Reference.AList.sortWith compare list.lref)
+                        (fun verbose ->
+                            let ma, a = list.lexpression verbose
+                            ma, sprintf "sortWith\r\n%s" (indent a)
                         )
                         list.lchanges
 
@@ -1554,6 +1577,7 @@ type AdaptiveGenerators() =
                                     3, Gen.constant "collect"
                                     3, Gen.constant "append"
                                     3, Gen.constant "sortBy"
+                                    3, Gen.constant "sortWith"
                                 ]
                         match kind with
                         | "constant" -> 
@@ -1566,6 +1590,8 @@ type AdaptiveGenerators() =
                             return! Generators.List.append<'a>()
                         | "sortBy" ->
                             return! Generators.List.sortBy<'a>()
+                        | "sortWith" ->
+                            return! Generators.List.sortWith<'a>()
                         | "map" -> 
                             let! t = Gen.elements relevantTypes
                             return!

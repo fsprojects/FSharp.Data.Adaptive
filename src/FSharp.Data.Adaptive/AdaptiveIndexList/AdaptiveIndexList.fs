@@ -561,6 +561,51 @@ module AdaptiveIndexListImplementation =
             )
             |> IndexListDelta.ofSeq
 
+    /// Reader for sortWith operations
+    type SortWithReader<'a>(input : alist<'a>, compare : 'a -> 'a -> int) =
+        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.monoid)
+
+        let reader = input.GetReader()
+        let idx = IndexMapping<UCmp<struct ('a * Index)>>()
+
+        let cmp = 
+            let icmp = LanguagePrimitives.FastGenericComparer<Index>
+            let vcmp = OptimizedClosures.FSharpFunc<_,_,_>.Adapt compare
+            let cmp (struct (lv: 'a, li: Index)) (struct (rv: 'a, ri : Index)) =
+                let c = vcmp.Invoke(lv, rv)
+                if c = 0 then icmp.Compare(li, ri)
+                else c
+            OptimizedClosures.FSharpFunc<_,_,_>.Adapt cmp
+
+        override x.Compute(token : AdaptiveToken) =
+            let old = reader.State.Content
+            reader.GetChanges(token).Content
+            |> Seq.collect (fun (KeyValue(i, op)) ->
+                match op with
+                | Set v -> 
+                    let rem =
+                        match MapExt.tryFind i old with
+                        | Some ov ->
+                            match idx.Revoke(UCmp(cmp, struct(ov, i))) with
+                            | Some oi -> Some (oi, Remove)
+                            | None -> None
+                        | _ ->
+                            None
+                    let oi = idx.Invoke(UCmp(cmp, struct(v, i)))
+                    match rem with
+                    | Some op -> [op; (oi, Set v)]
+                    | None -> [(oi, Set v)]
+                | Remove ->
+                    match MapExt.tryFind i old with
+                    | Some ov ->
+                        match idx.Revoke(UCmp(cmp, struct(ov, i))) with
+                        | Some oi -> [(oi, Remove)]
+                        | None -> []
+                    | _ ->
+                        []
+            )
+            |> IndexListDelta.ofSeq
+
 
     /// Gets the current content of the alist as IndexList.
     let inline force (list : alist<'T>) = 
@@ -704,6 +749,14 @@ module AList =
             constant (fun () -> force list |> IndexList.sortBy projection)
         else
             create (fun () -> SortByReader(list, fun _ v -> projection v))
+
+    /// Sorts the list using the given compare function.
+    /// Note that the sorting is stable.
+    let sortWith (compare : 'T -> 'T -> int) (list : alist<'T>) =
+        if list.IsConstant then
+            constant (fun () -> force list |> IndexList.sortWith compare)
+        else
+            create (fun () -> SortWithReader(list, compare))
 
     /// Adaptively folds over the list using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
