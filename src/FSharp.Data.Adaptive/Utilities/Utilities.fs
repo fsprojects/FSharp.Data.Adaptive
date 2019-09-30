@@ -292,7 +292,12 @@ module internal AdaptiveIndexListHelpers =
 
     type Unique<'b when 'b : comparison>(value : 'b) =
         static let mutable currentId = 0
-        static let newId() = System.Threading.Interlocked.Increment(&currentId)
+        static let newId() = 
+            #if FABLE_COMPILER
+            let v = currentId in currentId <- v + 1; v
+            #else 
+            System.Threading.Interlocked.Increment(&currentId)
+            #endif
 
         let id = newId()
 
@@ -318,22 +323,3 @@ module internal AdaptiveIndexListHelpers =
                         failwith "uncomparable"
 
 
-
-#if FABLE_COMPILER
-namespace System
-
-[<AllowNullLiteral>]
-type WeakReference<'a when 'a : not struct>(value : 'a) =
-    member x.TryGetTarget() =
-        (true, value)
-
-namespace System.Threading
-
-type Monitor =
-    static member inline Enter (_o : obj) = ()
-    static member inline Exit (_o : obj) = ()
-    static member inline IsEntered (_o : obj) = true
-    static member inline TryEnter (_o : obj) = true
-
-
-#endif
