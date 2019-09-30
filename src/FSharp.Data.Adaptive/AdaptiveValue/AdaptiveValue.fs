@@ -9,20 +9,20 @@ type AdaptiveValue<'T> =
 and aval<'T> = AdaptiveValue<'T>
 
 [<Sealed; StructuredFormatDisplay("{AsString}")>]
-type ChangeableValue<'T> =
-    inherit AdaptiveObject
-    val mutable private value: 'T
+type ChangeableValue<'T>(value : 'T) =
+    inherit AdaptiveObject()
+    let mutable value = value
 
     member x.Value
-        with get() = x.value
+        with get() = value
         and set v =
-            if not (cheapEqual x.value v) then
-                x.value <- v
+            if not (cheapEqual value v) then
+                value <- v
                 x.MarkOutdated()
                 
     member x.GetValue (token: AdaptiveToken) =
         x.EvaluateAlways token (fun _ ->
-            x.value
+            value
         )
 
     interface AdaptiveValue<'T> with
@@ -30,8 +30,6 @@ type ChangeableValue<'T> =
         
     member private x.AsString = sprintf "cval(%A)" x.Value
     override x.ToString() = String.Format("cval({0})", x.Value)
-
-    new(value: 'T) = { value = value }
 
 and cval<'T> = ChangeableValue<'T>
     
