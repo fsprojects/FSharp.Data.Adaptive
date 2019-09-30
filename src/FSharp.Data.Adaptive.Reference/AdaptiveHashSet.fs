@@ -106,7 +106,7 @@ and cset<'T> = ChangeableHashSet<'T>
 module ASet =
 
     /// Creates an aset from the given aval.
-    let internal ofRef (r: aval<HashSet<'T>>) =
+    let ofRef (r: aval<HashSet<'T>>) =
         { new aset<'T> with 
             member x.Content = r
             member x.GetReader() = ASetReader(x) :> IHashSetReader<_>    

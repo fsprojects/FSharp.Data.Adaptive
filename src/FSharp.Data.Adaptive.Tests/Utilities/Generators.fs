@@ -557,6 +557,30 @@ module Generators =
                         )
                         value.schanges
             }
+                
+        let ofAList<'a>() =
+            gen {
+                let! value = Arb.generate<VList<'a>> |> Gen.scaleSize (fun s -> 0)
+
+                let reference =
+                    value.lref.Content |> Reference.AVal.map HashSet.ofSeq |> Reference.ASet.ofRef
+
+                return 
+                    create 
+                        (Adaptive.CollectionExtensions.ASet.ofAList value.lreal)
+                        reference
+                        (function
+                            | false -> 
+                                let m, v = value.lexpression false
+                                m, sprintf "ofAList (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.lref.Content |> Reference.AVal.force
+                                let mi, input = value.lexpression true
+
+                                mi, sprintf "%s\r\n|> ASet.ofAList" (indent input)
+                        )
+                        value.lchanges
+            }
 
         let union<'a> () =
             gen {
@@ -1549,6 +1573,7 @@ type AdaptiveGenerators() =
                                     1, Gen.constant "bind"
                                     3, Gen.constant "ofAMap"
                                     3, Gen.constant "aMapKeys"
+                                    3, Gen.constant "ofAList"
                                 ]
                         match kind with
                         | "constant" -> 
@@ -1563,6 +1588,8 @@ type AdaptiveGenerators() =
                             return! Generators.Set.ofAVal<'a>() 
                         | "filter" ->
                             return! Generators.Set.filter<'a>()
+                        | "ofAList" ->
+                            return! Generators.Set.ofAList<'a>()
 
                         | "aMapKeys" -> 
                             let! t = Gen.elements relevantTypes

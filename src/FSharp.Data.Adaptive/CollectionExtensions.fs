@@ -58,6 +58,31 @@ module CollectionExtensions =
                     )
                 HashSetDelta(HashMap(cnt, ops))
 
+        /// Reader for AList.toASet
+        type ListSetReader<'T>(list: alist<'T>) =
+            inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.monoid)
+            
+            let reader = list.GetReader()
+
+            override x.Compute(token: AdaptiveToken) =
+                let old = reader.State.Content
+                reader.GetChanges(token).Content |> Seq.collect (fun (KeyValue(i, op)) ->
+                    match op with
+                    | Remove -> 
+                        match MapExt.tryFind i old with
+                        | Some v -> Seq.singleton (Rem v)
+                        | None -> Seq.empty
+                    | Set v ->
+                        match MapExt.tryFind i old with
+                        | Some ov ->
+                            if Unchecked.equals v ov then Seq.empty
+                            else [Add v; Rem ov] :> seq<_>
+                        | None ->
+                            Seq.singleton (Add v)
+                )
+                |> HashSetDelta.ofSeq
+
+
 
 
     /// Functional operators for amap<_,_>
@@ -77,6 +102,21 @@ module CollectionExtensions =
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module ASet =
 
+        /// Creates an aset holding all key/value tuples from the map.
+        let ofAMap (map: amap<'Key, 'Value>) = AMap.toASet map
+
+        /// Creates an aset holding all elements of the given list.
+        let ofAList (list: alist<'T>) =
+            if list.IsConstant then
+                list.Content
+                |> AVal.force
+                |> ASet.ofSeq
+            else
+                ASet.ofReader (fun () -> ListSetReader(list))
+            
+        /// Creates an amap with the keys from the set and the values given by mapping.
+        let mapToAMap (mapping: 'Key -> 'Value) (set: aset<'Key>) = AMap.mapSet mapping set
+
         /// Sorts the set using the keys given by projection.
         let sortBy (projection: 'T1 -> 'T2) (set: aset<'T1>) : alist<'T1> =
             if set.IsConstant then
@@ -91,3 +131,10 @@ module CollectionExtensions =
 
         /// Sorts the set.
         let inline sort (set: aset<'T>) = sortBy id set
+
+    /// Functional operators for alist<_>
+    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+    module AList =
+        
+        /// Creates an aset holding all elements of the given list.
+        let toASet (list: alist<'T>) = ASet.ofAList list
