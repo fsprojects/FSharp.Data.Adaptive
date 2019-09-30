@@ -737,7 +737,22 @@ module Generators =
                         (fun () -> a.mchanges())
 
             }
-   
+       
+        let aMapKeys<'a, 'b> () =
+            gen {
+                let! a = Arb.generate<VMap<'a, 'b>> |> Gen.scaleSize (fun v -> 0)
+                return 
+                    create 
+                        (Adaptive.CollectionExtensions.AMap.keys a.mreal)
+                        (Reference.AMap.toASet a.mref |> Reference.ASet.map fst)
+                        (fun verbose ->
+                            let ma, a = a.mexpression verbose
+                            ma, sprintf "aMapKeys\r\n%s" (indent a)
+                        )
+                        (fun () -> a.mchanges())
+
+            }
+     
     module VMap =
         let mutable cid = 0
 
@@ -1533,6 +1548,7 @@ type AdaptiveGenerators() =
                                     1, Gen.constant "aval"
                                     1, Gen.constant "bind"
                                     3, Gen.constant "ofAMap"
+                                    3, Gen.constant "aMapKeys"
                                 ]
                         match kind with
                         | "constant" -> 
@@ -1547,6 +1563,13 @@ type AdaptiveGenerators() =
                             return! Generators.Set.ofAVal<'a>() 
                         | "filter" ->
                             return! Generators.Set.filter<'a>()
+
+                        | "aMapKeys" -> 
+                            let! t = Gen.elements relevantTypes
+                            return!
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.Set.aMapKeys<'a, 'z>() 
+                                }
 
                         | "ofAMap" ->
                             let! t = Gen.elements relevantTypes
