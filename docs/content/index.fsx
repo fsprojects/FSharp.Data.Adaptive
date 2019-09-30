@@ -17,3 +17,19 @@ let test (a : aval<int>) =
     a |> AVal.map (fun v -> v * 2)
 
 
+let setStuff() =
+    let set = cset [1;2;3]
+
+    let dependent = 
+        set 
+        |> ASet.map (fun v -> v * 2) 
+        |> ASet.sum
+    printfn "%A" (AVal.force dependent)
+
+    transact (fun () -> set.Remove 1 |> ignore)
+    printfn "%A" (AVal.force dependent)
+
+    transact (fun () -> set.Add 5 |> ignore)
+    printfn "%A" (AVal.force dependent)
+
+
