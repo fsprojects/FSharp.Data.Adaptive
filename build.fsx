@@ -160,7 +160,17 @@ Target.create "Test" (fun _ -> ())
 
 Target.create "Default" ignore
 
+Target.create "Docs" (fun _ ->
+    let path = Path.Combine(__SOURCE_DIRECTORY__, "packages/docs/FSharp.Compiler.Tools/tools/fsi.exe")
+    let workingDir = "docs/tools"
+    let args = "generate.fsx"
+    let command, args = 
+        if false (* EnvironmentHelper.isMono *) then "mono", sprintf "'%s' %s" path args 
+        else path, args
 
+    if Shell.Exec(command, args, workingDir) <> 0 then
+        failwith "failed to generate docs"
+)
 Target.create "GenerateDocs" (fun _ ->
     let path = Path.Combine(__SOURCE_DIRECTORY__, "packages/docs/FSharp.Compiler.Tools/tools/fsi.exe")
     let workingDir = "docs/tools"
@@ -224,7 +234,12 @@ Target.create "ReleaseDocs" (fun _ ->
     reallyDelete 5
 )
 
-"GenerateDocs" ==> "ReleaseDocs"
+"Compile" ==> 
+    "Docs"
+    
+"Compile" ==> 
+    "GenerateDocs" ==> 
+    "ReleaseDocs"
 
 "RunTest" ==> "Test"
 
