@@ -9,6 +9,36 @@ open FsCheck.NUnit
 open FSharp.Data.Adaptive
 open FSharp.Data.Traceable
 
+[<Property(EndSize = 1024, Verbose = true)>]
+let ``[Index] maintaining order``(lr : list<bool>) =
+    let min = Index.zero
+    let max = Index.after min
+    let mutable l = min
+    let mutable r = max
+
+    let all =
+        lr |> List.map (fun left ->
+            if left then 
+                r <- Index.between l r
+                r
+            else 
+                l <- Index.between l r
+                l
+        )
+        
+    let mutable l = min
+    let mutable r = max
+    List.zip lr all |> List.iter (fun (left, i) ->
+        if left then i < r |> should be True
+        else i > l |> should be True
+        if left then r <- i
+        else l <- i
+    )
+
+
+
+
+
 
 [<Property>]
 let ``[IndexList] creation`` (l : list<int>) =
@@ -29,7 +59,20 @@ let ``[IndexList] append`` (l : list<int>) (r : list<int>) =
     |> IndexList.toList
     |> should equal (List.append l r)
 
+
+[<Property>]
+let ``[IndexList] collect`` (l : list<int>) =
+    let ref = l |> List.collect (fun v -> [v; 2*v; 3*v])
+    let test = l |> IndexList.ofList |> IndexList.collect (fun v -> IndexList.ofList [v; 2*v; 3*v]) |> IndexList.toList
+    test |> should equal ref
     
+
+[<Property>]
+let ``[IndexList] map`` (l : list<int>) =
+    let ref = l |> List.map (fun v -> v / 3)
+    let test = l |> IndexList.ofList |> IndexList.map (fun v -> v / 3) |> IndexList.toList
+    test |> should equal ref
+
 [<Property>]
 let ``[IndexList] add/prepend`` (l : list<int>) = 
     let indexList = IndexList.ofList l
