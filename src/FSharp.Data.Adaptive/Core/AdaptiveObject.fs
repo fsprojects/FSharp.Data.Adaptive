@@ -111,24 +111,24 @@ type AdaptiveObject() =
     member x.Outputs = outputs :> IWeakOutputSet
     
     /// See IAdaptiveObject.Mark()
-    abstract Mark : unit -> bool
-    default x.Mark() = true
+    abstract MarkObject : unit -> bool
+    default x.MarkObject() = true
     
     /// See IAdaptiveObject.AllInputsProcessed(transaction)
-    abstract AllInputsProcessed : obj -> unit
-    default x.AllInputsProcessed _ = ()
+    abstract AllInputProcessedObject : obj -> unit
+    default x.AllInputProcessedObject _ = ()
     
     /// See IAdaptiveObject.InputChanged(transaction, object)
-    abstract InputChanged : obj * IAdaptiveObject -> unit
-    default x.InputChanged(_,_) = ()
+    abstract InputChangedObject : obj * IAdaptiveObject -> unit
+    default x.InputChangedObject(_,_) = ()
 
     interface IAdaptiveObject with
         member x.IsConstant = false
         member x.Weak = x.Weak
         member x.Outputs = x.Outputs
-        member x.Mark() = x.Mark()
-        member x.AllInputsProcessed(t) = x.AllInputsProcessed(t)
-        member x.InputChanged(t, o) = x.InputChanged(t, o)
+        member x.Mark() = x.MarkObject()
+        member x.AllInputsProcessed(t) = x.AllInputProcessedObject(t)
+        member x.InputChanged(t, o) = x.InputChangedObject(t, o)
 
         member x.OutOfDate
             with get() = x.OutOfDate

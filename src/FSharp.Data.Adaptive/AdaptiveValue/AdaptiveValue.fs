@@ -186,14 +186,17 @@ module AVal =
         let mutable inner: ValueOption< struct ('T1 * aval<'T2>) > = ValueNone
         let mutable inputDirty = 1
 
-        override x.InputChanged(_, o) =
+        override x.InputChangedObject(_, o) =
             if Object.ReferenceEquals(o, input) then 
                 inputDirty <- 1
 
         override x.Compute(token: AdaptiveToken) =
             let va = input.GetValue token
+            #if FABLE_COMPILER
+            let inputDirty = let v = inputDirty in inputDirty <- 0; v <> 0
+            #else
             let inputDirty = System.Threading.Interlocked.Exchange(&inputDirty, 0) <> 0
-
+            #endif
             match inner with
             | ValueNone ->
                 let result = mapping va
@@ -217,15 +220,19 @@ module AVal =
         let mutable inner: ValueOption< struct ('T1 * 'T2 * aval<'T3>) > = ValueNone
         let mutable inputDirty = 1
 
-        override x.InputChanged(_, o) =
+        override x.InputChangedObject(_, o) =
             if Object.ReferenceEquals(o, value1) || Object.ReferenceEquals(o, value2) then 
                 inputDirty <- 1
 
         override x.Compute(token: AdaptiveToken) =
             let va = value1.GetValue token
             let vb = value2.GetValue token
+            #if FABLE_COMPILER
+            let inputDirty = let v = inputDirty in inputDirty <- 0; v <> 0
+            #else
             let inputDirty = System.Threading.Interlocked.Exchange(&inputDirty, 0) <> 0
-
+            #endif
+            
             match inner with
             | ValueNone ->
                 let res = mapping.Invoke (va, vb)

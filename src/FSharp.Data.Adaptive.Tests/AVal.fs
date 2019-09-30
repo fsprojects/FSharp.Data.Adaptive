@@ -122,7 +122,7 @@ type EagerVal<'T>(input : aval<'T>) =
 
     let mutable last = None
 
-    override x.Mark() = 
+    override x.MarkObject() = 
         let v = input.GetValue AdaptiveToken.Top
         match last with
         | Some old when Unchecked.equals old v -> 

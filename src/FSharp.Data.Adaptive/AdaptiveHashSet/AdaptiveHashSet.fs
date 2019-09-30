@@ -260,7 +260,7 @@ module AdaptiveHashSetImplementation =
         let mutable valChanged = 0
         let mutable cache : option<'A * IHashSetReader<'B>> = None
             
-        override x.InputChanged(_, i) =
+        override x.InputChangedObject(_, i) =
             if System.Object.ReferenceEquals(i, input) then
                 valChanged <- 1
 

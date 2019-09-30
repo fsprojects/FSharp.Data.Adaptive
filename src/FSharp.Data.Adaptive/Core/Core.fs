@@ -87,6 +87,31 @@ and IWeakOutputSet =
     /// And clears its content.
     abstract member Consume : unit -> IAdaptiveObject[]
 
+
+#if FABLE_COMPILER
+
+/// Represents a set of outputs for an AdaptiveObject. The references to all
+/// contained elements are weak and the datastructure allows to add/remove
+/// entries. The only other functionality is Consume which returns all the
+/// (currently live) entries and clears the set.
+and internal WeakOutputSet() =
+    let mutable data = HashSet<IAdaptiveObject>()
+    member x.Add(obj: IAdaptiveObject) = data.Add obj
+    member x.Remove(obj: IAdaptiveObject) = data.Remove obj
+    member x.Consume(): IAdaptiveObject[] = 
+        let old = data
+        data <- HashSet<IAdaptiveObject>()
+        Seq.toArray old
+
+    member x.IsEmpty = data.Count = 0
+
+    interface IWeakOutputSet with
+        member x.IsEmpty = x.IsEmpty
+        member x.Add o = x.Add o
+        member x.Remove o = x.Remove o
+        member x.Consume() = x.Consume()
+
+#else
 /// Represents a set of outputs for an AdaptiveObject. The references to all
 /// contained elements are weak and the datastructure allows to add/remove
 /// entries. The only other functionality is Consume which returns all the
@@ -287,6 +312,8 @@ and internal WeakOutputSet() =
         member x.Add o = x.Add o
         member x.Remove o = x.Remove o
         member x.Consume() = x.Consume()
+
+#endif
 
 and internal EmptyOutputSet() =
     static let emptyArray : IAdaptiveObject[] = Array.zeroCreate 0

@@ -348,7 +348,7 @@ module internal AdaptiveIndexListImplementation =
         let mutable inputChanged = 1
         let mutable reader : Option<'a * IIndexListReader<'b>> = None
 
-        override x.InputChanged(t : obj, o : IAdaptiveObject) =
+        override x.InputChangedObject(t : obj, o : IAdaptiveObject) =
             if System.Object.ReferenceEquals(input, o) then
                 inputChanged <- 1
 

@@ -63,7 +63,7 @@ type AbstractDirtyReader<'T, 'Delta when 'T :> IAdaptiveObject>(t: Monoid<'Delta
 
     let dirty = ref <| System.Collections.Generic.HashSet<'T>()
 
-    override x.InputChanged(_, o) =
+    override x.InputChangedObject(_, o) =
         match o with
         | :? 'T as o -> lock dirty (fun () -> dirty.Value.Add o |> ignore)
         | _ -> ()

@@ -54,11 +54,19 @@ type Transaction() =
     let mutable finalizers : list<unit -> unit> = []
 
     let runFinalizers () =
+        #if FABLE_COMPILER 
+        let fs = let v = finalizers in finalizers <- []; v
+        #else
         let fs = Interlocked.Exchange(&finalizers, [])
+        #endif
         for f in fs do f()
         
     member x.AddFinalizer (f : unit->unit) =
+        #if FABLE_COMPILER 
+        finalizers <- f :: finalizers
+        #else
         Interlocked.Change(&finalizers, (fun a -> f::a) ) |> ignore
+        #endif
 
     member x.IsContained e = contained.Contains e
 
