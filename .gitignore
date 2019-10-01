@@ -17,5 +17,6 @@ bin/Fable
 *.trx
 symbolCache.db
 *.suo
+/docs/output
 /node_modules
 /.fable

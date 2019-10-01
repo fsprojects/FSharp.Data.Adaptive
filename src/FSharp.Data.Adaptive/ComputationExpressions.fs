@@ -1,9 +1,11 @@
 ﻿namespace FSharp.Data.Adaptive
 
 
+/// ComputationExpression builders for aval/aset/alist/amap.
 [<AutoOpen>]
 module ComputationExpressions =
 
+    /// ComputationExpression builder for aval.
     type AValBuilder() =
         static let delayed = AVal.custom ignore
 
@@ -15,20 +17,8 @@ module ComputationExpressions =
 
         member inline x.ReturnFrom(value: aval<'T>) =
             value
-            
-        // TODO: should we add these? 
-        //member inline x.Zero() =
-        //    AVal.constant ()
-        //member x.Delay(value: unit -> aval<'T>) =
-        //    delayed |> AVal.bind value
-        //member inline x.Combine(left: aval<unit>, right: aval<'T>) =
-        //    AVal.map2 (fun () r -> r) left right
-        //member inline x.For(elements: seq<'T>, action: 'T -> aval<unit>) =
-        //    let all = elements |> Seq.map action |> Seq.toArray
-        //    AVal.custom (fun token ->
-        //        all |> Array.iter (fun v -> v.GetValue token)
-        //    )
-
+        
+    /// ComputationExpression builder for aset.
     type ASetBuilder() =
         member inline x.Yield(value: 'T) = ASet.single value
         member inline x.YieldFrom(values: aset<'T>) = values
@@ -81,7 +71,8 @@ module ComputationExpressions =
         member inline x.Zero() = ASet.empty
         member inline x.Combine(l: aset<'T>, r: aset<'T>) = ASet.union l r
         member inline x.Delay(value: unit -> aset<'T>) = value()
-
+        
+    /// ComputationExpression builder for alist.
     type AListBuilder() =
         member inline x.Yield(value: 'T) = AList.single value
         member inline x.YieldFrom(values: alist<'T>) = values
@@ -113,7 +104,8 @@ module ComputationExpressions =
         member inline x.Zero() = AList.empty
         member inline x.Combine(l: alist<'T>, r: alist<'T>) = AList.append l r
         member inline x.Delay(value: unit -> alist<'T>) = value()
-
+        
+    /// ComputationExpression builder for amap.
     type AMapBuilder() =
         member inline x.Zero() = AMap.empty
 
@@ -142,10 +134,19 @@ module ComputationExpressions =
         member inline x.Delay(value: unit -> amap<'Key, 'Value>) = value()
         member inline x.Combine(l: amap<'Key, 'Value>, r: amap<'Key, 'Value>) = AMap.union l r
             
+    /// ComputationExpression builder for aval.
     let aval = AValBuilder()
+
+    /// ComputationExpression builder for aset.
     let aset = ASetBuilder()
+
+    /// ComputationExpression builder for alist.
     let alist = AListBuilder()
+
+    /// ComputationExpression builder for amap.
     let amap = AMapBuilder()
+
+    /// ComputationExpression builder for aval.
     let adaptive = aval
 
     /// tests if some ComputationExpressions compile

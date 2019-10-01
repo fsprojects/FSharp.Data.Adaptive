@@ -46,6 +46,7 @@ type internal CallbackObject(obj: IAdaptiveObject, callback: CallbackObject -> u
             with get() = level
             and set l = level <- l
 
+/// IAdaptiveObject extensions for creating/removing callbacks.
 [<AutoOpen>]
 module CallbackExtensions =
     
