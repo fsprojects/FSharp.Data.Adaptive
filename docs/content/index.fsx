@@ -18,7 +18,7 @@ The most basic adaptive container-type we provide is `aval<'T>` and here's a lit
 (** 
 ### Simple Example
 
-consider a falling ball that falls from `10m` height on earth (`9.81m/s^2`).
+consider a ball that falls from `10m` height on earth (`9.81m/s^2`).
 *)
 let height  = cval 10.0
 let gravity = cval 9.81
