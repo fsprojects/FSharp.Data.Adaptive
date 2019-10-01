@@ -101,8 +101,19 @@ Target.create "Watch" (fun _ ->
     let old = Environment.CurrentDirectory
     Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 
-    let npx = "./node_modules/npx/index.js" |> Path.GetFullPath
+    let npx = "node_modules/npx/index.js" |> Path.GetFullPath
 
+    if not (File.exists npx) then
+        Trace.trace "running `npm install`"
+        CreateProcess.fromRawCommand "npm" ["install"]
+        |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
+        |> CreateProcess.withStandardError StreamSpecification.Inherit
+        |> CreateProcess.withStandardOutput StreamSpecification.Inherit
+        |> CreateProcess.ensureExitCode
+        |> Proc.run
+        |> ignore
+
+        ()
     CreateProcess.fromRawCommand "node" [npx; "webpack-dev-server"]
     |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
     |> CreateProcess.withStandardError StreamSpecification.Inherit
