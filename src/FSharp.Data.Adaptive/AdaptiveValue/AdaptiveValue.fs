@@ -133,7 +133,7 @@ module AVal =
 
         // can we avoid double caching (here and in AbstractVal)
         let mutable cache: ValueOption<struct ('T1 * 'T2)> = ValueNone
-
+        
         override x.Compute(token: AdaptiveToken) =
             let i = input.GetValue token
             match cache with

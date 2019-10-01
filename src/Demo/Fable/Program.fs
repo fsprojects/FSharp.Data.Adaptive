@@ -21,7 +21,12 @@ let logh3 fmt =
         h3.innerText <- str
         document.body.appendChild h3 |> ignore
     )
-
+let logh4 fmt =
+    fmt |> Printf.kprintf (fun str ->
+        let h3 = document.createElement("h4")
+        h3.innerText <- str
+        document.body.appendChild h3 |> ignore
+    )
 let log fmt =
     fmt |> Printf.kprintf (fun str ->
         let pre = document.createElement("pre")
@@ -89,7 +94,44 @@ let example() =
     log "%A -> %A" (IndexListDelta.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList reader.State)
 
 
+    logh3 "ASet unionMany"
+    let a = cset [1;2;3]
+    let b = cset [2;3;4]
 
+    let set = cset [(a :> aset<_>); (b :> aset<_>)]
+    let dependent = ASet.unionMany set
+    let reader = dependent.GetReader()
+
+    logh4 "initial"
+    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    
+    logh4 "Add 5"
+    transact (fun () -> b.Add 5) |> ignore
+    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    
+    let c = cset [8;9]
+    logh4 "Add [8;9]"
+    transact (fun () -> set.Add (c :> aset<_>)) |> ignore
+    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    
+    logh4 "Rem [8;9]"
+    transact (fun () -> set.Remove (c :> aset<_>) |> ignore; c.Add 10 |> ignore)
+    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    
+    let f = AVal.init 1
+    
+    logh3 "ASet mapA"
+    let overkill = dependent |> ASet.mapA (fun v -> f |> AVal.map (fun f -> f * v))
+    let reader = overkill.GetReader()
+    
+    logh4 "initial"
+    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    
+    transact (fun () -> f.Value <- 2)
+    
+    logh4 "f = 2"
+    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    
 [<EntryPoint>]
 let main argv =
     document.addEventListener("readystatechange", fun _ ->

@@ -24,6 +24,8 @@ and alist<'T> = AdaptiveIndexList<'T>
 /// Internal implementations for alist operations.
 module internal AdaptiveIndexListImplementation =
 
+    let inline checkTag (value : 'a) (real : obj) = Unchecked.equals (value :> obj) real
+    
     /// Core implementation for a dependent list.
     type AdaptiveIndexListImpl<'T>(createReader : unit -> IOpReader<IndexListDelta<'T>>) =
         let history = History(createReader, IndexList.trace)
@@ -223,7 +225,7 @@ module internal AdaptiveIndexListImplementation =
 
     /// Reader for collect operations.
     type CollectReader<'a, 'b>(input : alist<'a>, f : Index -> 'a -> alist<'b>) =
-        inherit AbstractDirtyReader<MultiReader<'b>, IndexListDelta<'b>>(IndexListDelta.monoid)
+        inherit AbstractDirtyReader<MultiReader<'b>, IndexListDelta<'b>>(IndexListDelta.monoid, checkTag "MultiReader")
             
         let mapping = IndexMapping<Index * Index>()
         let cache = System.Collections.Generic.Dictionary<Index, 'a * alist<'b>>()
@@ -238,6 +240,7 @@ module internal AdaptiveIndexListImplementation =
             | (true, r) -> r
             | _ ->
                 let r = new MultiReader<'b>(mapping, l, removeReader)
+                r.Tag <- "MultiReader"
                 readers.Add(l, r) 
                 r
 
@@ -321,10 +324,15 @@ module internal AdaptiveIndexListImplementation =
 
     /// Reader for concat operations.
     type ConcatReader<'a>(inputs : IndexList<alist<'a>>) =
-        inherit AbstractDirtyReader<IndexedReader<'a>, IndexListDelta<'a>>(IndexListDelta.monoid)
+        inherit AbstractDirtyReader<IndexedReader<'a>, IndexListDelta<'a>>(IndexListDelta.monoid, checkTag "InnerReader")
 
         let mapping = IndexMapping<Index * Index>()
-        let readers = inputs |> IndexList.mapi (fun i l -> IndexedReader(mapping, i, l))
+        let readers = 
+            inputs |> IndexList.mapi (fun i l -> 
+                let r = IndexedReader(mapping, i, l)
+                r.Tag <- "InnerReader"
+                r
+            )
 
         let mutable initial = true
 

@@ -4,6 +4,7 @@ open System
 
 /// Core implementation of IAdaptiveObject containing tools for evaluation
 /// and locking
+[<AbstractClass>]
 type AdaptiveObject() =
     
     [<DefaultValue; ThreadStatic>]
@@ -13,7 +14,9 @@ type AdaptiveObject() =
     let mutable level: int = 0
     let mutable outputs : WeakOutputSet = WeakOutputSet()
     let mutable weak : WeakReference<IAdaptiveObject> = null
-    
+    let mutable tag : obj = null
+
+
     /// Used for resetting EvaluationDepth in eager evaluation
     static member internal UnsafeEvaluationDepth
         with get() = AdaptiveObject.CurrentEvaluationDepth
@@ -122,6 +125,10 @@ type AdaptiveObject() =
     abstract InputChangedObject : obj * IAdaptiveObject -> unit
     default x.InputChangedObject(_,_) = ()
 
+    member x.Tag
+        with get() = tag
+        and set t = tag <- t
+
     interface IAdaptiveObject with
         member x.IsConstant = false
         member x.Weak = x.Weak
@@ -129,6 +136,10 @@ type AdaptiveObject() =
         member x.Mark() = x.MarkObject()
         member x.AllInputsProcessed(t) = x.AllInputProcessedObject(t)
         member x.InputChanged(t, o) = x.InputChangedObject(t, o)
+        
+        member x.Tag
+            with get() = x.Tag
+            and set o = x.Tag <- o
 
         member x.OutOfDate
             with get() = x.OutOfDate
@@ -146,6 +157,10 @@ type ConstantObject() =
     static let outputs = EmptyOutputSet() :> IWeakOutputSet
 
     interface IAdaptiveObject with
+        member x.Tag
+            with get() = null
+            and set _ = ()
+
         member x.IsConstant = true
         member x.Weak =
             // Note that we accept the race conditon here since locking the object

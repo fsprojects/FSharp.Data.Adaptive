@@ -65,17 +65,18 @@ type AbstractReader<'State, 'Delta>(t: Traceable<'State, 'Delta>) =
 
 /// Abstract base class for implementing IOpReader<_> when dirty inputs are needed on evaluation.
 [<AbstractClass>]
-type AbstractDirtyReader<'T, 'Delta when 'T :> IAdaptiveObject>(t: Monoid<'Delta>) =
+type AbstractDirtyReader<'T, 'Delta when 'T :> IAdaptiveObject>(t: Monoid<'Delta>, take : obj -> bool) =
     inherit AdaptiveObject()
 
     let dirty = ref <| System.Collections.Generic.HashSet<'T>()
 
     override x.InputChangedObject(_, o) =
         #if FABLE_COMPILER
-        lock dirty (fun () -> dirty.Value.Add (unbox o) |> ignore)
+        let o = unbox<'T> o
+        if take o.Tag then dirty.Value.Add o |> ignore
         #else
         match o with
-        | :? 'T as o -> lock dirty (fun () -> dirty.Value.Add o |> ignore)
+        | :? 'T as o when take o.Tag -> lock dirty (fun () -> dirty.Value.Add o |> ignore)
         | _ -> ()
         #endif
 
@@ -377,7 +378,7 @@ and internal HistoryReader<'State, 'Delta>(h: History<'State, 'Delta>) =
     let trace = h.Trace
     let mutable node: RelevantNode<'State, 'Delta> = null
     let mutable state = trace.tempty
-
+    
     member x.RelevantNode = 
         node
 

@@ -14,6 +14,8 @@ open System.Collections.Generic
 /// and lazy/eager evaluation in the dependency tree.
 type IAdaptiveObject =
 
+    abstract member Tag : obj with get, set
+
     /// Each object can cache a WeakReference pointing to itself.
     /// This is because the system internally needs WeakReferences to IAdaptiveObjects
     abstract member Weak: WeakReference<IAdaptiveObject>
