@@ -15,6 +15,9 @@ do Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 
 let notes = ReleaseNotes.load "RELEASE_NOTES.md"
 
+let isWindows =
+    Environment.OSVersion.Platform <> PlatformID.Unix && Environment.OSVersion.Platform <> PlatformID.MacOSX
+
 Target.create "Clean" (fun _ ->
     if Directory.Exists "bin/Debug" then
         Trace.trace "deleting bin/Debug"
@@ -63,21 +66,27 @@ Target.create "Compile" (fun _ ->
     DotNet.build options "FSharp.Data.Adaptive.sln"
 )
 
-Target.create "CompileFable" (fun _ ->
-    let npx = "node_modules/npx/index.js" |> Path.GetFullPath
+Target.create "NpmInstall" (fun _ ->
+    let modules = "node_modules" |> Path.GetFullPath
 
-    if not (File.exists npx) then
+    if not (Directory.Exists modules) then
         Trace.trace "running `npm install`"
-        CreateProcess.fromRawCommand "npm" ["install"]
+
+        let npm =
+            if isWindows then CreateProcess.fromRawCommand "cmd" ["/C"; "npm"; "install"]
+            else CreateProcess.fromRawCommand "npm" ["install"]
+
+        npm
         |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
         |> CreateProcess.withStandardError StreamSpecification.Inherit
         |> CreateProcess.withStandardOutput StreamSpecification.Inherit
-        |> CreateProcess.ensureExitCode
         |> Proc.run
         |> ignore
 
-        ()
+)
 
+Target.create "CompileFable" (fun _ ->
+    let npx = "node_modules/npx/index.js" |> Path.GetFullPath
     let proj = "src/FSharp.Data.Adaptive/FSharp.Data.Adaptive.fsproj" |> Path.GetFullPath
     let outDir = "bin/Fable.Splitter" |> Path.GetFullPath
 
@@ -96,24 +105,8 @@ Target.create "CompileFable" (fun _ ->
         Environment.CurrentDirectory <- old
 )
 
-Target.create "Watch" (fun _ ->
-
-    let old = Environment.CurrentDirectory
-    Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
-
+Target.create "WatchFable" (fun _ ->
     let npx = "node_modules/npx/index.js" |> Path.GetFullPath
-
-    if not (File.exists npx) then
-        Trace.trace "running `npm install`"
-        CreateProcess.fromRawCommand "npm" ["install"]
-        |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
-        |> CreateProcess.withStandardError StreamSpecification.Inherit
-        |> CreateProcess.withStandardOutput StreamSpecification.Inherit
-        |> CreateProcess.ensureExitCode
-        |> Proc.run
-        |> ignore
-
-        ()
     CreateProcess.fromRawCommand "node" [npx; "webpack-dev-server"]
     |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
     |> CreateProcess.withStandardError StreamSpecification.Inherit
@@ -297,6 +290,9 @@ Target.create "ReleaseDocs" (fun _ ->
 
     reallyDelete 5
 )
+
+"NpmInstall" ==> "CompileFable"
+"NpmInstall" ==> "WatchFable"
 
 "Compile" ==> 
     "Docs"

@@ -34,13 +34,7 @@ module.exports = {
 			{
 				test: /\.fs(x|proj)?$/,
 				use: {
-					loader: "fable-loader",
-					options: {
-						define: ["FABLE"],
-						cli: {
-							args: ["--verbose"]
-						}
-					}
+					loader: "fable-loader"
 				}
 			}
         ]
