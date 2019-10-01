@@ -7,3 +7,7 @@ description
     FSharp.Data.Adaptive provides an incremental evaluation system inspired by Adapton, DeltaML and many others
 	for FSharp. The implementation provides incremental datastructures for refs/sets/lists/maps.
 include-pdbs true
+files
+	./**/*.fs => fable
+	./**/*.fsi => fable
+	./**/*.fsproj => fable
