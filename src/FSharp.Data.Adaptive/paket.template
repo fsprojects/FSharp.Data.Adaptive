@@ -11,3 +11,4 @@ files
 	./**/*.fs => fable
 	./**/*.fsi => fable
 	./**/*.fsproj => fable
+	!./obj/**/*
