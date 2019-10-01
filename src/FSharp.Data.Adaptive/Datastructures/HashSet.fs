@@ -10,72 +10,70 @@ module internal HashSetList =
     let inline combineHash (a : int) (b : int) =
         uint32 a ^^^ uint32 b + 0x9e3779b9u + ((uint32 a) <<< 6) + ((uint32 a) >>> 2) |> int
 
-    let rec add (cnt : byref<int>) (value : 'T) (list : list<'T>) =
+    let rec add (cnt : ref<int>) (value : 'T) (list : list<'T>) =
         match list with
             | [] -> 
-                cnt <- cnt + 1
+                cnt := !cnt + 1
                 [value]
             | h :: tail ->
                 if Unchecked.equals h value then
                     list
                 else
-                    h :: add &cnt value tail
+                    h :: add cnt value tail
 
-    let rec remove (cnt : byref<int>) (value : 'T) (list : list<'T>) =
+    let rec remove (cnt : ref<int>) (value : 'T) (list : list<'T>) =
         match list with
             | [] ->
                 None
             | h :: tail ->
                 if Unchecked.equals h value then
-                    cnt <- cnt - 1
+                    cnt := !cnt - 1
                     match tail with
                         | [] -> None
                         | _ -> Some tail
                 else
-                    match remove &cnt value tail with
+                    match remove cnt value tail with
                         | Some t -> Some (h :: t)
                         | None -> Some [h]
 
-    let rec union (dupl : byref<int>) (l : list<'T>) (r : list<'T>) =
-        let mutable d = dupl
+    let rec union (dupl : ref<int>) (l : list<'T>) (r : list<'T>) =
         let newR = 
             r |> List.filter (fun r ->
                 if l |> List.exists (Unchecked.equals r) then
-                    d <- d + 1
+                    dupl := !dupl + 1
                     false
                 else
                     true
             )
 
-        dupl <- d
         l @ newR
 
-    let rec difference (cnt : byref<int>) (l : list<'T>) (r : list<'T>) =
+    let rec difference (cnt : ref<int>) (l : list<'T>) (r : list<'T>) =
         match l with
             | [] -> 
                 None
             | h :: tail ->
                 if List.exists (Unchecked.equals h) r then
-                    difference &cnt tail r
+                    difference cnt tail r
                 else
-                    cnt <- cnt + 1
-                    match difference &cnt tail r with
+                    cnt := !cnt + 1
+                    match difference cnt tail r with
                         | Some t -> Some (h :: t)
                         | None -> Some [h]
                     
 
-    let rec intersect (cnt : byref<int>) (l : list<'T>) (r : list<'T>) =
+    let rec intersect (cnt : ref<int>) (l : list<'T>) (r : list<'T>) =
         match l with
             | [] ->
                 None
             | h :: tail ->
                 if List.exists (Unchecked.equals h) r then
-                    cnt <- cnt + 1
-                    match intersect &cnt tail r with
+                    cnt := !cnt + 1
+                    match intersect cnt tail r with
                         | Some t -> Some (h :: t)
                         | None -> Some [h]
                 else
-                    intersect &cnt tail r
+                    intersect cnt tail r
 
 
     let rec mergeWithOption (f : 'A -> bool -> bool -> option<'B>) (l : list<'A>) (r : list<'A>) =
@@ -109,15 +107,15 @@ module internal HashSetList =
           
     let rec equals (l : list<'T>) (r : list<'T>) =
         let mutable r = r
-        let mutable c = 0
+        let c = ref 0
         
         use e = (l :> seq<_>).GetEnumerator()
-        while c = 0 && e.MoveNext() do
+        while !c = 0 && e.MoveNext() do
             let l = e.Current
-            c <- 1
-            r <- remove &c l r |> Option.defaultValue []
+            c := 1
+            r <- remove c l r |> Option.defaultValue []
 
-        c = 0 && List.isEmpty r
+        !c = 0 && List.isEmpty r
 
 /// Immutable hash-based set datastructure.
 /// Hash/equality are determined using the Unchecked module
@@ -141,19 +139,19 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
     /// Adds the given entry. `O(log N)`
     member x.Add (value : 'T) =
         let hash = Unchecked.hash value
-        let mutable cnt = cnt
+        let cnt = ref cnt
 
         let newStore = 
             store |> IntMap.alter (fun o ->
                 match o with
                     | None -> 
-                        cnt <- cnt + 1 
+                        cnt := !cnt + 1 
                         Some [value]
                     | Some old -> 
-                        HashSetList.add &cnt value old |> Some
+                        HashSetList.add cnt value old |> Some
             ) hash
 
-        HashSet(cnt, newStore)
+        HashSet(!cnt, newStore)
   
     /// Adds the given entry and returns none if it was already existing. `O(log N)`
     member x.TryAdd (value : 'T) =
@@ -164,16 +162,16 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
     /// Removes the given entry. `O(log N)`
     member x.Remove (value : 'T) =
         let hash = Unchecked.hash value
-        let mutable cnt = cnt
+        let cnt = ref cnt
         
         let newStore = 
             store |> IntMap.alter (fun o ->
                 match o with
                     | None -> None
-                    | Some old -> HashSetList.remove &cnt value old
+                    | Some old -> HashSetList.remove cnt value old
             ) hash
 
-        HashSet(cnt, newStore)
+        HashSet(!cnt, newStore)
         
     /// Removes the given entry and returns none if it was not existing. `O(log N)`
     member x.TryRemove (value : 'T) =
@@ -297,37 +295,37 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
     /// Creates a new set containing all elements from this and other.
     /// `O(N + M)`
     member x.Union (other : HashSet<'T>) : HashSet<'T> =
-        let mutable dupl = 0
-        let newStore = IntMap.appendWith (fun l r -> HashSetList.union &dupl l r) store other.Store
-        HashSet(cnt + other.Count - dupl, newStore)
+        let dupl = ref 0
+        let newStore = IntMap.appendWith (fun l r -> HashSetList.union dupl l r) store other.Store
+        HashSet(cnt + other.Count - !dupl, newStore)
 
     /// Creates a new set containing all elements from this that are not in other.
     /// `O(N + M)`
     member x.Difference (other : HashSet<'T>) : HashSet<'T> =
-        let mutable cnt = 0
+        let cnt = ref 0
         let newStore =
             IntMap.mergeWithKey 
-                (fun k ll rl -> HashSetList.difference &cnt ll rl) 
-                (fun l -> cnt <- l |> IntMap.fold (fun s l -> s + List.length l) cnt; l)
+                (fun k ll rl -> HashSetList.difference cnt ll rl) 
+                (fun l -> cnt := l |> IntMap.fold (fun s l -> s + List.length l) !cnt; l)
                 (fun r -> IntMap.empty) 
                 store 
                 other.Store
 
-        HashSet(cnt, newStore)
+        HashSet(!cnt, newStore)
     
     /// Creates a new set containing all elements that are present in both sets.
     /// `O(N + M)`
     member x.Intersect (other : HashSet<'T>) : HashSet<'T> =
-        let mutable cnt = 0
+        let cnt = ref 0
         let newStore =
             IntMap.mergeWithKey 
-                (fun k ll rl -> HashSetList.intersect &cnt ll rl) 
+                (fun k ll rl -> HashSetList.intersect cnt ll rl) 
                 (fun l -> IntMap.empty)
                 (fun r -> IntMap.empty) 
                 store 
                 other.Store
 
-        HashSet(cnt, newStore)
+        HashSet(!cnt, newStore)
        
     /// Creates a seq holding all values contained in the set.
     /// `O(N)`

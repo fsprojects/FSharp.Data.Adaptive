@@ -3,6 +3,7 @@
 open System
 open FSharp.Data.Adaptive
 
+
 /// An adaptive reader that allows to get operations since the last evaluation
 type IOpReader<'Delta> =
     inherit IAdaptiveObject
@@ -70,9 +71,14 @@ type AbstractDirtyReader<'T, 'Delta when 'T :> IAdaptiveObject>(t: Monoid<'Delta
     let dirty = ref <| System.Collections.Generic.HashSet<'T>()
 
     override x.InputChangedObject(_, o) =
+        #if FABLE_COMPILER
+        lock dirty (fun () -> dirty.Value.Add (unbox o) |> ignore)
+        #else
         match o with
         | :? 'T as o -> lock dirty (fun () -> dirty.Value.Add o |> ignore)
         | _ -> ()
+        #endif
+
 
     /// Adaptively compute deltas.
     abstract member Compute: AdaptiveToken * System.Collections.Generic.HashSet<'T> -> 'Delta
@@ -138,15 +144,20 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
     /// Gets the first living node and the accumulated operation-size.
     let getFirstAndSize() =
         let mutable first = null
-        if not (isNull last) && last.TryGetTarget(&first) then
-            let mutable size = t.tsize first.Value
-            let mutable prev = getPrev first
-            while not (isNull prev) do
-                size <- size + t.tsize prev.Value
-                first <- prev
-                prev <- getPrev first
+        if not (isNull last) then
+            match last.TryGetTarget() with
+            | (true, first) ->
+                let mutable first = first
+                let mutable size = t.tsize first.Value
+                let mutable prev = getPrev first
+                while not (isNull prev) do
+                    size <- size + t.tsize prev.Value
+                    first <- prev
+                    prev <- getPrev first
 
-            struct (first, size)
+                struct (first, size)
+            | _ ->
+                struct (null, 0)
         else
             struct (null, 0)
 
@@ -192,13 +203,17 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
 
             // if op got empty do not append it
             if not (t.tmonoid.misEmpty op) then
-                let mutable lv = null
                 // if last is null no reader is interested in ops.
                 // therefore we simply discard them here
-                if not (isNull last) && last.TryGetTarget(&lv) then
-                    // last is non-null and alive and no one pulled it yet
-                    // so we can append our op to it
-                    lv.Value <- t.tmonoid.mappend lv.Value op
+                if not (isNull last) then
+                    match last.TryGetTarget() with
+                    | (true, lv) ->
+                        // last is non-null and alive and no one pulled it yet
+                        // so we can append our op to it
+                        lv.Value <- t.tmonoid.mappend lv.Value op
+                    | _ -> 
+                        last <- null
+                        finalize op
                 else
                     last <- null
                     finalize op
@@ -214,8 +229,31 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
     /// Adds a reference to the latest version or creates one.
     /// Returns the RelevantNode representing the latest version
     let addRefToLast() =
-        let mutable lv = null
-        if isNull last || not (last.TryGetTarget(&lv)) then
+        
+        if not (isNull last) then
+            match last.TryGetTarget() with
+            | (true, lv) ->
+                if t.tmonoid.misEmpty lv.Value then
+                    // if last has no ops we can reuse it here
+                    lv.RefCount <- lv.RefCount + 1
+                    lv
+                else
+                    // if last contains ops we just consumed it and therefore
+                    // need a new empty last
+                    let n = RelevantNode(last, state, t.tmonoid.mempty, null)
+                    lv.Next <- n
+                    last <- WeakReference<_> n
+                    n.RefCount <- 1
+                    n
+            | _ ->
+                 // if there is no last (the history is empty) we append
+                // a new empty last with no ops and set its refcount to 1
+                let n = RelevantNode(null, state, t.tmonoid.mempty, null)
+                n.RefCount <- 1
+                let wn = WeakReference<_> n
+                last <- wn
+                n
+        else
             // if there is no last (the history is empty) we append
             // a new empty last with no ops and set its refcount to 1
             let n = RelevantNode(null, state, t.tmonoid.mempty, null)
@@ -223,19 +261,6 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
             let wn = WeakReference<_> n
             last <- wn
             n
-        else
-            if t.tmonoid.misEmpty lv.Value then
-                // if last has no ops we can reuse it here
-                lv.RefCount <- lv.RefCount + 1
-                lv
-            else
-                // if last contains ops we just consumed it and therefore
-                // need a new empty last
-                let n = RelevantNode(last, state, t.tmonoid.mempty, null)
-                lv.Next <- n
-                last <- WeakReference<_> n
-                n.RefCount <- 1
-                n
               
     /// Merges the ops in node into its predecessor (if any) and deletes the node from the History.
     /// Returns the next version and the operations from the (deleted) node
@@ -255,14 +280,16 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
             // detach ourselves
             if isNull next then last <- prev
             else next.Prev <- prev
-            let mutable prevValue = null
-            if not (isNull prev) && prev.TryGetTarget(&prevValue) then
-                // if prev is still relevant we merge our ops into it.
-                // this is sound since the reader holding it would have seen the
-                // operations anyway.
-                prevValue.Next <- next
-                prevValue.Value <- t.tmonoid.mappend prevValue.Value res
-
+            if not (isNull prev) then  
+                match prev.TryGetTarget() with
+                | (true, prevValue) -> 
+                    // if prev is still relevant we merge our ops into it.
+                    // this is sound since the reader holding it would have seen the
+                    // operations anyway.
+                    prevValue.Next <- next
+                    prevValue.Value <- t.tmonoid.mappend prevValue.Value res
+                | _ ->
+                    ()
             res, next
 
         else

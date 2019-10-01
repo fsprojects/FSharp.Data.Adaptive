@@ -284,8 +284,39 @@ module AdaptiveHashMapImplementation =
             |> HashMapDelta
 
 
+    /// Base class for standard avals
+    [<AbstractClass; StructuredFormatDisplay("{AsString}")>]
+    type internal AbstractVal<'T>() =
+        inherit AdaptiveObject()
+
+        let mutable cache = Unchecked.defaultof<'T>
+
+        abstract member Compute: AdaptiveToken -> 'T
+
+        member x.GetValue(token: AdaptiveToken) =
+            x.EvaluateAlways token (fun token ->
+                if x.OutOfDate then
+                    let v = x.Compute token
+                    cache <- v
+                    v
+                else
+                    cache                
+            )
+
+        member private x.AsString =
+            if x.OutOfDate then sprintf "aval*(%A)" cache
+            else sprintf "aval(%A)" cache
+
+        override x.ToString() =
+            if x.OutOfDate then System.String.Format("aval*({0})", cache)
+            else System.String.Format("aval({0})", cache)
+
+        interface AdaptiveValue<'T> with
+            member x.GetValue t = x.GetValue t  
+            
+
     type internal KeyedMod<'Key, 'Value>(key : 'Key, m : aval<'Value>) =
-        inherit AVal.AbstractVal<'Key * 'Value>()
+        inherit AbstractVal<'Key * 'Value>()
 
         let mutable last = None
             

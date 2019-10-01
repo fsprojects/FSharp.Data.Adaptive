@@ -52,7 +52,7 @@ type Transaction() =
     // already been enqueued
     let contained = HashSet<IAdaptiveObject>()
     let mutable current : IAdaptiveObject = Unchecked.defaultof<_>
-    let mutable currentLevel = 0
+    let currentLevel = ref 0
     let mutable finalizers : list<unit -> unit> = []
 
     let runFinalizers () =
@@ -94,7 +94,7 @@ type Transaction() =
             | _ -> Int32.MaxValue - 1
 
     /// Gets the current Level the Transaction operates on
-    member x.CurrentLevel = currentLevel
+    member x.CurrentLevel = !currentLevel
 
     /// Enqueues an adaptive object for marking
     member x.Enqueue(e : IAdaptiveObject) =
@@ -122,7 +122,7 @@ type Transaction() =
         let mutable outputs = [||]
         while q.Count > 0 do
             // dequeue the next element (having the minimal level)
-            let e = q.Dequeue(&currentLevel)
+            let e = q.Dequeue(currentLevel)
             current <- e
 
             traverseCount <- traverseCount + 1
@@ -148,7 +148,7 @@ type Transaction() =
                         // might even change the asymptotic runtime behaviour of the entire
                         // system in the worst case but we opted for this approach since
                         // it is relatively simple to implement.
-                        if currentLevel <> e.Level then
+                        if !currentLevel <> e.Level then
                             q.Enqueue e
                         else
                             // however if the level is consistent we may proceed
@@ -198,7 +198,7 @@ type Transaction() =
         // when the commit is over we restore the old
         // running transaction (if any)
         Transaction.RunningTransaction <- old
-        currentLevel <- 0
+        currentLevel := 0
 
     /// Disposes the transaction running all of its "Finalizers"
     member x.Dispose() = 
