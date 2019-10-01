@@ -312,7 +312,7 @@ type largeuint(data : uint32[]) =
                 largeuint res
 
     override x.ToString() =
-        data |> Seq.mapi (fun i b -> if i = 0 then sprintf "%X" b else sprintf "%08X" b) |> String.concat "" |> sprintf "0x%s"
+        data |> Seq.mapi (fun i b -> if i = 0 then sprintf "%X" b else sprintf "%08X" b) |> String.concat ""
         //let b = 10u
         //let mutable str = ""
         //let mutable (q,r) = largeuint.DivRem(x, b)
@@ -640,7 +640,7 @@ type Index private(number : largeuint, dexp : int) =
     static member One = Index(largeuint.One, 0)
         
     override x.ToString() =
-        sprintf "%s*2^-%d" (string number) dexp
+        sprintf "%s/%X" (string number) (1L <<< dexp)
 
     override x.GetHashCode() =
         let a = number.GetHashCode() 
