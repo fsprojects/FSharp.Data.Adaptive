@@ -303,7 +303,6 @@ Target.create "ReleaseDocs" (fun _ ->
     "ReleaseDocs"
 
 "RunTest" ==> "Test"
-"CompileFable" ==> "Test"
 
 "Compile" ==> 
     "Test" ==> 
