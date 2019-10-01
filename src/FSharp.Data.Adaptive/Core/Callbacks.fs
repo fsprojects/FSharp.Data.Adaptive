@@ -26,6 +26,10 @@ type internal CallbackObject(obj: IAdaptiveObject, callback: CallbackObject -> u
         member x.Dispose() = x.Dispose()
 
     interface IAdaptiveObject with
+        member x.Tag
+            with get() = null
+            and set _ = ()
+
         member x.Weak =
             let w = weak
             if isNull w then 

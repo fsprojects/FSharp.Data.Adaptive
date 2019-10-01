@@ -24,6 +24,8 @@ and alist<'T> = AdaptiveIndexList<'T>
 /// Internal implementations for alist operations.
 module internal AdaptiveIndexListImplementation =
 
+    let inline checkTag (value : 'a) (real : obj) = Unchecked.equals (value :> obj) real
+    
     /// Core implementation for a dependent list.
     type AdaptiveIndexListImpl<'T>(createReader : unit -> IOpReader<IndexListDelta<'T>>) =
         let history = History(createReader, IndexList.trace)
@@ -140,7 +142,7 @@ module internal AdaptiveIndexListImplementation =
     type MultiReader<'a>(mapping : IndexMapping<Index * Index>, list : alist<'a>, release : alist<'a> -> unit) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.monoid)
             
-        let targets = System.Collections.Generic.HashSet<Index>()
+        let targets = UncheckedHashSet.create<Index>()
 
         let mutable reader = None
 
@@ -223,11 +225,11 @@ module internal AdaptiveIndexListImplementation =
 
     /// Reader for collect operations.
     type CollectReader<'a, 'b>(input : alist<'a>, f : Index -> 'a -> alist<'b>) =
-        inherit AbstractDirtyReader<MultiReader<'b>, IndexListDelta<'b>>(IndexListDelta.monoid)
+        inherit AbstractDirtyReader<MultiReader<'b>, IndexListDelta<'b>>(IndexListDelta.monoid, checkTag "MultiReader")
             
         let mapping = IndexMapping<Index * Index>()
-        let cache = System.Collections.Generic.Dictionary<Index, 'a * alist<'b>>()
-        let readers = System.Collections.Generic.Dictionary<alist<'b>, MultiReader<'b>>()
+        let cache = UncheckedDictionary.create<Index, 'a * alist<'b>>()
+        let readers = UncheckedDictionary.create<alist<'b>, MultiReader<'b>>()
         let input = input.GetReader()
 
         let removeReader (l : alist<'b>) =
@@ -238,6 +240,7 @@ module internal AdaptiveIndexListImplementation =
             | (true, r) -> r
             | _ ->
                 let r = new MultiReader<'b>(mapping, l, removeReader)
+                r.Tag <- "MultiReader"
                 readers.Add(l, r) 
                 r
 
@@ -321,10 +324,15 @@ module internal AdaptiveIndexListImplementation =
 
     /// Reader for concat operations.
     type ConcatReader<'a>(inputs : IndexList<alist<'a>>) =
-        inherit AbstractDirtyReader<IndexedReader<'a>, IndexListDelta<'a>>(IndexListDelta.monoid)
+        inherit AbstractDirtyReader<IndexedReader<'a>, IndexListDelta<'a>>(IndexListDelta.monoid, checkTag "InnerReader")
 
         let mapping = IndexMapping<Index * Index>()
-        let readers = inputs |> IndexList.mapi (fun i l -> IndexedReader(mapping, i, l))
+        let readers = 
+            inputs |> IndexList.mapi (fun i l -> 
+                let r = IndexedReader(mapping, i, l)
+                r.Tag <- "InnerReader"
+                r
+            )
 
         let mutable initial = true
 
@@ -348,13 +356,17 @@ module internal AdaptiveIndexListImplementation =
         let mutable inputChanged = 1
         let mutable reader : Option<'a * IIndexListReader<'b>> = None
 
-        override x.InputChanged(t : obj, o : IAdaptiveObject) =
+        override x.InputChangedObject(t : obj, o : IAdaptiveObject) =
             if System.Object.ReferenceEquals(input, o) then
                 inputChanged <- 1
 
         override x.Compute(token) =
             let v = input.GetValue token
+            #if FABLE_COMPILER
+            let inputChanged = let v = inputChanged in inputChanged <- 0; v
+            #else
             let inputChanged = System.Threading.Interlocked.Exchange(&inputChanged, 0)
+            #endif
             match reader with
             | Some (oldA, oldReader) when inputChanged = 0 || cheapEqual v oldA ->
                 oldReader.GetChanges token
@@ -378,7 +390,7 @@ module internal AdaptiveIndexListImplementation =
 
         let reader = input.GetReader()
         let idx = IndexMapping<('b * Index)>()
-        let cache = System.Collections.Generic.Dictionary<Index, 'b>()
+        let cache = UncheckedDictionary.create<Index, 'b>()
 
         override x.Compute(token : AdaptiveToken) =
             reader.GetChanges(token).Content

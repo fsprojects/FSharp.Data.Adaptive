@@ -26,19 +26,16 @@ let ``[Index] maintaining order``(lr : list<bool>) =
                 l
         )
         
-    let mutable l = min
-    let mutable r = max
-    List.zip lr all |> List.iter (fun (left, i) ->
-        if left then i < r |> should be True
-        else i > l |> should be True
-        if left then r <- i
-        else l <- i
-    )
+    let rec check (ii : list<bool * Index>) (l : Index) (r : Index) =
+        match ii with
+        | [] -> ()
+        | (left, i) :: rest ->
+            i |> should be (greaterThan l)
+            i |> should be (lessThan r)
+            if left then check rest l i
+            else check rest i r
 
-
-
-
-
+    check (List.zip lr all) min max
 
 [<Property>]
 let ``[IndexList] creation`` (l : list<int>) =

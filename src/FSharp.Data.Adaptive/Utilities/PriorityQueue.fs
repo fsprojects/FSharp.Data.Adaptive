@@ -30,37 +30,37 @@ type internal PriorityQueue<'T>(cmp: 'T -> 'T -> int) =
 /// Note: the duplicated values will be returned in the order they were enqueued
 type internal DuplicatePriorityQueue<'T, 'Key when 'Key: comparison>(extract: 'T -> 'Key) =
     let q = PriorityQueue<'Key> compare
-    let values = Dictionary<'Key, Queue<'T>>()
+    let values = UncheckedDictionary.create<'Key, Queue<'T>>()
     let mutable count = 0
-    let mutable currentQueue = Unchecked.defaultof<_>
 
     /// Enqueues a new element
     member x.Enqueue(v: 'T) =
         let k = extract v
         count <- count + 1
 
-        if values.TryGetValue(k, &currentQueue) then
-            currentQueue.Enqueue v
-        else
+        match values.TryGetValue(k) with
+        | (true, q) ->
+            q.Enqueue v
+        | _ -> 
             let inner = Queue<'T>()
             inner.Enqueue v
             values.[k] <- inner
             q.Enqueue k
              
     /// Dequeues the current minimal value (and its key)
-    member x.Dequeue(key: byref<'Key>) =
+    member x.Dequeue(key: ref<'Key>) =
         let k = q.Min
-
-        if values.TryGetValue(k, &currentQueue) then
-            let res = currentQueue.Dequeue()
+        match values.TryGetValue(k) with
+        | (true, inner) ->
+            let res = inner.Dequeue()
             count <- count - 1
-            if currentQueue.Count = 0 then
+            if inner.Count = 0 then
                 q.Dequeue() |> ignore
                 values.Remove k |> ignore
 
-            key <- k
+            key := k
             res
-        else
+        | _ ->
             failwith "inconsistent state in DuplicatePriorityQueue"
 
     /// Gets the number of elements currently contained in the queue

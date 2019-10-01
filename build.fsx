@@ -15,6 +15,9 @@ do Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 
 let notes = ReleaseNotes.load "RELEASE_NOTES.md"
 
+let isWindows =
+    Environment.OSVersion.Platform <> PlatformID.Unix && Environment.OSVersion.Platform <> PlatformID.MacOSX
+
 Target.create "Clean" (fun _ ->
     if Directory.Exists "bin/Debug" then
         Trace.trace "deleting bin/Debug"
@@ -62,6 +65,60 @@ Target.create "Compile" (fun _ ->
         }
     DotNet.build options "FSharp.Data.Adaptive.sln"
 )
+
+Target.create "NpmInstall" (fun _ ->
+    let modules = "node_modules" |> Path.GetFullPath
+
+    if not (Directory.Exists modules) then
+        Trace.trace "running `npm install`"
+
+        let npm =
+            if isWindows then CreateProcess.fromRawCommand "cmd" ["/C"; "npm"; "install"]
+            else CreateProcess.fromRawCommand "npm" ["install"]
+
+        npm
+        |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
+        |> CreateProcess.withStandardError StreamSpecification.Inherit
+        |> CreateProcess.withStandardOutput StreamSpecification.Inherit
+        |> Proc.run
+        |> ignore
+
+)
+
+Target.create "CompileFable" (fun _ ->
+    let npx = "node_modules/npx/index.js" |> Path.GetFullPath
+    let proj = "src/FSharp.Data.Adaptive/FSharp.Data.Adaptive.fsproj" |> Path.GetFullPath
+    let outDir = "bin/Fable.Splitter" |> Path.GetFullPath
+
+    let old = Environment.CurrentDirectory
+    Environment.CurrentDirectory <- Path.GetDirectoryName proj
+    try
+        CreateProcess.fromRawCommand "node" [npx; "fable-splitter"; proj; "-o"; outDir]
+        |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
+        |> CreateProcess.withStandardError StreamSpecification.Inherit
+        |> CreateProcess.withStandardOutput StreamSpecification.Inherit
+        |> CreateProcess.ensureExitCode
+        |> Proc.run
+        |> ignore
+
+    finally
+        Environment.CurrentDirectory <- old
+)
+
+Target.create "WatchFable" (fun _ ->
+    let npx = "node_modules/npx/index.js" |> Path.GetFullPath
+    CreateProcess.fromRawCommand "node" [npx; "webpack-dev-server"]
+    |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
+    |> CreateProcess.withStandardError StreamSpecification.Inherit
+    |> CreateProcess.withStandardOutput StreamSpecification.Inherit
+    |> CreateProcess.ensureExitCode
+    |> Proc.run
+    |> ignore
+    
+  
+)
+
+
 
 Target.create "Pack" (fun _ ->
     
@@ -234,6 +291,9 @@ Target.create "ReleaseDocs" (fun _ ->
     reallyDelete 5
 )
 
+"NpmInstall" ==> "CompileFable"
+"NpmInstall" ==> "WatchFable"
+
 "Compile" ==> 
     "Docs"
     
@@ -242,6 +302,7 @@ Target.create "ReleaseDocs" (fun _ ->
     "ReleaseDocs"
 
 "RunTest" ==> "Test"
+"CompileFable" ==> "Test"
 
 "Compile" ==> 
     "Test" ==> 

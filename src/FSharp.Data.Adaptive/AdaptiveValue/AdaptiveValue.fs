@@ -9,20 +9,20 @@ type AdaptiveValue<'T> =
 and aval<'T> = AdaptiveValue<'T>
 
 [<Sealed; StructuredFormatDisplay("{AsString}")>]
-type ChangeableValue<'T> =
-    inherit AdaptiveObject
-    val mutable private value: 'T
+type ChangeableValue<'T>(value : 'T) =
+    inherit AdaptiveObject()
+    let mutable value = value
 
     member x.Value
-        with get() = x.value
+        with get() = value
         and set v =
-            if not (cheapEqual x.value v) then
-                x.value <- v
+            if not (cheapEqual value v) then
+                value <- v
                 x.MarkOutdated()
                 
     member x.GetValue (token: AdaptiveToken) =
         x.EvaluateAlways token (fun _ ->
-            x.value
+            value
         )
 
     interface AdaptiveValue<'T> with
@@ -30,8 +30,6 @@ type ChangeableValue<'T> =
         
     member private x.AsString = sprintf "cval(%A)" x.Value
     override x.ToString() = String.Format("cval({0})", x.Value)
-
-    new(value: 'T) = { value = value }
 
 and cval<'T> = ChangeableValue<'T>
     
@@ -116,6 +114,10 @@ module AVal =
             cheapHash value
 
         override x.Equals o =
+            #if FABLE_COMPILER
+            let o = unbox<aval<'T>> o
+            o.IsConstant && cheapEqual (x.GetValue()) (o.GetValue AdaptiveToken.Top)
+            #else
             match o with
             | :? ConstantVal<'T> as o -> 
                 let xv = x.GetValue()
@@ -123,6 +125,7 @@ module AVal =
                 cheapEqual xv ov
             | _ ->
                 false
+            #endif
 
     /// Aval for mapping a single value
     type MapVal<'T1, 'T2>(mapping: 'T1 -> 'T2, input: aval<'T1>) =
@@ -130,7 +133,7 @@ module AVal =
 
         // can we avoid double caching (here and in AbstractVal)
         let mutable cache: ValueOption<struct ('T1 * 'T2)> = ValueNone
-
+        
         override x.Compute(token: AdaptiveToken) =
             let i = input.GetValue token
             match cache with
@@ -188,14 +191,17 @@ module AVal =
         let mutable inner: ValueOption< struct ('T1 * aval<'T2>) > = ValueNone
         let mutable inputDirty = 1
 
-        override x.InputChanged(_, o) =
+        override x.InputChangedObject(_, o) =
             if Object.ReferenceEquals(o, input) then 
                 inputDirty <- 1
 
         override x.Compute(token: AdaptiveToken) =
             let va = input.GetValue token
+            #if FABLE_COMPILER
+            let inputDirty = let v = inputDirty in inputDirty <- 0; v <> 0
+            #else
             let inputDirty = System.Threading.Interlocked.Exchange(&inputDirty, 0) <> 0
-
+            #endif
             match inner with
             | ValueNone ->
                 let result = mapping va
@@ -219,15 +225,19 @@ module AVal =
         let mutable inner: ValueOption< struct ('T1 * 'T2 * aval<'T3>) > = ValueNone
         let mutable inputDirty = 1
 
-        override x.InputChanged(_, o) =
+        override x.InputChangedObject(_, o) =
             if Object.ReferenceEquals(o, value1) || Object.ReferenceEquals(o, value2) then 
                 inputDirty <- 1
 
         override x.Compute(token: AdaptiveToken) =
             let va = value1.GetValue token
             let vb = value2.GetValue token
+            #if FABLE_COMPILER
+            let inputDirty = let v = inputDirty in inputDirty <- 0; v <> 0
+            #else
             let inputDirty = System.Threading.Interlocked.Exchange(&inputDirty, 0) <> 0
-
+            #endif
+            
             match inner with
             | ValueNone ->
                 let res = mapping.Invoke (va, vb)

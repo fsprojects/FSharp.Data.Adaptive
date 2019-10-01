@@ -21,6 +21,8 @@ and aset<'T> = AdaptiveHashSet<'T>
 /// Internal implementations for aset operations.
 module AdaptiveHashSetImplementation =
 
+    let inline checkTag (value : 'a) (real : obj) = Unchecked.equals (value :> obj) real
+    
     /// Core implementation for a dependent set.
     type AdaptiveHashSetImpl<'T>(createReader : unit -> IOpReader<HashSetDelta<'T>>) =
         let history = History(createReader, CountingHashSet.trace)
@@ -79,7 +81,7 @@ module AdaptiveHashSetImplementation =
             
         let cache = Cache mapping
         let reader = input.GetReader()
-
+        
         override x.Compute(token) =
             reader.GetChanges token |> HashSetDelta.map (fun d ->
                 match d with
@@ -94,7 +96,7 @@ module AdaptiveHashSetImplementation =
             
         let cache = Cache mapping
         let r = input.GetReader()
-
+        
         override x.Compute(token) =
             r.GetChanges token |> HashSetDelta.choose (fun d ->
                 match d with
@@ -129,11 +131,16 @@ module AdaptiveHashSetImplementation =
 
     /// Reader for fully dynamic uinon operations.
     type UnionReader<'T>(input : aset<aset<'T>>) =
-        inherit AbstractDirtyReader<IHashSetReader<'T>, HashSetDelta<'T>>(HashSetDelta.monoid)
+        inherit AbstractDirtyReader<IHashSetReader<'T>, HashSetDelta<'T>>(HashSetDelta.monoid, checkTag "InnerReader")
 
         let reader = input.GetReader()
-        let cache = Cache(fun (inner : aset<'T>) -> inner.GetReader())
-
+        let cache = 
+            Cache(fun (inner : aset<'T>) -> 
+                let r = inner.GetReader()
+                r.Tag <- "InnerReader"
+                r
+            )
+        
         override x.Compute(token, dirty) =
             let mutable deltas = 
                 reader.GetChanges token |> HashSetDelta.collect (fun d ->
@@ -167,11 +174,16 @@ module AdaptiveHashSetImplementation =
 
     /// Reader for unioning a constant set of asets.
     type UnionConstantReader<'T>(input : HashSet<aset<'T>>) =
-        inherit AbstractDirtyReader<IHashSetReader<'T>, HashSetDelta<'T>>(HashSetDelta.monoid)
+        inherit AbstractDirtyReader<IHashSetReader<'T>, HashSetDelta<'T>>(HashSetDelta.monoid, checkTag "InnerReader")
 
         let mutable isInitial = true
-        let input = input |> HashSet.map (fun s -> s.GetReader())
-
+        let input = 
+            input |> HashSet.map (fun s -> 
+                let r = s.GetReader()
+                r.Tag <- "InnerReader"
+                r
+            )
+        
         override x.Compute(token, dirty) = 
             if isInitial then
                 isInitial <- false
@@ -201,10 +213,15 @@ module AdaptiveHashSetImplementation =
 
     /// Reader for collect operations.
     type CollectReader<'A, 'B>(input : aset<'A>, mapping : 'A -> aset<'B>) =
-        inherit AbstractDirtyReader<IHashSetReader<'B>, HashSetDelta<'B>>(HashSetDelta.monoid)
+        inherit AbstractDirtyReader<IHashSetReader<'B>, HashSetDelta<'B>>(HashSetDelta.monoid, checkTag "InnerReader")
 
         let reader = input.GetReader()
-        let cache = Cache(fun value -> (mapping value).GetReader())
+        let cache = 
+            Cache(fun value -> 
+                let reader = (mapping value).GetReader()
+                reader.Tag <- "InnerReader"
+                reader
+            )
 
         override x.Compute(token,dirty) =
             let mutable deltas = 
@@ -260,13 +277,17 @@ module AdaptiveHashSetImplementation =
         let mutable valChanged = 0
         let mutable cache : option<'A * IHashSetReader<'B>> = None
             
-        override x.InputChanged(_, i) =
+        override x.InputChangedObject(_, i) =
             if System.Object.ReferenceEquals(i, input) then
                 valChanged <- 1
 
         override x.Compute(token) =
             let newValue = input.GetValue token
+            #if FABLE_COMPILER
+            let valChanged = let v = valChanged in valChanged <- 0; v = 1
+            #else
             let valChanged = System.Threading.Interlocked.Exchange(&valChanged, 0) = 1
+            #endif 
 
             match cache with
             | Some(oldValue, oldReader) when valChanged && not (cheapEqual oldValue newValue) ->
@@ -290,12 +311,13 @@ module AdaptiveHashSetImplementation =
 
     /// Reader for flattenA
     type FlattenAReader<'T>(input : aset<aval<'T>>) =
-        inherit AbstractDirtyReader<aval<'T>, HashSetDelta<'T>>(HashSetDelta.monoid)
+        inherit AbstractDirtyReader<aval<'T>, HashSetDelta<'T>>(HashSetDelta.monoid, isNull)
             
         let r = input.GetReader()
+        do r.Tag <- "Input"
 
         let mutable initial = true
-        let cache = System.Collections.Generic.Dictionary<aval<'T>, 'T>()
+        let cache = UncheckedDictionary.create<aval<'T>, 'T>()
 
         member x.Invoke(token : AdaptiveToken, m : aval<'T>) =
             let v = m.GetValue token
@@ -336,11 +358,12 @@ module AdaptiveHashSetImplementation =
             
     /// Reader for mapA
     type MapAReader<'A, 'B>(input : aset<'A>, mapping : 'A -> aval<'B>) =
-        inherit AbstractDirtyReader<aval<'B>, HashSetDelta<'B>>(HashSetDelta.monoid)
+        inherit AbstractDirtyReader<aval<'B>, HashSetDelta<'B>>(HashSetDelta.monoid, isNull)
             
         let reader = input.GetReader()
+        do reader.Tag <- "Reader"
         let mapping = Cache mapping
-        let cache = System.Collections.Generic.Dictionary<aval<'B>, ref<int * 'B>>()
+        let cache = UncheckedDictionary.create<aval<'B>, ref<int * 'B>>()
 
         member x.Invoke(token : AdaptiveToken, v : 'A) =
             let m = mapping.Invoke v
@@ -396,13 +419,14 @@ module AdaptiveHashSetImplementation =
             
     /// Reader for chooseA
     type ChooseAReader<'A, 'B>(input : aset<'A>, f : 'A -> aval<option<'B>>) =
-        inherit AbstractDirtyReader<aval<option<'B>>, HashSetDelta<'B>>(HashSetDelta.monoid)
+        inherit AbstractDirtyReader<aval<option<'B>>, HashSetDelta<'B>>(HashSetDelta.monoid, isNull)
             
         let r = input.GetReader()
+        do r.Tag <- "Reader"
 
         let f = Cache f
         let mutable initial = true
-        let cache = System.Collections.Generic.Dictionary<aval<option<'B>>, ref<int * option<'B>>>()
+        let cache = UncheckedDictionary.create<aval<option<'B>>, ref<int * option<'B>>>()
 
         member x.Invoke(token : AdaptiveToken, v : 'A) =
             let m = f.Invoke v

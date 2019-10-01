@@ -46,7 +46,7 @@ module AList =
     val ofIndexList : elements: IndexList<'T> -> alist<'T>
     
     /// Creates an alist using the given reader-creator.
-    val ofReader : create : (unit -> #IOpReader<IndexListDelta<'T>>) -> aset<'T>
+    val ofReader : create : (unit -> #IOpReader<IndexListDelta<'T>>) -> alist<'T>
     
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
     val mapi : mapping: (Index -> 'T1 -> 'T2) -> list: alist<'T1> -> alist<'T2>
@@ -83,7 +83,7 @@ module AList =
     val toAVal : list : alist<'T> -> aval<IndexList<'T>>
 
     /// Adaptively maps over the given aval and returns the resulting list.
-    val bind : mapping: ('T1 -> alist<'T2>) -> list: alist<'T1> -> alist<'T2>
+    val bind : mapping: ('T1 -> alist<'T2>) -> value: aval<'T1> -> alist<'T2>
 
     /// Sorts the list using the keys given by projection.
     /// Note that the sorting is stable.
