@@ -380,11 +380,15 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
             | _ -> store |> Seq.fold (fun s (h,_l) -> HashSetList.combineHash s h) 0
 
     override x.Equals(o) =
+        #if FABLE_COMPILER 
+        IntMap.equals HashSetList.equals store (unbox<HashSet<'T>> o).Store
+        #else
         match o with
-            | :? HashSet<'T> as o -> 
-                IntMap.equals HashSetList.equals store o.Store
-            | _ ->
-                false
+        | :? HashSet<'T> as o -> 
+            IntMap.equals HashSetList.equals store o.Store
+        | _ ->
+            false
+        #endif
 
     override x.ToString() =
         let suffix =

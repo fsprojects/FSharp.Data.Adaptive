@@ -1224,6 +1224,16 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
         if System.Object.ReferenceEquals(this, that) then
             true
         else
+            #if FABLE_COMPILER 
+            let that = unbox<MapExt<'Key, 'Value>> that
+            use e1 = (this :> seq<_>).GetEnumerator() 
+            use e2 = (that :> seq<_>).GetEnumerator() 
+            let rec loop () = 
+                let m1 = e1.MoveNext() 
+                let m2 = e2.MoveNext()
+                (m1 = m2) && (not m1 || let e1c, e2c = e1.Current, e2.Current in ((e1c.Key = e2c.Key) && (Unchecked.equals e1c.Value e2c.Value) && loop()))
+            loop()
+            #else
             match that with 
             | :? MapExt<'Key,'Value> as that -> 
                 use e1 = (this :> seq<_>).GetEnumerator() 
@@ -1234,6 +1244,7 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
                     (m1 = m2) && (not m1 || let e1c, e2c = e1.Current, e2.Current in ((e1c.Key = e2c.Key) && (Unchecked.equals e1c.Value e2c.Value) && loop()))
                 loop()
             | _ -> false
+            #endif
 
     override this.GetHashCode() = this.ComputeHashCode()
 
@@ -1273,6 +1284,14 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
 
     interface System.IComparable with 
         member m.CompareTo(obj: obj) = 
+            #if FABLE_COMPILER
+            let m2 = unbox<MapExt<'Key,'Value>> obj
+            Seq.compareWith 
+                (fun (kvp1 : KeyValuePair<_,_>) (kvp2 : KeyValuePair<_,_>)-> 
+                    let c = comparer.Compare(kvp1.Key,kvp2.Key) in 
+                    if c <> 0 then c else Unchecked.compare kvp1.Value kvp2.Value)
+                m m2 
+            #else
             match obj with 
             | :? MapExt<'Key,'Value>  as m2->
                 Seq.compareWith 
@@ -1282,7 +1301,7 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
                     m m2 
             | _ -> 
                 invalidArg "obj" ("SR.GetString(SR.notComparable)")
-
+            #endif
     override x.ToString() = 
         let suffix = if x.Count > 4 then "; ..." else ""
         let content = Seq.truncate 4 x |> Seq.map (fun (KeyValue t) -> sprintf "%A" t) |> String.concat "; "

@@ -79,7 +79,7 @@ Target.create "CompileFable" (fun _ ->
         ()
 
     let proj = "src/FSharp.Data.Adaptive/FSharp.Data.Adaptive.fsproj" |> Path.GetFullPath
-    let outDir = "bin/Fable" |> Path.GetFullPath
+    let outDir = "bin/Fable.Splitter" |> Path.GetFullPath
 
     let old = Environment.CurrentDirectory
     Environment.CurrentDirectory <- Path.GetDirectoryName proj
@@ -95,6 +95,25 @@ Target.create "CompileFable" (fun _ ->
     finally
         Environment.CurrentDirectory <- old
 )
+
+Target.create "Watch" (fun _ ->
+
+    let old = Environment.CurrentDirectory
+    Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
+
+    let npx = "./node_modules/npx/index.js" |> Path.GetFullPath
+
+    CreateProcess.fromRawCommand "node" [npx; "webpack-dev-server"]
+    |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
+    |> CreateProcess.withStandardError StreamSpecification.Inherit
+    |> CreateProcess.withStandardOutput StreamSpecification.Inherit
+    |> CreateProcess.ensureExitCode
+    |> Proc.run
+    |> ignore
+    
+  
+)
+
 
 
 Target.create "Pack" (fun _ ->

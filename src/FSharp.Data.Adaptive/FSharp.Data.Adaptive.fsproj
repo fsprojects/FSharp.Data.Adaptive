@@ -6,7 +6,6 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\..\bin\Debug\</OutputPath>
-    <WarningLevel>3</WarningLevel>
     <DocumentationFile>..\..\bin\Debug\netstandard2.0\FSharp.Data.Adaptive.XML</DocumentationFile>
     <OtherFlags></OtherFlags>
   </PropertyGroup>
@@ -21,7 +20,7 @@
 	<Compile Include="Datastructures\HashSet.fs" />
 	<Compile Include="Datastructures\HashMap.fs" />
 	<Compile Include="Datastructures\Operations.fs" />
-	<Compile Include="Datastructures\Index.fsi" />
+	<Compile Include="$(MSBuildThisFileDirectory)Datastructures\Index.fsi" /> 
 	<Compile Include="Datastructures\Index.fs" />
 	<Compile Include="Datastructures\MapExt.fs" />
 	<Compile Include="Datastructures\IndexList.fs" />
@@ -37,26 +36,26 @@
 	<Compile Include="Core\AdaptiveToken.fs" />
 	<Compile Include="Core\AdaptiveObject.fs" />
 	<Compile Include="Core\Callbacks.fs" />
-	<Compile Include="AdaptiveValue\AdaptiveValue.fsi" />
+	<Compile Include="$(MSBuildThisFileDirectory)AdaptiveValue\AdaptiveValue.fsi" /> 
 	<Compile Include="AdaptiveValue\AdaptiveValue.fs" />
 	<Compile Include="Traceable\Traceable.fs" />
 	<Compile Include="Traceable\Instances.fs" />
 	<Compile Include="Traceable\History.fs" />
 	<Compile Include="Traceable\CountingHashSet.fs" />
-	<Compile Include="AdaptiveHashSet\AdaptiveHashSet.fsi" />
+	<Compile Include="$(MSBuildThisFileDirectory)AdaptiveHashSet\AdaptiveHashSet.fsi" /> 
 	<Compile Include="AdaptiveHashSet\AdaptiveHashSet.fs" />
-	<Compile Include="AdaptiveHashSet\ChangeableHashSet.fsi" />
+	<Compile Include="$(MSBuildThisFileDirectory)AdaptiveHashSet\ChangeableHashSet.fsi" /> 
 	<Compile Include="AdaptiveHashSet\ChangeableHashSet.fs" />
-	<Compile Include="AdaptiveHashMap\AdaptiveHashMap.fsi" />
+	<Compile Include="$(MSBuildThisFileDirectory)AdaptiveHashMap\AdaptiveHashMap.fsi" /> 
 	<Compile Include="AdaptiveHashMap\AdaptiveHashMap.fs" />
-	<Compile Include="AdaptiveHashMap\ChangeableHashMap.fsi" />
+	<Compile Include="$(MSBuildThisFileDirectory)AdaptiveHashMap\ChangeableHashMap.fsi"/> 
 	<Compile Include="AdaptiveHashMap\ChangeableHashMap.fs" />
-	<Compile Include="AdaptiveIndexList\AdaptiveIndexList.fsi" />
+	<Compile Include="$(MSBuildThisFileDirectory)AdaptiveIndexList\AdaptiveIndexList.fsi" /> 
 	<Compile Include="AdaptiveIndexList\AdaptiveIndexList.fs" />
-	<Compile Include="AdaptiveIndexList\ChangeableIndexList.fsi" />
+	<Compile Include="$(MSBuildThisFileDirectory)AdaptiveIndexList\ChangeableIndexList.fsi" /> 
 	<Compile Include="AdaptiveIndexList\ChangeableIndexList.fs" />
 	<Compile Include="CollectionExtensions.fs" />
 	<Compile Include="ComputationExpressions.fs" />
-	</ItemGroup>
-	<Import Project="..\..\.paket\Paket.Restore.targets" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

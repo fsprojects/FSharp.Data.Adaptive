@@ -17,6 +17,7 @@ type Queue<'T>() =
         if count < store.Length then
             store.[next] <- value
             next <- (next + 1) % store.Length
+            count <- count + 1
         else
             let res = Array.zeroCreate (2 * store.Length)
             let mutable si = first

@@ -175,9 +175,14 @@ module internal AdaptiveIndexListHelpers =
 
         override x.GetHashCode() = Unchecked.hash value
         override x.Equals o =
+            #if FABLE_COMPILER
+            let o = unbox<UCmp<'a>> o
+            Unchecked.equals value o.Value
+            #else
             match o with
             | :? UCmp<'a> as o -> Unchecked.equals value o.Value
             | _ -> false
+            #endif
             
         member x.CompareTo(o : UCmp<'a>) = compare.Invoke(value, o.Value)
 
@@ -189,9 +194,14 @@ module internal AdaptiveIndexListHelpers =
 
         interface IComparable with
             member x.CompareTo(o) =
+                #if FABLE_COMPILER
+                let o = unbox<UCmp<'a>> o
+                compare.Invoke(value, o.Value)
+                #else
                 match o with
                 | :? UCmp<'a> as o -> compare.Invoke(value, o.Value)
                 | _ -> 0
+                #endif
 
     type IndexMapping<'k when 'k : comparison>() =
         let mutable store = MapExt.empty<'k, Index>
@@ -308,18 +318,29 @@ module internal AdaptiveIndexListHelpers =
 
         override x.GetHashCode() = combineHash(Unchecked.hash value) id
         override x.Equals o =
+            #if FABLE_COMPILER
+            let o = unbox<Unique<'b>> o
+            Unchecked.equals value o.Value && id = o.Id
+            #else
             match o with
-                | :? Unique<'b> as o -> Unchecked.equals value o.Value && id = o.Id
-                | _ -> false
+            | :? Unique<'b> as o -> Unchecked.equals value o.Value && id = o.Id
+            | _ -> false
+            #endif
 
         interface IComparable with
             member x.CompareTo o =
+                #if FABLE_COMPILER
+                let o = unbox<Unique<'b>> o
+                let c = compare value o.Value
+                if c = 0 then compare id o.Id
+                else c
+                #else
                 match o with
-                    | :? Unique<'b> as o ->
-                        let c = compare value o.Value
-                        if c = 0 then compare id o.Id
-                        else c
-                    | _ ->
-                        failwith "uncomparable"
-
+                | :? Unique<'b> as o ->
+                    let c = compare value o.Value
+                    if c = 0 then compare id o.Id
+                    else c
+                | _ ->
+                    failwith "uncomparable"
+                #endif
 

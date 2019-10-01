@@ -114,6 +114,10 @@ module AVal =
             cheapHash value
 
         override x.Equals o =
+            #if FABLE_COMPILER
+            let o = unbox<aval<'T>> o
+            o.IsConstant && cheapEqual (x.GetValue()) (o.GetValue AdaptiveToken.Top)
+            #else
             match o with
             | :? ConstantVal<'T> as o -> 
                 let xv = x.GetValue()
@@ -121,6 +125,7 @@ module AVal =
                 cheapEqual xv ov
             | _ ->
                 false
+            #endif
 
     /// Aval for mapping a single value
     type MapVal<'T1, 'T2>(mapping: 'T1 -> 'T2, input: aval<'T1>) =

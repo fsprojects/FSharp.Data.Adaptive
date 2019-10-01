@@ -2,9 +2,9 @@
   "name": "fsharp.data.adaptive",
   "version": "0.0.1",
   "description": "FSharp.Data.Adaptive for Fable",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-    "test": "build -t Test"
+    "start": "webpack-dev-server"
   },
   "repository": {
     "type": "git",
@@ -17,8 +17,14 @@
   },
   "homepage": "https://github.com/fsprojects/FSharp.Data.Adaptive#readme",
   "devDependencies": {
-    "fable-compiler": "^2.4.2",
+    "@babel/core": "^7.5.5",
+    "copy-webpack-plugin": "^5.0.4",
+    "fable-compiler": "^2.3.19",
+    "fable-loader": "^2.1.8",
     "fable-splitter": "^2.1.11",
-    "npx": "^10.2.0"
+    "npx": "^10.2.0",
+    "webpack": "^4.39.2",
+    "webpack-cli": "^3.3.6",
+    "webpack-dev-server": "^3.8.0"
   }
 }
