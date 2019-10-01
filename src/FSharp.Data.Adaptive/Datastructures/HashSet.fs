@@ -356,9 +356,11 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
     /// Creates a set with all entries from the seq.
     /// `O(N * log N)`
     static member OfSeq (seq : seq<'T>) =
+        #if !FABLE_COMPILER
         match seq with
         | :? HashSet<'T> as set -> set
         | _ -> 
+        #endif
             let mutable res = empty
             for e in seq do
                 res <- res.Add e

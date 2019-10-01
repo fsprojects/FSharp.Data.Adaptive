@@ -12,10 +12,14 @@ type internal UEq<'T> =
     override x.GetHashCode() = 
         Unchecked.hash x.Value
     override x.Equals o =
+        #if FABLE_COMPILER
+        let o = unbox<UEq<'T>> o
+        Unchecked.equals x.Value o.Value
+        #else
         match o with
         | :? UEq<'T> as o -> Unchecked.equals x.Value o.Value
         | _ -> false
-
+        #endif
 /// Cache represents a cached function which can be 
 /// invoked and revoked. invoke increments the reference
 /// count for a specific argument (possibly causing the 

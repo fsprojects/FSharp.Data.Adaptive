@@ -716,10 +716,12 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
     /// Creates a map with all entries from the seq.
     /// `O(N * log N)`
     static member OfSeq (seq: seq<'K * 'V>) =
+        #if !FABLE_COMPILER
         match seq with
         | :? HashMap<'K, 'V> as o ->
             o
         | _ -> 
+        #endif
             let mutable res = empty
             for (k,v) in seq do
                 res <- res.Add(k,v)
@@ -759,12 +761,16 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
             )
 
     override x.Equals o =
+        #if FABLE_COMPILER
+        let o = unbox<HashMap<'K, 'V>> o
+        IntMap.equals HashMapList.equals store o.Store
+        #else
         match o with
         | :? HashMap<'K, 'V> as o ->
             IntMap.equals HashMapList.equals store o.Store
         | _ ->
             false
-
+        #endif
     member private x.AsString = x.ToString()
 
     interface IEnumerable with
