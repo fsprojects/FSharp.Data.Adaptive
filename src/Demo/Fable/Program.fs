@@ -132,6 +132,23 @@ let example() =
     logh4 "f = 2"
     log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
     
+
+
+    let dict = UncheckedDictionary.create<obj, int>()
+
+    let a = AVal.constant 1
+    let b = AVal.constant 1
+
+    log "%A" (Unchecked.equals a b)
+
+    dict.[a] <- 1
+    dict.[b] <- 2
+
+    log "%A" (dict.TryGetValue a)
+
+
+
+
 [<EntryPoint>]
 let main argv =
     document.addEventListener("readystatechange", fun _ ->

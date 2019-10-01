@@ -50,7 +50,7 @@ type Transaction() =
 
     // The contained set is useful for determinig if an element has
     // already been enqueued
-    let contained = HashSet<IAdaptiveObject>()
+    let contained = UncheckedHashSet.create<IAdaptiveObject>()
     let mutable current : IAdaptiveObject = Unchecked.defaultof<_>
     let currentLevel = ref 0
     let mutable finalizers : list<unit -> unit> = []

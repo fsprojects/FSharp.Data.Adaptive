@@ -317,7 +317,7 @@ module AdaptiveHashSetImplementation =
         do r.Tag <- "Input"
 
         let mutable initial = true
-        let cache = System.Collections.Generic.Dictionary<aval<'T>, 'T>()
+        let cache = UncheckedDictionary.create<aval<'T>, 'T>()
 
         member x.Invoke(token : AdaptiveToken, m : aval<'T>) =
             let v = m.GetValue token
@@ -363,7 +363,7 @@ module AdaptiveHashSetImplementation =
         let reader = input.GetReader()
         do reader.Tag <- "Reader"
         let mapping = Cache mapping
-        let cache = System.Collections.Generic.Dictionary<aval<'B>, ref<int * 'B>>()
+        let cache = UncheckedDictionary.create<aval<'B>, ref<int * 'B>>()
 
         member x.Invoke(token : AdaptiveToken, v : 'A) =
             let m = mapping.Invoke v
@@ -426,7 +426,7 @@ module AdaptiveHashSetImplementation =
 
         let f = Cache f
         let mutable initial = true
-        let cache = System.Collections.Generic.Dictionary<aval<option<'B>>, ref<int * option<'B>>>()
+        let cache = UncheckedDictionary.create<aval<option<'B>>, ref<int * option<'B>>>()
 
         member x.Invoke(token : AdaptiveToken, v : 'A) =
             let m = f.Invoke v

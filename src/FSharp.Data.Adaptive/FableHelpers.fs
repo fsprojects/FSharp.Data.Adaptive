@@ -1,5 +1,23 @@
 ﻿namespace FSharp.Data.Adaptive
 
+type UncheckedEqualityComparer<'T> private() =
+    static let cmp =
+        { new System.Collections.Generic.IEqualityComparer<'T> with
+            member __.GetHashCode(o : 'T) = Unchecked.hash o
+            member __.Equals(l : 'T, r : 'T) = Unchecked.equals l r
+        }
+    static member Instance = cmp
+
+module UncheckedDictionary =
+    let inline create<'Key, 'Value> () =
+        System.Collections.Generic.Dictionary<'Key, 'Value>(UncheckedEqualityComparer<'Key>.Instance)
+
+module UncheckedHashSet =
+    let inline create<'T> () =
+        System.Collections.Generic.HashSet<'T>(UncheckedEqualityComparer<'T>.Instance)
+
+
+
 
 
 #if FABLE_COMPILER

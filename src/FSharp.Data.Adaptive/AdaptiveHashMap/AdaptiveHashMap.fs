@@ -112,7 +112,7 @@ module AdaptiveHashMapImplementation =
         inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.monoid)
 
         let reader = input.GetReader()
-        let livingKeys = System.Collections.Generic.HashSet<'Key>()
+        let livingKeys = UncheckedHashSet.create<'Key>()
 
         override x.Compute(token) =
             let ops = reader.GetChanges token
@@ -139,7 +139,7 @@ module AdaptiveHashMapImplementation =
 
         let reader = input.GetReader()
         let cache = Cache f
-        let livingKeys = System.Collections.Generic.HashSet<'Key>()
+        let livingKeys = UncheckedHashSet.create<'Key>()
 
         override x.Compute(token) =
             let oldState = reader.State

@@ -269,7 +269,7 @@ module internal AdaptiveIndexListHelpers =
             CustomIndexMapping(OptimizedClosures.FSharpFunc<_,_,_>.Adapt compare)
 
     type IndexCache<'a, 'b>(f : Index -> 'a -> 'b, release : 'b -> unit) =
-        let store = Dictionary<Index, 'a * 'b>()
+        let store = UncheckedDictionary.create<Index, 'a * 'b>()
 
         member x.InvokeAndGetOld(i : Index, a : 'a) =
             match store.TryGetValue(i) with

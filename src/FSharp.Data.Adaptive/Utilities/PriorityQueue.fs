@@ -30,7 +30,7 @@ type internal PriorityQueue<'T>(cmp: 'T -> 'T -> int) =
 /// Note: the duplicated values will be returned in the order they were enqueued
 type internal DuplicatePriorityQueue<'T, 'Key when 'Key: comparison>(extract: 'T -> 'Key) =
     let q = PriorityQueue<'Key> compare
-    let values = Dictionary<'Key, Queue<'T>>()
+    let values = UncheckedDictionary.create<'Key, Queue<'T>>()
     let mutable count = 0
 
     /// Enqueues a new element
