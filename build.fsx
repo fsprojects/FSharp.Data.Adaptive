@@ -73,13 +73,14 @@ Target.create "NpmInstall" (fun _ ->
         Trace.trace "running `npm install`"
 
         let npm =
-            if isWindows then CreateProcess.fromRawCommand "cmd" ["/C"; "npm"; "install"]
+            if isWindows then CreateProcess.fromRawCommand "cmd" ["/C"; "npm"; "install"; "--dev"]
             else CreateProcess.fromRawCommand "npm" ["install"]
 
+        use s = new MemoryStream()
         npm
         |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
-        |> CreateProcess.withStandardError StreamSpecification.Inherit
-        |> CreateProcess.withStandardOutput StreamSpecification.Inherit
+        |> CreateProcess.withStandardError (StreamSpecification.UseStream(true, s))
+        |> CreateProcess.withStandardOutput  (StreamSpecification.UseStream(true, s))
         |> Proc.run
         |> ignore
 
