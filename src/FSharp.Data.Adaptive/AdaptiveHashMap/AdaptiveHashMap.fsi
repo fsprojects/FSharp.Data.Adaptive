@@ -81,7 +81,8 @@ module AMap =
     /// Creates an aset holding all key/value tuples from the map.
     val toASet : map:amap<'Key,'Value> -> aset<'Key * 'Value>
 
-
+    /// Adaptively looks up the given key in the map.
+    val tryFind : key:'K -> map:amap<'K, 'V> -> aval<option<'V>>
 
     /// Adaptively folds over the map using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.

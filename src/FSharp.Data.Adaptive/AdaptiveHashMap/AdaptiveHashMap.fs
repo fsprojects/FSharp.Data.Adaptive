@@ -456,6 +456,10 @@ module AMap =
         else
             ASet.ofReader (fun () -> ToASetReader(map))
 
+    /// Adaptively looks up the given key in the map.
+    let tryFind (key: 'K) (map: amap<'K, 'V>) =
+        map.Content |> AVal.map (HashMap.tryFind key)
+
 
     /// Adaptively folds over the map using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
