@@ -1,3 +1,6 @@
+### 0.0.2
+fixed fable package
+
 ### 0.0.1
 added several missing operators like
 * `AList.ofAVal`
