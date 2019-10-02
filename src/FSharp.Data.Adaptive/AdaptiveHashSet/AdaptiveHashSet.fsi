@@ -82,6 +82,12 @@ module ASet =
     /// Adaptively filters the set and also respects inner changes.
     val filterA : mapping : ('A -> aval<bool>) -> set : aset<'A> -> aset<'A>
 
+    /// Creates an aset using the given reader-creator.
+    val ofReader : create : (unit -> #IOpReader<HashSetDelta<'T>>) -> aset<'T>
+    
+    /// Creates a constant aset lazy content.
+    val delay : create : (unit -> HashSet<'T>) -> aset<'T>
+
     /// Adaptively folds over the set using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
     /// Also note that the order of elements given to add/trySubtract is undefined.
@@ -95,20 +101,14 @@ module ASet =
     /// Note that the order of elements given to add is undefined.
     val fold : add : ('S -> 'A -> 'S) -> zero : 'S -> set : aset<'A> -> aval<'S>
 
-    /// Creates an aset using the given reader-creator.
-    val ofReader : create : (unit -> #IOpReader<HashSetDelta<'T>>) -> aset<'T>
-    
-    /// Creates a constant aset lazy content.
-    val delay : create : (unit -> HashSet<'T>) -> aset<'T>
-
     /// Adaptively computes the sum all entries in the set.
-    val inline sum<'A, 'B 
-                    when ('A or 'B) : (static member (+) : 'B -> 'A -> 'B) 
-                    and ('A or 'B) : (static member (-) : 'B -> 'A -> 'B) 
-                    and 'B : (static member Zero : 'B)> : set : aset<'A> -> aval<'B>
+    val inline sum : set : aset<'A> -> aval<'B>
+        when ('A or 'B) : (static member (+) : 'B -> 'A -> 'B) 
+        and  ('A or 'B) : (static member (-) : 'B -> 'A -> 'B) 
+        and   'B : (static member Zero : 'B)
 
     /// Adaptively computes the product of all entries in the set.
-    val inline product<'A, 'B 
-                        when ('A or 'B) : (static member (*) : 'B -> 'A -> 'B) 
-                        and ('A or 'B) : (static member (/) : 'B -> 'A -> 'B) 
-                        and 'B : (static member One : 'B)> : set : aset<'A> -> aval<'B>
+    val inline product : set : aset<'A> -> aval<'B>
+        when ('A or 'B) : (static member (*) : 'B -> 'A -> 'B) 
+        and  ('A or 'B) : (static member (/) : 'B -> 'A -> 'B) 
+        and   'B : (static member One : 'B)

@@ -455,3 +455,66 @@ module AMap =
             ASet.delay (fun () -> map |> force |> HashMap.toSeq |> HashSet.ofSeq)
         else
             ASet.ofReader (fun () -> ToASetReader(map))
+
+
+    /// Adaptively folds over the map using add for additions and trySubtract for removals.
+    /// Note the trySubtract may return None indicating that the result needs to be recomputed.
+    /// Also note that the order of elements given to add/trySubtract is undefined.
+    let foldHalfGroup (add : 'S -> 'K -> 'V -> 'S) (trySub : 'S -> 'K -> 'V -> option<'S>) (zero : 'S) (map : amap<'K, 'V>) =
+        let r = map.GetReader()
+        let mutable res = zero
+
+        let rec traverse (old : HashMap<'K, 'V>) (d : list<'K * ElementOperation<'V>>) =
+            match d with
+                | [] -> true
+                | (k, op) :: rest ->
+                    match op with
+                    | Set v -> 
+                        match HashMap.tryFind k old with
+                        | None ->
+                            res <- add res k v
+                            traverse old rest
+                        | Some o ->
+                            match trySub res k o with
+                            | Some r ->
+                                res <- add r k v
+                                traverse old rest
+                            | None ->
+                                false
+                                
+                        
+
+                    | Remove ->
+                        match HashMap.tryFind k old with
+                        | Some o ->
+                            match trySub res k o with
+                            | Some s ->
+                                res <- s
+                                traverse old rest
+                            | None ->
+                                false
+                        | None ->
+                            traverse old rest
+                                  
+
+        AVal.custom (fun token ->
+            
+            let old = r.State
+            let ops = r.GetChanges token
+            let worked = traverse old (HashMapDelta.toList ops)
+
+            if not worked then
+                res <- r.State |> HashMap.fold add zero
+                
+            res
+        )
+        
+    /// Adaptively folds over the map using add for additions and subtract for removals.
+    /// Note that the order of elements given to add/subtract is undefined.
+    let foldGroup (add : 'S -> 'K -> 'V -> 'S) (sub : 'S -> 'K -> 'V -> 'S) (zero : 'S) (map : amap<'K, 'V>) =
+        foldHalfGroup add (fun s k v -> sub s k v |> Some) zero map
+        
+    /// Adaptively folds over the map using add for additions and recomputes the value on every removal.
+    /// Note that the order of elements given to add is undefined.
+    let fold (add : 'S -> 'K -> 'V -> 'S) (zero : 'S) (map : amap<'K, 'V>) =
+        foldHalfGroup add (fun _ _ _ -> None) zero map

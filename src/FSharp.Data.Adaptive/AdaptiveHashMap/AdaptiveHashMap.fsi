@@ -81,3 +81,19 @@ module AMap =
     /// Creates an aset holding all key/value tuples from the map.
     val toASet : map:amap<'Key,'Value> -> aset<'Key * 'Value>
 
+
+
+    /// Adaptively folds over the map using add for additions and trySubtract for removals.
+    /// Note the trySubtract may return None indicating that the result needs to be recomputed.
+    /// Also note that the order of elements given to add/trySubtract is undefined.
+    val foldHalfGroup : add : ('S -> 'K -> 'V -> 'S) -> trySubtract : ('S -> 'K -> 'V -> option<'S>) -> zero : 'S -> set : amap<'K, 'V> -> aval<'S>
+    
+    /// Adaptively folds over the map using add for additions and subtract for removals.
+    /// Note that the order of elements given to add/subtract is undefined.
+    val foldGroup : add : ('S -> 'K -> 'V -> 'S) -> subtract : ('S -> 'K -> 'V -> 'S) -> zero : 'S -> set : amap<'K, 'V> -> aval<'S>
+
+    /// Adaptively folds over the map using add for additions and recomputes the value on every removal.
+    /// Note that the order of elements given to add is undefined.
+    val fold : add : ('S -> 'K -> 'V -> 'S) -> zero : 'S -> set : amap<'K, 'V> -> aval<'S>
+
+
