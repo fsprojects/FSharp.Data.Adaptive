@@ -315,6 +315,8 @@ module AdaptiveHashMapImplementation =
             member x.GetValue t = x.GetValue t  
     
     /// Reader used for ofASet operations.
+    /// It's safe to assume that the view function will only be called with non-empty HashSets.
+    /// Internally assumes that the view function is cheap.
     type SetReader<'Key, 'Value, 'View>(input : aset<'Key * 'Value>, view : HashSet<'Value> -> 'View) =
         inherit AbstractReader<HashMapDelta<'Key, 'View>>(HashMapDelta.monoid)
 
