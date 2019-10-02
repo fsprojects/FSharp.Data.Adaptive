@@ -158,20 +158,13 @@ let main argv =
         )
 
     let clearLine() =
-        let l = Console.CursorLeft
-        let t = Console.CursorTop
-        Console.Write(System.String(' ', Console.WindowWidth))
-        Console.SetCursorPosition(l, t)
-        
+        Console.Write(System.String(' ', Console.WindowWidth - 1))
+        Console.SetCursorPosition(0, Console.CursorTop)
 
     let writeLastLine (str : string) =
-        let l = Console.CursorLeft
-        let t = Console.CursorTop
-        //let last = Console.WindowTop + Console.WindowHeight - 1
-        //Console.SetCursorPosition(0, last)
-        let missing = Console.WindowWidth - str.Length
+        let missing = Console.WindowWidth - str.Length - 1
         Console.Write("{0}{1}", str, System.String(' ', missing))
-        Console.SetCursorPosition(l, t)
+        Console.SetCursorPosition(0, Console.CursorTop)
 
     // here we start the thread that actually pulls changes from out reader
     // and prints the results to the console.
