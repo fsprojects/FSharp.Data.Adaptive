@@ -468,6 +468,17 @@ module internal AdaptiveIndexListImplementation =
             )
             |> IndexListDelta.ofSeq
 
+    /// Reader for ofAVal operations
+    type AValReader<'s, 'a when 's :> seq<'a>>(input: aval<'s>) =
+        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.monoid)
+
+        let mutable last = IndexList.empty
+
+        override x.Compute(token: AdaptiveToken) =
+            let v = input.GetValue token |> IndexList.ofSeq
+            let ops = IndexList.computeDelta last v
+            last <- v
+            ops
 
     /// Gets the current content of the alist as IndexList.
     let inline force (list : alist<'T>) = 
@@ -515,6 +526,14 @@ module AList =
     /// Creates an alist using the given reader-creator.
     let ofReader (creator : unit -> #IOpReader<IndexListDelta<'T>>) =
         create creator
+
+    /// Creates an alist from the given adaptive content
+    let ofAVal (value: aval<#seq<'T>>) =
+        if value.IsConstant then
+            constant (fun () -> IndexList.ofSeq (AVal.force value))
+        else
+            create (fun () -> AValReader(value))
+
 
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
     let mapi (mapping: Index -> 'T1 -> 'T2) (list : alist<'T1>) =

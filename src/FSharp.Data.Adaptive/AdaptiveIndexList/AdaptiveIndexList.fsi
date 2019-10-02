@@ -81,6 +81,9 @@ module AList =
 
     /// Creates an aval providing access to the current content of the list.
     val toAVal : list : alist<'T> -> aval<IndexList<'T>>
+    
+    /// Creates an alist from the given adaptive content
+    val ofAVal : value : aval<#seq<'T>> -> alist<'T>
 
     /// Adaptively maps over the given aval and returns the resulting list.
     val bind : mapping: ('T1 -> alist<'T2>) -> value: aval<'T1> -> alist<'T2>
