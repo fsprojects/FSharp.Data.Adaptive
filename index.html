@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8"/>
-    <title>FSharp.Data.Adaptive : adaptive data for F#
+    <title>FSharp.Data.Adaptive: adaptive data for F#
 </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="description" content="On-demand adaptive/incremental data for F#"/>
@@ -32,13 +32,13 @@
       <div class="row">
         <div class="span9" id="main">
           
-<h1><a name="FSharp-Data-Adaptive-adaptive-data-for-F" class="anchor" href="#FSharp-Data-Adaptive-adaptive-data-for-F">FSharp.Data.Adaptive : adaptive data for F#</a></h1>
+<h1><a name="FSharp-Data-Adaptive-adaptive-data-for-F" class="anchor" href="#FSharp-Data-Adaptive-adaptive-data-for-F">FSharp.Data.Adaptive: adaptive data for F#</a></h1>
 <p>FSharp.Data.Adaptive aims at providing simple, yet powerful tools for developers to
 write incremental (or as we call it: adaptive) programs.
-In contrast to RX or similar libraries adaptive focuses on values instead of events.
-The most basic adaptive container-type we provide is <code>aval&lt;'T&gt;</code> and here's a little example of what it can do for you:</p>
-<h3><a name="Simple-Example" class="anchor" href="#Simple-Example">Simple Example</a></h3>
-<p>consider a ball that falls from <code>10m</code> height on earth (<code>9.81m/s^2</code>).</p>
+In contrast to RX or similar libraries, adaptive focuses on values instead of events.
+The most basic adaptive container type we provide is <code>aval&lt;'T&gt;</code> and here's a little example of what it can do for you:</p>
+<h2><a name="Gravity-Example" class="anchor" href="#Gravity-Example">Gravity Example</a></h2>
+<p>Consider a ball that falls from 10m height on earth (9.81m/s^2).</p>
 <table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l">1: </span>
 <span class="l">2: </span>
 </pre></td>
@@ -47,7 +47,7 @@ The most basic adaptive container-type we provide is <code>aval&lt;'T&gt;</code>
 </code></pre></td>
 </tr>
 </table>
-<p>so when will the ball be hitting the floor?</p>
+<p>So when will the ball be hitting the floor?</p>
 <table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l">1: </span>
 <span class="l">2: </span>
 </pre></td>
@@ -56,7 +56,7 @@ The most basic adaptive container-type we provide is <code>aval&lt;'T&gt;</code>
 </code></pre></td>
 </tr>
 </table>
-<p>so how long will it take on the moon?</p>
+<p>How long will it take on the moon?</p>
 <table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l">1: </span>
 <span class="l">2: </span>
 </pre></td>
@@ -65,7 +65,7 @@ The most basic adaptive container-type we provide is <code>aval&lt;'T&gt;</code>
 </code></pre></td>
 </tr>
 </table>
-<p>what about 2000m height on jupiter?</p>
+<p>What about a height of 2000m on Jupiter?</p>
 <table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l">1: </span>
 <span class="l">2: </span>
 <span class="l">3: </span>
@@ -80,19 +80,31 @@ The most basic adaptive container-type we provide is <code>aval&lt;'T&gt;</code>
 </code></pre></td>
 </tr>
 </table>
-<p>so currently this feels a lot like excel calcuations where dependent values get updated
-whenever their inputs change which is not really impressive. The API becomes interesting when <strong>structural</strong> / <strong>dynamic</strong> dependencies
-are needed.
-So let's calculate the height where our ball will be at a certain point in time.</p>
-<table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l">1: </span>
-<span class="l">2: </span>
-<span class="l">3: </span>
-<span class="l">4: </span>
-<span class="l">5: </span>
-<span class="l">6: </span>
-<span class="l">7: </span>
-<span class="l">8: </span>
-<span class="l">9: </span>
+<p>This example feels a lot like an Excel calcuation, in which dependent cells get updated
+whenever their inputs change.</p>
+<blockquote>
+<ul>
+<li><code>cval</code> <strong>Changeable Value</strong>. Adaptive cell whose value can be manually set. A <code>cval</code> is also an <code>aval</code>.</li>
+<li><code>transact</code> Set a <code>cval</code>'s value within this scope.</li>
+<li><code>aval</code> <strong>Adaptive Value</strong>. Adaptive cell whose value purely depends on other adaptive cells.</li>
+<li><code>map</code> <code>map2</code> <code>map3</code> Create a new <code>aval</code> whose value depends on the one (two, three) input <code>aval</code>(s).</li>
+<li><code>force</code> Read an <code>aval</code>'s value.</li>
+</ul>
+</blockquote>
+<p>This is not particularly impressive. The API becomes much more interesting when <em>structural dependencies</em> (or <em>dynamic dependencies</em> )
+come into play. The term <em>dynamic dependencies</em> means <code>aval</code>s can dynamically decide whether or not to depend on something based on their content.</p>
+<p>Let's calculate the height of our ball at a certain point in time.</p>
+<table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
 </pre></td>
 <td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span class="k">let</span> <span onmouseout="hideTip(event, 'fs17', 38)" onmouseover="showTip(event, 'fs17', 38)" class="id">time</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs5', 39)" onmouseover="showTip(event, 'fs5', 39)" class="rt">cval</span> <span class="n">0.5</span>
 
@@ -102,21 +114,24 @@ So let's calculate the height where our ball will be at a certain point in time.
     <span onmouseout="hideTip(event, 'fs21', 49)" onmouseover="showTip(event, 'fs21', 49)" class="id">h0</span> <span class="o">-</span> <span class="n">0.5</span><span class="o">*</span><span onmouseout="hideTip(event, 'fs11', 50)" onmouseover="showTip(event, 'fs11', 50)" class="id">g</span><span class="o">*</span><span onmouseout="hideTip(event, 'fs19', 51)" onmouseover="showTip(event, 'fs19', 51)" class="id">t</span><span class="o">*</span><span onmouseout="hideTip(event, 'fs19', 52)" onmouseover="showTip(event, 'fs19', 52)" class="id">t</span>
 
 <span class="k">let</span> <span onmouseout="hideTip(event, 'fs23', 53)" onmouseover="showTip(event, 'fs23', 53)" class="id">currentHeight</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs8', 54)" onmouseover="showTip(event, 'fs8', 54)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs24', 55)" onmouseover="showTip(event, 'fs24', 55)" class="id">map3</span> <span onmouseout="hideTip(event, 'fs18', 56)" onmouseover="showTip(event, 'fs18', 56)" class="fn">calcHeight</span> <span onmouseout="hideTip(event, 'fs17', 57)" onmouseover="showTip(event, 'fs17', 57)" class="id">time</span> <span onmouseout="hideTip(event, 'fs4', 58)" onmouseover="showTip(event, 'fs4', 58)" class="id">height</span> <span onmouseout="hideTip(event, 'fs6', 59)" onmouseover="showTip(event, 'fs6', 59)" class="id">gravity</span>
-<span onmouseout="hideTip(event, 'fs13', 60)" onmouseover="showTip(event, 'fs13', 60)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%.3f</span><span class="s">m&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 61)" onmouseover="showTip(event, 'fs8', 61)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 62)" onmouseover="showTip(event, 'fs14', 62)" class="id">force</span> <span onmouseout="hideTip(event, 'fs23', 63)" onmouseover="showTip(event, 'fs23', 63)" class="id">currentHeight</span><span class="pn">)</span> <span class="c">// height after 0.500s: 1996.901m</span>
+<span onmouseout="hideTip(event, 'fs13', 60)" onmouseover="showTip(event, 'fs13', 60)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%.3f</span><span class="s">m&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 61)" onmouseover="showTip(event, 'fs8', 61)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 62)" onmouseover="showTip(event, 'fs14', 62)" class="id">force</span> <span onmouseout="hideTip(event, 'fs23', 63)" onmouseover="showTip(event, 'fs23', 63)" class="id">currentHeight</span><span class="pn">)</span> <span class="c">// =&gt; height after 0.500s: 1996.901m</span>
+<span onmouseout="hideTip(event, 'fs13', 64)" onmouseover="showTip(event, 'fs13', 64)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%.3f</span><span class="s">m&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 65)" onmouseover="showTip(event, 'fs8', 65)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 66)" onmouseover="showTip(event, 'fs14', 66)" class="id">force</span> <span onmouseout="hideTip(event, 'fs23', 67)" onmouseover="showTip(event, 'fs23', 67)" class="id">currentHeight</span><span class="pn">)</span> <span class="c">// =&gt; 1996.901m</span>
+<span onmouseout="hideTip(event, 'fs13', 68)" onmouseover="showTip(event, 'fs13', 68)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%.3f</span><span class="s">m&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 69)" onmouseover="showTip(event, 'fs8', 69)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 70)" onmouseover="showTip(event, 'fs14', 70)" class="id">force</span> <span onmouseout="hideTip(event, 'fs23', 71)" onmouseover="showTip(event, 'fs23', 71)" class="id">currentHeight</span><span class="pn">)</span> <span class="c">// =&gt; 1996.901m</span>
 </code></pre></td>
 </tr>
 </table>
-<p>but what about invalid times (let's say -100s)?</p>
+<p>Note that we snuck a little "height after" print into the utility calculation. This is for illustrative purposes: observe how the print occurs only when <code>currentHeight</code> needs to re-calculate its value. It happens <em>only</em> at initial calculation or when one of its inputs changes!</p>
+<p>But, oh no! Someone could enter an invalid time (let's say -100s)!</p>
 <table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l">1: </span>
 <span class="l">2: </span>
 </pre></td>
-<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span onmouseout="hideTip(event, 'fs15', 64)" onmouseover="showTip(event, 'fs15', 64)" class="fn">transact</span> <span class="pn">(</span><span class="k">fun</span> <span class="pn">(</span><span class="pn">)</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs17', 65)" onmouseover="showTip(event, 'fs17', 65)" class="id">time</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs16', 66)" onmouseover="showTip(event, 'fs16', 66)" class="id">Value</span> <span class="k">&lt;-</span> <span class="o">-</span><span class="n">100.0</span><span class="pn">)</span>
-<span onmouseout="hideTip(event, 'fs13', 67)" onmouseover="showTip(event, 'fs13', 67)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%.3f</span><span class="s">m&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 68)" onmouseover="showTip(event, 'fs8', 68)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 69)" onmouseover="showTip(event, 'fs14', 69)" class="id">force</span> <span onmouseout="hideTip(event, 'fs23', 70)" onmouseover="showTip(event, 'fs23', 70)" class="id">currentHeight</span><span class="pn">)</span> <span class="c">// =&gt; height after -100.000s: -121950.000m  </span>
+<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span onmouseout="hideTip(event, 'fs15', 72)" onmouseover="showTip(event, 'fs15', 72)" class="fn">transact</span> <span class="pn">(</span><span class="k">fun</span> <span class="pn">(</span><span class="pn">)</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs17', 73)" onmouseover="showTip(event, 'fs17', 73)" class="id">time</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs16', 74)" onmouseover="showTip(event, 'fs16', 74)" class="id">Value</span> <span class="k">&lt;-</span> <span class="o">-</span><span class="n">100.0</span><span class="pn">)</span>
+<span onmouseout="hideTip(event, 'fs13', 75)" onmouseover="showTip(event, 'fs13', 75)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%.3f</span><span class="s">m&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 76)" onmouseover="showTip(event, 'fs8', 76)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 77)" onmouseover="showTip(event, 'fs14', 77)" class="id">force</span> <span onmouseout="hideTip(event, 'fs23', 78)" onmouseover="showTip(event, 'fs23', 78)" class="id">currentHeight</span><span class="pn">)</span> <span class="c">// =&gt; height after -100.000s: -121950.000m  </span>
 </code></pre></td>
 </tr>
 </table>
-<p>that's not really what we wanted!
-so let's rewrite the code using a new combinator (namely <code>bind</code>)</p>
+<p>We'd like to prevent that!</p>
+<p>Let's rewrite the code using a dynamic dependency.</p>
 <table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l"> 1: </span>
 <span class="l"> 2: </span>
 <span class="l"> 3: </span>
@@ -129,86 +144,147 @@ so let's rewrite the code using a new combinator (namely <code>bind</code>)</p>
 <span class="l">10: </span>
 <span class="l">11: </span>
 </pre></td>
-<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span class="k">let</span> <span onmouseout="hideTip(event, 'fs25', 71)" onmouseover="showTip(event, 'fs25', 71)" class="id">currentHeightNew</span> <span class="o">=</span>
-    <span onmouseout="hideTip(event, 'fs17', 72)" onmouseover="showTip(event, 'fs17', 72)" class="id">time</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs8', 73)" onmouseover="showTip(event, 'fs8', 73)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs26', 74)" onmouseover="showTip(event, 'fs26', 74)" class="id">bind</span> <span class="pn">(</span><span class="k">fun</span> <span onmouseout="hideTip(event, 'fs19', 75)" onmouseover="showTip(event, 'fs19', 75)" class="id">t</span> <span class="k">-&gt;</span>
-        <span class="k">if</span> <span onmouseout="hideTip(event, 'fs19', 76)" onmouseover="showTip(event, 'fs19', 76)" class="id">t</span> <span class="o">&lt;=</span> <span class="n">0.0</span> <span class="k">then</span> 
+<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span class="k">let</span> <span onmouseout="hideTip(event, 'fs25', 79)" onmouseover="showTip(event, 'fs25', 79)" class="id">currentHeightSafe</span> <span class="o">=</span>
+    <span onmouseout="hideTip(event, 'fs17', 80)" onmouseover="showTip(event, 'fs17', 80)" class="id">time</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs8', 81)" onmouseover="showTip(event, 'fs8', 81)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs26', 82)" onmouseover="showTip(event, 'fs26', 82)" class="id">bind</span> <span class="pn">(</span><span class="k">fun</span> <span onmouseout="hideTip(event, 'fs19', 83)" onmouseover="showTip(event, 'fs19', 83)" class="id">t</span> <span class="k">-&gt;</span>
+        <span class="k">if</span> <span onmouseout="hideTip(event, 'fs19', 84)" onmouseover="showTip(event, 'fs19', 84)" class="id">t</span> <span class="o">&lt;=</span> <span class="n">0.0</span> <span class="k">then</span> 
             <span class="c">// whenever the time is negative the ball will just report its initial height.</span>
-            <span onmouseout="hideTip(event, 'fs4', 77)" onmouseover="showTip(event, 'fs4', 77)" class="id">height</span> <span class="o">:&gt;</span> <span onmouseout="hideTip(event, 'fs27', 78)" onmouseover="showTip(event, 'fs27', 78)" class="if">aval</span><span class="pn">&lt;</span><span class="id">_</span><span class="pn">&gt;</span>
+            <span onmouseout="hideTip(event, 'fs4', 85)" onmouseover="showTip(event, 'fs4', 85)" class="id">height</span> <span class="o">:&gt;</span> <span onmouseout="hideTip(event, 'fs27', 86)" onmouseover="showTip(event, 'fs27', 86)" class="if">aval</span><span class="pn">&lt;</span><span class="id">_</span><span class="pn">&gt;</span>
         <span class="k">else</span>
-            <span class="c">// when the time is positive we use our utility to calculate the height.</span>
-            <span onmouseout="hideTip(event, 'fs8', 79)" onmouseover="showTip(event, 'fs8', 79)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs9', 80)" onmouseover="showTip(event, 'fs9', 80)" class="id">map2</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs18', 81)" onmouseover="showTip(event, 'fs18', 81)" class="fn">calcHeight</span> <span onmouseout="hideTip(event, 'fs19', 82)" onmouseover="showTip(event, 'fs19', 82)" class="id">t</span><span class="pn">)</span> <span onmouseout="hideTip(event, 'fs4', 83)" onmouseover="showTip(event, 'fs4', 83)" class="id">height</span> <span onmouseout="hideTip(event, 'fs6', 84)" onmouseover="showTip(event, 'fs6', 84)" class="id">gravity</span>
+            <span class="c">// when the time is positive we use our utility to calculate the height at the current time.</span>
+            <span onmouseout="hideTip(event, 'fs8', 87)" onmouseover="showTip(event, 'fs8', 87)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs9', 88)" onmouseover="showTip(event, 'fs9', 88)" class="id">map2</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs18', 89)" onmouseover="showTip(event, 'fs18', 89)" class="fn">calcHeight</span> <span onmouseout="hideTip(event, 'fs19', 90)" onmouseover="showTip(event, 'fs19', 90)" class="id">t</span><span class="pn">)</span> <span onmouseout="hideTip(event, 'fs4', 91)" onmouseover="showTip(event, 'fs4', 91)" class="id">height</span> <span onmouseout="hideTip(event, 'fs6', 92)" onmouseover="showTip(event, 'fs6', 92)" class="id">gravity</span>
     <span class="pn">)</span>
-    
-<span onmouseout="hideTip(event, 'fs13', 85)" onmouseover="showTip(event, 'fs13', 85)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%.3f</span><span class="s">m&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 86)" onmouseover="showTip(event, 'fs8', 86)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 87)" onmouseover="showTip(event, 'fs14', 87)" class="id">force</span> <span onmouseout="hideTip(event, 'fs25', 88)" onmouseover="showTip(event, 'fs25', 88)" class="id">currentHeightNew</span><span class="pn">)</span> <span class="c">// =&gt; 2000.000m</span>
+
+<span onmouseout="hideTip(event, 'fs13', 93)" onmouseover="showTip(event, 'fs13', 93)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%.3f</span><span class="s">m&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 94)" onmouseover="showTip(event, 'fs8', 94)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 95)" onmouseover="showTip(event, 'fs14', 95)" class="id">force</span> <span onmouseout="hideTip(event, 'fs25', 96)" onmouseover="showTip(event, 'fs25', 96)" class="id">currentHeightSafe</span><span class="pn">)</span> <span class="c">// =&gt; 2000.000m</span>
 </code></pre></td>
 </tr>
 </table>
-<p>that's better! NOTE that there is no <code>"height after"</code> print!
-so what if we change the gravity back to earth?</p>
+<p>The content of <code>currentHeightSafe</code> is now 2000.0, since our time is still negative and we decide to return the content of <code>height</code>.
+Observe the fact that there is no "height after" print! There's no need to run our utility calculation at this time.</p>
+<p>What happens if we change the gravity back to earth?</p>
 <table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l">1: </span>
 <span class="l">2: </span>
 </pre></td>
-<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span onmouseout="hideTip(event, 'fs15', 89)" onmouseover="showTip(event, 'fs15', 89)" class="fn">transact</span> <span class="pn">(</span><span class="k">fun</span> <span class="pn">(</span><span class="pn">)</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs6', 90)" onmouseover="showTip(event, 'fs6', 90)" class="id">gravity</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs16', 91)" onmouseover="showTip(event, 'fs16', 91)" class="id">Value</span> <span class="k">&lt;-</span> <span class="n">9.81</span><span class="pn">)</span>
-<span onmouseout="hideTip(event, 'fs13', 92)" onmouseover="showTip(event, 'fs13', 92)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%.3f</span><span class="s">m&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 93)" onmouseover="showTip(event, 'fs8', 93)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 94)" onmouseover="showTip(event, 'fs14', 94)" class="id">force</span> <span onmouseout="hideTip(event, 'fs25', 95)" onmouseover="showTip(event, 'fs25', 95)" class="id">currentHeightNew</span><span class="pn">)</span> <span class="c">// =&gt; 2000.000m (still no computation)</span>
+<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span onmouseout="hideTip(event, 'fs15', 97)" onmouseover="showTip(event, 'fs15', 97)" class="fn">transact</span> <span class="pn">(</span><span class="k">fun</span> <span class="pn">(</span><span class="pn">)</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs6', 98)" onmouseover="showTip(event, 'fs6', 98)" class="id">gravity</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs16', 99)" onmouseover="showTip(event, 'fs16', 99)" class="id">Value</span> <span class="k">&lt;-</span> <span class="n">9.81</span><span class="pn">)</span>
+<span onmouseout="hideTip(event, 'fs13', 100)" onmouseover="showTip(event, 'fs13', 100)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%.3f</span><span class="s">m&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 101)" onmouseover="showTip(event, 'fs8', 101)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 102)" onmouseover="showTip(event, 'fs14', 102)" class="id">force</span> <span onmouseout="hideTip(event, 'fs25', 103)" onmouseover="showTip(event, 'fs25', 103)" class="id">currentHeightSafe</span><span class="pn">)</span> <span class="c">// =&gt; 2000.000m</span>
 </code></pre></td>
 </tr>
 </table>
-<p>okay, set the height to 10m again.</p>
+<p>Nothing changed, since <code>currentHeightSafe</code> currently <em>does not depend</em> on <code>gravity</code>. There is no "height after" print!</p>
+<p>Okay, set the height to 10m again.</p>
 <table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l">1: </span>
 <span class="l">2: </span>
 </pre></td>
-<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span onmouseout="hideTip(event, 'fs15', 96)" onmouseover="showTip(event, 'fs15', 96)" class="fn">transact</span> <span class="pn">(</span><span class="k">fun</span> <span class="pn">(</span><span class="pn">)</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs4', 97)" onmouseover="showTip(event, 'fs4', 97)" class="id">height</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs16', 98)" onmouseover="showTip(event, 'fs16', 98)" class="id">Value</span> <span class="k">&lt;-</span> <span class="n">10.0</span><span class="pn">)</span>
-<span onmouseout="hideTip(event, 'fs13', 99)" onmouseover="showTip(event, 'fs13', 99)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%.3f</span><span class="s">m&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 100)" onmouseover="showTip(event, 'fs8', 100)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 101)" onmouseover="showTip(event, 'fs14', 101)" class="id">force</span> <span onmouseout="hideTip(event, 'fs25', 102)" onmouseover="showTip(event, 'fs25', 102)" class="id">currentHeightNew</span><span class="pn">)</span> <span class="c">// 10.0m (still no computation)</span>
+<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span onmouseout="hideTip(event, 'fs15', 104)" onmouseover="showTip(event, 'fs15', 104)" class="fn">transact</span> <span class="pn">(</span><span class="k">fun</span> <span class="pn">(</span><span class="pn">)</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs4', 105)" onmouseover="showTip(event, 'fs4', 105)" class="id">height</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs16', 106)" onmouseover="showTip(event, 'fs16', 106)" class="id">Value</span> <span class="k">&lt;-</span> <span class="n">10.0</span><span class="pn">)</span>
+<span onmouseout="hideTip(event, 'fs13', 107)" onmouseover="showTip(event, 'fs13', 107)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%.3f</span><span class="s">m&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 108)" onmouseover="showTip(event, 'fs8', 108)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 109)" onmouseover="showTip(event, 'fs14', 109)" class="id">force</span> <span onmouseout="hideTip(event, 'fs25', 110)" onmouseover="showTip(event, 'fs25', 110)" class="id">currentHeightSafe</span><span class="pn">)</span> <span class="c">// =&gt; 10.0m</span>
 </code></pre></td>
 </tr>
 </table>
-<p>so let's set the time to something positive again and see if the result will be correct.</p>
+<p>Our value of <code>currentHeightSafe</code> got updated to represent the new value of <code>height</code>. There is <strong>still</strong> no "height after" print!</p>
+<p>Finally, let's set the time to a positive value again.</p>
 <table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l">1: </span>
 <span class="l">2: </span>
 </pre></td>
-<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span onmouseout="hideTip(event, 'fs15', 103)" onmouseover="showTip(event, 'fs15', 103)" class="fn">transact</span> <span class="pn">(</span><span class="k">fun</span> <span class="pn">(</span><span class="pn">)</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs17', 104)" onmouseover="showTip(event, 'fs17', 104)" class="id">time</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs16', 105)" onmouseover="showTip(event, 'fs16', 105)" class="id">Value</span> <span class="k">&lt;-</span> <span class="n">1.42785</span><span class="pn">)</span>
-<span onmouseout="hideTip(event, 'fs13', 106)" onmouseover="showTip(event, 'fs13', 106)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%.3f</span><span class="s">m&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 107)" onmouseover="showTip(event, 'fs8', 107)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 108)" onmouseover="showTip(event, 'fs14', 108)" class="id">force</span> <span onmouseout="hideTip(event, 'fs25', 109)" onmouseover="showTip(event, 'fs25', 109)" class="id">currentHeightNew</span><span class="pn">)</span> <span class="c">// height after 1.428s: 0.000m</span>
+<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span onmouseout="hideTip(event, 'fs15', 111)" onmouseover="showTip(event, 'fs15', 111)" class="fn">transact</span> <span class="pn">(</span><span class="k">fun</span> <span class="pn">(</span><span class="pn">)</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs17', 112)" onmouseover="showTip(event, 'fs17', 112)" class="id">time</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs16', 113)" onmouseover="showTip(event, 'fs16', 113)" class="id">Value</span> <span class="k">&lt;-</span> <span class="n">1.42785</span><span class="pn">)</span>
+<span onmouseout="hideTip(event, 'fs13', 114)" onmouseover="showTip(event, 'fs13', 114)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%.3f</span><span class="s">m&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 115)" onmouseover="showTip(event, 'fs8', 115)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 116)" onmouseover="showTip(event, 'fs14', 116)" class="id">force</span> <span onmouseout="hideTip(event, 'fs25', 117)" onmouseover="showTip(event, 'fs25', 117)" class="id">currentHeightSafe</span><span class="pn">)</span> <span class="c">// height after 1.428s: 0.000m</span>
 </code></pre></td>
 </tr>
 </table>
-<p>What this simple example demonstrates is that <code>aval&lt;'T&gt;</code> is capable of expressing <strong>dynamic</strong> dependency graphs.
-The system <em>knows</em> that the resulting value doesn't depend on gravity/height as long as the current time is negative but still can compute the
-correct result once the time gets positive again. This may seem trivial at a first glance but this kind of dependency
-cannot be expressed in traditional reactive-programming libraries.</p>
-<h3><a name="Changeable-Adaptive-and-Constant" class="anchor" href="#Changeable-Adaptive-and-Constant">Changeable, Adaptive and Constant</a></h3>
-<p>First of all the system distinguishes between two different kinds of objects:</p>
-<ol>
-<li>changeable input values (e.g. <code>cval&lt;'T&gt;</code>, <code>cset&lt;'T&gt;</code>) that can imperatively be modified by user-code.</li>
-<li>dependent values (e.g. <code>aval&lt;'T&gt;</code>, <code>aset&lt;'T&gt;</code>) that cannot directly be modified but instead depend on other values.</li>
-</ol>
-<p>However note that <code>cval&lt;'T&gt;</code> and <code>cset&lt;'T&gt;</code> also implement <code>aval&lt;'T&gt;</code> and <code>aset&lt;'T&gt;</code> respectively and can therefore
-be used in places where these are expected (as seen in the example above).
-Actually there is a third kind of objects: the ones which can never be changed.
-In our system these are not expressed on type-level but instead expose a property <code>IsConstant</code>.
-All combinators correctly track constants (when possible) and therefore:</p>
+<p>And there's our "height after" print. We decided to depend on the utility calculation again.</p>
+<blockquote>
+<ul>
+<li><code>bind</code> Create a dynamic dependency. The resulting <code>aval</code> may dynamically decide on which <code>aval</code>s to depend.</li>
+<li><strong>Dependency graph</strong>. A chain of dependent <code>aval</code>s.</li>
+<li><strong>Dynamic dependency graph</strong>. A dependency graph that includes dynamic dependencies.</li>
+</ul>
+</blockquote>
+<p>This simple example demonstrates the <em>true power</em> of <code>aval</code>s: Their capacity of expressing <em>dynamic dependency graphs</em>. In this example, the system <em>knew exactly</em> that <code>currentHeightSafe</code> didn't depend on <code>gravity</code>/<code>height</code> as long as <code>time</code> was negative. As soon as <code>time</code> became positive, the system <em>precisely</em> maintained the resulting structure of the dependencies.</p>
+<p>The advantage is immediately clear: If the dependencies contained heavyweight computations, the system ensures only the minimal amount of effort is expended for updates whenever a result is requested. Traditional reactive programming libraries typically struggle to model dynamic dependency graphs, but adaptive embraces them as its core motivation.</p>
+<h2><a name="Adaptive-Collections" class="anchor" href="#Adaptive-Collections">Adaptive Collections</a></h2>
+<p>As seen in the examples above <code>aval&lt;'T&gt;</code> and <code>cval&lt;'T&gt;</code> are containers for single values that may change adaptively.
+A natural way of handling collections of values would be <code>aval&lt;Set&lt;'T&gt;&gt;</code>. However, this is not always optimal. The mapping function on the set would need to look like:</p>
+<table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l">1: </span>
+<span class="l">2: </span>
+</pre></td>
+<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span class="k">let</span> <span onmouseout="hideTip(event, 'fs28', 118)" onmouseover="showTip(event, 'fs28', 118)" class="fn">map</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs29', 119)" onmouseover="showTip(event, 'fs29', 119)" class="fn">mapping</span><span class="pn">:</span> <span class="ta">&#39;</span><span class="id">T1</span> <span class="k">-&gt;</span> <span class="ta">&#39;</span><span class="id">T2</span><span class="pn">)</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs30', 120)" onmouseover="showTip(event, 'fs30', 120)" class="id">set</span> <span class="pn">:</span> <span onmouseout="hideTip(event, 'fs27', 121)" onmouseover="showTip(event, 'fs27', 121)" class="if">aval</span><span class="pn">&lt;</span><span onmouseout="hideTip(event, 'fs31', 122)" onmouseover="showTip(event, 'fs31', 122)" class="rt">Set</span><span class="pn">&lt;</span><span class="ta">&#39;</span><span class="id">T1</span><span class="pn">&gt;</span><span class="pn">&gt;</span><span class="pn">)</span> <span class="o">=</span>   
+    <span onmouseout="hideTip(event, 'fs30', 123)" onmouseover="showTip(event, 'fs30', 123)" class="id">set</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs8', 124)" onmouseover="showTip(event, 'fs8', 124)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs32', 125)" onmouseover="showTip(event, 'fs32', 125)" class="id">map</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs31', 126)" onmouseover="showTip(event, 'fs31', 126)" class="m">Set</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs33', 127)" onmouseover="showTip(event, 'fs33', 127)" class="id">map</span> <span onmouseout="hideTip(event, 'fs29', 128)" onmouseover="showTip(event, 'fs29', 128)" class="fn">mapping</span><span class="pn">)</span>
+</code></pre></td>
+</tr>
+</table>
+<p>which effectively means that <code>mapping</code> will be executed for all elements of the set even if just a single element changes.
+<code>cset&lt;'T&gt;</code> and <code>aset&lt;'T&gt;</code> solve this problem by effectively working on <em>deltas</em> instead of <em>values</em>.</p>
+<blockquote>
+<ul>
+<li><code>cset</code> <strong>Changeable set</strong>. Adaptive set container. Manually add and remove values.</li>
+<li><code>aset</code> <strong>Adaptive set</strong>. Adaptive set container. Content purely depends on other adaptive cells.</li>
+<li><strong>Deltas</strong>. Difference between two sets. A sequence of Additions and Removals to go from one set to the other set.</li>
+</ul>
+</blockquote>
+<p>Here's an example illustrating <code>aset</code>s:</p>
+<table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+<span class="l">4: </span>
+<span class="l">5: </span>
+</pre></td>
+<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span class="k">let</span> <span onmouseout="hideTip(event, 'fs34', 129)" onmouseover="showTip(event, 'fs34', 129)" class="id">inputSet</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs35', 130)" onmouseover="showTip(event, 'fs35', 130)" class="rt">cset</span> <span class="pn">[</span><span class="n">1</span><span class="pn">;</span><span class="n">2</span><span class="pn">;</span><span class="n">3</span><span class="pn">]</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs36', 131)" onmouseover="showTip(event, 'fs36', 131)" class="id">dependentSet</span> <span class="o">=</span>
+    <span onmouseout="hideTip(event, 'fs34', 132)" onmouseover="showTip(event, 'fs34', 132)" class="id">inputSet</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs37', 133)" onmouseover="showTip(event, 'fs37', 133)" class="m">ASet</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs38', 134)" onmouseover="showTip(event, 'fs38', 134)" class="id">map</span> <span class="pn">(</span><span class="k">fun</span> <span onmouseout="hideTip(event, 'fs39', 135)" onmouseover="showTip(event, 'fs39', 135)" class="id">v</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs22', 136)" onmouseover="showTip(event, 'fs22', 136)" class="fn">printf</span> <span class="s">&quot;map </span><span class="pf">%d</span><span class="s">, &quot;</span> <span onmouseout="hideTip(event, 'fs39', 137)" onmouseover="showTip(event, 'fs39', 137)" class="id">v</span><span class="pn">;</span> <span onmouseout="hideTip(event, 'fs39', 138)" onmouseover="showTip(event, 'fs39', 138)" class="id">v</span> <span class="o">*</span> <span class="n">2</span><span class="pn">)</span>
+
+<span onmouseout="hideTip(event, 'fs13', 139)" onmouseover="showTip(event, 'fs13', 139)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 140)" onmouseover="showTip(event, 'fs8', 140)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 141)" onmouseover="showTip(event, 'fs14', 141)" class="id">force</span> <span onmouseout="hideTip(event, 'fs36', 142)" onmouseover="showTip(event, 'fs36', 142)" class="id">dependentSet</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs40', 143)" onmouseover="showTip(event, 'fs40', 143)" class="id">Content</span><span class="pn">)</span> <span class="c">// =&gt; map 1, map 2, map 3, HashSet [2; 4; 6]</span>
+</code></pre></td>
+</tr>
+</table>
+<p>We create an <code>aset</code> and specify a mapping function on the elements. The mapping is evaluated for each element individually, as illustrated by the three "map" prints.</p>
+<p>Let's add an element to the set.</p>
+<table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l">1: </span>
+<span class="l">2: </span>
+</pre></td>
+<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span onmouseout="hideTip(event, 'fs15', 144)" onmouseover="showTip(event, 'fs15', 144)" class="fn">transact</span> <span class="pn">(</span><span class="k">fun</span> <span class="pn">(</span><span class="pn">)</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs34', 145)" onmouseover="showTip(event, 'fs34', 145)" class="fn">inputSet</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs41', 146)" onmouseover="showTip(event, 'fs41', 146)" class="id">Add</span> <span class="n">0</span><span class="pn">)</span>
+<span onmouseout="hideTip(event, 'fs13', 147)" onmouseover="showTip(event, 'fs13', 147)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 148)" onmouseover="showTip(event, 'fs8', 148)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 149)" onmouseover="showTip(event, 'fs14', 149)" class="id">force</span> <span onmouseout="hideTip(event, 'fs36', 150)" onmouseover="showTip(event, 'fs36', 150)" class="id">dependentSet</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs40', 151)" onmouseover="showTip(event, 'fs40', 151)" class="id">Content</span><span class="pn">)</span> <span class="c">// =&gt; map 0, HashSet [0; 2; 4; 6]</span>
+</code></pre></td>
+</tr>
+</table>
+<p>The mapping function is evaluated only once, for the newly added element! <code>aset</code> is an <em>incremental</em> data structure on the level of its contained elements.</p>
+<table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l">1: </span>
+<span class="l">2: </span>
+</pre></td>
+<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span onmouseout="hideTip(event, 'fs15', 152)" onmouseover="showTip(event, 'fs15', 152)" class="fn">transact</span> <span class="pn">(</span><span class="k">fun</span> <span class="pn">(</span><span class="pn">)</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs34', 153)" onmouseover="showTip(event, 'fs34', 153)" class="fn">inputSet</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs42', 154)" onmouseover="showTip(event, 'fs42', 154)" class="id">Remove</span> <span class="n">2</span><span class="pn">)</span>
+<span onmouseout="hideTip(event, 'fs13', 155)" onmouseover="showTip(event, 'fs13', 155)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 156)" onmouseover="showTip(event, 'fs8', 156)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 157)" onmouseover="showTip(event, 'fs14', 157)" class="id">force</span> <span onmouseout="hideTip(event, 'fs36', 158)" onmouseover="showTip(event, 'fs36', 158)" class="id">dependentSet</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs40', 159)" onmouseover="showTip(event, 'fs40', 159)" class="id">Content</span><span class="pn">)</span> <span class="c">// =&gt; HashSet [0; 2; 6]</span>
+</code></pre></td>
+</tr>
+</table>
+<p>There is no "map" print - the removal did not trigger an evaluation of the mapping function!</p>
+<p>In addition to the unordered set, we also have implementations of the ordered list, called <code>alist</code>, and the key-value map, called <code>amap</code>.</p>
+<h1><a name="Implementation-Details" class="anchor" href="#Implementation-Details">Implementation Details</a></h1>
+<h2><a name="Changeable-Adaptive-and-Constant" class="anchor" href="#Changeable-Adaptive-and-Constant">Changeable, Adaptive and Constant</a></h2>
+<p><code>cval&lt;'T&gt;</code> and <code>cset&lt;'T&gt;</code> also implement the unifying type <code>aval&lt;'T&gt;</code> and <code>aset&lt;'T&gt;</code> respectively. The changeable values can be used in places where adaptive value are expected (as seen in the example above). This helps the API to look nice.</p>
+<p>The system distinguishes between two different kinds of objects:</p>
+<p>Changeable input values, which are prefixed with the letter c (e.g. <code>cval&lt;'T&gt;</code>, <code>cset&lt;'T&gt;</code>), and can imperatively be modified by user-code.</p>
+<p>And Dependent values, which are prefixed with the letter a (e.g. <code>aval&lt;'T&gt;</code>, <code>aset&lt;'T&gt;</code>). These cannot directly be modified but instead depend on other adaptive values.</p>
+<p>Internally, there is a third kind of adaptive value: The constant value, which can never be changed.
+In our system these are not expressed on the type-level, but instead expose a property <code>IsConstant</code>.
+All combinators correctly propagate constants in the dependency graph (when possible) and therefore:</p>
 <table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l">1: </span>
 <span class="l">2: </span>
 <span class="l">3: </span>
 </pre></td>
-<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span class="k">let</span> <span onmouseout="hideTip(event, 'fs28', 110)" onmouseover="showTip(event, 'fs28', 110)" class="id">shouldBeConstant</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs8', 111)" onmouseover="showTip(event, 'fs8', 111)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs29', 112)" onmouseover="showTip(event, 'fs29', 112)" class="id">constant</span> <span class="n">5</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs8', 113)" onmouseover="showTip(event, 'fs8', 113)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs30', 114)" onmouseover="showTip(event, 'fs30', 114)" class="id">map</span> <span class="pn">(</span><span class="k">fun</span> <span onmouseout="hideTip(event, 'fs31', 115)" onmouseover="showTip(event, 'fs31', 115)" class="id">v</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs31', 116)" onmouseover="showTip(event, 'fs31', 116)" class="id">v</span> <span class="o">*</span> <span class="n">10</span><span class="pn">)</span>
-<span onmouseout="hideTip(event, 'fs13', 117)" onmouseover="showTip(event, 'fs13', 117)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 118)" onmouseover="showTip(event, 'fs8', 118)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 119)" onmouseover="showTip(event, 'fs14', 119)" class="id">force</span> <span onmouseout="hideTip(event, 'fs28', 120)" onmouseover="showTip(event, 'fs28', 120)" class="id">shouldBeConstant</span><span class="pn">)</span>  <span class="c">// ==&gt; 50</span>
-<span onmouseout="hideTip(event, 'fs13', 121)" onmouseover="showTip(event, 'fs13', 121)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs28', 122)" onmouseover="showTip(event, 'fs28', 122)" class="id">shouldBeConstant</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs32', 123)" onmouseover="showTip(event, 'fs32', 123)" class="id">IsConstant</span> <span class="c">// =&gt; true</span>
+<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span class="k">let</span> <span onmouseout="hideTip(event, 'fs43', 160)" onmouseover="showTip(event, 'fs43', 160)" class="id">shouldBeConstant</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs8', 161)" onmouseover="showTip(event, 'fs8', 161)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs44', 162)" onmouseover="showTip(event, 'fs44', 162)" class="id">constant</span> <span class="n">5</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs8', 163)" onmouseover="showTip(event, 'fs8', 163)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs32', 164)" onmouseover="showTip(event, 'fs32', 164)" class="id">map</span> <span class="pn">(</span><span class="k">fun</span> <span onmouseout="hideTip(event, 'fs39', 165)" onmouseover="showTip(event, 'fs39', 165)" class="id">v</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs39', 166)" onmouseover="showTip(event, 'fs39', 166)" class="id">v</span> <span class="o">*</span> <span class="n">10</span><span class="pn">)</span>
+<span onmouseout="hideTip(event, 'fs13', 167)" onmouseover="showTip(event, 'fs13', 167)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 168)" onmouseover="showTip(event, 'fs8', 168)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 169)" onmouseover="showTip(event, 'fs14', 169)" class="id">force</span> <span onmouseout="hideTip(event, 'fs43', 170)" onmouseover="showTip(event, 'fs43', 170)" class="id">shouldBeConstant</span><span class="pn">)</span>  <span class="c">// ==&gt; 50</span>
+<span onmouseout="hideTip(event, 'fs13', 171)" onmouseover="showTip(event, 'fs13', 171)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs43', 172)" onmouseover="showTip(event, 'fs43', 172)" class="id">shouldBeConstant</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs45', 173)" onmouseover="showTip(event, 'fs45', 173)" class="id">IsConstant</span> <span class="c">// =&gt; true</span>
 </code></pre></td>
 </tr>
 </table>
-<p>Whenever values are not constant combinators like <code>AVal.map</code> internally build a dependency-graph that keeps
-track of dependencies between cells and is needed whenever changes are fed into the system.
-Supplying changes can be done using <code>transact : (unit -&gt; 'T) -&gt; 'T</code> which takes care of making the dependency-graph consistent after a certain change.</p>
-<h3><a name="Evaluation-Strategy" class="anchor" href="#Evaluation-Strategy">Evaluation Strategy</a></h3>
-<p>Our system uses a <em>push-pull</em> evaluation strategy meaning that evaluation will (by default) be lazy.
-This is achieved via eagerly marking all affected values as <em>outOfDate</em> and lazily making them
+<p>Whenever values are not constant, combinators like <code>AVal.map</code> internally build a dependency graph that keeps track of dependencies between cells. This dependency graph is used to find out what needs to be re-computed whenever changes are fed into the system.</p>
+<p>Supplying changes to changeable cells can be done using <code>transact : (unit -&gt; 'T) -&gt; 'T</code>. The function makes the dependency graph consistent according to the nature and scope of the changes.</p>
+<h2><a name="Evaluation-strategy-avoidance-of-re-execution" class="anchor" href="#Evaluation-strategy-avoidance-of-re-execution">Evaluation strategy, avoidance of re-execution</a></h2>
+<p>Our system uses a <em>push-pull</em> evaluation strategy, meaning that evaluation will (by default) be lazy.
+This is achieved via eagerly marking all affected values as <em>outOfDate</em>, and lazily making them
 <em>upToDate</em> whenever they're evaluated.
-We opted for lazy evaluation since <em>unneeded</em> parts of the dependency graph impose virtually no runtime overhead
-and it allows us to support (limited) concurrency in the system.
-On the downside the marking process (performed by <code>transact</code>) needs to mark all <em>potentially affected</em> values as <em>outOfDate</em>
-even though their resulting value may not have changed.
-However we did our best to avoid re-execution of unchanged functions.
-Here's an example illustrating this behaviour:</p>
+We opted for lazy evaluation since it causes <em>unneeded</em> parts of the dependency graph to impose virtually no runtime overhead. Lazy evaluation also allows us to support (limited) concurrency in the system.</p>
+<p>On the downside, the marking process (performed by <code>transact</code>) needs to mark <em>all</em> potentially affected values as <em>outOfDate</em>,
+even if their resulting value has not changed.
+However, we did our best to avoid re-execution of unchanged functions.
+Here's an example illustrating our system's behaviour in such a circumstance:</p>
 <table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l">1: </span>
 <span class="l">2: </span>
 <span class="l">3: </span>
@@ -219,64 +295,19 @@ Here's an example illustrating this behaviour:</p>
 <span class="l">8: </span>
 <span class="l">9: </span>
 </pre></td>
-<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span class="k">let</span> <span onmouseout="hideTip(event, 'fs33', 124)" onmouseover="showTip(event, 'fs33', 124)" class="id">someInput</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs5', 125)" onmouseover="showTip(event, 'fs5', 125)" class="rt">cval</span> <span class="n">10</span>
-<span class="k">let</span> <span onmouseout="hideTip(event, 'fs34', 126)" onmouseover="showTip(event, 'fs34', 126)" class="id">someOutput</span> <span class="o">=</span> 
-    <span onmouseout="hideTip(event, 'fs33', 127)" onmouseover="showTip(event, 'fs33', 127)" class="id">someInput</span> 
-    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs8', 128)" onmouseover="showTip(event, 'fs8', 128)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs30', 129)" onmouseover="showTip(event, 'fs30', 129)" class="id">map</span> <span class="pn">(</span><span class="k">fun</span> <span onmouseout="hideTip(event, 'fs31', 130)" onmouseover="showTip(event, 'fs31', 130)" class="id">v</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs22', 131)" onmouseover="showTip(event, 'fs22', 131)" class="fn">printf</span> <span class="s">&quot;</span><span class="pf">%d</span><span class="s"> </span><span class="pf">%%</span><span class="s"> 2 =&gt; &quot;</span> <span onmouseout="hideTip(event, 'fs31', 132)" onmouseover="showTip(event, 'fs31', 132)" class="id">v</span><span class="pn">;</span> <span onmouseout="hideTip(event, 'fs31', 133)" onmouseover="showTip(event, 'fs31', 133)" class="id">v</span> <span class="o">%</span> <span class="n">2</span><span class="pn">)</span>
-    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs8', 134)" onmouseover="showTip(event, 'fs8', 134)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs30', 135)" onmouseover="showTip(event, 'fs30', 135)" class="id">map</span> <span class="pn">(</span><span class="k">fun</span> <span onmouseout="hideTip(event, 'fs31', 136)" onmouseover="showTip(event, 'fs31', 136)" class="id">v</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs22', 137)" onmouseover="showTip(event, 'fs22', 137)" class="fn">printf</span> <span class="s">&quot;</span><span class="pf">%d</span><span class="s"> * 10 =&gt; &quot;</span> <span onmouseout="hideTip(event, 'fs31', 138)" onmouseover="showTip(event, 'fs31', 138)" class="id">v</span><span class="pn">;</span> <span onmouseout="hideTip(event, 'fs31', 139)" onmouseover="showTip(event, 'fs31', 139)" class="id">v</span> <span class="o">*</span> <span class="n">10</span><span class="pn">)</span>
+<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span class="k">let</span> <span onmouseout="hideTip(event, 'fs46', 174)" onmouseover="showTip(event, 'fs46', 174)" class="id">someInput</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs5', 175)" onmouseover="showTip(event, 'fs5', 175)" class="rt">cval</span> <span class="n">10</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs47', 176)" onmouseover="showTip(event, 'fs47', 176)" class="id">someOutput</span> <span class="o">=</span> 
+    <span onmouseout="hideTip(event, 'fs46', 177)" onmouseover="showTip(event, 'fs46', 177)" class="id">someInput</span> 
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs8', 178)" onmouseover="showTip(event, 'fs8', 178)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs32', 179)" onmouseover="showTip(event, 'fs32', 179)" class="id">map</span> <span class="pn">(</span><span class="k">fun</span> <span onmouseout="hideTip(event, 'fs39', 180)" onmouseover="showTip(event, 'fs39', 180)" class="id">v</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs22', 181)" onmouseover="showTip(event, 'fs22', 181)" class="fn">printf</span> <span class="s">&quot;</span><span class="pf">%d</span><span class="s"> </span><span class="pf">%%</span><span class="s"> 2 =&gt; &quot;</span> <span onmouseout="hideTip(event, 'fs39', 182)" onmouseover="showTip(event, 'fs39', 182)" class="id">v</span><span class="pn">;</span> <span onmouseout="hideTip(event, 'fs39', 183)" onmouseover="showTip(event, 'fs39', 183)" class="id">v</span> <span class="o">%</span> <span class="n">2</span><span class="pn">)</span>
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs8', 184)" onmouseover="showTip(event, 'fs8', 184)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs32', 185)" onmouseover="showTip(event, 'fs32', 185)" class="id">map</span> <span class="pn">(</span><span class="k">fun</span> <span onmouseout="hideTip(event, 'fs39', 186)" onmouseover="showTip(event, 'fs39', 186)" class="id">v</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs22', 187)" onmouseover="showTip(event, 'fs22', 187)" class="fn">printf</span> <span class="s">&quot;</span><span class="pf">%d</span><span class="s"> * 10 =&gt; &quot;</span> <span onmouseout="hideTip(event, 'fs39', 188)" onmouseover="showTip(event, 'fs39', 188)" class="id">v</span><span class="pn">;</span> <span onmouseout="hideTip(event, 'fs39', 189)" onmouseover="showTip(event, 'fs39', 189)" class="id">v</span> <span class="o">*</span> <span class="n">10</span><span class="pn">)</span>
 
-<span onmouseout="hideTip(event, 'fs22', 140)" onmouseover="showTip(event, 'fs22', 140)" class="fn">printf</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">: &quot;</span> <span onmouseout="hideTip(event, 'fs34', 141)" onmouseover="showTip(event, 'fs34', 141)" class="id">someOutput</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs35', 142)" onmouseover="showTip(event, 'fs35', 142)" class="id">OutOfDate</span><span class="pn">;</span> <span onmouseout="hideTip(event, 'fs13', 143)" onmouseover="showTip(event, 'fs13', 143)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 144)" onmouseover="showTip(event, 'fs8', 144)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 145)" onmouseover="showTip(event, 'fs14', 145)" class="id">force</span> <span onmouseout="hideTip(event, 'fs34', 146)" onmouseover="showTip(event, 'fs34', 146)" class="id">someOutput</span><span class="pn">)</span> <span class="c">// =&gt; true: 10 % 2 =&gt; 0 * 10 =&gt; 0</span>
-<span onmouseout="hideTip(event, 'fs15', 147)" onmouseover="showTip(event, 'fs15', 147)" class="fn">transact</span> <span class="pn">(</span><span class="k">fun</span> <span class="pn">(</span><span class="pn">)</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs33', 148)" onmouseover="showTip(event, 'fs33', 148)" class="id">someInput</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs36', 149)" onmouseover="showTip(event, 'fs36', 149)" class="id">Value</span> <span class="k">&lt;-</span> <span class="n">12</span><span class="pn">)</span>
-<span onmouseout="hideTip(event, 'fs22', 150)" onmouseover="showTip(event, 'fs22', 150)" class="fn">printf</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">: &quot;</span> <span onmouseout="hideTip(event, 'fs34', 151)" onmouseover="showTip(event, 'fs34', 151)" class="id">someOutput</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs35', 152)" onmouseover="showTip(event, 'fs35', 152)" class="id">OutOfDate</span><span class="pn">;</span> <span onmouseout="hideTip(event, 'fs13', 153)" onmouseover="showTip(event, 'fs13', 153)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 154)" onmouseover="showTip(event, 'fs8', 154)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 155)" onmouseover="showTip(event, 'fs14', 155)" class="id">force</span> <span onmouseout="hideTip(event, 'fs34', 156)" onmouseover="showTip(event, 'fs34', 156)" class="id">someOutput</span><span class="pn">)</span> <span class="c">// =&gt; true: 12 % 2 =&gt; 0</span>
+<span onmouseout="hideTip(event, 'fs22', 190)" onmouseover="showTip(event, 'fs22', 190)" class="fn">printf</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">: &quot;</span> <span onmouseout="hideTip(event, 'fs47', 191)" onmouseover="showTip(event, 'fs47', 191)" class="id">someOutput</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs48', 192)" onmouseover="showTip(event, 'fs48', 192)" class="id">OutOfDate</span><span class="pn">;</span> <span onmouseout="hideTip(event, 'fs13', 193)" onmouseover="showTip(event, 'fs13', 193)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 194)" onmouseover="showTip(event, 'fs8', 194)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 195)" onmouseover="showTip(event, 'fs14', 195)" class="id">force</span> <span onmouseout="hideTip(event, 'fs47', 196)" onmouseover="showTip(event, 'fs47', 196)" class="id">someOutput</span><span class="pn">)</span> <span class="c">// =&gt; true: 10 % 2 =&gt; 0 * 10 =&gt; 0</span>
+<span onmouseout="hideTip(event, 'fs15', 197)" onmouseover="showTip(event, 'fs15', 197)" class="fn">transact</span> <span class="pn">(</span><span class="k">fun</span> <span class="pn">(</span><span class="pn">)</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs46', 198)" onmouseover="showTip(event, 'fs46', 198)" class="id">someInput</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs49', 199)" onmouseover="showTip(event, 'fs49', 199)" class="id">Value</span> <span class="k">&lt;-</span> <span class="n">12</span><span class="pn">)</span>
+<span onmouseout="hideTip(event, 'fs22', 200)" onmouseover="showTip(event, 'fs22', 200)" class="fn">printf</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">: &quot;</span> <span onmouseout="hideTip(event, 'fs47', 201)" onmouseover="showTip(event, 'fs47', 201)" class="id">someOutput</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs48', 202)" onmouseover="showTip(event, 'fs48', 202)" class="id">OutOfDate</span><span class="pn">;</span> <span onmouseout="hideTip(event, 'fs13', 203)" onmouseover="showTip(event, 'fs13', 203)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 204)" onmouseover="showTip(event, 'fs8', 204)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 205)" onmouseover="showTip(event, 'fs14', 205)" class="id">force</span> <span onmouseout="hideTip(event, 'fs47', 206)" onmouseover="showTip(event, 'fs47', 206)" class="id">someOutput</span><span class="pn">)</span> <span class="c">// =&gt; true: 12 % 2 =&gt; 0</span>
 </code></pre></td>
 </tr>
 </table>
-<p>Note that the <code>v * 10</code> function doesn't get executed after the change although its result has been marked <em>outOfDate</em>.</p>
-<h3><a name="Adaptive-Collections" class="anchor" href="#Adaptive-Collections">Adaptive Collections</a></h3>
-<p>As seen in the examples above <code>aval&lt;'T&gt;</code> and <code>cval&lt;'T&gt;</code> are containers for single values that may change adaptively.
-A natural way of handling collections of values would be <code>aval&lt;Set&lt;'T&gt;&gt;</code>. However this is not optimal since the map function would then
-need to look like:</p>
-<table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l">1: </span>
-<span class="l">2: </span>
-</pre></td>
-<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span class="k">let</span> <span onmouseout="hideTip(event, 'fs37', 157)" onmouseover="showTip(event, 'fs37', 157)" class="fn">map</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs38', 158)" onmouseover="showTip(event, 'fs38', 158)" class="fn">mapping</span><span class="pn">:</span> <span class="ta">&#39;</span><span class="id">T1</span> <span class="k">-&gt;</span> <span class="ta">&#39;</span><span class="id">T2</span><span class="pn">)</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs39', 159)" onmouseover="showTip(event, 'fs39', 159)" class="id">set</span> <span class="pn">:</span> <span onmouseout="hideTip(event, 'fs27', 160)" onmouseover="showTip(event, 'fs27', 160)" class="if">aval</span><span class="pn">&lt;</span><span onmouseout="hideTip(event, 'fs40', 161)" onmouseover="showTip(event, 'fs40', 161)" class="rt">Set</span><span class="pn">&lt;</span><span class="ta">&#39;</span><span class="id">T1</span><span class="pn">&gt;</span><span class="pn">&gt;</span><span class="pn">)</span> <span class="o">=</span>   
-    <span onmouseout="hideTip(event, 'fs39', 162)" onmouseover="showTip(event, 'fs39', 162)" class="id">set</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs8', 163)" onmouseover="showTip(event, 'fs8', 163)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs30', 164)" onmouseover="showTip(event, 'fs30', 164)" class="id">map</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs40', 165)" onmouseover="showTip(event, 'fs40', 165)" class="m">Set</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs41', 166)" onmouseover="showTip(event, 'fs41', 166)" class="id">map</span> <span onmouseout="hideTip(event, 'fs38', 167)" onmouseover="showTip(event, 'fs38', 167)" class="fn">mapping</span><span class="pn">)</span>
-</code></pre></td>
-</tr>
-</table>
-<p>which effectively means that <code>mapping</code> will be executed for all elements of the set whenever something changes.
-<code>cset&lt;'T&gt;</code> and <code>aset&lt;'T&gt;</code> solve this problem via effectively working on <em>deltas</em> instead of <em>values</em>.</p>
-<p>Here's an example illustrating this:</p>
-<table class="pre"><tr><td class="lines"><pre class="fssnip"><span class="l"> 1: </span>
-<span class="l"> 2: </span>
-<span class="l"> 3: </span>
-<span class="l"> 4: </span>
-<span class="l"> 5: </span>
-<span class="l"> 6: </span>
-<span class="l"> 7: </span>
-<span class="l"> 8: </span>
-<span class="l"> 9: </span>
-<span class="l">10: </span>
-<span class="l">11: </span>
-<span class="l">12: </span>
-<span class="l">13: </span>
-</pre></td>
-<td class="snippet"><pre class="fssnip highlighted"><code lang="fsharp"><span class="k">let</span> <span onmouseout="hideTip(event, 'fs42', 168)" onmouseover="showTip(event, 'fs42', 168)" class="id">inputSet</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs43', 169)" onmouseover="showTip(event, 'fs43', 169)" class="rt">cset</span> <span class="pn">[</span><span class="n">1</span><span class="pn">;</span><span class="n">2</span><span class="pn">;</span><span class="n">3</span><span class="pn">]</span>
-<span class="k">let</span> <span onmouseout="hideTip(event, 'fs44', 170)" onmouseover="showTip(event, 'fs44', 170)" class="id">dependentSet</span> <span class="o">=</span>
-    <span onmouseout="hideTip(event, 'fs42', 171)" onmouseover="showTip(event, 'fs42', 171)" class="id">inputSet</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs45', 172)" onmouseover="showTip(event, 'fs45', 172)" class="m">ASet</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs46', 173)" onmouseover="showTip(event, 'fs46', 173)" class="id">map</span> <span class="pn">(</span><span class="k">fun</span> <span onmouseout="hideTip(event, 'fs31', 174)" onmouseover="showTip(event, 'fs31', 174)" class="id">v</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs22', 175)" onmouseover="showTip(event, 'fs22', 175)" class="fn">printf</span> <span class="s">&quot;map </span><span class="pf">%d</span><span class="s">, &quot;</span> <span onmouseout="hideTip(event, 'fs31', 176)" onmouseover="showTip(event, 'fs31', 176)" class="id">v</span><span class="pn">;</span> <span onmouseout="hideTip(event, 'fs31', 177)" onmouseover="showTip(event, 'fs31', 177)" class="id">v</span> <span class="o">*</span> <span class="n">2</span><span class="pn">)</span>
-
-<span onmouseout="hideTip(event, 'fs13', 178)" onmouseover="showTip(event, 'fs13', 178)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 179)" onmouseover="showTip(event, 'fs8', 179)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 180)" onmouseover="showTip(event, 'fs14', 180)" class="id">force</span> <span onmouseout="hideTip(event, 'fs44', 181)" onmouseover="showTip(event, 'fs44', 181)" class="id">dependentSet</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs47', 182)" onmouseover="showTip(event, 'fs47', 182)" class="id">Content</span><span class="pn">)</span> <span class="c">// =&gt; map 1, map 2, map 3, HashSet [2; 4; 6]</span>
-
-<span class="c">// so let&#39;s add an element to the set</span>
-<span onmouseout="hideTip(event, 'fs15', 183)" onmouseover="showTip(event, 'fs15', 183)" class="fn">transact</span> <span class="pn">(</span><span class="k">fun</span> <span class="pn">(</span><span class="pn">)</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs42', 184)" onmouseover="showTip(event, 'fs42', 184)" class="fn">inputSet</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs48', 185)" onmouseover="showTip(event, 'fs48', 185)" class="id">Add</span> <span class="n">0</span><span class="pn">)</span>
-<span onmouseout="hideTip(event, 'fs13', 186)" onmouseover="showTip(event, 'fs13', 186)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 187)" onmouseover="showTip(event, 'fs8', 187)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 188)" onmouseover="showTip(event, 'fs14', 188)" class="id">force</span> <span onmouseout="hideTip(event, 'fs44', 189)" onmouseover="showTip(event, 'fs44', 189)" class="id">dependentSet</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs47', 190)" onmouseover="showTip(event, 'fs47', 190)" class="id">Content</span><span class="pn">)</span> <span class="c">// =&gt; map 0, HashSet [0; 2; 4; 6]</span>
-
-<span onmouseout="hideTip(event, 'fs15', 191)" onmouseover="showTip(event, 'fs15', 191)" class="fn">transact</span> <span class="pn">(</span><span class="k">fun</span> <span class="pn">(</span><span class="pn">)</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs42', 192)" onmouseover="showTip(event, 'fs42', 192)" class="fn">inputSet</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs49', 193)" onmouseover="showTip(event, 'fs49', 193)" class="id">Remove</span> <span class="n">2</span><span class="pn">)</span>
-<span onmouseout="hideTip(event, 'fs13', 194)" onmouseover="showTip(event, 'fs13', 194)" class="fn">printfn</span> <span class="s">&quot;</span><span class="pf">%A</span><span class="s">&quot;</span> <span class="pn">(</span><span onmouseout="hideTip(event, 'fs8', 195)" onmouseover="showTip(event, 'fs8', 195)" class="m">AVal</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs14', 196)" onmouseover="showTip(event, 'fs14', 196)" class="id">force</span> <span onmouseout="hideTip(event, 'fs44', 197)" onmouseover="showTip(event, 'fs44', 197)" class="id">dependentSet</span><span class="pn">.</span><span onmouseout="hideTip(event, 'fs47', 198)" onmouseover="showTip(event, 'fs47', 198)" class="id">Content</span><span class="pn">)</span> <span class="c">// =&gt; HashSet [0; 2; 6]</span>
-<span class="c">// Note that there&#39;s no `map 2` print!</span>
-</code></pre></td>
-</tr>
-</table>
+<p>Note that the <code>v * 10</code> function doesn't get executed after the change, even though its result has been marked <em>outOfDate</em>. The system understood that the output wouldn't have changed either way.</p>
 
 <div class="tip" id="fs1">Multiple items<br />namespace FSharp<br /><br />--------------------<br />namespace Microsoft.FSharp</div>
 <div class="tip" id="fs2">Multiple items<br />namespace FSharp.Data<br /><br />--------------------<br />namespace Microsoft.FSharp.Data</div>
@@ -302,31 +333,31 @@ need to look like:</p>
 <div class="tip" id="fs22">val printf : format:Printf.TextWriterFormat&lt;&#39;T&gt; -&gt; &#39;T</div>
 <div class="tip" id="fs23">val currentHeight : aval&lt;float&gt;</div>
 <div class="tip" id="fs24">val map3 : mapping:(&#39;T1 -&gt; &#39;T2 -&gt; &#39;T3 -&gt; &#39;T4) -&gt; value1:aval&lt;&#39;T1&gt; -&gt; value2:aval&lt;&#39;T2&gt; -&gt; value3:aval&lt;&#39;T3&gt; -&gt; aval&lt;&#39;T4&gt;</div>
-<div class="tip" id="fs25">val currentHeightNew : aval&lt;float&gt;</div>
+<div class="tip" id="fs25">val currentHeightSafe : aval&lt;float&gt;</div>
 <div class="tip" id="fs26">val bind : mapping:(&#39;T1 -&gt; aval&lt;&#39;T2&gt;) -&gt; value:aval&lt;&#39;T1&gt; -&gt; aval&lt;&#39;T2&gt;</div>
 <div class="tip" id="fs27">Multiple items<br />val aval : AValBuilder<br /><br />--------------------<br />type aval&lt;&#39;T&gt; = AdaptiveValue&lt;&#39;T&gt;</div>
-<div class="tip" id="fs28">val shouldBeConstant : aval&lt;int&gt;</div>
-<div class="tip" id="fs29">val constant : value:&#39;T -&gt; aval&lt;&#39;T&gt;</div>
-<div class="tip" id="fs30">val map : mapping:(&#39;T1 -&gt; &#39;T2) -&gt; value:aval&lt;&#39;T1&gt; -&gt; aval&lt;&#39;T2&gt;</div>
-<div class="tip" id="fs31">val v : int</div>
-<div class="tip" id="fs32">property IAdaptiveObject.IsConstant: bool</div>
-<div class="tip" id="fs33">val someInput : cval&lt;int&gt;</div>
-<div class="tip" id="fs34">val someOutput : aval&lt;int&gt;</div>
-<div class="tip" id="fs35">property IAdaptiveObject.OutOfDate: bool</div>
-<div class="tip" id="fs36">property ChangeableValue.Value: int</div>
-<div class="tip" id="fs37">val map : mapping:(&#39;T1 -&gt; &#39;T2) -&gt; set:aval&lt;Set&lt;&#39;T1&gt;&gt; -&gt; aval&lt;Set&lt;&#39;T2&gt;&gt; (requires comparison and comparison)</div>
-<div class="tip" id="fs38">val mapping : (&#39;T1 -&gt; &#39;T2) (requires comparison and comparison)</div>
-<div class="tip" id="fs39">val set : aval&lt;Set&lt;&#39;T1&gt;&gt; (requires comparison)</div>
-<div class="tip" id="fs40">Multiple items<br />union case ElementOperation.Set: &#39;T -&gt; ElementOperation&lt;&#39;T&gt;<br /><br />--------------------<br />module Set<br /><br />from Microsoft.FSharp.Collections<br /><br />--------------------<br />type Set&lt;&#39;T (requires comparison)&gt; =<br />&#160;&#160;interface IReadOnlyCollection&lt;&#39;T&gt;<br />&#160;&#160;interface IComparable<br />&#160;&#160;interface IEnumerable<br />&#160;&#160;interface IEnumerable&lt;&#39;T&gt;<br />&#160;&#160;interface ICollection&lt;&#39;T&gt;<br />&#160;&#160;new : elements:seq&lt;&#39;T&gt; -&gt; Set&lt;&#39;T&gt;<br />&#160;&#160;member Add : value:&#39;T -&gt; Set&lt;&#39;T&gt;<br />&#160;&#160;member Contains : value:&#39;T -&gt; bool<br />&#160;&#160;override Equals : obj -&gt; bool<br />&#160;&#160;member IsProperSubsetOf : otherSet:Set&lt;&#39;T&gt; -&gt; bool<br />&#160;&#160;...<br /><br />--------------------<br />new : elements:seq&lt;&#39;T&gt; -&gt; Set&lt;&#39;T&gt;</div>
-<div class="tip" id="fs41">val map : mapping:(&#39;T -&gt; &#39;U) -&gt; set:Set&lt;&#39;T&gt; -&gt; Set&lt;&#39;U&gt; (requires comparison and comparison)</div>
-<div class="tip" id="fs42">val inputSet : cset&lt;int&gt;</div>
-<div class="tip" id="fs43">type cset&lt;&#39;T&gt; = ChangeableHashSet&lt;&#39;T&gt;</div>
-<div class="tip" id="fs44">val dependentSet : aset&lt;int&gt;</div>
-<div class="tip" id="fs45">Multiple items<br />module ASet<br /><br />from FSharp.Data.Adaptive.CollectionExtensions<br /><br />--------------------<br />module ASet<br /><br />from FSharp.Data.Adaptive</div>
-<div class="tip" id="fs46">val map : mapping:(&#39;A -&gt; &#39;B) -&gt; set:aset&lt;&#39;A&gt; -&gt; aset&lt;&#39;B&gt;</div>
-<div class="tip" id="fs47">property AdaptiveHashSet.Content: aval&lt;HashSet&lt;int&gt;&gt;</div>
-<div class="tip" id="fs48">member ChangeableHashSet.Add : value:&#39;T -&gt; bool</div>
-<div class="tip" id="fs49">member ChangeableHashSet.Remove : value:&#39;T -&gt; bool</div>
+<div class="tip" id="fs28">val map : mapping:(&#39;T1 -&gt; &#39;T2) -&gt; set:aval&lt;Set&lt;&#39;T1&gt;&gt; -&gt; aval&lt;Set&lt;&#39;T2&gt;&gt; (requires comparison and comparison)</div>
+<div class="tip" id="fs29">val mapping : (&#39;T1 -&gt; &#39;T2) (requires comparison and comparison)</div>
+<div class="tip" id="fs30">val set : aval&lt;Set&lt;&#39;T1&gt;&gt; (requires comparison)</div>
+<div class="tip" id="fs31">Multiple items<br />union case ElementOperation.Set: &#39;T -&gt; ElementOperation&lt;&#39;T&gt;<br /><br />--------------------<br />module Set<br /><br />from Microsoft.FSharp.Collections<br /><br />--------------------<br />type Set&lt;&#39;T (requires comparison)&gt; =<br />&#160;&#160;interface IReadOnlyCollection&lt;&#39;T&gt;<br />&#160;&#160;interface IComparable<br />&#160;&#160;interface IEnumerable<br />&#160;&#160;interface IEnumerable&lt;&#39;T&gt;<br />&#160;&#160;interface ICollection&lt;&#39;T&gt;<br />&#160;&#160;new : elements:seq&lt;&#39;T&gt; -&gt; Set&lt;&#39;T&gt;<br />&#160;&#160;member Add : value:&#39;T -&gt; Set&lt;&#39;T&gt;<br />&#160;&#160;member Contains : value:&#39;T -&gt; bool<br />&#160;&#160;override Equals : obj -&gt; bool<br />&#160;&#160;member IsProperSubsetOf : otherSet:Set&lt;&#39;T&gt; -&gt; bool<br />&#160;&#160;...<br /><br />--------------------<br />new : elements:seq&lt;&#39;T&gt; -&gt; Set&lt;&#39;T&gt;</div>
+<div class="tip" id="fs32">val map : mapping:(&#39;T1 -&gt; &#39;T2) -&gt; value:aval&lt;&#39;T1&gt; -&gt; aval&lt;&#39;T2&gt;</div>
+<div class="tip" id="fs33">val map : mapping:(&#39;T -&gt; &#39;U) -&gt; set:Set&lt;&#39;T&gt; -&gt; Set&lt;&#39;U&gt; (requires comparison and comparison)</div>
+<div class="tip" id="fs34">val inputSet : cset&lt;int&gt;</div>
+<div class="tip" id="fs35">type cset&lt;&#39;T&gt; = ChangeableHashSet&lt;&#39;T&gt;</div>
+<div class="tip" id="fs36">val dependentSet : aset&lt;int&gt;</div>
+<div class="tip" id="fs37">Multiple items<br />module ASet<br /><br />from FSharp.Data.Adaptive.CollectionExtensions<br /><br />--------------------<br />module ASet<br /><br />from FSharp.Data.Adaptive</div>
+<div class="tip" id="fs38">val map : mapping:(&#39;A -&gt; &#39;B) -&gt; set:aset&lt;&#39;A&gt; -&gt; aset&lt;&#39;B&gt;</div>
+<div class="tip" id="fs39">val v : int</div>
+<div class="tip" id="fs40">property AdaptiveHashSet.Content: aval&lt;HashSet&lt;int&gt;&gt;</div>
+<div class="tip" id="fs41">member ChangeableHashSet.Add : value:&#39;T -&gt; bool</div>
+<div class="tip" id="fs42">member ChangeableHashSet.Remove : value:&#39;T -&gt; bool</div>
+<div class="tip" id="fs43">val shouldBeConstant : aval&lt;int&gt;</div>
+<div class="tip" id="fs44">val constant : value:&#39;T -&gt; aval&lt;&#39;T&gt;</div>
+<div class="tip" id="fs45">property IAdaptiveObject.IsConstant: bool</div>
+<div class="tip" id="fs46">val someInput : cval&lt;int&gt;</div>
+<div class="tip" id="fs47">val someOutput : aval&lt;int&gt;</div>
+<div class="tip" id="fs48">property IAdaptiveObject.OutOfDate: bool</div>
+<div class="tip" id="fs49">property ChangeableValue.Value: int</div>
 
         </div>
         <div class="span3">
