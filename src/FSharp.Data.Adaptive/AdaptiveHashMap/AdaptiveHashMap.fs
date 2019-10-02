@@ -313,22 +313,41 @@ module AdaptiveHashMapImplementation =
 
         interface AdaptiveValue<'T> with
             member x.GetValue t = x.GetValue t  
-            
+    
+    /// Reader used for ofASet operations.
+    type SetReader<'Key, 'Value, 'View>(input : aset<'Key * 'Value>, view : HashSet<'Value> -> 'View) =
+        inherit AbstractReader<HashMapDelta<'Key, 'View>>(HashMapDelta.monoid)
 
-    type internal KeyedMod<'Key, 'Value>(key : 'Key, m : aval<'Value>) =
-        inherit AbstractVal<'Key * 'Value>()
+        let reader = input.GetReader()
+        let state = UncheckedDictionary.create<'Key, HashSet<'Value>>()
 
-        let mutable last = None
-            
-        member x.Key = key
-            
-        member x.UnsafeLast =
-            last
-
-        override x.Compute(token) =
-            let v = m.GetValue(token)
-            last <- Some v
-            key, v
+        override x.Compute (token : AdaptiveToken) =
+            reader.GetChanges token |> Seq.choose (fun op ->
+                match op with
+                | Add(_, (k, v)) ->
+                    match state.TryGetValue k with
+                    | (true, set) ->    
+                        let newSet = HashSet.add v set
+                        state.[k] <- newSet
+                        Some (k, Set (view newSet))
+                    | _ ->
+                        let newSet = HashSet.single v
+                        state.[k] <- newSet
+                        Some (k, Set (view newSet))
+                | Rem(_, (k, v)) ->
+                    match state.TryGetValue k with
+                    | (true, set) ->    
+                        let newSet = HashSet.remove v set
+                        if newSet.IsEmpty then 
+                            state.Remove k |> ignore
+                            Some (k, Remove)
+                        else 
+                            state.[k] <- newSet
+                            Some (k, Set (view newSet))
+                    | _ ->
+                        None
+            )
+            |> HashMapDelta.ofSeq
 
     /// Gets the current content of the amap as HashMap.
     let inline force (map : amap<'Key, 'Value>) = 
@@ -369,6 +388,44 @@ module AMap =
     /// Creates an amap holding the given entries.
     let ofHashMap (elements : HashMap<'Key, 'Value>) =
         constant (fun () -> elements)
+
+    /// Creates an amap for the given aval.
+    let ofAVal (value : aval<#seq<'Key * 'Value>>) =
+        if value.IsConstant then
+            constant (fun () -> value |> AVal.force :> seq<_> |> HashMap.ofSeq)
+        else
+            create (fun () -> AValReader(value))
+
+    /// Creates an amap from the given set and takes an arbitrary value for duplicate entries.
+    let ofASetIgnoreDuplicates (set: aset<'Key * 'Value>) =
+        if set.IsConstant then
+            constant (fun () -> 
+                let mutable result = HashMap.empty
+                for (k,v) in AVal.force set.Content do
+                    result <- HashMap.add k v result
+
+                result
+            )
+        else
+            create (fun () -> SetReader(set, Seq.head))
+    
+    /// Creates an amap from the given set while keeping all duplicate values for a key in a HashSet.           
+    let ofASet (set: aset<'Key * 'Value>) =
+        if set.IsConstant then
+            constant (fun () -> 
+                let mutable result = HashMap.empty
+                for (k,v) in AVal.force set.Content do
+                    result <- 
+                        result |> HashMap.alter k (fun o ->
+                            match o with
+                            | Some o -> HashSet.add v o |> Some
+                            | None -> HashSet.single v |> Some
+                        )
+
+                result
+            )
+        else
+            create (fun () -> SetReader(set, id))
 
     /// Creates an aval providing access to the current content of the map.
     let toAVal (map : amap<'Key, 'Value>) = map.Content
@@ -434,13 +491,6 @@ module AMap =
     /// Adaptively unions both maps preferring the right value when colliding entries are found.
     let union (a : amap<'Key, 'Value>) (b : amap<'Key, 'Value>) =
         unionWith (fun _ _ r -> r) a b
-
-    /// Creates an amap for the given aval.
-    let ofAVal (value : aval<#seq<'Key * 'Value>>) =
-        if value.IsConstant then
-            constant (fun () -> value |> AVal.force :> seq<_> |> HashMap.ofSeq)
-        else
-            create (fun () -> AValReader(value))
 
     /// Adaptively maps over the given aval and returns the resulting map.
     let bind (mapping : 'T -> amap<'Key, 'Value>) (value : aval<'T>) =

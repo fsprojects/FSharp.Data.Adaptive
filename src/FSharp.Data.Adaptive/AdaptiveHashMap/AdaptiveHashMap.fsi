@@ -42,6 +42,15 @@ module AMap =
     /// Creates an amap holding the given entries.
     val ofHashMap : elements:HashMap<'Key, 'Value> -> amap<'Key, 'Value>
 
+    /// Creates an amap for the given aval.
+    val ofAVal : value:aval<#seq<'Key * 'Value>> -> amap<'Key,'Value>
+ 
+    /// Creates an amap from the given set while keeping all duplicate values for a key in a HashSet.
+    val ofASet : elements:aset<'Key * 'Value> -> amap<'Key, HashSet<'Value>>
+    
+    /// Creates an amap from the given set and takes an arbitrary value for duplicate entries.
+    val ofASetIgnoreDuplicates : elements:aset<'Key * 'Value> -> amap<'Key, 'Value>
+
     /// Creates an aval providing access to the current content of the map.
     val toAVal : map:amap<'Key, 'Value> -> aval<HashMap<'Key,'Value>>
 
@@ -72,9 +81,6 @@ module AMap =
     /// Adaptively unions both maps preferring the right value when colliding entries are found.
     val union : a:amap<'Key,'Value> -> b:amap<'Key,'Value> -> amap<'Key,'Value>
 
-    /// Creates an amap for the given aval.
-    val ofAVal : value:aval<#seq<'Key * 'Value>> -> amap<'Key,'Value>
- 
     /// Adaptively maps over the given aval and returns the resulting map.
     val bind : mapping:('T -> amap<'Key,'Value>) -> value:aval<'T> -> amap<'Key,'Value>
 
