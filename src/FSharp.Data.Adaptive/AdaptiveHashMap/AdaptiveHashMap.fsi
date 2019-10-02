@@ -82,6 +82,8 @@ module AMap =
     val toASet : map:amap<'Key,'Value> -> aset<'Key * 'Value>
 
     /// Adaptively looks up the given key in the map.
+    /// Note that this operation should not be used extensively since its resulting
+    /// aval will be re-evaluated upon every change of the map.
     val tryFind : key:'K -> map:amap<'K, 'V> -> aval<option<'V>>
 
     /// Adaptively folds over the map using add for additions and trySubtract for removals.

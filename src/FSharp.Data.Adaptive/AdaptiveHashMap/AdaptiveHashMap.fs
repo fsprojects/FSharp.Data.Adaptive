@@ -457,6 +457,8 @@ module AMap =
             ASet.ofReader (fun () -> ToASetReader(map))
 
     /// Adaptively looks up the given key in the map.
+    /// Note that this operation should not be used extensively since its resulting
+    /// aval will be re-evaluated upon every change of the map.
     let tryFind (key: 'K) (map: amap<'K, 'V>) =
         map.Content |> AVal.map (HashMap.tryFind key)
 

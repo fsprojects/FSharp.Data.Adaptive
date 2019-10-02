@@ -646,6 +646,19 @@ module AList =
     /// Sorts the list.
     let inline sort (list: alist<'T>) = sortWith compare list
 
+    /// Tries to get the element associated to a specific Index from the list.
+    /// Note that this operation should not be used extensively since its resulting
+    /// aval will be re-evaluated upon every change of the list.
+    let tryGet (index: Index) (list: alist<'T>) =
+        list.Content |> AVal.map (IndexList.tryGet index)
+    
+    /// Tries to get the element at a specific position from the list.
+    /// Note that this operation should not be used extensively since its resulting
+    /// aval will be re-evaluated upon every change of the list.
+    let tryAt (index: int) (list: alist<'T>) =
+        list.Content |> AVal.map (IndexList.tryAt index)
+
+
     /// Adaptively folds over the list using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
     /// Also note that the order of elements given to add/trySubtract is undefined.

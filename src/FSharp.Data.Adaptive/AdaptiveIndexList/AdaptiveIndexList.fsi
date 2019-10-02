@@ -115,6 +115,16 @@ module AList =
     /// Note that the order of elements given to add/subtract is undefined.
     val foldGroup : add : ('S -> 'A -> 'S) -> subtract : ('S -> 'A -> 'S) -> zero : 'S -> list : alist<'A> -> aval<'S>
 
+    /// Tries to get the element associated to a specific Index from the list.
+    /// Note that this operation should not be used extensively since its resulting
+    /// aval will be re-evaluated upon every change of the list.
+    val tryGet : index: Index -> list: alist<'T> -> aval<option<'T>>
+    
+    /// Tries to get the element at a specific position from the list.
+    /// Note that this operation should not be used extensively since its resulting
+    /// aval will be re-evaluated upon every change of the list.
+    val tryAt : index: int -> list: alist<'T> -> aval<option<'T>>
+
     /// Adaptively folds over the list using add for additions and recomputes the value on every removal.
     /// Note that the order of elements given to add is undefined.
     val fold : add : ('S -> 'A -> 'S) -> zero : 'S -> list : alist<'A> -> aval<'S>
