@@ -280,7 +280,7 @@ Target.create "ReleaseDocs" (fun _ ->
     Directory.ensure outputDir
     copyRecursive outputDir tempDocsDir 
     Git.Staging.stageAll tempDocsDir
-    let info = Git.Information.describe __SOURCE_DIRECTORY__
+    let info = Git.Information.getCurrentSHA1 __SOURCE_DIRECTORY__
     Git.Commit.exec tempDocsDir (sprintf "Update generated documentation for version %s/%s" notes.NugetVersion info)
     Git.Branches.push tempDocsDir
 
