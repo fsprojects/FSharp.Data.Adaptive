@@ -256,14 +256,14 @@ module internal AdaptiveIndexListImplementation =
                     cache.[i] <- (v, newList)
                     if newList <> oldList then
                         let newReader = getReader(newList)
-                        let add = newReader.AddTarget i
                         let rem = 
                             match readers.TryGetValue oldList with
                             | (true, r) -> r.RemoveTarget(dirty, i)
                             | _ -> IndexListDelta.empty
+                        let add = newReader.AddTarget i
 
                         dirty.Add newReader |> ignore
-                        IndexListDelta.combine add rem 
+                        IndexListDelta.combine rem add 
                     else
                         let r = getReader(oldList)
                         dirty.Add r |> ignore

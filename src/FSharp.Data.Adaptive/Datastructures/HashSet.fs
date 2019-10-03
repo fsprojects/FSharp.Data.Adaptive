@@ -356,7 +356,7 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
     /// Creates a set with all entries from the seq.
     /// `O(N * log N)`
     static member OfSeq (seq : seq<'T>) =
-        #if !FABLE_COMPILER
+        #if !FABLE_NO_TYPE_TESTS
         match seq with
         | :? HashSet<'T> as set -> set
         | _ -> 
@@ -382,7 +382,7 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
             | _ -> store |> Seq.fold (fun s (h,_l) -> HashSetList.combineHash s h) 0
 
     override x.Equals(o) =
-        #if FABLE_COMPILER 
+        #if FABLE_NO_TYPE_TESTS 
         IntMap.equals HashSetList.equals store (unbox<HashSet<'T>> o).Store
         #else
         match o with

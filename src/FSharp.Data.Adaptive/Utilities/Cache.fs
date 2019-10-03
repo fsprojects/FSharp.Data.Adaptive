@@ -13,7 +13,7 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
     /// utility checking for null (if possible)
     static let isNull =
         #if FABLE_COMPILER
-        fun (o : 'T1) -> not (unbox<bool> o)
+        fun (o : 'T1) -> isNull (o :> obj)
         #else
         if typeof<'T1>.IsValueType then fun (_o : 'T1) -> false
         else fun (o : 'T1) -> isNull (o :> obj)

@@ -1224,7 +1224,7 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
         if System.Object.ReferenceEquals(this, that) then
             true
         else
-            #if FABLE_COMPILER 
+            #if FABLE_NO_TYPE_TESTS 
             let that = unbox<MapExt<'Key, 'Value>> that
             use e1 = (this :> seq<_>).GetEnumerator() 
             use e2 = (that :> seq<_>).GetEnumerator() 
@@ -1284,7 +1284,7 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
 
     interface System.IComparable with 
         member m.CompareTo(obj: obj) = 
-            #if FABLE_COMPILER
+            #if FABLE_NO_TYPE_TESTS
             let m2 = unbox<MapExt<'Key,'Value>> obj
             Seq.compareWith 
                 (fun (kvp1 : KeyValuePair<_,_>) (kvp2 : KeyValuePair<_,_>)-> 
