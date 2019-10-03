@@ -73,7 +73,7 @@ module AdaptiveHashMapImplementation =
 
     /// Reader for map operations.
     type MapWithKeyReader<'Key, 'Value1, 'Value2>(input : amap<'Key, 'Value1>, mapping : 'Key -> 'Value1 -> 'Value2) =
-        inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.monoid)
+        inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.empty)
         
         let reader = input.GetReader()
 
@@ -87,7 +87,7 @@ module AdaptiveHashMapImplementation =
             
     /// Reader for map operations without keys.
     type MapReader<'Key, 'Value1, 'Value2>(input : amap<'Key, 'Value1>, mapping : 'Value1 -> 'Value2) =
-        inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.monoid)
+        inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.empty)
 
         let cache = Cache<'Value1, 'Value2>(mapping)
         let reader = input.GetReader()
@@ -109,7 +109,7 @@ module AdaptiveHashMapImplementation =
 
     /// Reader for choose operations.
     type ChooseWithKeyReader<'Key, 'Value1, 'Value2>(input : amap<'Key, 'Value1>, mapping : 'Key -> 'Value1 -> option<'Value2>) =
-        inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.monoid)
+        inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.empty)
 
         let reader = input.GetReader()
         let livingKeys = UncheckedHashSet.create<'Key>()
@@ -135,7 +135,7 @@ module AdaptiveHashMapImplementation =
             
     /// Reader for choose operations without keys.
     type ChooseReader<'Key, 'Value1, 'Value2>(input : amap<'Key, 'Value1>, f : 'Value1 -> option<'Value2>) =
-        inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.monoid)
+        inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.empty)
 
         let reader = input.GetReader()
         let cache = Cache f
@@ -168,7 +168,7 @@ module AdaptiveHashMapImplementation =
 
     /// Reader for union/unionWith operations.
     type UnionWithReader<'Key, 'Value>(l : amap<'Key, 'Value>, r : amap<'Key, 'Value>, resolve : 'Key -> 'Value -> 'Value -> 'Value) =
-        inherit AbstractReader<HashMapDelta<'Key, 'Value>>(HashMapDelta.monoid)
+        inherit AbstractReader<HashMapDelta<'Key, 'Value>>(HashMapDelta.empty)
 
         let lReader = l.GetReader()
         let rReader = r.GetReader()
@@ -211,7 +211,7 @@ module AdaptiveHashMapImplementation =
 
     /// Reader for bind.
     type BindReader<'T, 'Key, 'Value>(value : aval<'T>, mapping : 'T -> amap<'Key, 'Value>) =
-        inherit AbstractReader<HashMapDelta<'Key, 'Value>>(HashMapDelta.monoid)
+        inherit AbstractReader<HashMapDelta<'Key, 'Value>>(HashMapDelta.empty)
 
         let mutable oldValue : option<'T * IHashMapReader<'Key, 'Value>> = None
 
@@ -239,7 +239,7 @@ module AdaptiveHashMapImplementation =
 
     /// Reader for toASet.
     type ToASetReader<'Key, 'Value>(input : amap<'Key, 'Value>) =
-        inherit AbstractReader<HashSetDelta<'Key * 'Value>>(HashSetDelta.monoid)
+        inherit AbstractReader<HashSetDelta<'Key * 'Value>>(HashSetDelta.empty)
 
         let reader = input.GetReader()
 
@@ -270,7 +270,7 @@ module AdaptiveHashMapImplementation =
 
     /// Reader for mapSet.
     type MapSetReader<'Key, 'Value>(set : aset<'Key>, mapping : 'Key -> 'Value) =
-        inherit AbstractReader<HashMapDelta<'Key, 'Value>>(HashMapDelta.monoid)
+        inherit AbstractReader<HashMapDelta<'Key, 'Value>>(HashMapDelta.empty)
 
         let reader = set.GetReader()
 
@@ -318,7 +318,7 @@ module AdaptiveHashMapImplementation =
     /// It's safe to assume that the view function will only be called with non-empty HashSets.
     /// Internally assumes that the view function is cheap.
     type SetReader<'Key, 'Value, 'View>(input : aset<'Key * 'Value>, view : HashSet<'Value> -> 'View) =
-        inherit AbstractReader<HashMapDelta<'Key, 'View>>(HashMapDelta.monoid)
+        inherit AbstractReader<HashMapDelta<'Key, 'View>>(HashMapDelta.empty)
 
         let reader = input.GetReader()
         let state = UncheckedDictionary.create<'Key, HashSet<'Value>>()
