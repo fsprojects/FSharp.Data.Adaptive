@@ -5,47 +5,17 @@ namespace FSharp.Data.Adaptive.Tests.DomNode
 #endif
 
 //---------------------------------------------------------------------------
-// The purpose of this sample is to show an adaptive tree where each node
-// carries an attribute map and a list of children.  Updaters are defined
-// that track changes in the tree and execute corresponding maintenance
-// on pseudo-HTML elements, as happens in a DOM implemention.
+// The purpose of this sample is to show how to define a tree of
+// adaptive data, where each node carries an attribute map and a
+// list of children.  A node-updater is then defined that tracks changes in the 
+// tree and execute corresponding maintenance on pseudo-HTML elements,
+// as happens in a DOM implemention.
 //
 // The end result is an adaptive DOM.
 //
 // The example can be extended in numerous ways, this is a basic outline.
 
 open FSharp.Data.Adaptive
-
-/// The pseudo-HTML DOM type we will maintain in response to updates.
-[<AllowNullLiteral>]
-type HTMLElement(tag: string) =
-
-    member __.tag = tag
-
-    member __.createElement(tag: string) = 
-        printfn "%s = createElement()" tag
-        HTMLElement(tag) 
-
-    member __.children : HTMLElement[] = [| |]
-
-    member __.remove () =
-        printfn "%s.remove() " tag 
-
-    member __.insertBefore (x: HTMLElement, y: HTMLElement) = 
-        printfn "%s.insertBefore(%s, %s)" x.tag y.tag
-
-    member __.appendChild (x: HTMLElement) = 
-        printfn "%s.appendChild(%s)" tag x.tag
-
-    member __.removeAttribute (x: string) = 
-        printfn "%s.removeAttribute(%s)" tag x 
-
-    member __.setAttribute (x: string, v: string) = 
-        printfn "%s.setAttribute(%O, %O)" tag x v 
-
-[<AutoOpen>]
-module Document = 
-    let document = HTMLElement("document")
 
 type AttributeValue =
     | String of string
@@ -115,10 +85,12 @@ module AttributeMap =
 
     let toAMap (m: AttributeMap) = m.Values
 
+
 [<AutoOpen>]
 module AttributeMapBuilder =
     type AttributeMapBuilder() =
         member x.Yield((key: string, value: string)) = AttributeMap.single key (String value)
+
         member x.Yield((key: string, value: AttributeValue)) = AttributeMap.single key value
 
         member x.Yield((key: string, value: aval<string>)) =
@@ -157,6 +129,7 @@ module AttributeMapBuilder =
     let attribs = AttributeMapBuilder()
     let att k v = (k, v)
 
+/// Represents a tree of adaptive data 
 [<RequireQualifiedAccess>]
 type DomNode =
     | Node of tag: string * attribs: AttributeMap * children: alist<DomNode>
@@ -168,6 +141,36 @@ type DomNode =
     member x.TagName =
         match x with
         | Node(tag, _, _) -> Some tag
+
+/// The pseudo-HTML DOM type we will maintain in response to updates.
+[<AllowNullLiteral>]
+type HTMLElement(tag: string) =
+
+    static let document = HTMLElement("document")
+    member __.tag = tag
+
+    member __.createElement(tag: string) = 
+        printfn "%s = createElement()" tag
+        HTMLElement(tag) 
+
+    member __.children : HTMLElement[] = [| |]
+
+    member __.remove () =
+        printfn "%s.remove() " tag 
+
+    member __.insertBefore (x: HTMLElement, y: HTMLElement) = 
+        printfn "%s.insertBefore(%s, %s)" x.tag y.tag
+
+    member __.appendChild (x: HTMLElement) = 
+        printfn "%s.appendChild(%s)" tag x.tag
+
+    member __.removeAttribute (x: string) = 
+        printfn "%s.removeAttribute(%s)" tag x 
+
+    member __.setAttribute (x: string, v: string) = 
+        printfn "%s.setAttribute(%O, %O)" tag x v 
+
+    static member Document = document
 
 module Updater = 
 
@@ -237,12 +240,12 @@ module Updater =
                         //Log.warn "insert %s" tag
                         match rightInnerNodeOpt with
                         | Some (_, rightInnerNode) ->
-                            let newInnerNode = document.createElement(tag)
+                            let newInnerNode = HTMLElement.Document.createElement(tag)
                             htmlNode.insertBefore(newInnerNode, rightInnerNode.HtmlNode) |> ignore
                             newInnerNode
                                 
                         | None ->
-                            let newInnerNode = document.createElement(tag)
+                            let newInnerNode = HTMLElement.Document.createElement(tag)
                             htmlNode.appendChild newInnerNode |> ignore
                             newInnerNode
 
@@ -266,7 +269,7 @@ module Updater =
 
         static member Create (parent: HTMLElement, n: DomNode) =
             let createNode (tag: string) =
-                let n = document.createElement(tag)
+                let n = HTMLElement.Document.createElement(tag)
 
                 // TBD: suspicious remove of all other children here?
                 let arr = Array.copy parent.children
@@ -351,7 +354,7 @@ module Test =
     let node1b =  DomNode.text "b" text1b
     let node2nodes = clist [ node1 ]
     let node2 =  DomNode.node "c" AttributeMap.Empty node2nodes
-    let updater = Updater.NodeUpdater.Create(document, node2)
+    let updater = Updater.NodeUpdater.Create(HTMLElement.Document, node2)
     updater.Execute(AdaptiveToken.Top)
 
     transact (fun () -> text1.Value <- "hello world")
