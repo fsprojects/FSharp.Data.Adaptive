@@ -21,10 +21,15 @@ module ComputationExpressions =
     /// ComputationExpression builder for aset.
     type ASetBuilder() =
         member inline x.Yield(value: 'T) = ASet.single value
+
         member inline x.YieldFrom(values: aset<'T>) = values
+
         member inline x.YieldFrom(values: seq<'T>) = ASet.ofSeq values
+
         member inline x.YieldFrom(values: list<'T>) = ASet.ofList values
+
         member inline x.YieldFrom(values: 'T[]) = ASet.ofArray values
+
         member inline x.YieldFrom(values: HashSet<'T>) = ASet.ofHashSet values
         
         member inline x.YieldFrom(values: aval<HashSet<'T>>) = 
@@ -69,19 +74,24 @@ module ComputationExpressions =
             elements |> HashSet.map mapping |> ASet.ofHashSet |> ASet.unionMany
 
         member inline x.Zero() = ASet.empty
+
         member inline x.Combine(l: aset<'T>, r: aset<'T>) = ASet.union l r
+
         member inline x.Delay(value: unit -> aset<'T>) = value()
         
     /// ComputationExpression builder for alist.
     type AListBuilder() =
         member inline x.Yield(value: 'T) = AList.single value
-        member inline x.YieldFrom(values: alist<'T>) = values
-        member inline x.YieldFrom(values: seq<'T>) = AList.ofSeq values
-        member inline x.YieldFrom(values: list<'T>) = AList.ofList values
-        member inline x.YieldFrom(values: 'T[]) = AList.ofArray values
-        member inline x.YieldFrom(values: IndexList<'T>) = AList.ofIndexList values
 
-        
+        member inline x.YieldFrom(values: alist<'T>) = values
+
+        member inline x.YieldFrom(values: seq<'T>) = AList.ofSeq values
+
+        member inline x.YieldFrom(values: list<'T>) = AList.ofList values
+
+        member inline x.YieldFrom(values: 'T[]) = AList.ofArray values
+
+        member inline x.YieldFrom(values: IndexList<'T>) = AList.ofIndexList values
     
         member inline x.Bind(value: aval<'T1>, mapping: 'T1 -> alist<'T2>) =
             AList.bind mapping value
@@ -102,7 +112,9 @@ module ComputationExpressions =
             elements |> IndexList.map mapping |> AList.concat
 
         member inline x.Zero() = AList.empty
+
         member inline x.Combine(l: alist<'T>, r: alist<'T>) = AList.append l r
+
         member inline x.Delay(value: unit -> alist<'T>) = value()
         
     /// ComputationExpression builder for amap.
@@ -125,13 +137,21 @@ module ComputationExpressions =
             value |> AVal.map (fun v -> HashMap.single key v) |> AMap.ofAVal
 
         member inline x.YieldFrom(value: aval<HashMap<'Key, 'Value>>) = AMap.ofAVal value
+
         member inline x.YieldFrom(map: amap<'Key, 'Value>) = map
+
         member inline x.YieldFrom(map: HashMap<'Key, 'Value>) = AMap.ofHashMap map
+
         member inline x.YieldFrom(map: ('Key * 'Value) seq) = AMap.ofSeq map
+
         member inline x.YieldFrom(map: ('Key * 'Value) list) = AMap.ofList map
+
         member inline x.YieldFrom(map: ('Key * 'Value) array) = AMap.ofArray map
+
         member inline x.Bind(value: aval<'T>, mapping: 'T -> amap<'Key, 'Value>) = AMap.bind mapping value
+
         member inline x.Delay(value: unit -> amap<'Key, 'Value>) = value()
+
         member inline x.Combine(l: amap<'Key, 'Value>, r: amap<'Key, 'Value>) = AMap.union l r
             
     /// ComputationExpression builder for aval.

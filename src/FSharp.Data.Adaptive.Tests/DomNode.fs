@@ -223,9 +223,9 @@ module Updater =
                 match op with
                 | Remove ->
                     match MapExt.tryRemove i innerNodes with
-                    | Some (u, rest) ->
+                    | Some (removedNode, rest) ->
                         innerNodes <- rest
-                        u.HtmlNode.remove()
+                        removedNode.HtmlNode.remove()
                     | None ->
                         ()
 
@@ -360,7 +360,7 @@ module Test =
     transact (fun () -> text1b.Value <- "goodbye")
     updater.Execute(AdaptiveToken.Top)
 
-    transact (fun () -> node2nodes.Append node1b)
+    transact (fun () -> node2nodes.Append node1b) |> ignore
     updater.Execute(AdaptiveToken.Top)
 
     transact (fun () -> text1b.Value <- "goodbye lenin")

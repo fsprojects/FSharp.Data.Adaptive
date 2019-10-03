@@ -12,7 +12,6 @@
     <OutputPath>..\..\bin\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="DomNode.fs" />
     <Compile Include="Utilities\Helpers.fs" />
     <Compile Include="Utilities\Generators.fs" />
     <Compile Include="IntMap.fs" />
@@ -26,6 +25,7 @@
     <Compile Include="ASet.fs" />
     <Compile Include="AMap.fs" />
     <Compile Include="AList.fs" />
+    <Compile Include="DomNode.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

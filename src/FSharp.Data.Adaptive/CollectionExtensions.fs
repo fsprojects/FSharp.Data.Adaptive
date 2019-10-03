@@ -8,6 +8,7 @@ module CollectionExtensions =
 
     [<AutoOpen>]
     module internal Readers =
+
         /// Reader for ASet.sortBy
         type SetSortByReader<'T1, 'T2 when 'T2 : comparison>(set: aset<'T1>, projection: 'T1 -> 'T2) =
             inherit AbstractReader<IndexListDelta<'T1>>(IndexListDelta.monoid)
@@ -102,12 +103,9 @@ module CollectionExtensions =
                 )
                 |> HashSetDelta.ofSeq
 
-
-
-
     /// Functional operators for amap<_,_>
-    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module AMap =
+
         /// Gets the keys of the given map as aset<_>.
         let keys (map: amap<'Key, 'Value>) =
             if map.IsConstant then
@@ -119,7 +117,6 @@ module CollectionExtensions =
                 ASet.ofReader (fun () -> MapKeysReader(map))
 
     /// Functional operators for aset<_>
-    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module ASet =
 
         /// Creates an aset holding all key/value tuples from the map.
@@ -163,7 +160,6 @@ module CollectionExtensions =
         let inline sort (set: aset<'T>) = sortWith compare set
 
     /// Functional operators for alist<_>
-    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module AList =
         
         /// Creates an aset holding all elements of the given list.
