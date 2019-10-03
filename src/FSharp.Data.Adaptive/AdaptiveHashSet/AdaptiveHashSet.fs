@@ -77,7 +77,7 @@ module AdaptiveHashSetImplementation =
 
     /// Reader for map operations.
     type MapReader<'A, 'B>(input : aset<'A>, mapping : 'A -> 'B) =
-        inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.monoid)
+        inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.empty)
             
         let cache = Cache mapping
         let reader = input.GetReader()
@@ -92,7 +92,7 @@ module AdaptiveHashSetImplementation =
           
     /// Reader for choose operations.
     type ChooseReader<'A, 'B>(input : aset<'A>, mapping : 'A -> option<'B>) =
-        inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.monoid)
+        inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.empty)
             
         let cache = Cache mapping
         let r = input.GetReader()
@@ -116,7 +116,7 @@ module AdaptiveHashSetImplementation =
 
     /// Reader for filter operations.
     type FilterReader<'T>(input : aset<'T>, predicate : 'T -> bool) =
-        inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.monoid)
+        inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.empty)
             
         let cache = Cache predicate
         let r = input.GetReader()
@@ -199,7 +199,7 @@ module AdaptiveHashSetImplementation =
 
     /// Reader for unioning a dynamic aset of immutable sets.
     type UnionHashSetReader<'T>(input : aset<HashSet<'T>>) =
-        inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.monoid)
+        inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.empty)
 
         let reader = input.GetReader()
 
@@ -260,7 +260,7 @@ module AdaptiveHashSetImplementation =
 
     /// Reader for aval<HashSet<_>>
     type AValReader<'S, 'A when 'S :> seq<'A>>(input : aval<'S>) =
-        inherit AbstractReader<HashSetDelta<'A>>(HashSetDelta.monoid)
+        inherit AbstractReader<HashSetDelta<'A>>(HashSetDelta.empty)
 
         let mutable oldSet = HashSet.empty
 
@@ -272,7 +272,7 @@ module AdaptiveHashSetImplementation =
 
     /// Reader for bind operations.
     type BindReader<'A, 'B>(input : aval<'A>, mapping : 'A -> aset<'B>) =
-        inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.monoid)
+        inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.empty)
             
         let mutable valChanged = 0
         let mutable cache : option<'A * IHashSetReader<'B>> = None

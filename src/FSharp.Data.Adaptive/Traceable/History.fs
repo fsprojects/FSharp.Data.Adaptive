@@ -22,7 +22,7 @@ type IOpReader<'State, 'Delta> =
 
 /// Abstract base class for implementing IOpReader<_>
 [<AbstractClass>]
-type AbstractReader<'Delta>(t: Monoid<'Delta>) =
+type AbstractReader<'Delta>(empty: 'Delta) =
     inherit AdaptiveObject()
     
     /// Adaptively compute deltas.
@@ -38,7 +38,7 @@ type AbstractReader<'Delta>(t: Monoid<'Delta>) =
             if x.OutOfDate then
                 x.Compute token |> x.Apply
             else
-                t.mempty
+                empty
         )   
 
     interface IOpReader<'Delta> with
@@ -47,7 +47,7 @@ type AbstractReader<'Delta>(t: Monoid<'Delta>) =
 /// Abstract base class for implementing IOpReader<_,_>
 [<AbstractClass>]
 type AbstractReader<'State, 'Delta>(t: Traceable<'State, 'Delta>) =
-    inherit AbstractReader<'Delta>(t.tmonoid)
+    inherit AbstractReader<'Delta>(t.tmonoid.mempty)
 
     let mutable state = t.tempty
 

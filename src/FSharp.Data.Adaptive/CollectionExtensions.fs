@@ -11,7 +11,7 @@ module CollectionExtensions =
 
         /// Reader for ASet.sortBy
         type SetSortByReader<'T1, 'T2 when 'T2 : comparison>(set: aset<'T1>, projection: 'T1 -> 'T2) =
-            inherit AbstractReader<IndexListDelta<'T1>>(IndexListDelta.monoid)
+            inherit AbstractReader<IndexListDelta<'T1>>(IndexListDelta.empty)
 
             let reader = set.GetReader()
             let mapping = IndexMapping<Unique<'T2>>()
@@ -34,7 +34,7 @@ module CollectionExtensions =
         
         /// Reader for ASet.sortWith
         type SetSortWithReader<'T>(set: aset<'T>, compare: 'T -> 'T -> int) =
-            inherit AbstractReader<IndexListDelta<'T>>(IndexListDelta.monoid)
+            inherit AbstractReader<IndexListDelta<'T>>(IndexListDelta.empty)
 
             let reader = set.GetReader()
             let mapping = CustomIndexMapping<'T>(compare)
@@ -54,7 +54,7 @@ module CollectionExtensions =
 
         /// Reader for AMap.keys
         type MapKeysReader<'Key, 'Value>(map: amap<'Key, 'Value>) =
-            inherit AbstractReader<HashSetDelta<'Key>>(HashSetDelta.monoid)
+            inherit AbstractReader<HashSetDelta<'Key>>(HashSetDelta.empty)
 
             let reader = map.GetReader()
 
@@ -81,7 +81,7 @@ module CollectionExtensions =
 
         /// Reader for AList.toASet
         type ListSetReader<'T>(list: alist<'T>) =
-            inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.monoid)
+            inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.empty)
             
             let reader = list.GetReader()
 

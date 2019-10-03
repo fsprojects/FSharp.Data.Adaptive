@@ -78,7 +78,7 @@ module internal AdaptiveIndexListImplementation =
 
     /// Reader for map operations.
     type MapReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> 'b) =
-        inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.monoid)
+        inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
         let reader = input.GetReader()
 
@@ -91,7 +91,7 @@ module internal AdaptiveIndexListImplementation =
 
     /// Reader for choose operations.
     type ChooseReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> option<'b>) =
-        inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.monoid)
+        inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
         let r = input.GetReader()
         let mapping = IndexCache mapping
@@ -115,7 +115,7 @@ module internal AdaptiveIndexListImplementation =
 
     /// Reader for filter operations.
     type FilterReader<'a>(input : alist<'a>, predicate : Index -> 'a -> bool) =
-        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.monoid)
+        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
 
         let reader = input.GetReader()
         let mapping = IndexCache predicate
@@ -140,7 +140,7 @@ module internal AdaptiveIndexListImplementation =
 
     /// Ulitity used by CollectReader.
     type MultiReader<'a>(mapping : IndexMapping<Index * Index>, list : alist<'a>, release : alist<'a> -> unit) =
-        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.monoid)
+        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
             
         let targets = UncheckedHashSet.create<Index>()
 
@@ -302,7 +302,7 @@ module internal AdaptiveIndexListImplementation =
 
     /// Helper for ConcatReader.
     type IndexedReader<'a>(mapping : IndexMapping<Index * Index>, index : Index, input : alist<'a>) =
-        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.monoid) 
+        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty) 
 
         let reader = input.GetReader()
 
@@ -351,7 +351,7 @@ module internal AdaptiveIndexListImplementation =
 
     /// Reader for bind operations.
     type BindReader<'a, 'b>(input : aval<'a>, mapping : 'a -> alist<'b>) =
-        inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.monoid)
+        inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
         let mutable inputChanged = 1
         let mutable reader : Option<'a * IIndexListReader<'b>> = None
@@ -386,7 +386,7 @@ module internal AdaptiveIndexListImplementation =
 
     /// Reader for sortBy operations
     type SortByReader<'a, 'b when 'b : comparison>(input : alist<'a>, mapping : Index -> 'a -> 'b) =
-        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.monoid)
+        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
 
         let reader = input.GetReader()
         let idx = IndexMapping<('b * Index)>()
@@ -425,7 +425,7 @@ module internal AdaptiveIndexListImplementation =
 
     /// Reader for sortWith operations
     type SortWithReader<'a>(input : alist<'a>, compare : 'a -> 'a -> int) =
-        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.monoid)
+        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
 
         let reader = input.GetReader()
         let idx = IndexMapping<UCmp<struct ('a * Index)>>()
@@ -470,7 +470,7 @@ module internal AdaptiveIndexListImplementation =
 
     /// Reader for ofAVal operations
     type AValReader<'s, 'a when 's :> seq<'a>>(input: aval<'s>) =
-        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.monoid)
+        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
 
         let mutable last = IndexList.empty
 

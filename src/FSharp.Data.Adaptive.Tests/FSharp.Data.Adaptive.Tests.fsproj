@@ -25,7 +25,7 @@
     <Compile Include="ASet.fs" />
     <Compile Include="AMap.fs" />
     <Compile Include="AList.fs" />
-    <Compile Include="DomNode.fs" />
+    <Compile Include="DomUpdater.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
