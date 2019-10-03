@@ -1057,7 +1057,6 @@ module internal MapExtImplementation =
 
 open MapExtImplementation
 
-
 [<System.Diagnostics.DebuggerTypeProxy(typedefof<MapDebugView<_,_>>)>]
 [<System.Diagnostics.DebuggerDisplay("Count = {Count}")>]
 [<Sealed>]
@@ -1065,6 +1064,7 @@ open MapExtImplementation
 type (* internal *) MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;ComparisonConditionalOn>]'Value when 'Key : comparison > internal (comparer: IComparer<'Key>, tree: MapTree<'Key,'Value>) =
 
     static let defaultComparer = LanguagePrimitives.FastGenericComparer<'Key> 
+
     // We use .NET generics per-instantiation static fields to avoid allocating a new object for each empty
     // set (it is just a lookup into a .NET table of type-instantiation-indexed static fields).
     static let empty = new MapExt<'Key,'Value>(defaultComparer, MapTree<_,_>.MapEmpty)
