@@ -43,7 +43,7 @@ type HashMapDelta<'K, [<EqualityConditionalOn>] 'V>(store : HashMap<'K, ElementO
         Unchecked.hash store
 
     override x.Equals o =
-        #if FABLE_COMPILER
+        #if FABLE_NO_TYPE_TESTS
         let o = unbox<HashMapDelta<'K, 'V>> o
         Unchecked.equals store o.Store
         #else

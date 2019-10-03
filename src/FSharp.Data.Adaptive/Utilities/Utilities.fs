@@ -175,7 +175,7 @@ module internal AdaptiveIndexListHelpers =
 
         override x.GetHashCode() = Unchecked.hash value
         override x.Equals o =
-            #if FABLE_COMPILER
+            #if ADAPTIVE_NO_TYPE_TESTS
             let o = unbox<UCmp<'a>> o
             Unchecked.equals value o.Value
             #else
@@ -194,7 +194,7 @@ module internal AdaptiveIndexListHelpers =
 
         interface IComparable with
             member x.CompareTo(o) =
-                #if FABLE_COMPILER
+                #if ADAPTIVE_NO_TYPE_TESTS
                 let o = unbox<UCmp<'a>> o
                 compare.Invoke(value, o.Value)
                 #else
@@ -318,7 +318,7 @@ module internal AdaptiveIndexListHelpers =
 
         override x.GetHashCode() = combineHash(Unchecked.hash value) id
         override x.Equals o =
-            #if FABLE_COMPILER
+            #if ADAPTIVE_NO_TYPE_TESTS
             let o = unbox<Unique<'b>> o
             Unchecked.equals value o.Value && id = o.Id
             #else
@@ -329,7 +329,7 @@ module internal AdaptiveIndexListHelpers =
 
         interface IComparable with
             member x.CompareTo o =
-                #if FABLE_COMPILER
+                #if ADAPTIVE_NO_TYPE_TESTS
                 let o = unbox<Unique<'b>> o
                 let c = compare value o.Value
                 if c = 0 then compare id o.Id

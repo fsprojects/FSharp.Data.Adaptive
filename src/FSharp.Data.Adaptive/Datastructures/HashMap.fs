@@ -716,7 +716,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
     /// Creates a map with all entries from the seq.
     /// `O(N * log N)`
     static member OfSeq (seq: seq<'K * 'V>) =
-        #if !FABLE_COMPILER
+        #if !FABLE_NO_TYPE_TESTS
         match seq with
         | :? HashMap<'K, 'V> as o ->
             o
@@ -761,7 +761,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
             )
 
     override x.Equals o =
-        #if FABLE_COMPILER
+        #if FABLE_NO_TYPE_TESTS
         let o = unbox<HashMap<'K, 'V>> o
         IntMap.equals HashMapList.equals store o.Store
         #else

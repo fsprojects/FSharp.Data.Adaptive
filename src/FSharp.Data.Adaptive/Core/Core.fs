@@ -97,12 +97,12 @@ and IWeakOutputSet =
 /// entries. The only other functionality is Consume which returns all the
 /// (currently live) entries and clears the set.
 and internal WeakOutputSet() =
-    let mutable data = UncheckedHashSet.create<IAdaptiveObject>()
+    let mutable data = ReferenceHashSet.create<IAdaptiveObject>()
     member x.Add(obj: IAdaptiveObject) = data.Add obj
     member x.Remove(obj: IAdaptiveObject) = data.Remove obj
     member x.Consume(): IAdaptiveObject[] = 
         let old = data
-        data <- UncheckedHashSet.create<IAdaptiveObject>()
+        data <- ReferenceHashSet.create<IAdaptiveObject>()
         Seq.toArray old
 
     member x.IsEmpty = data.Count = 0

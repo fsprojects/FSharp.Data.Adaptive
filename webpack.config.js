@@ -34,7 +34,10 @@ module.exports = {
 			{
 				test: /\.fs(x|proj)?$/,
 				use: {
-					loader: "fable-loader"
+					loader: "fable-loader",
+					options: {
+						define: ["ADAPTIVE_NO_TYPE_TESTS"]
+					}
 				}
 			}
         ]

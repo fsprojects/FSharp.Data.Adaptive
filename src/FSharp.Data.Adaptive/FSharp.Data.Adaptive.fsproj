@@ -8,6 +8,7 @@
     <OutputPath>..\..\bin\Debug\</OutputPath>
     <DocumentationFile>..\..\bin\Debug\netstandard2.0\FSharp.Data.Adaptive.XML</DocumentationFile>
     <OtherFlags></OtherFlags>
+    <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>..\..\bin\Release</OutputPath>
@@ -48,7 +49,7 @@
 	<Compile Include="AdaptiveHashSet\ChangeableHashSet.fs" />
 	<Compile Include="AdaptiveHashMap\AdaptiveHashMap.fsi" /> 
 	<Compile Include="AdaptiveHashMap\AdaptiveHashMap.fs" />
-	<Compile Include="AdaptiveHashMap\ChangeableHashMap.fsi"/> 
+	<Compile Include="AdaptiveHashMap\ChangeableHashMap.fsi" /> 
 	<Compile Include="AdaptiveHashMap\ChangeableHashMap.fs" />
 	<Compile Include="AdaptiveIndexList\AdaptiveIndexList.fsi" /> 
 	<Compile Include="AdaptiveIndexList\AdaptiveIndexList.fs" />

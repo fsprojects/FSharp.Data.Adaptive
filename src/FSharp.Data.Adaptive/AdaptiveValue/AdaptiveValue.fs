@@ -114,7 +114,7 @@ module AVal =
             cheapHash value
 
         override x.Equals o =
-            #if FABLE_COMPILER
+            #if ADAPTIVE_NO_TYPE_TESTS
             let o = unbox<aval<'T>> o
             o.IsConstant && cheapEqual (x.GetValue()) (o.GetValue AdaptiveToken.Top)
             #else

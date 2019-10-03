@@ -72,8 +72,7 @@ type AbstractDirtyReader<'T, 'Delta when 'T :> IAdaptiveObject>(t: Monoid<'Delta
 
     override x.InputChangedObject(_, o) =
         #if FABLE_COMPILER
-        let o = unbox<'T> o
-        if take o.Tag then dirty.Value.Add o |> ignore
+        if take o.Tag then dirty.Value.Add (unbox<'T> o) |> ignore
         #else
         match o with
         | :? 'T as o when take o.Tag -> lock dirty (fun () -> dirty.Value.Add o |> ignore)
