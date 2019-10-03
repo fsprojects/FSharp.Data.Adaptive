@@ -8,6 +8,8 @@
 
 Aims at making Aardvark.Base.Incremental's functionality available as a standalone library.
 
+[Package on Nuget](https://www.nuget.org/packages/FSharp.Data.Adaptive/)
+
 [Read the Wiki](https://github.com/fsprojects/FSharp.Data.Adaptive/wiki)
 
 [Lightning talk slides and 10 line demo script by @dsyme](https://github.com/dsyme/fsharp-presentations/tree/master/2019-09-27-openfsharp)
