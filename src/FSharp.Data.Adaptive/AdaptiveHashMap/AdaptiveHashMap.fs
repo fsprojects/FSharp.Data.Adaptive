@@ -112,7 +112,7 @@ module AdaptiveHashMapImplementation =
         inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.monoid)
 
         let reader = input.GetReader()
-        let livingKeys = System.Collections.Generic.HashSet<'Key>()
+        let livingKeys = UncheckedHashSet.create<'Key>()
 
         override x.Compute(token) =
             let ops = reader.GetChanges token
@@ -139,7 +139,7 @@ module AdaptiveHashMapImplementation =
 
         let reader = input.GetReader()
         let cache = Cache f
-        let livingKeys = System.Collections.Generic.HashSet<'Key>()
+        let livingKeys = UncheckedHashSet.create<'Key>()
 
         override x.Compute(token) =
             let oldState = reader.State
@@ -284,20 +284,72 @@ module AdaptiveHashMapImplementation =
             |> HashMapDelta
 
 
-    type internal KeyedMod<'Key, 'Value>(key : 'Key, m : aval<'Value>) =
-        inherit AVal.AbstractVal<'Key * 'Value>()
+    /// Base class for standard avals
+    [<AbstractClass; StructuredFormatDisplay("{AsString}")>]
+    type internal AbstractVal<'T>() =
+        inherit AdaptiveObject()
 
-        let mutable last = None
-            
-        member x.Key = key
-            
-        member x.UnsafeLast =
-            last
+        let mutable cache = Unchecked.defaultof<'T>
 
-        override x.Compute(token) =
-            let v = m.GetValue(token)
-            last <- Some v
-            key, v
+        abstract member Compute: AdaptiveToken -> 'T
+
+        member x.GetValue(token: AdaptiveToken) =
+            x.EvaluateAlways token (fun token ->
+                if x.OutOfDate then
+                    let v = x.Compute token
+                    cache <- v
+                    v
+                else
+                    cache                
+            )
+
+        member private x.AsString =
+            if x.OutOfDate then sprintf "aval*(%A)" cache
+            else sprintf "aval(%A)" cache
+
+        override x.ToString() =
+            if x.OutOfDate then System.String.Format("aval*({0})", cache)
+            else System.String.Format("aval({0})", cache)
+
+        interface AdaptiveValue<'T> with
+            member x.GetValue t = x.GetValue t  
+    
+    /// Reader used for ofASet operations.
+    /// It's safe to assume that the view function will only be called with non-empty HashSets.
+    /// Internally assumes that the view function is cheap.
+    type SetReader<'Key, 'Value, 'View>(input : aset<'Key * 'Value>, view : HashSet<'Value> -> 'View) =
+        inherit AbstractReader<HashMapDelta<'Key, 'View>>(HashMapDelta.monoid)
+
+        let reader = input.GetReader()
+        let state = UncheckedDictionary.create<'Key, HashSet<'Value>>()
+
+        override x.Compute (token : AdaptiveToken) =
+            reader.GetChanges token |> Seq.choose (fun op ->
+                match op with
+                | Add(_, (k, v)) ->
+                    match state.TryGetValue k with
+                    | (true, set) ->    
+                        let newSet = HashSet.add v set
+                        state.[k] <- newSet
+                        Some (k, Set (view newSet))
+                    | _ ->
+                        let newSet = HashSet.single v
+                        state.[k] <- newSet
+                        Some (k, Set (view newSet))
+                | Rem(_, (k, v)) ->
+                    match state.TryGetValue k with
+                    | (true, set) ->    
+                        let newSet = HashSet.remove v set
+                        if newSet.IsEmpty then 
+                            state.Remove k |> ignore
+                            Some (k, Remove)
+                        else 
+                            state.[k] <- newSet
+                            Some (k, Set (view newSet))
+                    | _ ->
+                        None
+            )
+            |> HashMapDelta.ofSeq
 
     /// Gets the current content of the amap as HashMap.
     let inline force (map : amap<'Key, 'Value>) = 
@@ -338,6 +390,44 @@ module AMap =
     /// Creates an amap holding the given entries.
     let ofHashMap (elements : HashMap<'Key, 'Value>) =
         constant (fun () -> elements)
+
+    /// Creates an amap for the given aval.
+    let ofAVal (value : aval<#seq<'Key * 'Value>>) =
+        if value.IsConstant then
+            constant (fun () -> value |> AVal.force :> seq<_> |> HashMap.ofSeq)
+        else
+            create (fun () -> AValReader(value))
+
+    /// Creates an amap from the given set and takes an arbitrary value for duplicate entries.
+    let ofASetIgnoreDuplicates (set: aset<'Key * 'Value>) =
+        if set.IsConstant then
+            constant (fun () -> 
+                let mutable result = HashMap.empty
+                for (k,v) in AVal.force set.Content do
+                    result <- HashMap.add k v result
+
+                result
+            )
+        else
+            create (fun () -> SetReader(set, Seq.head))
+    
+    /// Creates an amap from the given set while keeping all duplicate values for a key in a HashSet.           
+    let ofASet (set: aset<'Key * 'Value>) =
+        if set.IsConstant then
+            constant (fun () -> 
+                let mutable result = HashMap.empty
+                for (k,v) in AVal.force set.Content do
+                    result <- 
+                        result |> HashMap.alter k (fun o ->
+                            match o with
+                            | Some o -> HashSet.add v o |> Some
+                            | None -> HashSet.single v |> Some
+                        )
+
+                result
+            )
+        else
+            create (fun () -> SetReader(set, id))
 
     /// Creates an aval providing access to the current content of the map.
     let toAVal (map : amap<'Key, 'Value>) = map.Content
@@ -404,13 +494,6 @@ module AMap =
     let union (a : amap<'Key, 'Value>) (b : amap<'Key, 'Value>) =
         unionWith (fun _ _ r -> r) a b
 
-    /// Creates an amap for the given aval.
-    let ofAVal (value : aval<#seq<'Key * 'Value>>) =
-        if value.IsConstant then
-            constant (fun () -> value |> AVal.force :> seq<_> |> HashMap.ofSeq)
-        else
-            create (fun () -> AValReader(value))
-
     /// Adaptively maps over the given aval and returns the resulting map.
     let bind (mapping : 'T -> amap<'Key, 'Value>) (value : aval<'T>) =
         if value.IsConstant then
@@ -424,3 +507,72 @@ module AMap =
             ASet.delay (fun () -> map |> force |> HashMap.toSeq |> HashSet.ofSeq)
         else
             ASet.ofReader (fun () -> ToASetReader(map))
+
+    /// Adaptively looks up the given key in the map.
+    /// Note that this operation should not be used extensively since its resulting
+    /// aval will be re-evaluated upon every change of the map.
+    let tryFind (key: 'K) (map: amap<'K, 'V>) =
+        map.Content |> AVal.map (HashMap.tryFind key)
+
+
+    /// Adaptively folds over the map using add for additions and trySubtract for removals.
+    /// Note the trySubtract may return None indicating that the result needs to be recomputed.
+    /// Also note that the order of elements given to add/trySubtract is undefined.
+    let foldHalfGroup (add : 'S -> 'K -> 'V -> 'S) (trySub : 'S -> 'K -> 'V -> option<'S>) (zero : 'S) (map : amap<'K, 'V>) =
+        let r = map.GetReader()
+        let mutable res = zero
+
+        let rec traverse (old : HashMap<'K, 'V>) (d : list<'K * ElementOperation<'V>>) =
+            match d with
+                | [] -> true
+                | (k, op) :: rest ->
+                    match op with
+                    | Set v -> 
+                        match HashMap.tryFind k old with
+                        | None ->
+                            res <- add res k v
+                            traverse old rest
+                        | Some o ->
+                            match trySub res k o with
+                            | Some r ->
+                                res <- add r k v
+                                traverse old rest
+                            | None ->
+                                false
+                                
+                        
+
+                    | Remove ->
+                        match HashMap.tryFind k old with
+                        | Some o ->
+                            match trySub res k o with
+                            | Some s ->
+                                res <- s
+                                traverse old rest
+                            | None ->
+                                false
+                        | None ->
+                            traverse old rest
+                                  
+
+        AVal.custom (fun token ->
+            
+            let old = r.State
+            let ops = r.GetChanges token
+            let worked = traverse old (HashMapDelta.toList ops)
+
+            if not worked then
+                res <- r.State |> HashMap.fold add zero
+                
+            res
+        )
+        
+    /// Adaptively folds over the map using add for additions and subtract for removals.
+    /// Note that the order of elements given to add/subtract is undefined.
+    let foldGroup (add : 'S -> 'K -> 'V -> 'S) (sub : 'S -> 'K -> 'V -> 'S) (zero : 'S) (map : amap<'K, 'V>) =
+        foldHalfGroup add (fun s k v -> sub s k v |> Some) zero map
+        
+    /// Adaptively folds over the map using add for additions and recomputes the value on every removal.
+    /// Note that the order of elements given to add is undefined.
+    let fold (add : 'S -> 'K -> 'V -> 'S) (zero : 'S) (map : amap<'K, 'V>) =
+        foldHalfGroup add (fun _ _ _ -> None) zero map

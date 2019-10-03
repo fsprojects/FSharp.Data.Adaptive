@@ -1,5 +1,7 @@
 bin/Release
 bin/Debug
+bin/Fable
+bin/Fable.Splitter
 *.swp
 *.userprefs
 **/obj
@@ -17,3 +19,5 @@ bin/Debug
 symbolCache.db
 *.suo
 /docs/output
+/node_modules
+/.fable

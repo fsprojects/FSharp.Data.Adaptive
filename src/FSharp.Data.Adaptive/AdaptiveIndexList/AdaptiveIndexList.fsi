@@ -46,7 +46,7 @@ module AList =
     val ofIndexList : elements: IndexList<'T> -> alist<'T>
     
     /// Creates an alist using the given reader-creator.
-    val ofReader : create : (unit -> #IOpReader<IndexListDelta<'T>>) -> aset<'T>
+    val ofReader : create : (unit -> #IOpReader<IndexListDelta<'T>>) -> alist<'T>
     
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
     val mapi : mapping: (Index -> 'T1 -> 'T2) -> list: alist<'T1> -> alist<'T2>
@@ -81,9 +81,12 @@ module AList =
 
     /// Creates an aval providing access to the current content of the list.
     val toAVal : list : alist<'T> -> aval<IndexList<'T>>
+    
+    /// Creates an alist from the given adaptive content
+    val ofAVal : value : aval<#seq<'T>> -> alist<'T>
 
     /// Adaptively maps over the given aval and returns the resulting list.
-    val bind : mapping: ('T1 -> alist<'T2>) -> list: alist<'T1> -> alist<'T2>
+    val bind : mapping: ('T1 -> alist<'T2>) -> value: aval<'T1> -> alist<'T2>
 
     /// Sorts the list using the keys given by projection.
     /// Note that the sorting is stable.
@@ -111,6 +114,16 @@ module AList =
     /// Adaptively folds over the list using add for additions and subtract for removals.
     /// Note that the order of elements given to add/subtract is undefined.
     val foldGroup : add : ('S -> 'A -> 'S) -> subtract : ('S -> 'A -> 'S) -> zero : 'S -> list : alist<'A> -> aval<'S>
+
+    /// Tries to get the element associated to a specific Index from the list.
+    /// Note that this operation should not be used extensively since its resulting
+    /// aval will be re-evaluated upon every change of the list.
+    val tryGet : index: Index -> list: alist<'T> -> aval<option<'T>>
+    
+    /// Tries to get the element at a specific position from the list.
+    /// Note that this operation should not be used extensively since its resulting
+    /// aval will be re-evaluated upon every change of the list.
+    val tryAt : index: int -> list: alist<'T> -> aval<option<'T>>
 
     /// Adaptively folds over the list using add for additions and recomputes the value on every removal.
     /// Note that the order of elements given to add is undefined.

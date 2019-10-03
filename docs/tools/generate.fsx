@@ -84,14 +84,29 @@ let buildReference () =
       publicOnly = true,
       markDownComments = true )
 
+let references =
+    // Workaround compiler errors in Razor-ViewEngine
+    let d = RazorEngine.Compilation.ReferenceResolver.UseCurrentAssembliesReferenceResolver()
+    let loadedList = d.GetReferences () |> Seq.map (fun r -> r.GetFile()) |> Seq.cache
+    // We replace the list and add required items manually as mcs doesn't like duplicates...
+    Seq.toList loadedList
+
 // Build documentation from `fsx` and `md` files in `docs/content`
 let buildDocumentation () =
   let subdirs = Directory.EnumerateDirectories(content, "*", SearchOption.AllDirectories)
+  let binaries = referenceProjects |> List.map getReferenceAssembliesForProject
+
+  let binaries=
+    List.concat [
+        references
+        binaries
+    ]
+
   for dir in Seq.append [content] subdirs do
     let sub = if dir.Length > content.Length then dir.Substring(content.Length + 1) else "."
     RazorLiterate.ProcessDirectory
       ( dir, docTemplate, output @@ sub, replacements = ("root", root)::info,
-        layoutRoots = layoutRoots, generateAnchors = true )
+        layoutRoots = layoutRoots, assemblyReferences = binaries, generateAnchors = true, fsiEvaluator = FSharp.Literate.FsiEvaluator() )
 
 // Generate
 ensureDirectory output

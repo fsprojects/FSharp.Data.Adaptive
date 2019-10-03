@@ -27,25 +27,25 @@ module internal HashMapList =
             else
                 struct(k1, v1) :: alter k f rest
 
-    let rec alter' (cnt: byref<int>) (k: 'K) (f: option<'V> -> option<'V>) (l: list<struct ('K * 'V)>) =
+    let rec alter' (cnt: ref<int>) (k: 'K) (f: option<'V> -> option<'V>) (l: list<struct ('K * 'V)>) =
         match l with
         | [] ->
             match f None with
                 | None -> []
                 | Some v -> 
-                    cnt <- cnt + 1
+                    cnt := !cnt + 1
                     [struct (k,v)]
 
         | struct(k1, v1) :: rest ->
             if Unchecked.equals k k1 then
                 match f (Some v1) with
                 | None -> 
-                    cnt <- cnt - 1
+                    cnt := !cnt - 1
                     rest
                 | Some v2 -> 
                     struct (k1, v2) :: rest
             else
-                struct (k1, v1) :: alter' &cnt k f rest
+                struct (k1, v1) :: alter' cnt k f rest
 
     let rec update (k: 'K) (f: option<'V> -> 'V) (l: list<struct ('K * 'V)>) =
         match l with
@@ -60,26 +60,26 @@ module internal HashMapList =
             else
                 struct (k1, v1) :: update k f rest
 
-    let rec add (cnt: byref<int>) (k: 'K) (v: 'V) (l: list<struct ('K * 'V)>) =
+    let rec add (cnt: ref<int>) (k: 'K) (v: 'V) (l: list<struct ('K * 'V)>) =
         match l with
         | [] ->     
-            cnt <- cnt + 1
+            cnt := !cnt + 1
             [struct (k,v)]
         | struct(k1, v1) :: rest ->
             if Unchecked.equals k k1 then
                 struct(k1, v) :: rest
             else
-                struct(k1, v1) :: add &cnt k v rest
+                struct(k1, v1) :: add cnt k v rest
 
-    let rec remove (cnt: byref<int>) (k: 'K) (l: list<struct('K * 'V)>) =
+    let rec remove (cnt: ref<int>) (k: 'K) (l: list<struct('K * 'V)>) =
         match l with
         | [] -> []
         | struct(k1, v1) :: rest ->
             if Unchecked.equals k k1 then
-                cnt <- cnt - 1
+                cnt := !cnt - 1
                 rest
             else
-                struct(k1, v1) :: remove &cnt k rest
+                struct(k1, v1) :: remove cnt k rest
 
     let rec tryRemove (k: 'K) (l: list<struct('K * 'V)>) =
         match l with
@@ -329,28 +329,28 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
     /// Adds or updates the entry for the given key. `O(log N)`
     member x.Add (key: 'K, value: 'V) =
         let hash = Unchecked.hash key
-        let mutable cnt = cnt
+        let cnt = ref cnt
         let newMap = 
             store |> IntMap.alter (function 
                 | None -> 
-                    cnt <- cnt + 1
+                    cnt := !cnt + 1
                     Some [key,value]
                 | Some l -> 
-                    Some (HashMapList.add &cnt key value l)
+                    Some (HashMapList.add cnt key value l)
             ) hash
-        HashMap(cnt, newMap)
+        HashMap(!cnt, newMap)
 
     /// Removes the entry for the given key. `O(log N)`
     member x.Remove (key: 'K) =
-        let mutable cnt = cnt
+        let cnt = ref cnt
         let hash = Unchecked.hash key
         let newMap = 
             store |> IntMap.update (fun l ->
-                match HashMapList.remove &cnt key l with
+                match HashMapList.remove cnt key l with
                 | [] -> None
                 | l -> Some l
             ) hash
-        HashMap(cnt, newMap)
+        HashMap(!cnt, newMap)
 
     /// Tests if an entry for the given key exists. `O(log N)`
     member x.ContainsKey (key: 'K) =
@@ -716,10 +716,12 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
     /// Creates a map with all entries from the seq.
     /// `O(N * log N)`
     static member OfSeq (seq: seq<'K * 'V>) =
+        #if !FABLE_COMPILER
         match seq with
         | :? HashMap<'K, 'V> as o ->
             o
         | _ -> 
+        #endif
             let mutable res = empty
             for (k,v) in seq do
                 res <- res.Add(k,v)
@@ -759,12 +761,16 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
             )
 
     override x.Equals o =
+        #if FABLE_COMPILER
+        let o = unbox<HashMap<'K, 'V>> o
+        IntMap.equals HashMapList.equals store o.Store
+        #else
         match o with
         | :? HashMap<'K, 'V> as o ->
             IntMap.equals HashMapList.equals store o.Store
         | _ ->
             false
-
+        #endif
     member private x.AsString = x.ToString()
 
     interface IEnumerable with

@@ -96,6 +96,7 @@ module internal ReferenceEqualityOperators =
     /// Determines whether the given objects are not reference equal
     let inline (!=) (l: 'T) (r: 'T) = not (refequal l r)
 
+#if !FABLE_COMPILER
 [<AutoOpen>]
 module internal InterlockedExtensions =
 
@@ -111,80 +112,8 @@ module internal InterlockedExtensions =
                 computed <- f initial
 
             computed
-            
-#if UNUSED
-        /// Changes the byref by applying the given function in a thread-safe way. 
-        /// NOTE that the function might be evaluated multiple times.
-        static member Change(location: byref<'T>, f: 'T -> 'T * 'U) =
-            let mutable initial = location
-            let (n, r) = f initial
-            let mutable computed = n
-            let mutable result = r
-
-            while Interlocked.CompareExchange(&location, computed, initial) != initial do
-                initial <- location
-                let (n, r) = f initial
-                computed <- n
-                result <- r
-
-            result
-            
-        /// Changes the byref by applying the given function in a thread-safe way. 
-        /// NOTE that the function might be evaluated multiple times.
-        static member Change(location: byref<int>, f: int -> int) =
-            let mutable initial = location
-            let mutable computed = f initial
-
-            while Interlocked.CompareExchange(&location, computed, initial) <> initial do
-                initial <- location
-                computed <- f initial
-
-            computed
-            
-        /// Changes the byref by applying the given function in a thread-safe way. 
-        /// NOTE that the function might be evaluated multiple times.
-        static member Change(location: byref<int>, f: int -> int * 'U) =
-            let mutable initial = location
-            let (n, r) = f initial
-            let mutable computed = n
-            let mutable result = r
-
-            while Interlocked.CompareExchange(&location, computed, initial) <> initial do
-                initial <- location
-                let (n, r) = f initial
-                computed <- n
-                result <- r
-
-            result
-            
-        /// Changes the byref by applying the given function in a thread-safe way. 
-        /// NOTE that the function might be evaluated multiple times.
-        static member Change(location: byref<int64>, f: int64 -> int64) =
-            let mutable initial = location
-            let mutable computed = f initial
-
-            while Interlocked.CompareExchange(&location, computed, initial) <> initial do
-                initial <- location
-                computed <- f initial
-
-            computed
-            
-        /// Changes the byref by applying the given function in a thread-safe way. 
-        /// NOTE that the function might be evaluated multiple times.
-        static member Change(location: byref<int64>, f: int64 -> int64 * 'U) =
-            let mutable initial = location
-            let (n, r) = f initial
-            let mutable computed = n
-            let mutable result = r
-
-            while Interlocked.CompareExchange(&location, computed, initial) <> initial do
-                initial <- location
-                let (n, r) = f initial
-                computed <- n
-                result <- r
-
-            result
 #endif
+
 
 [<AutoOpen>]
 module internal CheapEquality =
@@ -192,6 +121,10 @@ module internal CheapEquality =
     open System.Collections.Generic
     open System.Runtime.CompilerServices
 
+    #if FABLE_COMPILER
+    let cheapHash (a : 'T) = Unchecked.hash a
+    let cheapEqual (a : 'T) (b : 'T) = Unchecked.equals a b
+    #else
     type private CheapEquality<'T> private() =
 
         static let comparer =
@@ -213,10 +146,9 @@ module internal CheapEquality =
 
         static member Comparer = comparer
 
-    let cheapComparer<'T> : EqualityComparer<'T> = CheapEquality<'T>.Comparer
-
     let cheapHash (a : 'T) = CheapEquality<'T>.Comparer.GetHashCode a
     let cheapEqual (a : 'T) (b : 'T) = CheapEquality<'T>.Comparer.Equals(a, b)
+    #endif 
 
 module internal Unchecked =
     let inline isNull<'T when 'T : not struct> (value : 'T) =
@@ -243,19 +175,33 @@ module internal AdaptiveIndexListHelpers =
 
         override x.GetHashCode() = Unchecked.hash value
         override x.Equals o =
+            #if FABLE_COMPILER
+            let o = unbox<UCmp<'a>> o
+            Unchecked.equals value o.Value
+            #else
             match o with
             | :? UCmp<'a> as o -> Unchecked.equals value o.Value
             | _ -> false
+            #endif
             
         member x.CompareTo(o : UCmp<'a>) = compare.Invoke(value, o.Value)
 
+        #if !FABLE_COMPILER
         interface IComparable<UCmp<'a>> with
             member x.CompareTo(o) = compare.Invoke(value, o.Value)
+        #endif
+
+
         interface IComparable with
             member x.CompareTo(o) =
+                #if FABLE_COMPILER
+                let o = unbox<UCmp<'a>> o
+                compare.Invoke(value, o.Value)
+                #else
                 match o with
                 | :? UCmp<'a> as o -> compare.Invoke(value, o.Value)
                 | _ -> 0
+                #endif
 
     type IndexMapping<'k when 'k : comparison>() =
         let mutable store = MapExt.empty<'k, Index>
@@ -323,7 +269,7 @@ module internal AdaptiveIndexListHelpers =
             CustomIndexMapping(OptimizedClosures.FSharpFunc<_,_,_>.Adapt compare)
 
     type IndexCache<'a, 'b>(f : Index -> 'a -> 'b, release : 'b -> unit) =
-        let store = Dictionary<Index, 'a * 'b>()
+        let store = UncheckedDictionary.create<Index, 'a * 'b>()
 
         member x.InvokeAndGetOld(i : Index, a : 'a) =
             match store.TryGetValue(i) with
@@ -356,7 +302,12 @@ module internal AdaptiveIndexListHelpers =
 
     type Unique<'b when 'b : comparison>(value : 'b) =
         static let mutable currentId = 0
-        static let newId() = System.Threading.Interlocked.Increment(&currentId)
+        static let newId() = 
+            #if FABLE_COMPILER
+            let v = currentId in currentId <- v + 1; v
+            #else 
+            System.Threading.Interlocked.Increment(&currentId)
+            #endif
 
         let id = newId()
 
@@ -367,16 +318,29 @@ module internal AdaptiveIndexListHelpers =
 
         override x.GetHashCode() = combineHash(Unchecked.hash value) id
         override x.Equals o =
+            #if FABLE_COMPILER
+            let o = unbox<Unique<'b>> o
+            Unchecked.equals value o.Value && id = o.Id
+            #else
             match o with
-                | :? Unique<'b> as o -> Unchecked.equals value o.Value && id = o.Id
-                | _ -> false
+            | :? Unique<'b> as o -> Unchecked.equals value o.Value && id = o.Id
+            | _ -> false
+            #endif
 
         interface IComparable with
             member x.CompareTo o =
+                #if FABLE_COMPILER
+                let o = unbox<Unique<'b>> o
+                let c = compare value o.Value
+                if c = 0 then compare id o.Id
+                else c
+                #else
                 match o with
-                    | :? Unique<'b> as o ->
-                        let c = compare value o.Value
-                        if c = 0 then compare id o.Id
-                        else c
-                    | _ ->
-                        failwith "uncomparable"
+                | :? Unique<'b> as o ->
+                    let c = compare value o.Value
+                    if c = 0 then compare id o.Id
+                    else c
+                | _ ->
+                    failwith "uncomparable"
+                #endif
+

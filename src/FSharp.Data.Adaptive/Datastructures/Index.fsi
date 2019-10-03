@@ -8,7 +8,9 @@ open System
 [<Sealed>]
 type Index =
     interface IComparable
+    #if !FABLE_COMPILER
     interface IComparable<Index>
+    #endif
 
 /// functional operators for the Index datastructure.
 /// supported operations are: Index.zero, Index.after(index), Index.before(index), Index.between(l, r).

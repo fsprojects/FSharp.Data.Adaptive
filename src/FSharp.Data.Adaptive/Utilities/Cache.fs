@@ -2,19 +2,6 @@
 
 open System.Collections.Generic
 
-/// Internal datastructure used for 'magically' making types equatable.
-/// Workaround for `when 'T : equality`
-[<Struct; CustomEquality; NoComparison>]
-type internal UEq<'T> =
-    val mutable public Value : 'T
-    new(value : 'T) = { Value = value }
-
-    override x.GetHashCode() = 
-        Unchecked.hash x.Value
-    override x.Equals o =
-        match o with
-        | :? UEq<'T> as o -> Unchecked.equals x.Value o.Value
-        | _ -> false
 
 /// Cache represents a cached function which can be 
 /// invoked and revoked. invoke increments the reference
@@ -25,11 +12,15 @@ type internal UEq<'T> =
 type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =  
     /// utility checking for null (if possible)
     static let isNull =
+        #if FABLE_COMPILER
+        fun (o : 'T1) -> not (unbox<bool> o)
+        #else
         if typeof<'T1>.IsValueType then fun (_o : 'T1) -> false
         else fun (o : 'T1) -> isNull (o :> obj)
+        #endif 
 
     /// cache for non-null values.
-    let cache = Dictionary<UEq<'T1>, 'T2 * ref<int>>(1)
+    let cache = UncheckedDictionary.create<'T1, 'T2 * ref<int>>()
 
     /// cache for null values (needed for option, unit, etc.)
     let mutable nullCache = None
@@ -62,13 +53,13 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
                     nullCache <- Some(r, ref 1)
                     r
         else
-            match cache.TryGetValue (UEq v) with
+            match cache.TryGetValue v with
                 | (true, (r, ref)) -> 
                     ref := !ref + 1
                     r
                 | _ ->
                     let r = mapping v
-                    cache.[UEq v] <- (r, ref 1)
+                    cache.[v] <- (r, ref 1)
                     r
     /// Revoke returns the function value associated
     /// With the given argument and decreases its reference count.
@@ -84,11 +75,11 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
                         (false, r)
                 | None -> failwithf "cannot revoke null"
         else
-            match cache.TryGetValue (UEq v) with
+            match cache.TryGetValue v with
                 | (true, (r, ref)) -> 
                     ref := !ref - 1
                     if !ref = 0 then
-                        cache.Remove (UEq v) |> ignore
+                        cache.Remove v |> ignore
                         (true, r)
                     else
                         (false, r)
@@ -109,11 +100,11 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
                 | None -> 
                     None
         else
-            match cache.TryGetValue (UEq v) with
+            match cache.TryGetValue v with
                 | (true, (r, ref)) -> 
                     ref := !ref - 1
                     if !ref = 0 then
-                        cache.Remove (UEq v) |> ignore
+                        cache.Remove v |> ignore
                         Some(true, r)
                     else
                         Some(false, r)

@@ -1178,6 +1178,18 @@ module Generators =
                         (fun () -> [])
             }
 
+        let ofAVal<'a> () =
+            gen {
+                let! a = Arb.generate<VVal<IndexList<'a>>> |> Gen.scaleSize (fun v -> 0)
+                return 
+                    create
+                        (a.real |> Adaptive.AList.ofAVal)
+                        (a.ref |> Reference.AList.ofRef)
+                        (fun _ -> Map.empty, sprintf "ofAVal\r\n%s" (indent a.expression))
+                        (fun () -> a.changes())
+            }
+
+
         let map<'a, 'b>() =
             gen {
                 let mySize = ref 0
@@ -1688,6 +1700,7 @@ type AdaptiveGenerators() =
                                     yield 3, Gen.constant "append"
                                     yield 3, Gen.constant "sortBy"
                                     yield 3, Gen.constant "sortWith"
+                                    yield 3, Gen.constant "ofAVal"
                                     if typeof<IComparable>.IsAssignableFrom typeof<'a> then
                                         yield 3, Gen.constant "setSortBy"
                                         yield 3, Gen.constant "setSortWith"
@@ -1701,6 +1714,8 @@ type AdaptiveGenerators() =
                             return! Generators.List.filter<'a>()
                         | "append" ->
                             return! Generators.List.append<'a>()
+                        | "ofAVal" ->
+                            return! Generators.List.ofAVal<'a>()
                         | "sortBy" ->
                             return! Generators.List.sortBy<'a>()
                         | "sortWith" ->

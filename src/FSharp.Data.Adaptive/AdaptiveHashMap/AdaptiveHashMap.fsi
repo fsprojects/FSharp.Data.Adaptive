@@ -42,6 +42,15 @@ module AMap =
     /// Creates an amap holding the given entries.
     val ofHashMap : elements:HashMap<'Key, 'Value> -> amap<'Key, 'Value>
 
+    /// Creates an amap for the given aval.
+    val ofAVal : value:aval<#seq<'Key * 'Value>> -> amap<'Key,'Value>
+ 
+    /// Creates an amap from the given set while keeping all duplicate values for a key in a HashSet.
+    val ofASet : elements:aset<'Key * 'Value> -> amap<'Key, HashSet<'Value>>
+    
+    /// Creates an amap from the given set and takes an arbitrary value for duplicate entries.
+    val ofASetIgnoreDuplicates : elements:aset<'Key * 'Value> -> amap<'Key, 'Value>
+
     /// Creates an aval providing access to the current content of the map.
     val toAVal : map:amap<'Key, 'Value> -> aval<HashMap<'Key,'Value>>
 
@@ -72,12 +81,28 @@ module AMap =
     /// Adaptively unions both maps preferring the right value when colliding entries are found.
     val union : a:amap<'Key,'Value> -> b:amap<'Key,'Value> -> amap<'Key,'Value>
 
-    /// Creates an amap for the given aval.
-    val ofAVal : value:aval<#seq<'Key * 'Value>> -> amap<'Key,'Value>
- 
     /// Adaptively maps over the given aval and returns the resulting map.
     val bind : mapping:('T -> amap<'Key,'Value>) -> value:aval<'T> -> amap<'Key,'Value>
 
     /// Creates an aset holding all key/value tuples from the map.
     val toASet : map:amap<'Key,'Value> -> aset<'Key * 'Value>
+
+    /// Adaptively looks up the given key in the map.
+    /// Note that this operation should not be used extensively since its resulting
+    /// aval will be re-evaluated upon every change of the map.
+    val tryFind : key:'K -> map:amap<'K, 'V> -> aval<option<'V>>
+
+    /// Adaptively folds over the map using add for additions and trySubtract for removals.
+    /// Note the trySubtract may return None indicating that the result needs to be recomputed.
+    /// Also note that the order of elements given to add/trySubtract is undefined.
+    val foldHalfGroup : add : ('S -> 'K -> 'V -> 'S) -> trySubtract : ('S -> 'K -> 'V -> option<'S>) -> zero : 'S -> set : amap<'K, 'V> -> aval<'S>
+    
+    /// Adaptively folds over the map using add for additions and subtract for removals.
+    /// Note that the order of elements given to add/subtract is undefined.
+    val foldGroup : add : ('S -> 'K -> 'V -> 'S) -> subtract : ('S -> 'K -> 'V -> 'S) -> zero : 'S -> set : amap<'K, 'V> -> aval<'S>
+
+    /// Adaptively folds over the map using add for additions and recomputes the value on every removal.
+    /// Note that the order of elements given to add is undefined.
+    val fold : add : ('S -> 'K -> 'V -> 'S) -> zero : 'S -> set : amap<'K, 'V> -> aval<'S>
+
 
