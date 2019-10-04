@@ -91,37 +91,27 @@ Target.create "CompileFable" (fun _ ->
     let proj = "src/FSharp.Data.Adaptive/FSharp.Data.Adaptive.fsproj" |> Path.GetFullPath
     let outDir = "bin/Fable.Splitter" |> Path.GetFullPath
 
-    let old = Environment.CurrentDirectory
-    Environment.CurrentDirectory <- Path.GetDirectoryName proj
-    try
-        CreateProcess.fromRawCommand "node" [npx; "fable-splitter"; proj; "-o"; outDir]
-        |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
-        |> CreateProcess.withStandardError StreamSpecification.Inherit
-        |> CreateProcess.withStandardOutput StreamSpecification.Inherit
-        |> CreateProcess.ensureExitCode
-        |> Proc.run
-        |> ignore
-
-    finally
-        Environment.CurrentDirectory <- old
+    CreateProcess.fromRawCommand "node" [npx; "fable-splitter"; proj; "-o"; outDir]
+    |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
+    |> CreateProcess.withStandardError StreamSpecification.Inherit
+    |> CreateProcess.withStandardOutput StreamSpecification.Inherit
+    |> CreateProcess.ensureExitCode
+    |> Proc.run
+    |> ignore
 )
 
 Target.create "WatchFable" (fun _ ->
     let wpds = "node_modules/webpack-dev-server/bin/webpack-dev-server.js" |> Path.GetFullPath
-    let proj = "src/FSharp.Data.Adaptive/FSharp.Data.Adaptive.fsproj" |> Path.GetFullPath
-    let old = Environment.CurrentDirectory
-    Environment.CurrentDirectory <- Path.GetDirectoryName proj
-    try
-        let npx = "node_modules/npx/index.js" |> Path.GetFullPath
-        CreateProcess.fromRawCommand "node" [wpds]
-        |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
-        |> CreateProcess.withStandardError StreamSpecification.Inherit
-        |> CreateProcess.withStandardOutput StreamSpecification.Inherit
-        |> CreateProcess.ensureExitCode
-        |> Proc.run
-        |> ignore
-    finally
-        Environment.CurrentDirectory <- old
+    //let proj = "src/FSharp.Data.Adaptive/FSharp.Data.Adaptive.fsproj" |> Path.GetFullPath
+    //let old = Environment.CurrentDirectory
+    //Environment.CurrentDirectory <- Path.GetDirectoryName proj
+    CreateProcess.fromRawCommand "node" [wpds]
+    |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
+    |> CreateProcess.withStandardError StreamSpecification.Inherit
+    |> CreateProcess.withStandardOutput StreamSpecification.Inherit
+    |> CreateProcess.ensureExitCode
+    |> Proc.run
+    |> ignore
 
 )
 

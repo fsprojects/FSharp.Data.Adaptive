@@ -19,7 +19,7 @@
   "devDependencies": {
     "@babel/core": "^7.5.5",
     "copy-webpack-plugin": "^5.0.4",
-    "fable-compiler": "^2.3.19",
+    "fable-compiler": "^2.4.4",
     "fable-loader": "^2.1.8",
     "fable-splitter": "^2.1.11",
     "npx": "^10.2.0",
