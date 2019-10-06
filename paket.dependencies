@@ -4,7 +4,7 @@ redirects: off
 storage: none
 framework: netstandard2.0, netcoreapp2.2
 
-nuget FSharp.Core                           ~> 4.6.2
+nuget FSharp.Core                           >= 4.6.2
 
 # Tests : intentionally in main group
 nuget Appveyor.TestLogger                   ~> 2.0.0

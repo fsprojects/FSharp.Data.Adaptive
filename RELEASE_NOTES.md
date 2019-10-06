@@ -1,3 +1,6 @@
+### 0.0.3
+* relaxed FSharp.Core version
+
 ### 0.0.2
 fixed fable package
 
