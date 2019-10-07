@@ -565,6 +565,24 @@ module IndexList =
         let t = Index.after Index.zero
         IndexList(t, t, MapExt.ofList [t, v])
 
+    /// all elements from the list with their respective Index.
+    let inline toSeqIndexed (list: IndexList<'T>) = list.Content |> MapExt.toSeq
+
+    /// all elements from the list with their respective Index.
+    let inline toListIndexed (list: IndexList<'T>) = list.Content |> MapExt.toList
+
+    /// all elements from the list with their respective Index.
+    let inline toArrayIndexed (list: IndexList<'T>) = list.Content |> MapExt.toArray
+
+    /// creates a new IndexList containing all the given elements at their respective Index.
+    let ofSeqIndexed (elements: seq<Index * 'T>) = MapExt.ofSeq elements |> ofMap
+
+    /// creates a new IndexList containing all the given elements at their respective Index.
+    let ofListIndexed (elements: list<Index * 'T>) = MapExt.ofList elements |> ofMap
+
+    /// creates a new IndexList containing all the given elements at their respective Index.
+    let ofArrayIndexed (elements: array<Index * 'T>) = MapExt.ofArray elements |> ofMap
+
     /// all elements from the list.
     let inline toSeq (list : IndexList<'T>) = list :> seq<_>
 
@@ -632,6 +650,12 @@ module IndexList =
     let inline choose (mapping : 'T1 -> option<'T2>) (list : IndexList<'T1>) = 
         list.Choose (fun _ v -> mapping v)
     
+    /// Creates a new IndexList by applying the mapping function to all entries.
+    /// The respective option-arguments are some whenever the left/right list has an entry for the current Index.
+    /// Note that one of the options will always be some.
+    let inline choose2 (mapping : Index -> option<'T1> -> option<'T2> -> option<'T3>) (l : IndexList<'T1>) (r : IndexList<'T2>) =
+        MapExt.choose2 mapping l.Content r.Content |> ofMap
+
     /// filters the list using the given predicate.
     let inline filteri (predicate : Index -> 'T -> bool) (list : IndexList<'T>) = 
         list.Filter predicate
