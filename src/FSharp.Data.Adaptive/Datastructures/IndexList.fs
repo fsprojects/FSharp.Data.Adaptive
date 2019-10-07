@@ -653,7 +653,7 @@ module IndexList =
     /// Creates a new IndexList by applying the mapping function to all entries.
     /// The respective option-arguments are some whenever the left/right list has an entry for the current Index.
     /// Note that one of the options will always be some.
-    let inline choose2 (mapping : Index -> option<'T1> -> option<'T2> -> option<'T3>) (l : IndexList<'T1>) (r : IndexList<'T2>) =
+    let choose2 (mapping : Index -> option<'T1> -> option<'T2> -> option<'T3>) (l : IndexList<'T1>) (r : IndexList<'T2>) =
         MapExt.choose2 mapping l.Content r.Content |> ofMap
 
     /// filters the list using the given predicate.
