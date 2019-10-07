@@ -566,13 +566,13 @@ module IndexList =
         IndexList(t, t, MapExt.ofList [t, v])
 
     /// all elements from the list with their respective Index.
-    let inline toSeqIndexed (list: IndexList<'T>) = list.Content |> MapExt.toSeq
+    let toSeqIndexed (list: IndexList<'T>) = list.Content |> MapExt.toSeq
 
     /// all elements from the list with their respective Index.
-    let inline toListIndexed (list: IndexList<'T>) = list.Content |> MapExt.toList
+    let toListIndexed (list: IndexList<'T>) = list.Content |> MapExt.toList
 
     /// all elements from the list with their respective Index.
-    let inline toArrayIndexed (list: IndexList<'T>) = list.Content |> MapExt.toArray
+    let toArrayIndexed (list: IndexList<'T>) = list.Content |> MapExt.toArray
 
     /// creates a new IndexList containing all the given elements at their respective Index.
     let ofSeqIndexed (elements: seq<Index * 'T>) = MapExt.ofSeq elements |> ofMap
