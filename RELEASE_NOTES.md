@@ -1,3 +1,6 @@
+### 0.0.4
+* IndexList.choose2 / toSeqIndexed / etc.
+
 ### 0.0.3
 * relaxed FSharp.Core version
 
