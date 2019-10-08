@@ -376,6 +376,11 @@ type HashSet<'T> internal(cnt : int, store : intmap<list<'T>>) =
     static member OfArray (arr : array<'T>) =
         HashSet.OfSeq arr
 
+    /// Conservatively determines whether the two HashSets are equal.
+    /// `O(1)`
+    member x.ConservativeEquals(other : HashSet<'T>) =
+        System.Object.ReferenceEquals(store, other.Store)
+
     override x.GetHashCode() =
         match store with
             | Nil -> 0

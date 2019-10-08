@@ -224,6 +224,32 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
     member x.AsArray =
         content |> MapExt.toArray |> Array.map snd
         
+    /// Conservatively determines whether the two IndexLists are equal.
+    /// `O(1)`
+    member x.ConservativeEquals(other : IndexList<'T>) =
+        System.Object.ReferenceEquals(content, other.Content)
+
+    /// Like choose2 but with existing right values.
+    member x.UpdateTo(other : IndexList<'T2>, mapping : Index -> option<'T> -> 'T2 -> 'T3) =
+        if other.Count * 5 < content.Count then
+            let content = content
+            let newStore = 
+                other.Content |> MapExt.map (fun idx r ->
+                    let l = MapExt.tryFind idx content
+                    mapping idx l r
+                )
+            IndexList(other.MinIndex, other.MaxIndex, newStore)
+        else
+            let newStore =
+                (content, other.Content) ||> MapExt.choose2 (fun i l r ->
+                    match r with
+                    | Some r -> mapping i l r |> Some
+                    | None -> None
+                )
+            IndexList(other.MinIndex, other.MaxIndex, newStore)
+
+
+
 
     override x.ToString() =
         let suffix =
