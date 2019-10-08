@@ -1,3 +1,6 @@
+### 0.0.5-prerelease01
+* added ConservativeEquals / UpdateTo to HashMap/IndexList/etc.
+
 ### 0.0.4
 * IndexList.choose2 / toSeqIndexed / etc.
 
