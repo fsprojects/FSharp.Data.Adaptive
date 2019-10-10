@@ -111,7 +111,7 @@ module IndexListDelta =
         IndexListDelta(map)
     
     /// Internal creating an IndexListDelta from the given list IndexList.
-    let inline ofIndexList (list : IndexList<ElementOperation<'T>>) =
+    let ofIndexList (list : IndexList<ElementOperation<'T>>) =
         IndexListDelta(list.Content)
 
     /// Creates a delta containing a single operation.
