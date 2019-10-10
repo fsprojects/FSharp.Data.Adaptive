@@ -1,3 +1,7 @@
+### 0.0.5-prerelease02
+* IndexListDelta.ofIndexList
+* IndexList.tryRemove IndexList.neighbours
+
 ### 0.0.5-prerelease01
 * added ConservativeEquals / UpdateTo to HashMap/IndexList/etc.
 
