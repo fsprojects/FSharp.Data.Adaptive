@@ -248,7 +248,18 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
                 )
             IndexList(other.MinIndex, other.MaxIndex, newStore)
 
+    /// Removes the entry associated to the given index, returns the (optional) value and the list without the specific element.
+    member x.TryRemove(index : Index) =
+        match MapExt.tryRemove index content with
+        | Some (value, rest) ->
+            if rest.IsEmpty then Some (value, IndexList.Empty)
+            else Some (value, IndexList(MapExt.min rest, MapExt.max rest, rest))
+        | None ->
+            None
 
+    /// Finds the optional neighbour elements in the list for the given index.
+    member x.Neighbours(index : Index) =
+        MapExt.neighbours index content
 
 
     override x.ToString() =
@@ -358,6 +369,14 @@ module IndexList =
     /// removes the element at the given index. (if any)
     let inline remove (index : Index) (list : IndexList<'T>) = 
         list.Remove(index)
+
+    /// Removes the entry associated to the given index, returns the (optional) value and the list without the specific element.
+    let inline tryRemove (index : Index) (list : IndexList<'T>) = 
+        list.TryRemove(index)
+
+    /// Finds the optional neighbour elements in the list for the given index.
+    let inline neighbours (index : Index) (list : IndexList<'T>) = 
+        list.Neighbours(index)
 
     /// inserts an element directly after the given index.
     let inline insertAfter (index : Index) (value : 'T) (list : IndexList<'T>) = 

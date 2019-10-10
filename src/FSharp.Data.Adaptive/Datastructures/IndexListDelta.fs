@@ -110,6 +110,10 @@ module IndexListDelta =
     let internal ofMap (map : MapExt<Index, ElementOperation<'T>>) = 
         IndexListDelta(map)
     
+    /// Internal creating an IndexListDelta from the given list IndexList.
+    let inline ofIndexList (list : IndexList<ElementOperation<'T>>) =
+        IndexListDelta(list.Content)
+
     /// Creates a delta containing a single operation.
     let single (i : Index) (op : ElementOperation<'T>) = 
         IndexListDelta(MapExt.singleton i op)
