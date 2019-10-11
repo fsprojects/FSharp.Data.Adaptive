@@ -484,6 +484,21 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
         
         HashMap(cnt, newStore)
         
+    /// Like choose2 but with existing right values.
+    member x.UpdateTo(other : HashMap<'K, 'V2>, mapping : 'K -> option<'V> -> 'V2 -> 'V3) =
+        if other.Count * 5 < cnt then
+            let tryFind = x.TryFind
+            other.Map (fun k v2 ->
+                let v1 = tryFind k
+                mapping k v1 v2
+            )
+        else
+            x.Choose2(other, fun k v1 v2 ->
+                match v2 with
+                | Some v2 -> mapping k v1 v2 |> Some
+                | None -> None
+            )
+
     /// Creates a new map by applying the mapping function to all entries.
     /// The respective option-arguments are some whenever the left/right map has an entry for the current key.
     /// Note that one of the options will always be some.
@@ -746,6 +761,13 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cnt: int, store: intmap<
             x.ToSeq() |> Seq.truncate 5 |> Seq.map (sprintf "%A") |> String.concat "; "
 
         "HashMap [" + content + suffix + "]"
+
+    
+    /// Conservatively determines whether the two HashMaps are equal.
+    /// `O(1)`
+    member x.ConservativeEquals(other : HashMap<'K, 'V>) =
+        System.Object.ReferenceEquals(store, other.Store)
+
 
     override x.GetHashCode() =
         match store with

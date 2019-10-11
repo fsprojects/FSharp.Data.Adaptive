@@ -227,6 +227,43 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
     member x.AsArray =
         content |> MapExt.toArray |> Array.map snd
         
+    /// Conservatively determines whether the two IndexLists are equal.
+    /// `O(1)`
+    member x.ConservativeEquals(other : IndexList<'T>) =
+        System.Object.ReferenceEquals(content, other.Content)
+
+    /// Like choose2 but with existing right values.
+    member x.UpdateTo(other : IndexList<'T2>, mapping : Index -> option<'T> -> 'T2 -> 'T3) =
+        if other.Count * 5 < content.Count then
+            let content = content
+            let newStore = 
+                other.Content |> MapExt.map (fun idx r ->
+                    let l = MapExt.tryFind idx content
+                    mapping idx l r
+                )
+            IndexList(other.MinIndex, other.MaxIndex, newStore)
+        else
+            let newStore =
+                (content, other.Content) ||> MapExt.choose2 (fun i l r ->
+                    match r with
+                    | Some r -> mapping i l r |> Some
+                    | None -> None
+                )
+            IndexList(other.MinIndex, other.MaxIndex, newStore)
+
+    /// Removes the entry associated to the given index, returns the (optional) value and the list without the specific element.
+    member x.TryRemove(index : Index) =
+        match MapExt.tryRemove index content with
+        | Some (value, rest) ->
+            if rest.IsEmpty then Some (value, IndexList.Empty)
+            else Some (value, IndexList(MapExt.min rest, MapExt.max rest, rest))
+        | None ->
+            None
+
+    /// Finds the optional neighbour elements in the list for the given index.
+    member x.Neighbours(index : Index) =
+        MapExt.neighbours index content
+
 
     override x.ToString() =
         let suffix =
@@ -335,6 +372,14 @@ module IndexList =
     /// removes the element at the given index. (if any)
     let inline remove (index : Index) (list : IndexList<'T>) = 
         list.Remove(index)
+
+    /// Removes the entry associated to the given index, returns the (optional) value and the list without the specific element.
+    let inline tryRemove (index : Index) (list : IndexList<'T>) = 
+        list.TryRemove(index)
+
+    /// Finds the optional neighbour elements in the list for the given index.
+    let inline neighbours (index : Index) (list : IndexList<'T>) = 
+        list.Neighbours(index)
 
     /// inserts an element directly after the given index.
     let inline insertAfter (index : Index) (value : 'T) (list : IndexList<'T>) = 
@@ -568,6 +613,24 @@ module IndexList =
         let t = Index.after Index.zero
         IndexList(t, t, MapExt.ofList [t, v])
 
+    /// all elements from the list with their respective Index.
+    let toSeqIndexed (list: IndexList<'T>) = list.Content |> MapExt.toSeq
+
+    /// all elements from the list with their respective Index.
+    let toListIndexed (list: IndexList<'T>) = list.Content |> MapExt.toList
+
+    /// all elements from the list with their respective Index.
+    let toArrayIndexed (list: IndexList<'T>) = list.Content |> MapExt.toArray
+
+    /// creates a new IndexList containing all the given elements at their respective Index.
+    let ofSeqIndexed (elements: seq<Index * 'T>) = MapExt.ofSeq elements |> ofMap
+
+    /// creates a new IndexList containing all the given elements at their respective Index.
+    let ofListIndexed (elements: list<Index * 'T>) = MapExt.ofList elements |> ofMap
+
+    /// creates a new IndexList containing all the given elements at their respective Index.
+    let ofArrayIndexed (elements: array<Index * 'T>) = MapExt.ofArray elements |> ofMap
+
     /// all elements from the list.
     let inline toSeq (list : IndexList<'T>) = list :> seq<_>
 
@@ -635,6 +698,12 @@ module IndexList =
     let inline choose (mapping : 'T1 -> option<'T2>) (list : IndexList<'T1>) = 
         list.Choose (fun _ v -> mapping v)
     
+    /// Creates a new IndexList by applying the mapping function to all entries.
+    /// The respective option-arguments are some whenever the left/right list has an entry for the current Index.
+    /// Note that one of the options will always be some.
+    let choose2 (mapping : Index -> option<'T1> -> option<'T2> -> option<'T3>) (l : IndexList<'T1>) (r : IndexList<'T2>) =
+        MapExt.choose2 mapping l.Content r.Content |> ofMap
+
     /// filters the list using the given predicate.
     let inline filteri (predicate : Index -> 'T -> bool) (list : IndexList<'T>) = 
         list.Filter predicate

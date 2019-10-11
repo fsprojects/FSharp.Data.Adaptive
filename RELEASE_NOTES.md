@@ -1,3 +1,16 @@
+### 0.0.5-prerelease02
+* IndexListDelta.ofIndexList
+* IndexList.tryRemove IndexList.neighbours
+
+### 0.0.5-prerelease01
+* added ConservativeEquals / UpdateTo to HashMap/IndexList/etc.
+
+### 0.0.4
+* IndexList.choose2 / toSeqIndexed / etc.
+
+### 0.0.3
+* relaxed FSharp.Core version
+
 ### 0.0.2
 fixed fable package
 
