@@ -710,6 +710,25 @@ module internal MapExtImplementation =
                     else
                         tryAt (i - ls - 1) r
 
+        let rec private tryGetIndexAux (comparer: IComparer<'Key>) (i : int) (key : 'Key) (m : MapTree<'Key, 'Value>) =
+            match m with
+            | MapEmpty -> 
+                None
+            | MapOne(k,_value) -> 
+                if comparer.Compare(key, k) = 0 then Some i
+                else None
+            | MapNode(k,_value,left,right,_,_) ->
+                let cmp = comparer.Compare(key, k)
+                if cmp > 0 then
+                    tryGetIndexAux comparer (i + size left + 1) key right
+                elif cmp < 0 then
+                    tryGetIndexAux comparer i key left
+                else
+                    Some (i + size left)
+                
+        let tryGetIndex (comparer: IComparer<'Key>) (key : 'Key) (m : MapTree<'Key, 'Value>) =
+            tryGetIndexAux comparer 0 key m
+
         let rec map2 (comparer: IComparer<'Value>) f l r =
             match l, r with
                 | MapEmpty, r -> mapi (fun i rv -> f i None (Some rv)) r
@@ -1105,6 +1124,7 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
     member x.TryAt i = MapTree.tryAt i tree
     member x.Neighbours k = MapTree.neighbours comparer k tree
     member x.NeighboursAt i = MapTree.neighboursi i tree
+    member x.TryGetIndex k = MapTree.tryGetIndex comparer k tree
 
     member m.TryPick(f) = MapTree.tryPick f tree 
     member m.TryPickBack(f) = MapTree.tryPickBack f tree 
@@ -1119,7 +1139,7 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
 
     member m.MapRange f  = new MapExt<'Key,'T2>(comparer,MapTree.map f tree)
 
-    member m.MapExt f  = new MapExt<'Key,'T2>(comparer,MapTree.mapi f tree)
+    member m.Map f  = new MapExt<'Key,'T2>(comparer,MapTree.mapi f tree)
     
     member m.MapMonotonic<'Key2, 'Value2 when 'Key2 : comparison> (f : 'Key -> 'Value -> 'Key2 * 'Value2) : MapExt<'Key2,'Value2> = new MapExt<'Key2,'Value2>(LanguagePrimitives.FastGenericComparer<'Key2>, MapTree.mapiMonotonic f tree)
    
@@ -1377,11 +1397,12 @@ module internal MapExt =
 
     [<CompiledName("ForAll")>]
     let forall f (m:MapExt<_,_>) = m.ForAll(f)
-
+    
+    [<CompiledName("MapRange")>]
     let mapRange f (m:MapExt<_,_>) = m.MapRange(f)
 
-    [<CompiledName("MapExt")>]
-    let map f (m:MapExt<_,_>) = m.MapExt(f)
+    [<CompiledName("Map")>]
+    let map f (m:MapExt<_,_>) = m.Map(f)
 
     [<CompiledName("Fold")>]
     let fold<'Key,'T,'State when 'Key : comparison> f (z:'State) (m:MapExt<'Key,'T>) = MapTree.fold f z m.Tree
@@ -1442,8 +1463,8 @@ module internal MapExt =
     [<CompiledName("Max")>]
     let max (m:MapExt<_,_>) = 
         match m.TryMaxKey with
-            | Some min -> min
-            | None -> raise <| ArgumentException("The input sequence was empty.")
+        | Some min -> min
+        | None -> raise <| ArgumentException("The input sequence was empty.")
 
     
     [<CompiledName("TryItem")>]
@@ -1500,3 +1521,6 @@ module internal MapExt =
     
     [<CompiledName("NeighboursAt")>]
     let neighboursAt i (m:MapExt<_,_>) = m.NeighboursAt i
+    
+    [<CompiledName("TryGetIndex")>]
+    let tryGetIndex k (m:MapExt<_,_>) = m.TryGetIndex k

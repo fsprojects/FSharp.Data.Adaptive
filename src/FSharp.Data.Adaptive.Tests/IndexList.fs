@@ -88,6 +88,19 @@ let ``[IndexList] equality`` (l : list<int>) =
     a |> should not' (equal (IndexList.prepend 1 a))
 
 [<Property>]
+let ``[IndexList] tryGetPosition`` (l : list<int>) =
+    let l = IndexList.ofList l
+    let mutable i = 0
+    for (idx, _) in IndexList.toSeqIndexed l do
+        match IndexList.tryGetPosition idx l with
+        | Some p -> p |> should equal i
+        | None -> failwithf "%A should be contained" idx
+        i <- i + 1
+
+
+
+
+[<Property>]
 let ``[IndexList] computeDelta / applyDelta`` (l1 : list<int>) (l2 : list<int>) (l3 : list<int>) =
     let l1 = IndexList.ofList l1
     let l2 = IndexList.ofList l2

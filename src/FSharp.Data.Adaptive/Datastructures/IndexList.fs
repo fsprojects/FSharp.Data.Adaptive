@@ -154,6 +154,10 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
             | Some (id,_) -> Some id
             | None -> None
 
+    /// Gets the position for the given index or None if the index is not contained in the list.
+    member x.TryGetPosition(index : Index) =
+        MapExt.tryGetIndex index content
+
     /// Removes the entry associated to the given index.
     member x.Remove(index : Index) =
         let c = MapExt.remove index content
@@ -434,6 +438,10 @@ module IndexList =
     let inline tryAt (index : int) (list : IndexList<'T>) = 
         list.TryGet index
         
+    /// gets the position for the given index or None if the index is not contained in the list.
+    let inline tryGetPosition (index : Index) (list : IndexList<'T>) =
+        list.TryGetPosition index
+
     /// adds, deletes or updates the element for the given index.
     /// the update functions gets the optional old value and may optionally return
     /// a new value (or None for deleting the entry).

@@ -1,3 +1,6 @@
+### 0.0.5-prerelease03
+* IndexList.tryGetPosition
+
 ### 0.0.5-prerelease02
 * IndexListDelta.ofIndexList
 * IndexList.tryRemove IndexList.neighbours
