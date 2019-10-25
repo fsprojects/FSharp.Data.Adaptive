@@ -15,19 +15,18 @@ imperative sources on both input and output.
 
 Examples include:
 
-* adaptive views in user interfaces
+* adaptive views in data-driven user interfaces
 
-* adaptive computations in incremental financial models
+* adaptive computations in incremental data-driven scientific and financial models
 
-FSharp.Data.Adaptive focuses on adaptive values and adpative functional collections rather than events.
+`FSharp.Data.Adaptive` focuses on 'adaptive values' and 'adpative data' rather than reactive events.
 
 ## Adaptive Values
 
-The most basic adaptive container type we provide is `aval<'T>` (a synonym for `AdaptiveValue<'T>`) and here's a
-little example of what it can do for you.
-
-Consider a computation in a physics simulation such as the time taken for a ball
-to fall from a particular height.  The functional and adaptive forms are:
+Adaptive values (`aval`) are similar to cells in Excel spreadsheets.
+Consider a physics simulation such as the time taken for a ball
+to fall from a particular height.  If you like think of `sqrt (2.0 * height / gravity)` as a formula in an Excel spreadsheet,
+where `height` and `gravity` are the names of other cells.  The functional and adaptive forms are:
 
 *)
 let timeToFloor height gravity = 
@@ -37,12 +36,10 @@ let adaptiveTimeToFloor height gravity =
     AVal.map2 (fun h g -> sqrt (2.0 * h / g)) height gravity
 
 (**
-If you like think of `sqrt (2.0 * height / gravity)` as a formula in an Excel spreadsheet if you like,
-where `height` and `gravity` are the names of other cells.  The `AVal.map2` is glue to connect this
-formula to other cells. 
+The `AVal.map2` is glue to connect this formula to other cells, producing a new cell.
 
-Now let's define the cells `height` and `gravity`, make them changeable (`cval`), and produce out output
-cell `dropTime`. Initially the inputs contain the values on Earth:
+Now let's define the cells `height` and `gravity`, make them changeable (`cval`), that is, user-editable.
+Initially the inputs contain the values on Earth:
 *)
 
 let height  = cval 10.0
@@ -50,12 +47,12 @@ let gravity = cval 9.81
 let dropTime = adaptiveTimeToFloor height gravity
 
 (**
-We can now observe the result of the output:
+We can now observe the result of the output 'cell':
 *)
 
 printfn "%.3fs" (AVal.force dropTime) // => 1.428s
 
-(** The user (or something else in the system) can now adjusts the changeable input cells to represent the values for the moon: *)
+(** The user (or something else in the system) can now adjusts the changeable inputs to the values for the moon: *)
 
 transact (fun () -> gravity.Value <- 1.62)
 printfn "%.3fs" (AVal.force dropTime) // => 3.514s
@@ -73,31 +70,85 @@ whenever changeable inputs change.  Some important differences are
 
 1. All 'cells' are adaptive values
 
-2. In the above example each 'cell' gets named explcitly in the program code
+2. 'Cells' are first-class values
 
-3. Changeable 'cells' are distinguished from those that are computed
+3. Changeable 'cells' are distinguished from computed
 
-4. Some glue is needed to connect cells
+4. In the above, each 'cell' gets named explcitly in program code, rather than using implicit naming on a sheet
 
-5. User code is responsible for making changes using `transact`
+5. Some glue like `AVal.map2` is needed to connect cells
 
-6. Re-calc happens on-demand as outputs are observed
+6. User code is responsible for making changes using `transact`
 
-Some API elements we have seen so far are:
+7. Re-calc happens on-demand as outputs are observed
 
-> * `cval` **Changeable Value**. Adaptive cell whose value can be manually set. A `cval` is also an `aval`.
-> * `transact` Set a `cval`'s value within this scope.
+Some API elements you have seen so far are:
+
 > * `aval` **Adaptive Value**. Adaptive cell whose value purely depends on other adaptive cells.
 > * `map` `map2` `map3` Create a new `aval` whose value depends on the one (two, three) input `aval`(s). 
+> * `cval` **Changeable Value**. Adaptive cell whose value can be manually set. A `cval` is also an `aval`.
+> * `transact` Set a `cval`'s value within this scope.
 > * `force` Read an `aval`'s value.
 
+## Adaptive Collections
+
+Cells in an Excel spreadsheet can only contain an individual value.  What if a 'cell' could be an entire
+set, array, list or table?  And what if the user makes incremental modifications to such a cell, adding
+a row, deleting a selection of elements and so on?  Would the rest of the spreadsheet adjust to this
+incremental change in the collection, or would dependent cells recalculate over the entire new collection?
+
+As seen in the examples above `aval<'T>` and `cval<'T>` are containers for single values that may change adaptively.
+A natural way of handling collections of values would be `aval<Set<'T>>`. However, this forces recalculation
+by iterating the entire collection. For example, a mapping function on the set would look like this:
+*)
+
+let map (mapping: 'T1 -> 'T2) (set : aval<Set<'T1>>) =   
+    set |> AVal.map (Set.map mapping)
+
+(**
+Note the use of `Set.map` means that `mapping` will be executed for *all* elements of the set even if just a single element changes.
+
+Instead, you use adaptive collections:
+
+> * `cset`/`ChangeableHashSet` Adaptive modifiable input set.
+> * `aset`/`AdaptiveHashSet` Adaptive set. Content depends on other adaptive cells.
+
+Adaptive sets work on *deltas* instead of *values*.
+Here's an example illustrating `aset`s:
+*)
+
+let inputSet = cset [1;2;3]
+let dependentSet =
+    inputSet |> ASet.map (fun v -> printf "map %d, " v; v * 2)
+
+printfn "%A" (AVal.force dependentSet.Content) // => map 1, map 2, map 3, HashSet [2; 4; 6]
+
+(**
+We create an `aset` and specify a mapping function on the elements. The mapping is evaluated for each element individually, as illustrated by the three "map" prints.
+
+Let's add an element to the set.
+*)
+transact (fun () -> inputSet.Add 0)
+printfn "%A" (AVal.force dependentSet.Content) // => map 0, HashSet [0; 2; 4; 6]
+(**
+The mapping function is evaluated only once, for the newly added element! `aset` is an *incremental* data structure on the level of its contained elements.
+*)
+transact (fun () -> inputSet.Remove 2)
+printfn "%A" (AVal.force dependentSet.Content) // => HashSet [0; 2; 6]
+(** 
+There is no "map" print - the removal did not trigger an evaluation of the mapping function!
+
+In addition to the unordered set, we also have implementations of the ordered list, called `alist`, and the key-value map, called `amap`.
+*)
+
+(** 
 ## Dynamic comptuation graphs and dynamic dependencies
 
 An Excel spreadsheet has a *static* structure of cells with *static* dependencies.
 The API becomes more interesting when *dynamic dependencies* come into play.
 That is, adaptive values can dynamically decide whether or not to depend on something based on their content. 
 
-As an example, let's extend our computation byt calculating the height of our ball at a certain point in time.
+As an example, let's extend our computation by calculating the height of our ball at a certain point in time.
 *)
 // simple utility calculating the height
 let calcHeight (t : float) (h0 : float) (g : float) =
@@ -175,58 +226,6 @@ adaptive embraces them as its core motivation.
 
 
 (**
-## Adaptive Collections
-
-Cells in an Excel spreadsheet can only contain an individual value.  What if a 'cell' could be an entire
-set, array, list or table?  And what if the user makes incremental modifications to such a cell, adding
-a row, deleting a selection of elements and so on?  Would the rest of the spreadsheet adjust to this
-incremental change in the collection, or would dependent cells recalculate over the entire new collection?
-
-As seen in the examples above `aval<'T>` and `cval<'T>` are containers for single values that may change adaptively.
-A natural way of handling collections of values would be `aval<Set<'T>>`. However, this forces recalculation
-by iterating the entire collection. For example, a mapping function on the set would look like this:
-*)
-
-let map (mapping: 'T1 -> 'T2) (set : aval<Set<'T1>>) =   
-    set |> AVal.map (Set.map mapping)
-
-(**
-Note the use of `Set.map` means that `mapping` will be executed for *all* elements of the set even if just a single element changes.
-
-Instead, we use adaptive collections:
-
-> * `cset`/`ChangeableHashSet` Adaptive modifiable input set.
-> * `aset`/`AdaptiveHashSet` Adaptive set. Content depends on other adaptive cells.
-
-Adaptive sets work on *deltas* instead of *values*.
-Here's an example illustrating `aset`s:
-*)
-
-let inputSet = cset [1;2;3]
-let dependentSet =
-    inputSet |> ASet.map (fun v -> printf "map %d, " v; v * 2)
-
-printfn "%A" (AVal.force dependentSet.Content) // => map 1, map 2, map 3, HashSet [2; 4; 6]
-
-(**
-We create an `aset` and specify a mapping function on the elements. The mapping is evaluated for each element individually, as illustrated by the three "map" prints.
-
-Let's add an element to the set.
-*)
-transact (fun () -> inputSet.Add 0)
-printfn "%A" (AVal.force dependentSet.Content) // => map 0, HashSet [0; 2; 4; 6]
-(**
-The mapping function is evaluated only once, for the newly added element! `aset` is an *incremental* data structure on the level of its contained elements.
-*)
-transact (fun () -> inputSet.Remove 2)
-printfn "%A" (AVal.force dependentSet.Content) // => HashSet [0; 2; 6]
-(** 
-There is no "map" print - the removal did not trigger an evaluation of the mapping function!
-
-In addition to the unordered set, we also have implementations of the ordered list, called `alist`, and the key-value map, called `amap`.
-*)
-
-(** 
 # Implementation Details
 
 ## Changeable, Adaptive and Constant
