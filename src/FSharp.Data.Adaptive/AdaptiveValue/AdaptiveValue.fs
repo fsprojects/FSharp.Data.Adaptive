@@ -252,6 +252,43 @@ module AVal =
                 let res = mapping.Invoke (va, vb)
                 inner <- ValueSome (struct (va, vb, res))
                 res.GetValue token     
+    
+    /// Aval for binding three values in 'parallel'
+    type Bind3Val<'T1, 'T2, 'T3, 'T4>(mapping: 'T1 -> 'T2 -> 'T3 -> aval<'T4>, value1: aval<'T1>, value2: aval<'T2>, value3: aval<'T3>) =
+        inherit AbstractVal<'T4>()
+
+        let mapping = OptimizedClosures.FSharpFunc<'T1, 'T2, 'T3, aval<'T4>>.Adapt(mapping)
+        let mutable inner: ValueOption< struct ('T1 * 'T2 * 'T3 * aval<'T4>) > = ValueNone
+        let mutable inputDirty = 1
+
+        override x.InputChangedObject(_, o) =
+            if Object.ReferenceEquals(o, value1) || Object.ReferenceEquals(o, value2) || Object.ReferenceEquals(o, value3) then 
+                inputDirty <- 1
+
+        override x.Compute(token: AdaptiveToken) =
+            let va = value1.GetValue token
+            let vb = value2.GetValue token
+            let vc = value3.GetValue token
+            #if FABLE_COMPILER
+            let inputDirty = let v = inputDirty in inputDirty <- 0; v <> 0
+            #else
+            let inputDirty = System.Threading.Interlocked.Exchange(&inputDirty, 0) <> 0
+            #endif
+            
+            match inner with
+            | ValueNone ->
+                let res = mapping.Invoke (va, vb, vc)
+                inner <- ValueSome (struct (va, vb, vc, res))
+                res.GetValue token  
+
+            | ValueSome(struct (oa, ob, oc, res)) when not inputDirty || (cheapEqual oa va && cheapEqual ob vb && cheapEqual oc vc) ->
+                res.GetValue token
+
+            | ValueSome(struct (_, _, _, old)) ->
+                old.Outputs.Remove x |> ignore
+                let res = mapping.Invoke (va, vb, vc)
+                inner <- ValueSome (struct (va, vb, vc, res))
+                res.GetValue token     
 
     /// Aval for custom computations
     type CustomVal<'T>(compute: AdaptiveToken -> 'T) =
@@ -336,6 +373,24 @@ module AVal =
 
         else
             Bind2Val<'T1, 'T2, 'T3>(mapping, value1, value2) :> aval<_>       
+
+    let bind3 (mapping: 'T1 -> 'T2 -> 'T3 -> aval<'T4>) (value1: aval<'T1>) (value2: aval<'T2>) (value3: aval<'T3>) =
+        if value1.IsConstant && value2.IsConstant && value3.IsConstant then
+            mapping (force value1) (force value2) (force value3)
+
+        elif value1.IsConstant then
+            let a = force value1
+            bind2 (fun b c -> mapping a b c) value2 value3
+
+        elif value2.IsConstant then
+            let b = force value2
+            bind2 (fun a c -> mapping a b c) value1 value3
+            
+        elif value3.IsConstant then
+            let c = force value3
+            bind2 (fun a b -> mapping a b c) value1 value2
+        else
+            Bind3Val<'T1, 'T2, 'T3, 'T4>(mapping, value1, value2, value3) :> aval<_>       
 
     let custom (compute: AdaptiveToken -> 'T) =
         CustomVal compute :> aval<_>

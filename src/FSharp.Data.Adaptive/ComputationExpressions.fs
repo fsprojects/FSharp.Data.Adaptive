@@ -7,10 +7,30 @@ module ComputationExpressions =
 
     /// ComputationExpression builder for aval.
     type AValBuilder() =
-        static let delayed = AVal.custom ignore
+        
+        member inline x.MergeSources(v1 : aval<'T1>, v2 : aval<'T2>) =
+            AVal.map2 (fun a b -> a,b) v1 v2
+            
+        member inline x.MergeSources3(v1 : aval<'T1>, v2 : aval<'T2>, v3 : aval<'T3>) =
+            AVal.map3 (fun a b c -> a,b,c) v1 v2 v3
+
+        member inline x.BindReturn(value : aval<'T1>, mapping: 'T1 -> 'T2) =
+            AVal.map mapping value
+            
+        member inline x.Bind2Return(v1 : aval<'T1>, v2 : aval<'T2>, mapping: 'T1 -> 'T2 -> 'T3) =
+            AVal.map2 mapping v1 v2
+
+        member inline x.Bind3Return(v1 : aval<'T1>, v2: aval<'T2>, v3: aval<'T3>, mapping: 'T1 -> 'T2 -> 'T3 -> 'T4) =
+            AVal.map3 mapping v1 v2 v3
 
         member inline x.Bind(value: aval<'T1>, mapping: 'T1 -> aval<'T2>) =
             AVal.bind mapping value
+            
+        member inline x.Bind2(v1: aval<'T1>, v2: aval<'T2>, mapping: 'T1 -> 'T2 -> aval<'T3>) =
+            AVal.bind2 mapping v1 v2
+            
+        member inline x.Bind3(v1: aval<'T1>, v2: aval<'T2>, v3: aval<'T3>, mapping: 'T1 -> 'T2 -> 'T3 -> aval<'T4>) =
+            AVal.bind3 mapping v1 v2 v3
 
         member inline x.Return(value: 'T) =
             AVal.constant value

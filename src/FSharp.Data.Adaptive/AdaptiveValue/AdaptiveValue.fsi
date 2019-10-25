@@ -76,6 +76,11 @@ module AVal =
     /// adaptively depends on the adaptive value returned by mapping.
     /// The resulting aval<'T3> will hold the latest value of the aval<_> returned by mapping.
     val bind2 : mapping : ('T1 -> 'T2 -> aval<'T3>) -> value1 : aval<'T1> -> value2 : aval<'T2> -> aval<'T3>
+    
+    /// Adaptively applies the mapping function to the given adaptive values and
+    /// adaptively depends on the adaptive value returned by mapping.
+    /// The resulting aval<'T4> will hold the latest value of the aval<_> returned by mapping.
+    val bind3 : mapping : ('T1 -> 'T2 -> 'T3 -> aval<'T4>) -> value1 : aval<'T1> -> value2 : aval<'T2> -> value2 : aval<'T3> -> aval<'T4>
 
     /// Creates a custom adaptive value using the given computation.
     /// Callers are responsible for removing inputs that are no longer needed.
