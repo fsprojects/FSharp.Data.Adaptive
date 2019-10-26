@@ -53,10 +53,10 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '411', 411)" onmouseover="showTip(event, '411', 411)">
+          <code onmouseout="hideTip(event, '423', 423)" onmouseover="showTip(event, '423', 423)">
             new()
           </code>
-          <div class="tip" id="411">
+          <div class="tip" id="423">
             <strong>Signature:</strong> unit -&gt; AValBuilder<br />
                                   </div>
         </td>
@@ -80,15 +80,15 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '412', 412)" onmouseover="showTip(event, '412', 412)">
+          <code onmouseout="hideTip(event, '424', 424)" onmouseover="showTip(event, '424', 424)">
             x.Bind(value, mapping)
           </code>
-          <div class="tip" id="412">
+          <div class="tip" id="424">
             <strong>Signature:</strong> (value:aval&lt;&#39;T1&gt; * mapping:(&#39;T1 -&gt; aval&lt;&#39;T2&gt;)) -&gt; aval&lt;&#39;T2&gt;<br />
                           <strong>Type parameters:</strong> 'T1, 'T2                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L12-12" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L26-26" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -98,15 +98,141 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '413', 413)" onmouseover="showTip(event, '413', 413)">
+          <code onmouseout="hideTip(event, '425', 425)" onmouseover="showTip(event, '425', 425)">
+            x.Bind2(v1, v2, mapping)
+          </code>
+          <div class="tip" id="425">
+            <strong>Signature:</strong> (v1:aval&lt;&#39;T1&gt; * v2:aval&lt;&#39;T2&gt; * mapping:(&#39;T1 -&gt; &#39;T2 -&gt; aval&lt;&#39;T3&gt;)) -&gt; aval&lt;&#39;T3&gt;<br />
+                          <strong>Type parameters:</strong> 'T1, 'T2, 'T3                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L29-29" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '426', 426)" onmouseover="showTip(event, '426', 426)">
+            x.Bind2Return(v1, v2, mapping)
+          </code>
+          <div class="tip" id="426">
+            <strong>Signature:</strong> (v1:aval&lt;&#39;T1&gt; * v2:aval&lt;&#39;T2&gt; * mapping:(&#39;T1 -&gt; &#39;T2 -&gt; &#39;T3)) -&gt; aval&lt;&#39;T3&gt;<br />
+                          <strong>Type parameters:</strong> 'T1, 'T2, 'T3                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L20-20" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '427', 427)" onmouseover="showTip(event, '427', 427)">
+            x.Bind3(v1, v2, v3, mapping)
+          </code>
+          <div class="tip" id="427">
+            <strong>Signature:</strong> (v1:aval&lt;&#39;T1&gt; * v2:aval&lt;&#39;T2&gt; * v3:aval&lt;&#39;T3&gt; * mapping:(&#39;T1 -&gt; &#39;T2 -&gt; &#39;T3 -&gt; aval&lt;&#39;T4&gt;)) -&gt; aval&lt;&#39;T4&gt;<br />
+                          <strong>Type parameters:</strong> 'T1, 'T2, 'T3, 'T4                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L32-32" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '428', 428)" onmouseover="showTip(event, '428', 428)">
+            x.Bind3Return(v1, v2, v3, mapping)
+          </code>
+          <div class="tip" id="428">
+            <strong>Signature:</strong> (v1:aval&lt;&#39;T1&gt; * v2:aval&lt;&#39;T2&gt; * v3:aval&lt;&#39;T3&gt; * mapping:(&#39;T1 -&gt; &#39;T2 -&gt; &#39;T3 -&gt; &#39;T4)) -&gt; aval&lt;&#39;T4&gt;<br />
+                          <strong>Type parameters:</strong> 'T1, 'T2, 'T3, 'T4                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L23-23" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '429', 429)" onmouseover="showTip(event, '429', 429)">
+            x.BindReturn(value, mapping)
+          </code>
+          <div class="tip" id="429">
+            <strong>Signature:</strong> (value:aval&lt;&#39;T1&gt; * mapping:(&#39;T1 -&gt; &#39;T2)) -&gt; aval&lt;&#39;T2&gt;<br />
+                          <strong>Type parameters:</strong> 'T1, 'T2                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L17-17" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '430', 430)" onmouseover="showTip(event, '430', 430)">
+            x.MergeSources(v1, v2)
+          </code>
+          <div class="tip" id="430">
+            <strong>Signature:</strong> (v1:aval&lt;&#39;T1&gt; * v2:aval&lt;&#39;T2&gt;) -&gt; aval&lt;&#39;T1 * &#39;T2&gt;<br />
+                          <strong>Type parameters:</strong> 'T1, 'T2                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L11-11" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '431', 431)" onmouseover="showTip(event, '431', 431)">
+            x.MergeSources3(v1, v2, v3)
+          </code>
+          <div class="tip" id="431">
+            <strong>Signature:</strong> (v1:aval&lt;&#39;T1&gt; * v2:aval&lt;&#39;T2&gt; * v3:aval&lt;&#39;T3&gt;) -&gt; aval&lt;&#39;T1 * &#39;T2 * &#39;T3&gt;<br />
+                          <strong>Type parameters:</strong> 'T1, 'T2, 'T3                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L14-14" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '432', 432)" onmouseover="showTip(event, '432', 432)">
             x.Return(value)
           </code>
-          <div class="tip" id="413">
+          <div class="tip" id="432">
             <strong>Signature:</strong> value:&#39;T -&gt; aval&lt;&#39;T&gt;<br />
                           <strong>Type parameters:</strong> 'T                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L15-15" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L35-35" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -116,15 +242,15 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '414', 414)" onmouseover="showTip(event, '414', 414)">
+          <code onmouseout="hideTip(event, '433', 433)" onmouseover="showTip(event, '433', 433)">
             x.ReturnFrom(value)
           </code>
-          <div class="tip" id="414">
+          <div class="tip" id="433">
             <strong>Signature:</strong> value:aval&lt;&#39;T&gt; -&gt; aval&lt;&#39;T&gt;<br />
                           <strong>Type parameters:</strong> 'T                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L18-18" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L38-38" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
