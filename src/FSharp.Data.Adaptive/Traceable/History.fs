@@ -362,6 +362,15 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
     member x.NewReader() =
         let reader = new HistoryReader<'State, 'Delta>(x) 
         reader :> IOpReader<'State, 'Delta>
+        
+    interface AdaptiveValue with
+        member x.GetValueUntyped t = x.GetValue t :> obj
+        member x.ContentType = 
+            #if FABLE_COMPILER
+            typeof<obj>
+            #else
+            typeof<'State>
+            #endif
 
     interface AdaptiveValue<'State> with
         member x.GetValue t = x.GetValue t

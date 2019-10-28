@@ -2,8 +2,13 @@
 
 open System
 
-type AdaptiveValue<'T> =
+type AdaptiveValue =
     inherit IAdaptiveObject
+    abstract member GetValueUntyped: AdaptiveToken -> obj
+    abstract member ContentType : Type
+
+type AdaptiveValue<'T> =
+    inherit AdaptiveValue
     abstract member GetValue: AdaptiveToken -> 'T
 
 and aval<'T> = AdaptiveValue<'T>
@@ -24,6 +29,15 @@ type ChangeableValue<'T>(value : 'T) =
         x.EvaluateAlways token (fun _ ->
             value
         )
+
+    interface AdaptiveValue with
+        member x.GetValueUntyped t = x.GetValue t :> obj
+        member x.ContentType =
+            #if FABLE_COMPILER
+            typeof<obj>
+            #else
+            typeof<'T>
+            #endif
 
     interface AdaptiveValue<'T> with
         member x.GetValue t = x.GetValue t
@@ -62,6 +76,15 @@ module AVal =
         override x.ToString() =
             if x.OutOfDate then String.Format("aval*({0})", cache)
             else String.Format("aval({0})", cache)
+            
+        interface AdaptiveValue with
+            member x.GetValueUntyped t = x.GetValue t :> obj
+            member x.ContentType =
+                #if FABLE_COMPILER
+                typeof<obj>
+                #else
+                typeof<'T>
+                #endif
 
         interface AdaptiveValue<'T> with
             member x.GetValue t = x.GetValue t  
@@ -93,6 +116,15 @@ module AVal =
 
         member x.GetValue(_token: AdaptiveToken): 'T = 
             x.GetValue()
+            
+        interface AdaptiveValue with
+            member x.GetValueUntyped t = x.GetValue t :> obj
+            member x.ContentType = 
+                #if FABLE_COMPILER
+                typeof<obj>
+                #else
+                typeof<'T>
+                #endif
 
         interface AdaptiveValue<'T> with
             member x.GetValue t = x.GetValue t    

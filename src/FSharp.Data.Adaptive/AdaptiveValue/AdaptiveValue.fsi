@@ -2,10 +2,24 @@
 
 /// Represents a dependency-aware value that may change as changes are fed into the system.
 /// An AdaptiveValue cannot be changed directly but gets updated by the dependency graph. 
+[<Interface>]
+type AdaptiveValue =
+    inherit IAdaptiveObject
+    
+    /// Evaluates the AdaptiveValue using the given token and returns the current value.
+    /// Dependencies will be tracked automatically when the token is correctly passed to all inner evaluation-calls.
+    abstract member GetValueUntyped: AdaptiveToken -> obj
+
+    /// The (statically known) type of the returned value.
+    abstract member ContentType : System.Type
+
+
+/// Represents a dependency-aware value that may change as changes are fed into the system.
+/// An AdaptiveValue cannot be changed directly but gets updated by the dependency graph. 
 /// For changeable inputs see cval<'T>
 [<Interface>]
 type AdaptiveValue<'T> =
-    inherit IAdaptiveObject
+    inherit AdaptiveValue
 
     /// Evaluates the AdaptiveValue<'T> using the given token and returns the current value.
     /// Dependencies will be tracked automatically when the token is correctly passed to all inner evaluation-calls.

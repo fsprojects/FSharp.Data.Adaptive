@@ -310,7 +310,16 @@ module AdaptiveHashMapImplementation =
         override x.ToString() =
             if x.OutOfDate then System.String.Format("aval*({0})", cache)
             else System.String.Format("aval({0})", cache)
-
+            
+        interface AdaptiveValue with
+            member x.GetValueUntyped t = x.GetValue t :> obj
+            member x.ContentType = 
+                #if FABLE_COMPILER
+                typeof<obj>
+                #else
+                typeof<'T>
+                #endif
+    
         interface AdaptiveValue<'T> with
             member x.GetValue t = x.GetValue t  
     
