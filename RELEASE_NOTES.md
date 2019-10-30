@@ -1,3 +1,8 @@
+### 0.0.5-prerelease04
+* AVal.bind3
+* added non-generic AdaptiveValue interface
+* implemented Bind<N>Return/Bind<N> for adaptive builder
+
 ### 0.0.5-prerelease03
 * IndexList.tryGetPosition
 
