@@ -55,7 +55,7 @@ module AVal =
     type AbstractVal<'T>() =
         inherit AdaptiveObject()
 
-        let mutable cache = Unchecked.defaultof<'T>
+        let mutable valueCache = Unchecked.defaultof<'T>
 
         abstract member Compute: AdaptiveToken -> 'T
 
@@ -63,19 +63,19 @@ module AVal =
             x.EvaluateAlways token (fun token ->
                 if x.OutOfDate then
                     let v = x.Compute token
-                    cache <- v
+                    valueCache <- v
                     v
                 else
-                    cache                
+                    valueCache                
             )
 
         member private x.AsString =
-            if x.OutOfDate then sprintf "aval*(%A)" cache
-            else sprintf "aval(%A)" cache
+            if x.OutOfDate then sprintf "aval*(%A)" valueCache
+            else sprintf "aval(%A)" valueCache
 
         override x.ToString() =
-            if x.OutOfDate then String.Format("aval*({0})", cache)
-            else String.Format("aval({0})", cache)
+            if x.OutOfDate then String.Format("aval*({0})", valueCache)
+            else String.Format("aval({0})", valueCache)
             
         interface AdaptiveValue with
             member x.GetValueUntyped t = x.GetValue t :> obj
