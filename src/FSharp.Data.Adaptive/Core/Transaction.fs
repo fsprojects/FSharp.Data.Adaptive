@@ -214,25 +214,28 @@ module Transaction =
     /// the current transaction for the calling thread
     let getCurrentTransaction() =
         match Transaction.Running with
-            | Some r -> Some r
-            | None ->
-                match Transaction.Current with
-                    | Some c -> Some c
-                    | None -> None
+        | Some r -> Some r
+        | None ->
+            match Transaction.Current with
+            | Some c -> Some c
+            | None -> None
 
-    let inline internal setCurrentTransaction t =
-        Transaction.Current <- t
+    let inline internal useCurrent (t : Transaction) (action : unit -> 'T) =
+        let old = Transaction.Current
+        try
+            Transaction.Current <- Some t
+            action()
+        finally
+            Transaction.Current <- old
 
     /// Executes a function "inside" a newly created
     /// transaction and commits the transaction
-    let transact (f : unit -> 'T) =
+    let transact (action : unit -> 'T) =
         use t = new Transaction()
-        let old = Transaction.Current
-        Transaction.Current <- Some t
-        let r = f()
-        Transaction.Current <- old
+        let r = useCurrent t action
         t.Commit()
         r
+            
     
 
     // Defines some extension utilites for IAdaptiveObjects
