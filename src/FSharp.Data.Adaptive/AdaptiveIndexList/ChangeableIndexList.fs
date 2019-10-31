@@ -31,7 +31,10 @@ type ChangeableIndexList<'T>(initial: IndexList<'T>) =
 
     /// Appends an element to the list and returns its Index.
     member x.Append (element: 'T) =
-        let index = Index.after history.State.MaxIndex
+        let index = 
+            if history.State.IsEmpty then Index.after Index.zero
+            else Index.after history.State.MaxIndex
+
         history.Perform(IndexListDelta.single index (Set element)) |> ignore
         index
        
@@ -40,9 +43,13 @@ type ChangeableIndexList<'T>(initial: IndexList<'T>) =
 
     /// Prepends an element to the list and returns its Index.
     member x.Prepend (element: 'T) =
-        let index = Index.before history.State.MinIndex
+        let index = 
+            if history.State.IsEmpty then Index.after Index.zero
+            else Index.before history.State.MinIndex
+
         history.Perform(IndexListDelta.single index (Set element)) |> ignore
         index
+
        
     /// Inserts an element at the given position in the list and returns its Index.
     /// Note that the position can be equal to the count of the list.
