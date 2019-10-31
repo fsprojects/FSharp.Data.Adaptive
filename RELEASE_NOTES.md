@@ -1,3 +1,6 @@
+### 0.0.5-prerelease05
+* callback optimizations (single CallbackObject for many callbacks)
+
 ### 0.0.5-prerelease04
 * AVal.bind3
 * added non-generic AdaptiveValue interface
