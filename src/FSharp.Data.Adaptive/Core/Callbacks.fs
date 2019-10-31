@@ -41,7 +41,7 @@ type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, 
                 #if !FABLE_COMPILER
                 Interlocked.Increment(&id)
                 #else
-                let a = id in id <- a + 1; a
+                let a = id + 1 in id <- a; a
                 #endif
 
             if cbs.Count = 0 then

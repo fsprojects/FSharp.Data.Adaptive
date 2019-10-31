@@ -68,6 +68,8 @@ let example() =
     let dependent = map |> AMap.map (fun k v -> sprintf "'%s'" v)
     let reader = dependent.GetReader()
     
+    use __ = reader.AddMarkingCallback(fun () -> log "reader marked")
+
     log "%A -> %A" (Seq.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList reader.State)
     
     transact (fun () -> map.[3] <- "three") |> ignore

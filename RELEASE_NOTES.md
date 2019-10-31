@@ -1,3 +1,8 @@
+### 0.0.5-prerelease06
+* Fable compat
+    * ConditionalWeakTable polyfill
+    * fixed Interlocked.Increment in Callbacks for Fable
+
 ### 0.0.5-prerelease05
 * callback optimizations (single CallbackObject for many callbacks)
 

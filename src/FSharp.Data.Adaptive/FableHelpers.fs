@@ -93,4 +93,40 @@ module OptimizedClosures =
         member x.Invoke(a1, a2, a3) = value a1 a2 a3
         static member Adapt(value : 'T1 -> 'T2 -> 'T3 -> 'T4) = FSharpFunc<'T1, 'T2, 'T3, 'T4>(value)
 
+namespace System.Runtime.CompilerServices
+
+
+[<AutoOpen>]
+module private WeakTableHelpers =
+    open Fable.Core
+    open Fable.Core.JsInterop
+
+    type [<AllowNullLiteral>] WeakMap<'K, 'V> =
+        abstract clear: unit -> unit
+        abstract delete: key: 'K -> bool
+        abstract get: key: 'K -> 'V
+        abstract has: key: 'K -> bool
+        abstract set: key: 'K * ?value: 'V -> WeakMap<'K, 'V>
+
+    and [<AllowNullLiteral>] WeakMapConstructor =
+        [<Emit("new $0($1...)")>] abstract Create: ?iterable: seq<'K * 'V> -> WeakMap<'K, 'V>
+
+    let [<Global>] WeakMap: WeakMapConstructor = jsNative
+
+type ConditionalWeakTable<'K, 'V when 'K : not struct and 'V : not struct>() =
+    
+    let m = WeakMap.Create<'K, 'V> []
+
+    member x.TryGetValue(key : 'K) =
+        if m.has key then (true, m.get key)
+        else (false, Unchecked.defaultof<_>)
+
+    member x.Add(key : 'K, value : 'V) =
+        m.set(key, value) |> ignore
+
+    member x.Remove(key : 'K) =
+        m.delete key
+
+
+
 #endif
