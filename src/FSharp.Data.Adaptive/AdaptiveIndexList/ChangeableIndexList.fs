@@ -116,18 +116,12 @@ type ChangeableIndexList<'T>(initial: IndexList<'T>) =
 
         and set (index: int) (value: 'T) = 
             if index < 0 || index > history.State.Content.Count then raise <| System.IndexOutOfRangeException()
-            let left, self, right = MapExt.neighboursAt index history.State.Content
-
-            let right = match self with | Some s -> Some s | None -> right
-            let index = 
-                match left, right with
-                | Some (before,_), Some (after,_) -> Index.between before after
-                | None,            Some (after,_) -> Index.before after
-                | Some (before,_), None           -> Index.after before
-                | None,            None           -> Index.after Index.zero
-
-            history.Perform (IndexListDelta.single index (Set value)) |> ignore
-
+            match history.State.TryGetIndex index with
+            | Some index ->
+                history.Perform (IndexListDelta.single index (Set value)) |> ignore
+            | None ->
+                raise <| System.IndexOutOfRangeException()
+            
     /// Clears the list.
     member x.Clear() =  
         if not history.State.IsEmpty then
