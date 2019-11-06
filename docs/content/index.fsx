@@ -19,7 +19,7 @@ Examples include:
 
 * adaptive computations in incremental data-driven scientific and financial models
 
-`FSharp.Data.Adaptive` focuses on 'adaptive values' and 'adpative data' rather than reactive events.
+`FSharp.Data.Adaptive` focuses on 'adaptive values' and 'adaptive data' rather than reactive events.
 
 ## Adaptive Values
 
@@ -65,7 +65,7 @@ transact (fun () ->
 )
 printfn "%.3fs" (AVal.force dropTime) // => 12.703s
 
-(** This example feels a lot like an Excel calcuation, in which dependent cells get updated
+(** This example feels a lot like an Excel calculation, in which dependent cells get updated
 whenever changeable inputs change.  Some important differences are
 
 1. All 'cells' are adaptive values
@@ -142,7 +142,7 @@ In addition to the unordered set, we also have implementations of the ordered li
 *)
 
 (** 
-## Dynamic comptuation graphs and dynamic dependencies
+## Dynamic computation graphs and dynamic dependencies
 
 An Excel spreadsheet has a *static* structure of cells with *static* dependencies.
 The API becomes more interesting when *dynamic dependencies* come into play.
