@@ -102,7 +102,7 @@
             x.Bind2(v1, v2, mapping)
           </code>
           <div class="tip" id="425">
-            <strong>Signature:</strong> (v1:aval&lt;&#39;T1&gt; * v2:aval&lt;&#39;T2&gt; * mapping:(&#39;T1 -&gt; &#39;T2 -&gt; aval&lt;&#39;T3&gt;)) -&gt; aval&lt;&#39;T3&gt;<br />
+            <strong>Signature:</strong> (v1:aval&lt;&#39;T1&gt; * v2:aval&lt;&#39;T2&gt; * mapping:(&#39;T1 * &#39;T2 -&gt; aval&lt;&#39;T3&gt;)) -&gt; aval&lt;&#39;T3&gt;<br />
                           <strong>Type parameters:</strong> 'T1, 'T2, 'T3                      </div>
         </td>
         <td class="xmldoc">
@@ -120,7 +120,7 @@
             x.Bind2Return(v1, v2, mapping)
           </code>
           <div class="tip" id="426">
-            <strong>Signature:</strong> (v1:aval&lt;&#39;T1&gt; * v2:aval&lt;&#39;T2&gt; * mapping:(&#39;T1 -&gt; &#39;T2 -&gt; &#39;T3)) -&gt; aval&lt;&#39;T3&gt;<br />
+            <strong>Signature:</strong> (v1:aval&lt;&#39;T1&gt; * v2:aval&lt;&#39;T2&gt; * mapping:(&#39;T1 * &#39;T2 -&gt; &#39;T3)) -&gt; aval&lt;&#39;T3&gt;<br />
                           <strong>Type parameters:</strong> 'T1, 'T2, 'T3                      </div>
         </td>
         <td class="xmldoc">
@@ -138,7 +138,7 @@
             x.Bind3(v1, v2, v3, mapping)
           </code>
           <div class="tip" id="427">
-            <strong>Signature:</strong> (v1:aval&lt;&#39;T1&gt; * v2:aval&lt;&#39;T2&gt; * v3:aval&lt;&#39;T3&gt; * mapping:(&#39;T1 -&gt; &#39;T2 -&gt; &#39;T3 -&gt; aval&lt;&#39;T4&gt;)) -&gt; aval&lt;&#39;T4&gt;<br />
+            <strong>Signature:</strong> (v1:aval&lt;&#39;T1&gt; * v2:aval&lt;&#39;T2&gt; * v3:aval&lt;&#39;T3&gt; * mapping:(&#39;T1 * &#39;T2 * &#39;T3 -&gt; aval&lt;&#39;T4&gt;)) -&gt; aval&lt;&#39;T4&gt;<br />
                           <strong>Type parameters:</strong> 'T1, 'T2, 'T3, 'T4                      </div>
         </td>
         <td class="xmldoc">
@@ -156,7 +156,7 @@
             x.Bind3Return(v1, v2, v3, mapping)
           </code>
           <div class="tip" id="428">
-            <strong>Signature:</strong> (v1:aval&lt;&#39;T1&gt; * v2:aval&lt;&#39;T2&gt; * v3:aval&lt;&#39;T3&gt; * mapping:(&#39;T1 -&gt; &#39;T2 -&gt; &#39;T3 -&gt; &#39;T4)) -&gt; aval&lt;&#39;T4&gt;<br />
+            <strong>Signature:</strong> (v1:aval&lt;&#39;T1&gt; * v2:aval&lt;&#39;T2&gt; * v3:aval&lt;&#39;T3&gt; * mapping:(&#39;T1 * &#39;T2 * &#39;T3 -&gt; &#39;T4)) -&gt; aval&lt;&#39;T4&gt;<br />
                           <strong>Type parameters:</strong> 'T1, 'T2, 'T3, 'T4                      </div>
         </td>
         <td class="xmldoc">

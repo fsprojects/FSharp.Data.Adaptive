@@ -41,7 +41,7 @@ imperative sources on both input and output.</p>
 <li>adaptive views in data-driven user interfaces</li>
 <li>adaptive computations in incremental data-driven scientific and financial models</li>
 </ul>
-<p><code>FSharp.Data.Adaptive</code> focuses on 'adaptive values' and 'adpative data' rather than reactive events.</p>
+<p><code>FSharp.Data.Adaptive</code> focuses on 'adaptive values' and 'adaptive data' rather than reactive events.</p>
 <h2><a name="Adaptive-Values" class="anchor" href="#Adaptive-Values">Adaptive Values</a></h2>
 <p>Adaptive values (<code>aval</code>) are similar to cells in Excel spreadsheets.
 Consider a physics simulation such as the time taken for a ball
@@ -105,7 +105,7 @@ Initially the inputs contain the values on Earth:</p>
 </code></pre></td>
 </tr>
 </table>
-<p>This example feels a lot like an Excel calcuation, in which dependent cells get updated
+<p>This example feels a lot like an Excel calculation, in which dependent cells get updated
 whenever changeable inputs change.  Some important differences are</p>
 <ol>
 <li>All 'cells' are adaptive values</li>
@@ -187,7 +187,7 @@ Here's an example illustrating <code>aset</code>s:</p>
 </table>
 <p>There is no "map" print - the removal did not trigger an evaluation of the mapping function!</p>
 <p>In addition to the unordered set, we also have implementations of the ordered list, called <code>alist</code>, and the key-value map, called <code>amap</code>.</p>
-<h2><a name="Dynamic-comptuation-graphs-and-dynamic-dependencies" class="anchor" href="#Dynamic-comptuation-graphs-and-dynamic-dependencies">Dynamic comptuation graphs and dynamic dependencies</a></h2>
+<h2><a name="Dynamic-computation-graphs-and-dynamic-dependencies" class="anchor" href="#Dynamic-computation-graphs-and-dynamic-dependencies">Dynamic computation graphs and dynamic dependencies</a></h2>
 <p>An Excel spreadsheet has a <em>static</em> structure of cells with <em>static</em> dependencies.
 The API becomes more interesting when <em>dynamic dependencies</em> come into play.
 That is, adaptive values can dynamically decide whether or not to depend on something based on their content.</p>
@@ -378,7 +378,7 @@ Here's an example illustrating our system's behaviour in such a circumstance:</p
 <div class="tip" id="fs18">val dropTime : aval&lt;float&gt;</div>
 <div class="tip" id="fs19">val printfn : format:Printf.TextWriterFormat&lt;&#39;T&gt; -&gt; &#39;T</div>
 <div class="tip" id="fs20">val force : value:aval&lt;&#39;T&gt; -&gt; &#39;T</div>
-<div class="tip" id="fs21">val transact : f:(unit -&gt; &#39;T) -&gt; &#39;T</div>
+<div class="tip" id="fs21">val transact : action:(unit -&gt; &#39;T) -&gt; &#39;T</div>
 <div class="tip" id="fs22">property ChangeableValue.Value: float</div>
 <div class="tip" id="fs23">val map : mapping:(&#39;T1 -&gt; &#39;T2) -&gt; set:aval&lt;Set&lt;&#39;T1&gt;&gt; -&gt; aval&lt;Set&lt;&#39;T2&gt;&gt; (requires comparison and comparison)</div>
 <div class="tip" id="fs24">val mapping : (&#39;T1 -&gt; &#39;T2) (requires comparison and comparison)</div>
