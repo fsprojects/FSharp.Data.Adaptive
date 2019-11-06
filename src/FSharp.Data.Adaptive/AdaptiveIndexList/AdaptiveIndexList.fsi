@@ -125,6 +125,11 @@ module AList =
     /// aval will be re-evaluated upon every change of the list.
     val tryAt : index: int -> list: alist<'T> -> aval<option<'T>>
 
+    /// Evaluates the given adaptive list and returns its current content.
+    /// This should not be used inside the adaptive evaluation
+    /// of other AdaptiveObjects since it does not track dependencies.
+    val force: alist<'T> -> IndexList<'T>
+
     /// Adaptively folds over the list using add for additions and recomputes the value on every removal.
     /// Note that the order of elements given to add is undefined.
     val fold : add : ('S -> 'A -> 'S) -> zero : 'S -> list : alist<'A> -> aval<'S>

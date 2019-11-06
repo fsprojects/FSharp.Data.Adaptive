@@ -88,6 +88,11 @@ module ASet =
     /// Creates a constant aset lazy content.
     val delay : create : (unit -> HashSet<'T>) -> aset<'T>
 
+    /// Evaluates the given adaptive set and returns its current content.
+    /// This should not be used inside the adaptive evaluation
+    /// of other AdaptiveObjects since it does not track dependencies.
+    val force: aset<'T> -> HashSet<'T>
+
     /// Adaptively folds over the set using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
     /// Also note that the order of elements given to add/trySubtract is undefined.

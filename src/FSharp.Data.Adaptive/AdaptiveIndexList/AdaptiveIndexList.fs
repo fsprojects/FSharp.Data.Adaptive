@@ -658,6 +658,10 @@ module AList =
     let tryAt (index: int) (list: alist<'T>) =
         list.Content |> AVal.map (IndexList.tryAt index)
 
+    /// Evaluates the given adaptive list and returns its current content.
+    /// This should not be used inside the adaptive evaluation
+    /// of other AdaptiveObjects since it does not track dependencies.
+    let force (set : alist<'T>) = AVal.force set.Content
 
     /// Adaptively folds over the list using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.

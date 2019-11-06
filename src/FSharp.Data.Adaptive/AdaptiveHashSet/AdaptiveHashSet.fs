@@ -664,6 +664,11 @@ module ASet =
             ChooseAReader(set, mapping)
         )
 
+    /// Evaluates the given adaptive set and returns its current content.
+    /// This should not be used inside the adaptive evaluation
+    /// of other AdaptiveObjects since it does not track dependencies.
+    let force (set : aset<'T>) = AVal.force set.Content
+
     /// Adaptively folds over the set using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
     /// Also note that the order of elements given to add/trySubtract is undefined.

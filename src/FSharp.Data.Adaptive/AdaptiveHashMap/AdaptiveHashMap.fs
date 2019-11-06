@@ -523,6 +523,10 @@ module AMap =
     let tryFind (key: 'K) (map: amap<'K, 'V>) =
         map.Content |> AVal.map (HashMap.tryFind key)
 
+    /// Evaluates the given adaptive map and returns its current content.
+    /// This should not be used inside the adaptive evaluation
+    /// of other AdaptiveObjects since it does not track dependencies.
+    let force (set : amap<'K, 'V>) = AVal.force set.Content
 
     /// Adaptively folds over the map using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.

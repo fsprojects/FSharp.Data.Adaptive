@@ -92,6 +92,11 @@ module AMap =
     /// aval will be re-evaluated upon every change of the map.
     val tryFind : key:'K -> map:amap<'K, 'V> -> aval<option<'V>>
 
+    /// Evaluates the given adaptive map and returns its current content.
+    /// This should not be used inside the adaptive evaluation
+    /// of other AdaptiveObjects since it does not track dependencies.
+    val force: amap<'K, 'V> -> HashMap<'K, 'V>
+
     /// Adaptively folds over the map using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
     /// Also note that the order of elements given to add/trySubtract is undefined.
