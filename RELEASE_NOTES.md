@@ -1,3 +1,6 @@
+### 0.0.5-prerelease07
+* AList.mapA/chooseA/filterA
+
 ### 0.0.5-prerelease06
 * Fable compat
     * ConditionalWeakTable polyfill
