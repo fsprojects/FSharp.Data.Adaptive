@@ -21,6 +21,11 @@ type AdaptiveIndexList<'T> =
 /// Adaptive list datastructure.
 and alist<'T> = AdaptiveIndexList<'T>
 
+type ValueWithKey<'K, 'T>(key : 'K, value : aval<'T>) =
+    inherit AVal.AbstractVal<'T>()
+    member x.Key = key
+    override x.Compute t = value.GetValue t
+
 /// Internal implementations for alist operations.
 module internal AdaptiveIndexListImplementation =
 
@@ -137,6 +142,122 @@ module internal AdaptiveIndexListImplementation =
                             | Some true -> Some Remove
                             | _ -> None
             )
+            
+    /// Reader for mapA operations.
+    type MapAReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> aval<'b>) =
+        inherit AbstractDirtyReader<ValueWithKey<Index, 'b>, IndexListDelta<'b>>(IndexListDelta.monoid, checkTag "ValueWithKey")
+
+        let mapping = OptimizedClosures.FSharpFunc<Index, 'a, aval<'b>>.Adapt mapping
+        let reader = input.GetReader()
+        let cache = 
+            Cache (fun (a,b) -> 
+                let r = mapping.Invoke(a,b)
+                let res = ValueWithKey(a, r)
+                res.Tag <- "ValueWithKey"
+                res
+            )
+
+        override x.Compute (t, dirty) =
+            let old = reader.State
+            let ops = reader.GetChanges t
+
+            let mutable changes =
+                ops |> IndexListDelta.choose (fun i op ->
+                    match op with
+                    | Set v ->
+                        let k = cache.Invoke(i,v)
+                        let v = k.GetValue t
+                        Some (Set v)
+                    | Remove ->
+                        match IndexList.tryGet i old with
+                        | Some v ->                  
+                            let o = cache.Revoke(i, v)
+                            o.Outputs.Remove x |> ignore
+                            dirty.Remove o |> ignore
+                            Some Remove
+                        | None ->
+                            None
+                )
+
+            for d in dirty do
+                let i = d.Key
+                let v = d.GetValue t
+                changes <- IndexListDelta.add i (Set v) changes
+
+            changes
+     
+    /// Reader for mapA operations.
+    type ChooseAReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> aval<Option<'b>>) =
+        inherit AbstractReader<IndexList<'b>, IndexListDelta<'b>>(IndexList.trace)
+
+        let mutable dirty = UncheckedHashSet.create()
+        let mapping = OptimizedClosures.FSharpFunc<Index, 'a, aval<Option<'b>>>.Adapt mapping
+        let reader = input.GetReader()
+        let cache = 
+            Cache (fun (a,b) -> 
+                let r = mapping.Invoke(a,b)
+                let res = ValueWithKey(a, r)
+                res.Tag <- "ValueWithKey"
+                res
+            )
+
+        override x.InputChangedObject(t, o) =
+            match o with
+            | :? ValueWithKey<Index, Option<'b>> as o -> 
+                lock cache (fun () -> dirty.Add o |> ignore)
+            | _ -> 
+                ()
+
+        override x.Compute(t) =
+            let dirty = 
+                lock cache (fun () ->
+                    let d = dirty
+                    dirty <- UncheckedHashSet.create()
+                    d
+                )
+            let old = reader.State
+            let ops = reader.GetChanges t
+            let state = x.State
+            let mutable changes =
+                ops |> IndexListDelta.choose (fun i op ->
+                    match op with
+                    | Set v ->
+                        let k = cache.Invoke(i,v)
+                        let v = k.GetValue t
+                        match v with
+                        | Some v -> Some (Set v)
+                        | None ->
+                            match IndexList.tryGet i state with
+                            | Some _ -> Some Remove
+                            | _ -> None
+                    | Remove ->
+                        match IndexList.tryGet i old with
+                        | Some v ->                  
+                            let o = cache.Revoke(i, v)
+                            o.Outputs.Remove x |> ignore
+                            dirty.Remove o |> ignore
+                            match IndexList.tryGet i state with
+                            | Some _ -> Some Remove
+                            | None -> None
+                        | None ->
+                            None
+                )
+
+            for d in dirty do
+                let i = d.Key
+                let v = d.GetValue t
+                match v with
+                | Some v -> 
+                    changes <- IndexListDelta.add i (Set v) changes
+                | None ->
+                    match IndexList.tryGet i state with
+                    | Some _ -> 
+                        changes <- IndexListDelta.add i Remove changes
+                    | None ->
+                        ()
+
+            changes
+        
 
     /// Ulitity used by CollectReader.
     type MultiReader<'a>(mapping : IndexMapping<Index * Index>, list : alist<'a>, release : alist<'a> -> unit) =
@@ -577,7 +698,51 @@ module AList =
             constant (fun () -> list |> force |> IndexList.filter predicate)
         else
             create (fun () -> FilterReader(list, fun _ v -> predicate v))
-        
+
+    /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.  
+    let mapAi (mapping: Index -> 'T1 -> aval<'T2>) (list: alist<'T1>) =
+        if list.IsConstant then
+            let list = force list |> IndexList.mapi mapping
+            if list |> Seq.forall (fun v -> v.IsConstant) then
+                constant (fun () -> list |> IndexList.map AVal.force)
+            else
+                // TODO better impl possible
+                create (fun () -> MapAReader(ofIndexList list, fun _ v -> v))
+        else
+            create (fun () -> MapAReader(list, mapping))
+
+    /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.  
+    let mapA (mapping: 'T1 -> aval<'T2>) (list: alist<'T1>) =
+        mapAi (fun _ v -> mapping v) list
+
+    /// Adaptively chooses all elements returned by mapping.  
+    let chooseAi (mapping: Index ->'T1 -> aval<Option<'T2>>) (list: alist<'T1>) =
+        if list.IsConstant then
+            let list = force list |> IndexList.mapi mapping
+            if list |> Seq.forall (fun v -> v.IsConstant) then
+                constant (fun () -> list |> IndexList.choose AVal.force)
+            else
+                // TODO better impl possible
+                create (fun () -> ChooseAReader(ofIndexList list, fun _ v -> v))
+        else
+            create (fun () -> ChooseAReader(list, mapping))
+
+    /// Adaptively chooses all elements returned by mapping.  
+    let chooseA (mapping: 'T1 -> aval<option<'T2>>) (list: alist<'T1>) =
+        chooseAi (fun _ v -> mapping v) list
+
+    /// Adaptively filters the list using the given predicate.
+    let filterAi (predicate: Index -> 'T -> aval<bool>) (list: alist<'T>) =
+        list |> chooseAi (fun i v ->
+            predicate i v |> AVal.map (function true -> Some v | false -> None)
+        )
+
+    /// Adaptively filters the list using the given predicate.
+    let filterA (predicate: 'T -> aval<bool>) (list: alist<'T>) =
+        list |> chooseAi (fun i v ->
+            predicate v |> AVal.map (function true -> Some v | false -> None)
+        )
+
     /// Adaptively applies the given mapping function to all elements and returns a new alist holding the concatenated results.
     let collecti (mapping: Index -> 'T1 -> alist<'T2>) (list : alist<'T1>) =
         if list.IsConstant then

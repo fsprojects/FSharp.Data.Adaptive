@@ -62,10 +62,29 @@ module AList =
         
     /// Adaptively filters the list using the given predicate.
     val filteri : mapping: (Index -> 'T -> bool) -> list: alist<'T> -> alist<'T>
-
+    
     /// Adaptively filters the list using the given predicate.
     val filter : mapping: ('T -> bool) -> list: alist<'T> -> alist<'T>
         
+    /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
+    val mapAi : mapping: (Index -> 'T1 -> aval<'T2>) -> list: alist<'T1> -> alist<'T2>
+
+    /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
+    val mapA : mapping: ('T1 -> aval<'T2>) -> list: alist<'T1> -> alist<'T2>
+    
+    /// Adaptively chooses all elements returned by mapping.  
+    val chooseAi : mapping: (Index -> 'T1 -> aval<option<'T2>>) -> list: alist<'T1> -> alist<'T2>
+
+    /// Adaptively chooses all elements returned by mapping.  
+    val chooseA : mapping: ('T1 -> aval<option<'T2>>) -> list: alist<'T1> -> alist<'T2>
+        
+    /// Adaptively filters the list using the given predicate.
+    val filterAi : mapping: (Index -> 'T -> aval<bool>) -> list: alist<'T> -> alist<'T>
+    
+    /// Adaptively filters the list using the given predicate.
+    val filterA : mapping: ('T -> aval<bool>) -> list: alist<'T> -> alist<'T>
+       
+
 
     /// Adaptively applies the given mapping function to all elements and returns a new alist holding the concatenated results.
     val collecti : mapping: (Index -> 'T1 -> alist<'T2>) -> list: alist<'T1> -> alist<'T2>

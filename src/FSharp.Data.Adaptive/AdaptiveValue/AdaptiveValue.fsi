@@ -53,6 +53,15 @@ and cval<'T> = ChangeableValue<'T>
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module AVal =
 
+    [<AbstractClass>]
+    type AbstractVal<'T> =
+        inherit AdaptiveObject
+        interface AdaptiveValue
+        interface AdaptiveValue<'T>
+        member GetValue : AdaptiveToken -> 'T
+        abstract member Compute : AdaptiveToken -> 'T
+        new : unit -> AbstractVal<'T>
+
     /// Evaluates the given adaptive value and returns its current value.
     /// This should not be used inside the adaptive evaluation
     /// of other AdaptiveObjects since it does not track dependencies.
