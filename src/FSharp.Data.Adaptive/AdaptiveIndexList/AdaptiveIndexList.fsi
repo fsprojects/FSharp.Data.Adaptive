@@ -237,6 +237,12 @@ module AList =
     /// Adaptively checks whether the predicate holds for at least one entry.
     val existsA: predicate: ('T -> aval<bool>) -> list: alist<'T> -> aval<bool> 
     
+    /// Adaptively counts all elements fulfilling the predicate
+    val countBy : predicate: ('a -> bool) -> list: alist<'a> -> aval<int>
+
+    /// Adaptively counts all elements fulfilling the predicate
+    val countByA : predicate: ('a -> aval<bool>) -> list: alist<'a> -> aval<int>
+
     /// Adaptively computes the sum of all values returned by mapping for the list.
     val inline sumByA: mapping : ('T1 -> aval<'T2>) -> list : alist<'T1> -> aval<'S>
         when ('T2 or 'S) : (static member (+) : 'S -> 'T2 -> 'S) 

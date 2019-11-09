@@ -1224,6 +1224,15 @@ module AList =
         let r = AdaptiveReduction.countPositive |> AdaptiveReduction.mapOut (fun v -> v <> 0)
         reduceByA r (fun _ v -> predicate v) list
 
+        
+    /// Adaptively counts all elements fulfilling the predicate
+    let countBy (predicate: 'a -> bool) (list: alist<'a>) =
+        reduceBy AdaptiveReduction.countPositive (fun _ v -> predicate v) list 
+
+    /// Adaptively counts all elements fulfilling the predicate
+    let countByA (predicate: 'a -> aval<bool>) (list: alist<'a>) =
+        reduceByA AdaptiveReduction.countPositive (fun _ v -> predicate v) list 
+
     let inline tryMin (l : alist<'a>) =
         let reduction = 
             AdaptiveReduction.tryMin
