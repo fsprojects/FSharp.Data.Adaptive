@@ -2,6 +2,7 @@
 
 /// AdaptiveReduction holds operators for reducing collections adaptively.
 /// Its main purpose is to simplify reductions on ASet/AMap/AList.
+[<Struct>]
 type AdaptiveReduction<'a, 's, 'v> =
     {
         /// The seed value for the reduction
@@ -87,11 +88,17 @@ module AdaptiveReduction =
     [<GeneralizableValue>]
     val count<'a> : AdaptiveReduction<'a, int, int>
     
-    /// A simple reduction counting all that are true.
+    /// A simple reduction counting all elements that are true.
     val countPositive: AdaptiveReduction<bool, int, int>
     
-    /// A simple reduction counting all that are false.
+    /// A simple reduction counting all elements that are false.
     val countNegative: AdaptiveReduction<bool, int, int>
+    
+    /// A reduction getting the smallest element (if any)
+    val tryMin<'a when 'a : comparison> : AdaptiveReduction<'a, voption<'a>, voption<'a>> 
+    
+    /// A reduction getting the largest element (if any)
+    val tryMax<'a when 'a : comparison> : AdaptiveReduction<'a, voption<'a>, voption<'a>> 
 
     /// A reduction returning the sum of all elements.
     val inline sum<'a, 's> : unit -> AdaptiveReduction<'a, 's, 's> 

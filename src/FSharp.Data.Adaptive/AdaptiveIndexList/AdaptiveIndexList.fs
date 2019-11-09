@@ -1140,6 +1140,11 @@ module AList =
     let inline sortDescending (list: alist<'T>) = 
         let inline cmp a b = compare b a
         sortWith cmp list
+        
+    /// Adaptively reverses the list
+    let rev (list: alist<'T>) =
+        // TODO: more efficient implementation possible?
+        sortByDescendingi (fun i _ -> i) list
 
     /// Tries to get the element associated to a specific Index from the list.
     /// Note that this operation should not be used extensively since its resulting
@@ -1218,6 +1223,18 @@ module AList =
     let existsA (predicate: 'T -> aval<bool>) (list: alist<'T>) =
         let r = AdaptiveReduction.countPositive |> AdaptiveReduction.mapOut (fun v -> v <> 0)
         reduceByA r (fun _ v -> predicate v) list
+
+    let inline tryMin (l : alist<'a>) =
+        let reduction = 
+            AdaptiveReduction.tryMin
+            |> AdaptiveReduction.mapOut (function ValueSome v -> Some v | ValueNone -> None)
+        reduce reduction l
+
+    let inline tryMax (l : alist<'a>) =
+        let reduction = 
+            AdaptiveReduction.tryMax
+            |> AdaptiveReduction.mapOut (function ValueSome v -> Some v | ValueNone -> None)
+        reduce reduction l
 
     /// Adaptively computes the sum all entries in the list.
     let inline sum (s : alist<'a>) = 

@@ -1,6 +1,6 @@
 ﻿namespace FSharp.Data.Adaptive
 
-
+[<Struct>]
 type AdaptiveReduction<'a, 's, 'v> =
     {
         seed    : 's
@@ -112,6 +112,49 @@ module AdaptiveReduction =
             sub = fun s a -> ValueSome (s - convert a)
             view = id
         }
+
+    let tryMin<'a when 'a : comparison> =
+        let add (o : ValueOption<'a>) (v : 'a) =
+            match o with
+            | ValueSome o -> ValueSome (min o v)
+            | ValueNone -> ValueSome v
+            
+        let trySub (o : ValueOption<'a>) (v : 'a) =
+            match o with
+            | ValueSome o ->
+                if v > o then ValueSome (ValueSome o)
+                else ValueNone
+            | ValueNone -> 
+                ValueSome ValueNone
+
+        {
+            seed = ValueNone
+            add = add
+            sub = trySub
+            view = id
+        }
+
+    let tryMax<'a when 'a : comparison> =
+        let add (o : ValueOption<'a>) (v : 'a) =
+            match o with
+            | ValueSome o -> ValueSome (max o v)
+            | ValueNone -> ValueSome v
+            
+        let trySub (o : ValueOption<'a>) (v : 'a) =
+            match o with
+            | ValueSome o ->
+                if v < o then ValueSome (ValueSome o)
+                else ValueNone
+            | ValueNone -> 
+                ValueSome ValueNone
+
+        {
+            seed = ValueNone
+            add = add
+            sub = trySub
+            view = id
+        }
+        
 
     let inline sum() =
         {

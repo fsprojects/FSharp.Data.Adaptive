@@ -93,6 +93,9 @@ module AList =
     /// Adaptively creates an alist with the source-indices.
     val indexed : list: alist<'T> -> alist<Index * 'T>
 
+    /// Adaptively reverses the list
+    val rev : list: alist<'T> -> alist<'T>
+
     /// Adaptively concatenates the given lists.
     val concat : lists: #seq<alist<'T>> -> alist<'T>
     
@@ -193,6 +196,14 @@ module AList =
     
     /// Adaptively checks whether the predicate holds for at least one entry.
     val exists: predicate: ('T -> bool) -> list: alist<'T> -> aval<bool> 
+
+    /// Adaptively tries to find the smallest element.
+    val inline tryMin : list : alist<'T> -> aval<option<'T>>
+        when 'T : comparison
+        
+    /// Adaptively tries to find the largest element.
+    val inline tryMax : list : alist<'T> -> aval<option<'T>>
+        when 'T : comparison
 
     /// Adaptively computes the sum of all entries in the list.
     val inline sum : list : alist<'T> -> aval<'S>
