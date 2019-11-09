@@ -21,10 +21,305 @@ type AdaptiveIndexList<'T> =
 /// Adaptive list datastructure.
 and alist<'T> = AdaptiveIndexList<'T>
 
-type ValueWithKey<'K, 'T>(key : 'K, value : aval<'T>) =
-    inherit AVal.AbstractVal<'T>()
-    member x.Key = key
-    override x.Compute t = value.GetValue t
+/// Internal implementations for alist reductions.
+module internal Reductions =
+    
+    /// A simple multi-map implementation.
+    type MultiSetMap<'k, 'v> = HashMap<'k, HashSet<'v>>
+    
+    /// A simple multi-map implementation.
+    module MultiSetMap =
+        [<GeneralizableValue>]
+        let empty<'k, 'v> : MultiSetMap<'k, 'v> = HashMap.empty
+
+        let add (key: 'k) (value: 'v) (m: MultiSetMap<'k, 'v>): MultiSetMap<'k, 'v> =
+            m |> HashMap.alter key (fun old ->
+                match old with
+                | Some old -> Some (HashSet.add value old)
+                | None -> Some (HashSet.single value)
+            )
+
+        let remove (key: 'k) (value: 'v) (m: MultiSetMap<'k, 'v>): bool * MultiSetMap<'k, 'v> =
+            let wasLast = ref false
+            let result = 
+                m |> HashMap.alter key (fun old ->
+                    match old with
+                    | None -> None
+                    | Some old -> 
+                        let s = HashSet.remove value old
+                        if HashSet.isEmpty s then 
+                            wasLast := true
+                            None
+                        else 
+                            Some s
+                )
+            !wasLast, result
+
+        let find (key: 'k) (m: MultiSetMap<'k, 'v>) =
+            match HashMap.tryFind key m with
+            | Some s -> s
+            | None -> HashSet.empty
+
+    /// aval for reduce operations.
+    type ReduceValue<'a, 's, 'v>(reduction : AdaptiveReduction<'a, 's, 'v>, input : alist<'a>) =
+        inherit AdaptiveObject()
+
+        let reader = input.GetReader()
+        let mutable sum = reduction.seed
+
+        let mutable result = Unchecked.defaultof<'v>
+        let mutable state = IndexList.empty<'a>
+
+        member x.GetValue(token : AdaptiveToken) =
+            x.EvaluateAlways token (fun token ->
+                if x.OutOfDate then
+                    let ops = reader.GetChanges token
+                    let mutable working = true
+                    use e = (IndexListDelta.toSeq ops).GetEnumerator()
+                    while working && e.MoveNext() do
+                        let index, op = e.Current
+                        match op with
+                        | Set a ->
+                            match IndexList.tryGet index state with
+                            | Some old ->
+                                match reduction.sub sum old with
+                                | ValueSome s -> sum <- s
+                                | ValueNone -> working <- false
+                            | None ->
+                                ()
+
+                            sum <- reduction.add sum a
+                            state <- IndexList.set index a state
+
+                        | Remove ->
+                            match IndexList.tryRemove index state with
+                            | Some(old, rest) ->
+                                state <- rest
+                                match reduction.sub sum old with
+                                | ValueSome s -> sum <- s
+                                | ValueNone -> working <- false
+                            | None ->
+                                ()
+
+                    if not working then
+                        state <- reader.State
+                        sum <- state |> Seq.fold reduction.add reduction.seed
+
+                    result <- reduction.view sum
+
+                result
+            )
+
+        interface AdaptiveValue with
+            member x.GetValueUntyped t = 
+                x.GetValue t :> obj
+            member x.ContentType =
+                #if FABLE_COMPILER
+                typeof<obj>
+                #else
+                typeof<'v>
+                #endif
+
+        interface AdaptiveValue<'v> with
+            member x.GetValue t = x.GetValue t
+            
+    /// aval for reduceBy operations.
+    type ReduceByValue<'a, 'b, 's, 'v>(reduction : AdaptiveReduction<'b, 's, 'v>, mapping : Index -> 'a -> 'b, input : alist<'a>) =
+        inherit AdaptiveObject()
+
+        let reader = input.GetReader()
+        let mutable sum = ValueSome reduction.seed
+
+        let mutable result = Unchecked.defaultof<'v>
+        let mutable state = IndexList.empty<'b>
+
+        let add (s : ValueOption<'s>) (v : 'b) =
+            match s with
+            | ValueSome s -> ValueSome (reduction.add s v)
+            | ValueNone -> ValueNone
+            
+        let sub (s : ValueOption<'s>) (v : 'b) =
+            match s with
+            | ValueSome s -> reduction.sub s v
+            | ValueNone -> ValueNone
+
+        member x.GetValue(token : AdaptiveToken) =
+            x.EvaluateAlways token (fun token ->
+                if x.OutOfDate then
+                    let ops = reader.GetChanges token
+                    for (index, op) in IndexListDelta.toSeq ops do
+                        match op with
+                        | Set a ->
+                            match IndexList.tryGet index state with
+                            | Some old -> sum <- sub sum old
+                            | None -> ()
+
+                            let b = mapping index a
+
+                            sum <- add sum b
+                            state <- IndexList.set index b state
+
+                        | Remove ->
+                            match IndexList.tryRemove index state with
+                            | Some(old, rest) ->
+                                state <- rest
+                                sum <- sub sum old
+                            | None ->
+                                ()
+
+                    match sum with
+                    | ValueSome s ->
+                        result <- reduction.view s
+                    | ValueNone ->
+                        let s = state |> Seq.fold reduction.add reduction.seed
+                        sum <- ValueSome s
+                        result <- reduction.view s
+
+                result
+            )
+
+        interface AdaptiveValue with
+            member x.GetValueUntyped t = 
+                x.GetValue t :> obj
+            member x.ContentType =
+                #if FABLE_COMPILER
+                typeof<obj>
+                #else
+                typeof<'v>
+                #endif
+
+        interface AdaptiveValue<'v> with
+            member x.GetValue t = x.GetValue t
+
+    /// aval for reduceByA operations.
+    type AdaptiveReduceByValue<'a, 'b, 's, 'v>(reduction : AdaptiveReduction<'b, 's, 'v>, mapping : Index -> 'a -> aval<'b>, l : alist<'a>) =
+        inherit AdaptiveObject()
+
+        let reader = l.GetReader()
+        do reader.Tag <- "FoldReader"
+
+        #if !FABLE_COMPILER
+        let dirtyLock = obj()
+        #endif
+
+
+        let mutable targets = MultiSetMap.empty<aval<'b>, Index>
+        let mutable state = HashMap.empty<Index, aval<'b> * 'b>
+
+        let mutable dirty : IndexList<aval<'b>> = IndexList.empty
+        let mutable sum = ValueSome reduction.seed
+        let mutable res = Unchecked.defaultof<'v>
+
+        let sub (s : ValueOption<'s>) (v : 'b) =
+            match s with
+            | ValueSome s -> reduction.sub s v
+            | ValueNone -> ValueNone
+            
+        let add (s : ValueOption<'s>) (v : 'b) =
+            match s with
+            | ValueSome s -> ValueSome (reduction.add s v)
+            | ValueNone -> ValueNone
+
+
+        let consumeDirty() =
+            #if FABLE_COMPILER
+            let d = dirty
+            dirty <- IndexList.empty
+            d
+            #else
+            lock dirtyLock (fun () ->
+                let d = dirty
+                dirty <- IndexList.empty
+                d
+            )
+            #endif
+
+        let removeIndex (x : AdaptiveReduceByValue<_,_,_,_>) (i : Index) =
+            match HashMap.tryRemove i state with
+            | Some ((ov, o), newState) ->
+                state <- newState
+                sum <- sub sum o    
+                let rem, newTargets = MultiSetMap.remove ov i targets
+                targets <- newTargets
+                if rem then ov.Outputs.Remove x |> ignore
+                
+            | None ->
+                ()
+
+        override x.InputChangedObject(t, o) =
+            if isNull o.Tag then
+                #if FABLE_COMPILER
+                let o = unbox<aval<'b>> o
+                for i in MultiSetMap.find o targets do
+                    dirty <- IndexList.set i o dirty
+                #else
+                match o with
+                | :? aval<'b> as o ->
+                    lock dirtyLock (fun () -> 
+                        for i in MultiSetMap.find o targets do
+                            dirty <- IndexList.set i o dirty
+                    )
+                | _ -> 
+                    ()
+                #endif
+ 
+        member x.GetValue (t : AdaptiveToken) =
+            x.EvaluateAlways t (fun t ->
+                if x.OutOfDate then
+                    let ops = reader.GetChanges t
+                    let mutable dirty = consumeDirty()
+                    for (i, op) in IndexListDelta.toSeq ops do
+                        dirty <- IndexList.remove i dirty
+                        match op with
+                        | Set v ->
+                            removeIndex x i
+
+                            let r = mapping i v
+                            let n = r.GetValue(t)
+                            targets <- MultiSetMap.add r i targets
+                            state <- HashMap.add i (r, n) state
+                            sum <- add sum n
+
+                        | Remove ->
+                            removeIndex x i
+
+
+                    for (i, r) in IndexList.toSeqIndexed dirty do
+                        let n = r.GetValue(t)
+                        state <-
+                            state |> HashMap.alter i (fun old ->
+                                match old with
+                                | Some (ro, o) -> 
+                                    assert(ro = r)
+                                    sum <- add (sub sum o) n
+                                | None -> 
+                                    sum <- add sum n
+                                Some (r, n)
+                            )
+
+                    match sum with
+                    | ValueNone ->
+                        let s = state |> HashMap.fold (fun s _ (_,v) -> reduction.add s v) reduction.seed
+                        sum <- ValueSome s
+                        res <- reduction.view s
+                    | ValueSome s ->
+                        res <- reduction.view s
+
+                res
+            )
+
+        interface AdaptiveValue with
+            member x.GetValueUntyped t = x.GetValue t :> obj
+            member x.ContentType =
+                #if FABLE_COMPILER
+                typeof<obj>
+                #else
+                typeof<'v>
+                #endif
+
+        interface AdaptiveValue<'v> with
+            member x.GetValue t = x.GetValue t  
+
 
 /// Internal implementations for alist operations.
 module internal AdaptiveIndexListImplementation =
@@ -80,6 +375,149 @@ module internal AdaptiveIndexListImplementation =
             member x.IsConstant = true
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
+
+
+    /// AVal with a key
+    type ValueWithKey<'K, 'T>(key : 'K, value : aval<'T>) =
+        inherit AdaptiveObject()
+
+        member x.Key = key
+
+        member x.GetValue(token: AdaptiveToken) =
+            x.EvaluateAlways token (fun token ->
+                value.GetValue token
+            )
+
+        interface AdaptiveValue with
+            member x.GetValueUntyped t = x.GetValue t :> obj
+            member x.ContentType =
+                #if FABLE_COMPILER
+                typeof<obj>
+                #else
+                typeof<'T>
+                #endif
+
+        interface AdaptiveValue<'T> with
+            member x.GetValue t = x.GetValue t  
+       
+    type TargetIndexTable<'a>() =
+        
+        let mutable targetIndices : HashMap<'a, Set<Index>> = HashMap.empty
+
+        member x.Add(value : 'a, i : Index) =
+            targetIndices <-
+                targetIndices |> HashMap.alter value (fun old ->
+                    match old with
+                    | None -> Set.singleton i |> Some
+                    | Some o -> Set.add i o |> Some
+                )
+
+        member x.Remove(value : 'a, i : Index) =
+            targetIndices <-
+                targetIndices |> HashMap.alter value (fun old ->
+                    match old with
+                    | None -> None
+                    | Some o -> 
+                        let s = Set.remove i o 
+                        if Set.isEmpty s then None
+                        else Some s
+                )
+            
+        member x.GetIndices(value : 'a) =
+            match HashMap.tryFind value targetIndices with
+            | Some s -> s
+            | None -> Set.empty
+
+    type FoldValue<'a, 'b, 's>(add : 's -> 'b -> 's, sub : 's -> 'b -> 's, zero : 's, mapping : Index -> 'a -> aval<'b>, l : alist<'a>) =
+        inherit AdaptiveObject()
+
+        let reader = l.GetReader()
+        do reader.Tag <- "reader"
+
+        let dirtyLock = obj()
+
+
+        let targetIndices = TargetIndexTable<aval<'b>>()
+        let mutable dirty : IndexList<aval<'b>> = IndexList.empty
+        let mutable sum = zero
+        let mutable state : IndexList<'b * aval<'b>> = IndexList.empty
+
+        let consumeDirty() =
+            lock dirtyLock (fun () ->
+                let d = dirty
+                dirty <- IndexList.empty
+                d
+            )
+
+        override x.InputChangedObject(t, o) =
+            if isNull o.Tag then
+                match o with
+                | :? aval<'b> as o -> 
+                    lock dirtyLock (fun () -> 
+                        let dst = targetIndices.GetIndices o
+                        for i in dst do 
+                            dirty <- IndexList.set i o dirty
+                    )
+                | _ -> 
+                    ()
+ 
+        member x.GetValue (t : AdaptiveToken) =
+            x.EvaluateAlways t (fun t ->
+                if x.OutOfDate then
+                    let ops = reader.GetChanges t
+                    let mutable dirty = consumeDirty()
+                    for (i, op) in IndexListDelta.toSeq ops do
+                        dirty <- IndexList.remove i dirty
+                        match op with
+                        | Set v ->
+                            let o = IndexList.tryGet i state
+                            match o with
+                            | Some(o, ov) -> 
+                                sum <- sub sum o
+                                ov.Outputs.Remove x |> ignore
+                            | None -> 
+                                ()
+
+                            let r = mapping i v
+                            targetIndices.Add(r, i)
+                            let n = r.GetValue(t)
+                            state <- IndexList.set i (n, r) state
+                            sum <- add sum n
+                        | Remove ->
+                            match IndexList.tryRemove i state with
+                            | Some((o, ov), rest) -> 
+                                sum <- sub sum o
+                                targetIndices.Remove(ov, i)
+                                ov.Outputs.Remove x |> ignore
+                                state <- rest
+                            | None -> 
+                                ()
+
+
+                    for (i, r) in IndexList.toSeqIndexed dirty do
+                        let n = r.GetValue(t)
+                        let o = IndexList.tryGet i state
+                        match o with
+                        | Some(o, ov) -> sum <- sub sum o
+                        | None -> ()
+                        state <- IndexList.set i (n, r) state
+                        sum <- add sum n
+
+                sum
+            )
+
+        interface AdaptiveValue with
+            member x.GetValueUntyped t = x.GetValue t :> obj
+            member x.ContentType =
+                #if FABLE_COMPILER
+                typeof<obj>
+                #else
+                typeof<'s>
+                #endif
+
+        interface AdaptiveValue<'s> with
+            member x.GetValue t = x.GetValue t  
+
 
     /// Reader for map operations.
     type MapReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> 'b) =
@@ -188,11 +626,11 @@ module internal AdaptiveIndexListImplementation =
      
     /// Reader for mapA operations.
     type ChooseAReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> aval<Option<'b>>) =
-        inherit AbstractReader<IndexList<'b>, IndexListDelta<'b>>(IndexList.trace)
+        inherit AbstractDirtyReader<ValueWithKey<Index, option<'b>>, IndexListDelta<'b>>(IndexListDelta.monoid, checkTag "ValueWithKey")
 
-        let mutable dirty = UncheckedHashSet.create()
-        let mapping = OptimizedClosures.FSharpFunc<Index, 'a, aval<Option<'b>>>.Adapt mapping
         let reader = input.GetReader()
+        let mapping = OptimizedClosures.FSharpFunc<Index, 'a, aval<option<'b>>>.Adapt mapping
+        let keys = UncheckedHashSet.create<Index>()
         let cache = 
             Cache (fun (a,b) -> 
                 let r = mapping.Invoke(a,b)
@@ -201,23 +639,10 @@ module internal AdaptiveIndexListImplementation =
                 res
             )
 
-        override x.InputChangedObject(t, o) =
-            match o with
-            | :? ValueWithKey<Index, Option<'b>> as o -> 
-                lock cache (fun () -> dirty.Add o |> ignore)
-            | _ -> 
-                ()
 
-        override x.Compute(t) =
-            let dirty = 
-                lock cache (fun () ->
-                    let d = dirty
-                    dirty <- UncheckedHashSet.create()
-                    d
-                )
+        override x.Compute(t, dirty) =
             let old = reader.State
             let ops = reader.GetChanges t
-            let state = x.State
             let mutable changes =
                 ops |> IndexListDelta.choose (fun i op ->
                     match op with
@@ -225,20 +650,20 @@ module internal AdaptiveIndexListImplementation =
                         let k = cache.Invoke(i,v)
                         let v = k.GetValue t
                         match v with
-                        | Some v -> Some (Set v)
+                        | Some v -> 
+                            keys.Add i |> ignore
+                            Some (Set v)
                         | None ->
-                            match IndexList.tryGet i state with
-                            | Some _ -> Some Remove
-                            | _ -> None
+                            if keys.Remove i then Some Remove
+                            else None
                     | Remove ->
                         match IndexList.tryGet i old with
                         | Some v ->                  
                             let o = cache.Revoke(i, v)
                             o.Outputs.Remove x |> ignore
                             dirty.Remove o |> ignore
-                            match IndexList.tryGet i state with
-                            | Some _ -> Some Remove
-                            | None -> None
+                            if keys.Remove i then Some Remove
+                            else None
                         | None ->
                             None
                 )
@@ -248,17 +673,14 @@ module internal AdaptiveIndexListImplementation =
                 let v = d.GetValue t
                 match v with
                 | Some v -> 
+                    keys.Add i |> ignore
                     changes <- IndexListDelta.add i (Set v) changes
                 | None ->
-                    match IndexList.tryGet i state with
-                    | Some _ -> 
+                    if keys.Remove i then
                         changes <- IndexListDelta.add i Remove changes
-                    | None ->
-                        ()
 
             changes
-        
-
+  
     /// Ulitity used by CollectReader.
     type MultiReader<'a>(mapping : IndexMapping<Index * Index>, list : alist<'a>, release : alist<'a> -> unit) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
@@ -828,6 +1250,23 @@ module AList =
     /// of other AdaptiveObjects since it does not track dependencies.
     let force (set : alist<'T>) = AVal.force set.Content
 
+    /// Reduces the list using the given `AdaptiveReduction` and returns
+    /// the resulting adaptive value.
+    let reduce (r : AdaptiveReduction<'a, 's, 'v>) (list: alist<'a>) =
+        Reductions.ReduceValue(r, list) :> aval<'v>
+        
+    /// Applies the mapping function to all elements of the list and reduces the results
+    /// using the given `AdaptiveReduction`.
+    /// Returns the resulting adaptive value.
+    let reduceBy (r : AdaptiveReduction<'b, 's, 'v>) (mapping: Index -> 'a -> 'b) (list: alist<'a>) =
+        Reductions.ReduceByValue(r, mapping, list) :> aval<'v>
+        
+    /// Applies the mapping function to all elements of the list and reduces the results
+    /// using the given `AdaptiveReduction`.
+    /// Returns the resulting adaptive value.
+    let reduceByA (r : AdaptiveReduction<'b, 's, 'v>) (mapping: Index -> 'a -> aval<'b>) (list: alist<'a>) =
+        Reductions.AdaptiveReduceByValue(r, mapping, list) :> aval<'v>
+
     /// Adaptively folds over the list using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
     /// Also note that the order of elements given to add/trySubtract is undefined.
@@ -878,6 +1317,10 @@ module AList =
     let fold (f : 's -> 'a -> 's) (seed : 's) (s : alist<'a>) = 
         foldHalfGroup f (fun _ _ -> None) seed s
         
+
+    let foldGroupA (add : 's -> 'b -> 's) (sub : 's -> 'b -> 's) (zero : 's) (mapping : Index -> 'a -> aval<'b>) (list : alist<'a>) =
+        FoldValue(add, sub, zero, mapping, list)
+
     /// Adaptively computes the sum all entries in the list.
     let inline sum (s : alist<'a>) = foldGroup (+) (-) LanguagePrimitives.GenericZero s
     

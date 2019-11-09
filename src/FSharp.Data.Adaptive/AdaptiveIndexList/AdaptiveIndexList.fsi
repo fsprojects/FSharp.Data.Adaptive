@@ -125,15 +125,6 @@ module AList =
     val inline sort : list: alist<'T> -> alist<'T>
         when 'T : comparison
 
-    /// Adaptively folds over the list using add for additions and trySubtract for removals.
-    /// Note the trySubtract may return None indicating that the result needs to be recomputed.
-    /// Also note that the order of elements given to add/trySubtract is undefined.
-    val foldHalfGroup : add : ('S -> 'A -> 'S) -> trySubtract : ('S -> 'A -> option<'S>) -> zero : 'S -> list : alist<'A> -> aval<'S>
-    
-    /// Adaptively folds over the list using add for additions and subtract for removals.
-    /// Note that the order of elements given to add/subtract is undefined.
-    val foldGroup : add : ('S -> 'A -> 'S) -> subtract : ('S -> 'A -> 'S) -> zero : 'S -> list : alist<'A> -> aval<'S>
-
     /// Tries to get the element associated to a specific Index from the list.
     /// Note that this operation should not be used extensively since its resulting
     /// aval will be re-evaluated upon every change of the list.
@@ -148,6 +139,30 @@ module AList =
     /// This should not be used inside the adaptive evaluation
     /// of other AdaptiveObjects since it does not track dependencies.
     val force: alist<'T> -> IndexList<'T>
+
+    /// Reduces the list using the given `AdaptiveReduction` and returns
+    /// the resulting adaptive value.
+    val reduce : reduction: AdaptiveReduction<'T, 'State, 'Value> -> list: alist<'T> -> aval<'Value>
+
+    /// Applies the mapping function to all elements of the list and reduces the results
+    /// using the given `AdaptiveReduction`.
+    /// Returns the resulting adaptive value.
+    val reduceBy : reduction: AdaptiveReduction<'T2, 'State, 'Value> -> mapping: (Index -> 'T1 -> 'T2) -> list: alist<'T1> -> aval<'Value>
+    
+    /// Applies the mapping function to all elements of the list and reduces the results
+    /// using the given `AdaptiveReduction`.
+    /// Returns the resulting adaptive value.
+    val reduceByA : reduction: AdaptiveReduction<'T2, 'State, 'Value> -> mapping: (Index -> 'T1 -> aval<'T2>) -> list: alist<'T1> -> aval<'Value>
+
+    /// Adaptively folds over the list using add for additions and trySubtract for removals.
+    /// Note the trySubtract may return None indicating that the result needs to be recomputed.
+    /// Also note that the order of elements given to add/trySubtract is undefined.
+    val foldHalfGroup : add : ('S -> 'A -> 'S) -> trySubtract : ('S -> 'A -> option<'S>) -> zero : 'S -> list : alist<'A> -> aval<'S>
+    
+    /// Adaptively folds over the list using add for additions and subtract for removals.
+    /// Note that the order of elements given to add/subtract is undefined.
+    val foldGroup : add : ('S -> 'A -> 'S) -> subtract : ('S -> 'A -> 'S) -> zero : 'S -> list : alist<'A> -> aval<'S>
+
 
     /// Adaptively folds over the list using add for additions and recomputes the value on every removal.
     /// Note that the order of elements given to add is undefined.
