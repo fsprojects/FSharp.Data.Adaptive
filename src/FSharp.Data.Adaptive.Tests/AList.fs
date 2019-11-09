@@ -111,6 +111,347 @@ let ``[AList] reference impl``() ({ lreal = real; lref = ref; lexpression = str;
         }
 
     Gen.eval 15 (Random.newSeed()) run
+    
+[<Test>]
+let ``[AList] reduce group``() =
+    let list = clist [1;2;3]
+
+    let reduction = AdaptiveReduction.sum()
+    let res = AList.reduce reduction list
+
+    res |> AVal.force |> should equal 6
+
+    transact (fun () -> list.Add 4 |> ignore)
+    res |> AVal.force |> should equal 10
+
+    transact (fun () -> list.RemoveAt 0 |> ignore)
+    res |> AVal.force |> should equal 9
+
+    transact (fun () -> list.Clear())
+    res |> AVal.force |> should equal 0
+    
+[<Test>]
+let ``[AList] reduce half group``() =
+    let list = clist [1;2;3]
+
+    let reduction = AdaptiveReduction.product()
+    let res = AList.reduce reduction list
+
+    res |> AVal.force |> should equal 6
+
+    transact (fun () -> list.Add 4 |> ignore)
+    res |> AVal.force |> should equal 24
+
+    transact (fun () -> list.RemoveAt 0 |> ignore)
+    res |> AVal.force |> should equal 24
+
+    transact (fun () -> list.Clear())
+    res |> AVal.force |> should equal 1
+    
+    transact (fun () -> list.Add 0 |> ignore)
+    res |> AVal.force |> should equal 0
+    
+    transact (fun () -> list.Add 10 |> ignore)
+    res |> AVal.force |> should equal 0
+    
+    transact (fun () -> list.Add 2 |> ignore)
+    res |> AVal.force |> should equal 0
+    
+    transact (fun () -> list.Add 2 |> ignore)
+    res |> AVal.force |> should equal 0
+
+    transact (fun () -> list.RemoveAt 0 |> ignore)
+    res |> AVal.force |> should equal 40
+
+[<Test>]
+let ``[AList] reduce fold``() =
+    let list = clist [1;2;3]
+
+    let reduction = AdaptiveReduction.fold 0 (+)
+    let res = AList.reduce reduction list
+
+    res |> AVal.force |> should equal 6
+
+    transact (fun () -> list.Add 4 |> ignore)
+    res |> AVal.force |> should equal 10
+
+    transact (fun () -> list.RemoveAt 0 |> ignore)
+    res |> AVal.force |> should equal 9
+
+    transact (fun () -> list.Clear())
+    res |> AVal.force |> should equal 0
+
+
+[<Test>]
+let ``[AList] reduceBy group``() =
+    let list = clist [1;2;3]
+
+    let reduction = AdaptiveReduction.sum()
+    let res = AList.reduceBy reduction (fun _ v -> float v) list
+
+    res |> AVal.force |> should equal 6.0
+
+    transact (fun () -> list.Add 4 |> ignore)
+    res |> AVal.force |> should equal 10.0
+
+    transact (fun () -> list.RemoveAt 0 |> ignore)
+    res |> AVal.force |> should equal 9.0
+
+    transact (fun () -> list.Clear())
+    res |> AVal.force |> should equal 0.0
+    
+[<Test>]
+let ``[AList] reduceBy half group``() =
+    let list = clist [1;2;3]
+
+    let reduction = AdaptiveReduction.product()
+    let res = AList.reduceBy reduction (fun _ v -> float v) list
+
+    res |> AVal.force |> should equal 6.0
+
+    transact (fun () -> list.Add 4 |> ignore)
+    res |> AVal.force |> should equal 24.0
+
+    transact (fun () -> list.RemoveAt 0 |> ignore)
+    res |> AVal.force |> should equal 24.0
+
+    transact (fun () -> list.Clear())
+    res |> AVal.force |> should equal 1.0
+    
+    transact (fun () -> list.Add 0 |> ignore)
+    res |> AVal.force |> should equal 0.0
+    
+    transact (fun () -> list.Add 10 |> ignore)
+    res |> AVal.force |> should equal 0.0
+    
+    transact (fun () -> list.Add 2 |> ignore)
+    res |> AVal.force |> should equal 0.0
+    
+    transact (fun () -> list.Add 2 |> ignore)
+    res |> AVal.force |> should equal 0.0
+
+    transact (fun () -> list.RemoveAt 0 |> ignore)
+    res |> AVal.force |> should equal 40.0
+
+[<Test>]
+let ``[AList] reduceBy fold``() =
+    let list = clist [1;2;3]
+
+    let reduction = AdaptiveReduction.fold 0.0 (+)
+    let res = AList.reduceBy reduction (fun _ v -> float v) list
+
+    res |> AVal.force |> should equal 6.0
+
+    transact (fun () -> list.Add 4 |> ignore)
+    res |> AVal.force |> should equal 10.0
+
+    transact (fun () -> list.RemoveAt 0 |> ignore)
+    res |> AVal.force |> should equal 9.0
+
+    transact (fun () -> list.Clear())
+    res |> AVal.force |> should equal 0.0
+
+    
+[<Test>]
+let ``[AList] reduceByA group``() =
+    let list = clist [1;2;3]
+    
+    let even = cval 1
+    let odd = cval 0
+
+    let mapping _ v =
+        if v % 2 = 0 then even :> aval<_>
+        else odd :> aval<_>
+
+    let reduction = AdaptiveReduction.sum()
+    let res = AList.reduceByA reduction mapping list
+    
+    // (1,0) (2,1) (3,0) = 1
+    res |> AVal.force |> should equal 1
+
+    // (1,0) (2,2) (3,0) = 2
+    transact (fun () -> even.Value <- 2)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) = 1
+    transact (fun () -> even.Value <- 1)
+    res |> AVal.force |> should equal 1
+
+    // (1,3) (2,1) (3,3) = 7
+    transact (fun () -> odd.Value <- 3)
+    res |> AVal.force |> should equal 7
+
+    // (1,1) (2,0) (3,1) = 2
+    transact (fun () -> odd.Value <- 1; even.Value <- 0)
+    res |> AVal.force |> should equal 2
+    
+    // (1,1) (2,0) (3,1) (4,0) = 2
+    transact (fun () -> list.Append 4 |> ignore)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) = 2
+    transact (fun () -> odd.Value <- 0; even.Value <- 1)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) (5,0) = 2
+    transact (fun () -> list.Append 5 |> ignore)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) (5,0) (6,1) = 3
+    transact (fun () -> list.Append 6 |> ignore)
+    res |> AVal.force |> should equal 3
+
+    
+    // (2,1) (4,1) (6,1) = 3
+    transact (fun () -> 
+        list.RemoveAt 4 |> ignore
+        list.RemoveAt 2 |> ignore
+        list.RemoveAt 0 |> ignore
+        odd.Value <- 1
+    )
+    res |> AVal.force |> should equal 3
+    
+    // (1,1) (3,1) (5,1) = 3
+    transact (fun () -> list.Value <- IndexList.ofList [1;3;5])
+    res |> AVal.force |> should equal 3
+
+     
+[<Test>]
+let ``[AList] reduceByA half group``() =
+    let list = clist [1;2;3]
+    
+    let even = cval 1
+    let odd = cval 0
+
+    let mapping _ v =
+        if v % 2 = 0 then even :> aval<_>
+        else odd :> aval<_>
+
+    let mutable fails = 0
+    let reduction = 
+        { AdaptiveReduction.sum() with
+            sub = fun s v -> 
+                if s % 2 = 0 then ValueSome (s - v)
+                else fails <- fails + 1; ValueNone
+        }
+
+    let res = AList.reduceByA reduction mapping list
+    
+    // (1,0) (2,1) (3,0) = 1
+    res |> AVal.force |> should equal 1
+
+    // (1,0) (2,2) (3,0) = 2
+    transact (fun () -> even.Value <- 2)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) = 1
+    transact (fun () -> even.Value <- 1)
+    res |> AVal.force |> should equal 1
+
+    // (1,3) (2,1) (3,3) = 7
+    transact (fun () -> odd.Value <- 3)
+    res |> AVal.force |> should equal 7
+
+    // (1,1) (2,0) (3,1) = 2
+    transact (fun () -> odd.Value <- 1; even.Value <- 0)
+    res |> AVal.force |> should equal 2
+    
+    // (1,1) (2,0) (3,1) (4,0) = 2
+    transact (fun () -> list.Append 4 |> ignore)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) = 2
+    transact (fun () -> odd.Value <- 0; even.Value <- 1)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) (5,0) = 2
+    transact (fun () -> list.Append 5 |> ignore)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) (5,0) (6,1) = 3
+    transact (fun () -> list.Append 6 |> ignore)
+    res |> AVal.force |> should equal 3
+
+    
+    // (2,1) (4,1) (6,1) = 3
+    transact (fun () -> 
+        list.RemoveAt 4 |> ignore
+        list.RemoveAt 2 |> ignore
+        list.RemoveAt 0 |> ignore
+        odd.Value <- 1
+    )
+    res |> AVal.force |> should equal 3
+    
+    // (1,1) (3,1) (5,1) = 3
+    transact (fun () -> list.Value <- IndexList.ofList [1;3;5])
+    res |> AVal.force |> should equal 3
+   
+    fails |> should be (greaterThan 0)
+     
+[<Test>]
+let ``[AList] reduceByA fold``() =
+    let list = clist [1;2;3]
+    
+    let even = cval 1
+    let odd = cval 0
+
+    let mapping _ v =
+        if v % 2 = 0 then even :> aval<_>
+        else odd :> aval<_>
+
+    let reduction = AdaptiveReduction.fold 0 (+)
+
+    let res = AList.reduceByA reduction mapping list
+    
+    // (1,0) (2,1) (3,0) = 1
+    res |> AVal.force |> should equal 1
+
+    // (1,0) (2,2) (3,0) = 2
+    transact (fun () -> even.Value <- 2)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) = 1
+    transact (fun () -> even.Value <- 1)
+    res |> AVal.force |> should equal 1
+
+    // (1,3) (2,1) (3,3) = 7
+    transact (fun () -> odd.Value <- 3)
+    res |> AVal.force |> should equal 7
+
+    // (1,1) (2,0) (3,1) = 2
+    transact (fun () -> odd.Value <- 1; even.Value <- 0)
+    res |> AVal.force |> should equal 2
+    
+    // (1,1) (2,0) (3,1) (4,0) = 2
+    transact (fun () -> list.Append 4 |> ignore)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) = 2
+    transact (fun () -> odd.Value <- 0; even.Value <- 1)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) (5,0) = 2
+    transact (fun () -> list.Append 5 |> ignore)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) (5,0) (6,1) = 3
+    transact (fun () -> list.Append 6 |> ignore)
+    res |> AVal.force |> should equal 3
+
+    
+    // (2,1) (4,1) (6,1) = 3
+    transact (fun () -> 
+        list.RemoveAt 4 |> ignore
+        list.RemoveAt 2 |> ignore
+        list.RemoveAt 0 |> ignore
+        odd.Value <- 1
+    )
+    res |> AVal.force |> should equal 3
+    
+    // (1,1) (3,1) (5,1) = 3
+    transact (fun () -> list.Value <- IndexList.ofList [1;3;5])
+    res |> AVal.force |> should equal 3
+
 
 [<Test>] 
 let ``[IndexMapping] correct``() =

@@ -38,7 +38,9 @@
 	<Compile Include="Core\AdaptiveObject.fs" />
 	<Compile Include="Core\Callbacks.fs" />
 	<Compile Include="AdaptiveValue\AdaptiveValue.fsi" /> 
-	<Compile Include="AdaptiveValue\AdaptiveValue.fs" />
+	<Compile Include="AdaptiveValue\AdaptiveValue.fs" /> 
+	<Compile Include="AdaptiveValue\AdaptiveReduction.fsi" /> 
+	<Compile Include="AdaptiveValue\AdaptiveReduction.fs" />
 	<Compile Include="Traceable\Traceable.fs" />
 	<Compile Include="Traceable\Instances.fs" />
 	<Compile Include="Traceable\History.fs" />
