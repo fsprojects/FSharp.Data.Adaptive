@@ -21,9 +21,11 @@ type internal ReversedCompare<'a when 'a : comparison>(value : 'a) =
             match o with
             | :? ReversedCompare<'a> as o -> compare o.Value value
             | _ -> 0
+
+    #if !FABLE_COMPILER
     interface IComparable<ReversedCompare<'a>> with
         member x.CompareTo o =  compare o.Value x.Value
-
+    #endif
 
 /// A persitent array-like structure that allows lookup/insertion/deletion of entries in O(log N).
 /// Note that datastructure uses Index instead of int as index type which allows for these efficient implementations.

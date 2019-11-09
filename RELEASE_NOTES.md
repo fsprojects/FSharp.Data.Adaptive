@@ -1,3 +1,6 @@
+### 0.0.6
+* fixed fable build
+
 ### 0.0.5
 * AList.countBy/countByA
 
