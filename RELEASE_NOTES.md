@@ -1,3 +1,8 @@
+### 0.0.5-prerelease08
+* added AdaptiveReductions
+* AList.reduce/reduceBy/reduceByA
+* AList.count/isEmpty
+
 ### 0.0.5-prerelease07
 * AList.mapA/chooseA/filterA
 
