@@ -90,6 +90,9 @@ module AList =
     /// Adaptively applies the given mapping function to all elements and returns a new alist holding the concatenated results.
     val collect : mapping: ('T1 -> alist<'T2>) -> list: alist<'T1> -> alist<'T2>
 
+    /// Adaptively creates an alist with the source-indices.
+    val indexed : list: alist<'T> -> alist<Index * 'T>
+
     /// Adaptively concatenates the given lists.
     val concat : lists: #seq<alist<'T>> -> alist<'T>
     

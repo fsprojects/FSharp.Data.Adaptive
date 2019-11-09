@@ -1061,7 +1061,11 @@ module AList =
     let collect (mapping: 'T1 -> alist<'T2>) (list : alist<'T1>) =
         // TODO: better implementation possible (caching?)
         collecti (fun _ v -> mapping v) list
-         
+
+    /// Adaptively creates an alist with the source-indices.
+    let indexed (list : alist<'T>) =
+        list |> mapi (fun i v -> (i, v))
+
     /// Adaptively concatenates the given lists.
     let concat (lists : #seq<alist<'T>>) =
         let lists = IndexList.ofSeq lists
