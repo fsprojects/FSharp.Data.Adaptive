@@ -15,6 +15,8 @@ Makes Aardvark.Base.Incremental's functionality available as a standalone librar
 
 [Simple Tutorial and Reference](https://fsprojects.github.io/FSharp.Data.Adaptive)
 
+Also checkout our [TodoMVC](https://aardvarkians.com/demo/TodoMVC/) implemented in [Fable.Elmish.Adaptive](https://github.com/krauthaufen/Fable.Elmish.Adaptive)
+
 
 We're currently working on more documentation & tutorials. 
 
