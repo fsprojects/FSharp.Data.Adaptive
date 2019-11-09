@@ -83,8 +83,6 @@ module AList =
     
     /// Adaptively filters the list using the given predicate.
     val filterA : mapping: ('T -> aval<bool>) -> list: alist<'T> -> alist<'T>
-       
-
 
     /// Adaptively applies the given mapping function to all elements and returns a new alist holding the concatenated results.
     val collecti : mapping: (Index -> 'T1 -> alist<'T2>) -> list: alist<'T1> -> alist<'T2>
@@ -112,9 +110,19 @@ module AList =
     val sortByi : mapping: (Index -> 'T1 -> 'T2) -> list: alist<'T1> -> alist<'T1>
         when 'T2 : comparison
  
+    /// Sorts the list using the keys given by projection in descending order.
+    /// Note that the sorting is stable.
+    val sortByDescendingi : mapping: (Index -> 'T1 -> 'T2) -> list: alist<'T1> -> alist<'T1>
+        when 'T2 : comparison
+
     /// Sorts the list using the keys given by projection.
     /// Note that the sorting is stable.
     val sortBy : mapping: ('T1 -> 'T2) -> list: alist<'T1> -> alist<'T1>
+        when 'T2 : comparison
+        
+    /// Sorts the list using the keys given by projection in descending order.
+    /// Note that the sorting is stable.
+    val sortByDescending : mapping: ('T1 -> 'T2) -> list: alist<'T1> -> alist<'T1>
         when 'T2 : comparison
 
     /// Sorts the list using the given compare function.
@@ -123,6 +131,10 @@ module AList =
 
     /// Sorts the list.
     val inline sort : list: alist<'T> -> alist<'T>
+        when 'T : comparison
+
+    /// Sorts the list in descending order.
+    val inline sortDescending : list: alist<'T> -> alist<'T>
         when 'T : comparison
 
     /// Tries to get the element associated to a specific Index from the list.
@@ -134,6 +146,12 @@ module AList =
     /// Note that this operation should not be used extensively since its resulting
     /// aval will be re-evaluated upon every change of the list.
     val tryAt : index: int -> list: alist<'T> -> aval<option<'T>>
+
+    /// Adaptively tests if the list is empty.
+    val isEmpty: alist<'T> -> aval<bool>
+
+    /// Adaptively gets the number of elements in the list.
+    val count: alist<'T> -> aval<int>
 
     /// Evaluates the given adaptive list and returns its current content.
     /// This should not be used inside the adaptive evaluation
@@ -167,22 +185,53 @@ module AList =
     /// Note that the order of elements given to add is undefined.
     val fold : add : ('S -> 'A -> 'S) -> zero : 'S -> list : alist<'A> -> aval<'S>
 
-    /// Adaptively tests if the list is empty.
-    val isEmpty: alist<'T> -> aval<bool>
+    /// Adaptively checks whether the predicate holds for all entries.
+    val forall: predicate: ('T -> bool) -> list: alist<'T> -> aval<bool> 
+    
+    /// Adaptively checks whether the predicate holds for at least one entry.
+    val exists: predicate: ('T -> bool) -> list: alist<'T> -> aval<bool> 
 
-    /// Adaptively gets the number of elements in the list.
-    val count: alist<'T> -> aval<int>
-
-    /// Adaptively computes the sum all entries in the list.
+    /// Adaptively computes the sum of all entries in the list.
     val inline sum : list : alist<'T> -> aval<'S>
         when ('T or 'S) : (static member (+) : 'S -> 'T -> 'S) 
         and  ('T or 'S) : (static member (-) : 'S -> 'T -> 'S) 
         and   'S : (static member Zero : 'S)
+        
+    /// Adaptively computes the average of all entries in the list.
+    val inline average: list : alist<'T> -> aval<'S>
+        when ('T or 'S) : (static member (+) : 'S -> 'T -> 'S) 
+        and  ('T or 'S) : (static member (-) : 'S -> 'T -> 'S) 
+        and   'S : (static member Zero : 'S)
+        and   'S : (static member DivideByInt : ^S * int -> ^S) 
 
-    /// Adaptively computes the product of all entries in the list.
-    val inline product : list : alist<'T> -> aval<'S>
-        when ('T or 'S) : (static member (*) : 'S -> 'T -> 'S) 
-        and  ('T or 'S) : (static member (/) : 'S -> 'T -> 'S) 
-        and   'S : (static member One : 'S)
-        and   'T : (static member Zero : 'T)
-        and   'T : equality
+    /// Adaptively computes the sum of all values returned by mapping for the list.
+    val inline sumBy: mapping : ('T1 -> 'T2) -> list : alist<'T1> -> aval<'S>
+        when ('T2 or 'S) : (static member (+) : 'S -> 'T2 -> 'S) 
+        and  ('T2 or 'S) : (static member (-) : 'S -> 'T2 -> 'S) 
+        and   'S : (static member Zero : 'S)
+        
+    /// Adaptively computes the average of all values returned by mapping for the list.
+    val inline averageBy: mapping : ('T1 -> 'T2) -> list : alist<'T1> -> aval<'S>
+        when ('T2 or 'S) : (static member (+) : 'S -> 'T2 -> 'S) 
+        and  ('T2 or 'S) : (static member (-) : 'S -> 'T2 -> 'S) 
+        and   'S : (static member Zero : 'S)
+        and   'S : (static member DivideByInt : ^S * int -> ^S) 
+        
+    /// Adaptively checks whether the predicate holds for all entries.
+    val forallA: predicate: ('T -> aval<bool>) -> list: alist<'T> -> aval<bool> 
+    
+    /// Adaptively checks whether the predicate holds for at least one entry.
+    val existsA: predicate: ('T -> aval<bool>) -> list: alist<'T> -> aval<bool> 
+    
+    /// Adaptively computes the sum of all values returned by mapping for the list.
+    val inline sumByA: mapping : ('T1 -> aval<'T2>) -> list : alist<'T1> -> aval<'S>
+        when ('T2 or 'S) : (static member (+) : 'S -> 'T2 -> 'S) 
+        and  ('T2 or 'S) : (static member (-) : 'S -> 'T2 -> 'S) 
+        and   'S : (static member Zero : 'S)
+        
+    /// Adaptively computes the average of all values returned by mapping for the list.
+    val inline averageByA: mapping : ('T1 -> aval<'T2>) -> list : alist<'T1> -> aval<'S>
+        when ('T2 or 'S) : (static member (+) : 'S -> 'T2 -> 'S) 
+        and  ('T2 or 'S) : (static member (-) : 'S -> 'T2 -> 'S) 
+        and   'S : (static member Zero : 'S)
+        and   'S : (static member DivideByInt : ^S * int -> ^S) 

@@ -4,6 +4,25 @@ open System
 open System.Threading
 open System.Collections
 open System.Collections.Generic
+[<Struct; CustomComparison; CustomEquality>]
+type internal ReversedCompare<'a when 'a : comparison>(value : 'a) =
+    member x.Value = value
+
+    override x.GetHashCode() =
+        Unchecked.hash value
+
+    override x.Equals o =
+        match o with
+        | :? ReversedCompare<'a> as o -> Unchecked.equals value o.Value
+        | _ -> false
+
+    interface IComparable with
+        member x.CompareTo o =
+            match o with
+            | :? ReversedCompare<'a> as o -> compare o.Value value
+            | _ -> 0
+    interface IComparable<ReversedCompare<'a>> with
+        member x.CompareTo o =  compare o.Value x.Value
 
 
 /// A persitent array-like structure that allows lookup/insertion/deletion of entries in O(log N).
@@ -727,6 +746,18 @@ module IndexList =
     let sortBy (mapping : 'T1 -> 'T2) (l : IndexList<'T1>) =
         let arr = l.Content |> MapExt.toArray
         Array.sortInPlaceBy (fun (i, v) -> mapping v, i) arr
+        ofArray (Array.map snd arr)
+        
+    /// sorts the list by the given mapping in descending order.
+    let sortByDescendingi (mapping : Index -> 'T1 -> 'T2) (l : IndexList<'T1>) =
+        let arr = l.Content |> MapExt.toArray
+        Array.sortInPlaceBy (fun (i,v) -> ReversedCompare(mapping i v), i) arr
+        ofArray (Array.map snd arr)
+
+    /// sorts the list by the given mapping in descending order.
+    let sortByDescending (mapping : 'T1 -> 'T2) (l : IndexList<'T1>) =
+        let arr = l.Content |> MapExt.toArray
+        Array.sortInPlaceBy (fun (i, v) -> ReversedCompare(mapping v), i) arr
         ofArray (Array.map snd arr)
         
     /// sorts the list using the given compare function.

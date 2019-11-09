@@ -120,6 +120,14 @@ module AdaptiveReduction =
             sub = fun s a -> ValueSome (s - a)
             view = id
         }
+        
+    let inline average() =
+        {
+            seed = struct(0, LanguagePrimitives.GenericZero)
+            add = fun struct(c, s) a -> struct(c + 1, s + a)
+            sub = fun struct(c, s) a -> ValueSome (struct (c - 1, s - a))
+            view = fun struct(c, s) -> LanguagePrimitives.DivideByInt s c
+        }
 
     let inline product() =
         {

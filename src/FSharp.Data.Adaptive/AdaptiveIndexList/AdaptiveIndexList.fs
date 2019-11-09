@@ -1103,6 +1103,24 @@ module AList =
         else
             create (fun () -> SortByReader(list, fun _ v -> projection v))
 
+    /// Sorts the list using the keys given by projection in descending order.
+    /// Note that the sorting is stable.
+    let sortByDescendingi (projection : Index -> 'T1 -> 'T2) (list : alist<'T1>) =
+        if list.IsConstant then
+            constant (fun () -> force list |> IndexList.sortByDescendingi projection)
+        else
+            let inline projection i v = ReversedCompare(projection i v)
+            create (fun () -> SortByReader(list, projection))
+            
+    /// Sorts the list using the keys given by projection in descending order.
+    /// Note that the sorting is stable.
+    let sortByDescending (projection : 'T1 -> 'T2) (list : alist<'T1>) =
+        if list.IsConstant then
+            constant (fun () -> force list |> IndexList.sortByDescending projection)
+        else
+            let inline projection _ v = ReversedCompare(projection v)
+            create (fun () -> SortByReader(list, projection))
+
     /// Sorts the list using the given compare function.
     /// Note that the sorting is stable.
     let sortWith (compare : 'T -> 'T -> int) (list : alist<'T>) =
@@ -1113,6 +1131,11 @@ module AList =
 
     /// Sorts the list.
     let inline sort (list: alist<'T>) = sortWith compare list
+    
+    /// Sorts the list in descending order.
+    let inline sortDescending (list: alist<'T>) = 
+        let inline cmp a b = compare b a
+        sortWith cmp list
 
     /// Tries to get the element associated to a specific Index from the list.
     /// Note that this operation should not be used extensively since its resulting
@@ -1176,10 +1199,42 @@ module AList =
     let count (l: alist<'a>) =
         l.Content |> AVal.map IndexList.count
 
+    let forall (predicate: 'T -> bool) (list: alist<'T>) =
+        let r = AdaptiveReduction.countNegative |> AdaptiveReduction.mapOut (fun v -> v = 0)
+        reduceBy r (fun _ v -> predicate v) list
+        
+    let exists (predicate: 'T -> bool) (list: alist<'T>) =
+        let r = AdaptiveReduction.countPositive |> AdaptiveReduction.mapOut (fun v -> v <> 0)
+        reduceBy r (fun _ v -> predicate v) list
+        
+    let forallA (predicate: 'T -> aval<bool>) (list: alist<'T>) =
+        let r = AdaptiveReduction.countNegative |> AdaptiveReduction.mapOut (fun v -> v = 0)
+        reduceByA r (fun _ v -> predicate v) list
+        
+    let existsA (predicate: 'T -> aval<bool>) (list: alist<'T>) =
+        let r = AdaptiveReduction.countPositive |> AdaptiveReduction.mapOut (fun v -> v <> 0)
+        reduceByA r (fun _ v -> predicate v) list
+
     /// Adaptively computes the sum all entries in the list.
     let inline sum (s : alist<'a>) = 
         reduce (AdaptiveReduction.sum()) s
     
+    let inline sumBy (mapping : 'T1 -> 'T2) (list : alist<'T1>) =
+        reduceBy (AdaptiveReduction.sum()) (fun _ v -> mapping v) list
+
+    let inline sumByA (mapping : 'T1 -> aval<'T2>) (list : alist<'T1>) =
+        reduceByA (AdaptiveReduction.sum()) (fun _ v -> mapping v) list
+
+    let inline average (s : alist<'a>) =
+        reduce (AdaptiveReduction.average()) s
+        
+    let inline averageBy (mapping : 'T1 -> 'T2) (list : alist<'T1>) =
+        reduceBy (AdaptiveReduction.average()) (fun _ v -> mapping v) list
+
+    let inline averageByA (mapping : 'T1 -> aval<'T2>) (list : alist<'T1>) =
+        reduceByA (AdaptiveReduction.average()) (fun _ v -> mapping v) list
+
+
     /// Adaptively computes the product of all entries in the list.
     let inline product (s : alist<'a>) = 
         reduce (AdaptiveReduction.product()) s

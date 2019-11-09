@@ -107,5 +107,12 @@ module AdaptiveReduction =
         and ('s or 'a) : (static member (*) : 's -> 'a -> 's)
         and ('s or 'a) : (static member (/) : 's -> 'a -> 's)
 
+    /// A reduction returning the average of all elements.
+    val inline average<'a, 's> : unit -> AdaptiveReduction<'a, struct(int * 's), 's> 
+        when 's : (static member Zero : 's)
+        and ('s or 'a) : (static member (+) : 's -> 'a -> 's)
+        and ('s or 'a) : (static member (-) : 's -> 'a -> 's)
+        and 's : (static member DivideByInt : 's -> int -> 's)
+        
 
 
