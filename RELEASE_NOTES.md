@@ -1,3 +1,8 @@
+### 0.0.5-prerelease09
+* AList.rev/tryMin/tryMax
+* AList.indexed
+* AList.sorts/exists/forall/etc.
+
 ### 0.0.5-prerelease08
 * added AdaptiveReductions
 * AList.reduce/reduceBy/reduceByA
