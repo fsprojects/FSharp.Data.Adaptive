@@ -399,125 +399,6 @@ module internal AdaptiveIndexListImplementation =
 
         interface AdaptiveValue<'T> with
             member x.GetValue t = x.GetValue t  
-       
-    type TargetIndexTable<'a>() =
-        
-        let mutable targetIndices : HashMap<'a, Set<Index>> = HashMap.empty
-
-        member x.Add(value : 'a, i : Index) =
-            targetIndices <-
-                targetIndices |> HashMap.alter value (fun old ->
-                    match old with
-                    | None -> Set.singleton i |> Some
-                    | Some o -> Set.add i o |> Some
-                )
-
-        member x.Remove(value : 'a, i : Index) =
-            targetIndices <-
-                targetIndices |> HashMap.alter value (fun old ->
-                    match old with
-                    | None -> None
-                    | Some o -> 
-                        let s = Set.remove i o 
-                        if Set.isEmpty s then None
-                        else Some s
-                )
-            
-        member x.GetIndices(value : 'a) =
-            match HashMap.tryFind value targetIndices with
-            | Some s -> s
-            | None -> Set.empty
-
-    type FoldValue<'a, 'b, 's>(add : 's -> 'b -> 's, sub : 's -> 'b -> 's, zero : 's, mapping : Index -> 'a -> aval<'b>, l : alist<'a>) =
-        inherit AdaptiveObject()
-
-        let reader = l.GetReader()
-        do reader.Tag <- "reader"
-
-        let dirtyLock = obj()
-
-
-        let targetIndices = TargetIndexTable<aval<'b>>()
-        let mutable dirty : IndexList<aval<'b>> = IndexList.empty
-        let mutable sum = zero
-        let mutable state : IndexList<'b * aval<'b>> = IndexList.empty
-
-        let consumeDirty() =
-            lock dirtyLock (fun () ->
-                let d = dirty
-                dirty <- IndexList.empty
-                d
-            )
-
-        override x.InputChangedObject(t, o) =
-            if isNull o.Tag then
-                match o with
-                | :? aval<'b> as o -> 
-                    lock dirtyLock (fun () -> 
-                        let dst = targetIndices.GetIndices o
-                        for i in dst do 
-                            dirty <- IndexList.set i o dirty
-                    )
-                | _ -> 
-                    ()
- 
-        member x.GetValue (t : AdaptiveToken) =
-            x.EvaluateAlways t (fun t ->
-                if x.OutOfDate then
-                    let ops = reader.GetChanges t
-                    let mutable dirty = consumeDirty()
-                    for (i, op) in IndexListDelta.toSeq ops do
-                        dirty <- IndexList.remove i dirty
-                        match op with
-                        | Set v ->
-                            let o = IndexList.tryGet i state
-                            match o with
-                            | Some(o, ov) -> 
-                                sum <- sub sum o
-                                ov.Outputs.Remove x |> ignore
-                            | None -> 
-                                ()
-
-                            let r = mapping i v
-                            targetIndices.Add(r, i)
-                            let n = r.GetValue(t)
-                            state <- IndexList.set i (n, r) state
-                            sum <- add sum n
-                        | Remove ->
-                            match IndexList.tryRemove i state with
-                            | Some((o, ov), rest) -> 
-                                sum <- sub sum o
-                                targetIndices.Remove(ov, i)
-                                ov.Outputs.Remove x |> ignore
-                                state <- rest
-                            | None -> 
-                                ()
-
-
-                    for (i, r) in IndexList.toSeqIndexed dirty do
-                        let n = r.GetValue(t)
-                        let o = IndexList.tryGet i state
-                        match o with
-                        | Some(o, ov) -> sum <- sub sum o
-                        | None -> ()
-                        state <- IndexList.set i (n, r) state
-                        sum <- add sum n
-
-                sum
-            )
-
-        interface AdaptiveValue with
-            member x.GetValueUntyped t = x.GetValue t :> obj
-            member x.ContentType =
-                #if FABLE_COMPILER
-                typeof<obj>
-                #else
-                typeof<'s>
-                #endif
-
-        interface AdaptiveValue<'s> with
-            member x.GetValue t = x.GetValue t  
-
 
     /// Reader for map operations.
     type MapReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> 'b) =
@@ -1271,58 +1152,34 @@ module AList =
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
     /// Also note that the order of elements given to add/trySubtract is undefined.
     let foldHalfGroup (add : 's -> 'a -> 's) (trySub : 's -> 'a -> Option<'s>) (zero : 's) (l : alist<'a>) =
-        let r = l.GetReader()
-        let mutable res = zero
-        AVal.custom (fun token ->
-            let old = r.State
-            let ops = r.GetChanges token
-
-            use e = (IndexListDelta.toSeq ops).GetEnumerator()
-            let mutable working = true
-
-            while working && e.MoveNext() do
-                let (idx, op) = e.Current
-                match op with
-                | Remove ->
-                    match IndexList.tryGet idx old with
-                    | Some o -> 
-                        match trySub res o with
-                        | Some r -> res <- r
-                        | None -> working <- false
-                    | None -> 
-                        () // strange
-                | Set v ->
-                    match IndexList.tryGet idx old with
-                    | Some o ->
-                        match trySub res o with
-                        | Some r -> res <- add r v
-                        | None -> working <- false
-                    | None -> 
-                        res <- add res v
-               
-            if not working then
-                res <- r.State |> Seq.fold add zero
-
-            res
-
-        )
+        let trySub s a =
+            match trySub s a with
+            | Some v -> ValueSome v
+            | None -> ValueNone
+        reduce (AdaptiveReduction.halfGroup zero add trySub) l
 
     /// Adaptively folds over the list using add for additions and subtract for removals.
     /// Note that the order of elements given to add/subtract is undefined.
-    let foldGroup (add : 's -> 'a -> 's) (sub : 's -> 'a -> 's) (zero : 's) (s : alist<'a>) =
-        foldHalfGroup add (fun a b -> Some (sub a b)) zero s
+    let foldGroup (add : 's -> 'a -> 's) (sub : 's -> 'a -> 's) (zero : 's) (l : alist<'a>) =
+        reduce (AdaptiveReduction.group zero add sub) l
 
     /// Adaptively folds over the list using add for additions and recomputes the value on every removal.
     /// Note that the order of elements given to add is undefined.
-    let fold (f : 's -> 'a -> 's) (seed : 's) (s : alist<'a>) = 
-        foldHalfGroup f (fun _ _ -> None) seed s
+    let fold (f : 's -> 'a -> 's) (seed : 's) (l : alist<'a>) = 
+        reduce (AdaptiveReduction.fold seed f) l
         
-
-    let foldGroupA (add : 's -> 'b -> 's) (sub : 's -> 'b -> 's) (zero : 's) (mapping : Index -> 'a -> aval<'b>) (list : alist<'a>) =
-        FoldValue(add, sub, zero, mapping, list)
+    /// Adaptively tests if the list is empty.
+    let isEmpty (l: alist<'a>) =
+        l.Content |> AVal.map IndexList.isEmpty
+        
+    /// Adaptively gets the number of elements in the list.
+    let count (l: alist<'a>) =
+        l.Content |> AVal.map IndexList.count
 
     /// Adaptively computes the sum all entries in the list.
-    let inline sum (s : alist<'a>) = foldGroup (+) (-) LanguagePrimitives.GenericZero s
+    let inline sum (s : alist<'a>) = 
+        reduce (AdaptiveReduction.sum()) s
     
     /// Adaptively computes the product of all entries in the list.
-    let inline product (s : alist<'a>) = foldGroup (*) (/) LanguagePrimitives.GenericOne s
+    let inline product (s : alist<'a>) = 
+        reduce (AdaptiveReduction.product()) s

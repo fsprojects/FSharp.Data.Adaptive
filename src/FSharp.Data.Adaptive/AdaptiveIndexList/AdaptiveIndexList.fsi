@@ -163,10 +163,15 @@ module AList =
     /// Note that the order of elements given to add/subtract is undefined.
     val foldGroup : add : ('S -> 'A -> 'S) -> subtract : ('S -> 'A -> 'S) -> zero : 'S -> list : alist<'A> -> aval<'S>
 
-
     /// Adaptively folds over the list using add for additions and recomputes the value on every removal.
     /// Note that the order of elements given to add is undefined.
     val fold : add : ('S -> 'A -> 'S) -> zero : 'S -> list : alist<'A> -> aval<'S>
+
+    /// Adaptively tests if the list is empty.
+    val isEmpty: alist<'T> -> aval<bool>
+
+    /// Adaptively gets the number of elements in the list.
+    val count: alist<'T> -> aval<int>
 
     /// Adaptively computes the sum all entries in the list.
     val inline sum : list : alist<'T> -> aval<'S>
@@ -179,3 +184,5 @@ module AList =
         when ('T or 'S) : (static member (*) : 'S -> 'T -> 'S) 
         and  ('T or 'S) : (static member (/) : 'S -> 'T -> 'S) 
         and   'S : (static member One : 'S)
+        and   'T : (static member Zero : 'T)
+        and   'T : equality
