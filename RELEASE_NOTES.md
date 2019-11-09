@@ -1,3 +1,6 @@
+### 0.0.5
+* AList.countBy/countByA
+
 ### 0.0.5-prerelease09
 * AList.rev/tryMin/tryMax
 * AList.indexed
