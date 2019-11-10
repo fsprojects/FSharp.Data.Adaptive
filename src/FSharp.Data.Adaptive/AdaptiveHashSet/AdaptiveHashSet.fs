@@ -18,6 +18,255 @@ type AdaptiveHashSet<'T> =
 
 and aset<'T> = AdaptiveHashSet<'T>
 
+
+/// Internal implementations for aset reductions.
+module SetReductions =
+    
+    /// aval for reduce operations.
+    type ReduceValue<'a, 's, 'v>(reduction : AdaptiveReduction<'a, 's, 'v>, input : aset<'a>) =
+        inherit AdaptiveObject()
+
+        let reader = input.GetReader()
+        let mutable sum = reduction.seed
+
+        let mutable result = Unchecked.defaultof<'v>
+
+        member x.GetValue(token : AdaptiveToken) =
+            x.EvaluateAlways token (fun token ->
+                if x.OutOfDate then
+                    let ops = reader.GetChanges token
+                    let mutable working = true
+                    use e = (ops :> seq<_>).GetEnumerator()
+                    while working && e.MoveNext() do
+                        let op = e.Current
+                        match op with
+                        | Add(_, a) ->
+                            sum <- reduction.add sum a
+
+                        | Rem(_, old) ->
+                            match reduction.sub sum old with
+                            | ValueSome s -> sum <- s
+                            | ValueNone -> working <- false
+
+                    if not working then
+                        sum <- reader.State |> Seq.fold reduction.add reduction.seed
+
+                    result <- reduction.view sum
+
+                result
+            )
+
+        interface AdaptiveValue with
+            member x.GetValueUntyped t = 
+                x.GetValue t :> obj
+            member x.ContentType =
+                #if FABLE_COMPILER
+                typeof<obj>
+                #else
+                typeof<'v>
+                #endif
+
+        interface AdaptiveValue<'v> with
+            member x.GetValue t = x.GetValue t
+            
+    /// aval for reduceBy operations.
+    type ReduceByValue<'a, 'b, 's, 'v>(reduction : AdaptiveReduction<'b, 's, 'v>, mapping : 'a -> 'b, input : aset<'a>) =
+        inherit AdaptiveObject()
+
+        let reader = input.GetReader()
+        let mutable sum = ValueSome reduction.seed
+
+        let mutable result = Unchecked.defaultof<'v>
+        let mutable state = HashMap.empty<'a, 'b>
+
+        let add (s : ValueOption<'s>) (v : 'b) =
+            match s with
+            | ValueSome s -> ValueSome (reduction.add s v)
+            | ValueNone -> ValueNone
+            
+        let sub (s : ValueOption<'s>) (v : 'b) =
+            match s with
+            | ValueSome s -> reduction.sub s v
+            | ValueNone -> ValueNone
+
+        member x.GetValue(token : AdaptiveToken) =
+            x.EvaluateAlways token (fun token ->
+                if x.OutOfDate then
+                    let ops = reader.GetChanges token
+                    for op in ops do
+                        match op with
+                        | Add(_, a) ->
+                            match HashMap.tryFind a state with
+                            | Some old -> sum <- sub sum old
+                            | None -> ()
+
+                            let b = mapping a
+
+                            sum <- add sum b
+                            state <- HashMap.add a b state
+
+                        | Rem(_, a) ->
+                            match HashMap.tryRemove a state with
+                            | Some(old, rest) ->
+                                state <- rest
+                                sum <- sub sum old
+                            | None ->
+                                ()
+
+                    match sum with
+                    | ValueSome s ->
+                        result <- reduction.view s
+                    | ValueNone ->
+                        let s = state |> HashMap.fold (fun s _ v -> reduction.add s v) reduction.seed
+                        sum <- ValueSome s
+                        result <- reduction.view s
+
+                result
+            )
+
+        interface AdaptiveValue with
+            member x.GetValueUntyped t = 
+                x.GetValue t :> obj
+            member x.ContentType =
+                #if FABLE_COMPILER
+                typeof<obj>
+                #else
+                typeof<'v>
+                #endif
+
+        interface AdaptiveValue<'v> with
+            member x.GetValue t = x.GetValue t
+
+    /// aval for reduceByA operations.
+    type AdaptiveReduceByValue<'a, 'b, 's, 'v>(reduction : AdaptiveReduction<'b, 's, 'v>, mapping : 'a -> aval<'b>, l : aset<'a>) =
+        inherit AdaptiveObject()
+
+        let reader = l.GetReader()
+        do reader.Tag <- "FoldReader"
+
+        #if !FABLE_COMPILER
+        let dirtyLock = obj()
+        #endif
+
+
+        let mutable targets = MultiSetMap.empty<aval<'b>, 'a>
+        let mutable state = HashMap.empty<'a, aval<'b> * 'b>
+
+        let mutable dirty : HashMap<'a, aval<'b>> = HashMap.empty
+        let mutable sum = ValueSome reduction.seed
+        let mutable res = Unchecked.defaultof<'v>
+
+        let sub (s : ValueOption<'s>) (v : 'b) =
+            match s with
+            | ValueSome s -> reduction.sub s v
+            | ValueNone -> ValueNone
+            
+        let add (s : ValueOption<'s>) (v : 'b) =
+            match s with
+            | ValueSome s -> ValueSome (reduction.add s v)
+            | ValueNone -> ValueNone
+
+
+        let consumeDirty() =
+            #if FABLE_COMPILER
+            let d = dirty
+            dirty <- HashMap.empty
+            d
+            #else
+            lock dirtyLock (fun () ->
+                let d = dirty
+                dirty <- HashMap.empty
+                d
+            )
+            #endif
+
+        let removeIndex (x : AdaptiveReduceByValue<_,_,_,_>) (i : 'a) =
+            match HashMap.tryRemove i state with
+            | Some ((ov, o), newState) ->
+                state <- newState
+                sum <- sub sum o    
+                let rem, newTargets = MultiSetMap.remove ov i targets
+                targets <- newTargets
+                if rem then ov.Outputs.Remove x |> ignore
+                
+            | None ->
+                ()
+
+        override x.InputChangedObject(t, o) =
+            if isNull o.Tag then
+                #if FABLE_COMPILER
+                let o = unbox<aval<'b>> o
+                for i in MultiSetMap.find o targets do
+                    dirty <- HashMap.add i o dirty
+                #else
+                match o with
+                | :? aval<'b> as o ->
+                    lock dirtyLock (fun () -> 
+                        for i in MultiSetMap.find o targets do
+                            dirty <- HashMap.add i o dirty
+                    )
+                | _ -> 
+                    ()
+                #endif
+ 
+        member x.GetValue (t : AdaptiveToken) =
+            x.EvaluateAlways t (fun t ->
+                if x.OutOfDate then
+                    let ops = reader.GetChanges t
+                    let mutable dirty = consumeDirty()
+                    for op in ops do
+                        dirty <- HashMap.remove op.Value dirty
+                        match op with
+                        | Add(_, v) ->
+                            removeIndex x v
+
+                            let r = mapping v
+                            let n = r.GetValue(t)
+                            targets <- MultiSetMap.add r v targets
+                            state <- HashMap.add v (r, n) state
+                            sum <- add sum n
+
+                        | Rem(_, v) ->
+                            removeIndex x v
+
+
+                    for (i, r) in dirty do
+                        let n = r.GetValue(t)
+                        state <-
+                            state |> HashMap.alter i (fun old ->
+                                match old with
+                                | Some (ro, o) -> 
+                                    assert(ro = r)
+                                    sum <- add (sub sum o) n
+                                | None -> 
+                                    sum <- add sum n
+                                Some (r, n)
+                            )
+
+                    match sum with
+                    | ValueNone ->
+                        let s = state |> HashMap.fold (fun s _ (_,v) -> reduction.add s v) reduction.seed
+                        sum <- ValueSome s
+                        res <- reduction.view s
+                    | ValueSome s ->
+                        res <- reduction.view s
+
+                res
+            )
+
+        interface AdaptiveValue with
+            member x.GetValueUntyped t = x.GetValue t :> obj
+            member x.ContentType =
+                #if FABLE_COMPILER
+                typeof<obj>
+                #else
+                typeof<'v>
+                #endif
+
+        interface AdaptiveValue<'v> with
+            member x.GetValue t = x.GetValue t  
+  
+
 /// Internal implementations for aset operations.
 module AdaptiveHashSetImplementation =
 
@@ -669,42 +918,33 @@ module ASet =
     /// of other AdaptiveObjects since it does not track dependencies.
     let force (set : aset<'T>) = AVal.force set.Content
 
+    /// Reduces the set using the given `AdaptiveReduction` and returns
+    /// the resulting adaptive value.
+    let reduce (r : AdaptiveReduction<'a, 's, 'v>) (list: aset<'a>) =
+        SetReductions.ReduceValue(r, list) :> aval<'v>
+        
+    /// Applies the mapping function to all elements of the set and reduces the results
+    /// using the given `AdaptiveReduction`.
+    /// Returns the resulting adaptive value.
+    let reduceBy (r : AdaptiveReduction<'b, 's, 'v>) (mapping: 'a -> 'b) (list: aset<'a>) =
+        SetReductions.ReduceByValue(r, mapping, list) :> aval<'v>
+        
+    /// Applies the mapping function to all elements of the set and reduces the results
+    /// using the given `AdaptiveReduction`.
+    /// Returns the resulting adaptive value.
+    let reduceByA (r : AdaptiveReduction<'b, 's, 'v>) (mapping: 'a -> aval<'b>) (list: aset<'a>) =
+        SetReductions.AdaptiveReduceByValue(r, mapping, list) :> aval<'v>
+
     /// Adaptively folds over the set using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
     /// Also note that the order of elements given to add/trySubtract is undefined.
     let foldHalfGroup (add : 'S -> 'A -> 'S) (trySub : 'S -> 'A -> option<'S>) (zero : 'S) (s : aset<'A>) =
-        let r = s.GetReader()
-        let mutable res = zero
-
-        let rec traverse (d : list<SetOperation<'A>>) =
-            match d with
-                | [] -> true
-                | d :: rest ->
-                    match d with
-                    | Add(1,v) -> 
-                        res <- add res v
-                        traverse rest
-
-                    | Rem(1,v) ->
-                        match trySub res v with
-                        | Some s ->
-                            res <- s
-                            traverse rest
-                        | None ->
-                            false
-                    | _ -> 
-                        failwithf "[ASet] unexpected delta: %A" d
-                                    
-
-        AVal.custom (fun token ->
-            let ops = r.GetChanges token
-            let worked = traverse (HashSetDelta.toList ops)
-
-            if not worked then
-                res <- r.State |> CountingHashSet.fold add zero
-                
-            res
-        )
+        let inline trySub s v =
+            match trySub s v with
+            | Some v -> ValueSome v
+            | None -> ValueNone
+        let reduction = AdaptiveReduction.halfGroup zero add trySub
+        reduce reduction s
 
     /// Adaptively folds over the set using add for additions and recomputes the value on every removal.
     /// Note that the order of elements given to add is undefined.

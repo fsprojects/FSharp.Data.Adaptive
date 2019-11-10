@@ -23,42 +23,6 @@ and alist<'T> = AdaptiveIndexList<'T>
 
 /// Internal implementations for alist reductions.
 module internal Reductions =
-    
-    /// A simple multi-map implementation.
-    type MultiSetMap<'k, 'v> = HashMap<'k, HashSet<'v>>
-    
-    /// A simple multi-map implementation.
-    module MultiSetMap =
-        [<GeneralizableValue>]
-        let empty<'k, 'v> : MultiSetMap<'k, 'v> = HashMap.empty
-
-        let add (key: 'k) (value: 'v) (m: MultiSetMap<'k, 'v>): MultiSetMap<'k, 'v> =
-            m |> HashMap.alter key (fun old ->
-                match old with
-                | Some old -> Some (HashSet.add value old)
-                | None -> Some (HashSet.single value)
-            )
-
-        let remove (key: 'k) (value: 'v) (m: MultiSetMap<'k, 'v>): bool * MultiSetMap<'k, 'v> =
-            let wasLast = ref false
-            let result = 
-                m |> HashMap.alter key (fun old ->
-                    match old with
-                    | None -> None
-                    | Some old -> 
-                        let s = HashSet.remove value old
-                        if HashSet.isEmpty s then 
-                            wasLast := true
-                            None
-                        else 
-                            Some s
-                )
-            !wasLast, result
-
-        let find (key: 'k) (m: MultiSetMap<'k, 'v>) =
-            match HashMap.tryFind key m with
-            | Some s -> s
-            | None -> HashSet.empty
 
     /// aval for reduce operations.
     type ReduceValue<'a, 's, 'v>(reduction : AdaptiveReduction<'a, 's, 'v>, input : alist<'a>) =
@@ -1157,6 +1121,14 @@ module AList =
     /// aval will be re-evaluated upon every change of the list.
     let tryAt (index: int) (list: alist<'T>) =
         list.Content |> AVal.map (IndexList.tryAt index)
+        
+    /// Tries to get the first element from the list.
+    let tryFirst (list: alist<'T>) =
+        list.Content |> AVal.map IndexList.tryFirst
+
+    /// Tries to get the first element from the list.
+    let tryLast (list: alist<'T>) =
+        list.Content |> AVal.map IndexList.tryLast
 
     /// Evaluates the given adaptive list and returns its current content.
     /// This should not be used inside the adaptive evaluation

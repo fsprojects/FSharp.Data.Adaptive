@@ -153,6 +153,12 @@ module AList =
     /// aval will be re-evaluated upon every change of the list.
     val tryAt : index: int -> list: alist<'T> -> aval<option<'T>>
 
+    /// Tries to get the first element from the list.
+    val tryFirst : list: alist<'T> -> aval<option<'T>>
+    
+    /// Tries to get the last element from the list.
+    val tryLast : list: alist<'T> -> aval<option<'T>>
+
     /// Adaptively tests if the list is empty.
     val isEmpty: alist<'T> -> aval<bool>
 

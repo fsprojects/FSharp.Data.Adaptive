@@ -92,6 +92,20 @@ module ASet =
     /// This should not be used inside the adaptive evaluation
     /// of other AdaptiveObjects since it does not track dependencies.
     val force: aset<'T> -> HashSet<'T>
+    
+    /// Reduces the set using the given `AdaptiveReduction` and returns
+    /// the resulting adaptive value.
+    val reduce : reduction: AdaptiveReduction<'T, 'S, 'V> -> set: aset<'T> -> aval<'V>
+
+    /// Applies the mapping function to all elements of the set and reduces the results
+    /// using the given `AdaptiveReduction`.
+    /// Returns the resulting adaptive value.
+    val reduceBy : reduction: AdaptiveReduction<'T2, 'S, 'V> -> mapping: ('T1 -> 'T2) -> set: aset<'T1> -> aval<'V>
+    
+    /// Applies the mapping function to all elements of the set and reduces the results
+    /// using the given `AdaptiveReduction`.
+    /// Returns the resulting adaptive value.
+    val reduceByA : reduction: AdaptiveReduction<'T2, 'S, 'V> -> mapping: ('T1 -> aval<'T2>) -> set: aset<'T1> -> aval<'V>
 
     /// Adaptively folds over the set using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
