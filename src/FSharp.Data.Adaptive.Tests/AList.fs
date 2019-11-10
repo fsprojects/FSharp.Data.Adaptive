@@ -111,7 +111,103 @@ let ``[AList] reference impl``() ({ lreal = real; lref = ref; lexpression = str;
         }
 
     Gen.eval 15 (Random.newSeed()) run
+  
+[<Test>]
+let ``[AList] mapA``() =
+    let l = clist [1;2;3]
+    let even = cval 1
+    let odd = cval 0
+
+    let result = 
+        l |> AList.mapA (fun v ->
+            if v % 2 = 0 then even :> aval<_>
+            else odd :> aval<_>
+        )
+    let reader = result.GetReader()
+
+    let check (l : list<int>) =
+        reader.GetChanges AdaptiveToken.Top |> ignore
+        reader.State 
+        |> IndexList.toList
+        |> should equal l
+
+    // (1,0) (2,1) (3,0) 
+    check [0; 1; 0]
+
+    // (1,2) (2,1) (3,2)
+    transact (fun () -> odd.Value <- 2)
+    check [2; 1; 2]
     
+    // (1,2) (2,1) (3,2) (4,1)
+    transact (fun () -> l.Add 4 |> ignore)
+    check [2; 1; 2; 1]
+    
+    // (1,2) (2,5) (3,2) (4,5)
+    transact (fun () -> even.Value <- 5)
+    check [2; 5; 2; 5]
+    
+    // (2,5) (3,2) (4,5)
+    transact (fun () -> l.RemoveAt 0 |> ignore)
+    check [5; 2; 5]
+    
+    // (2,1) (3,0) (4,1)
+    transact (fun () -> even.Value <- 1; odd.Value <- 0)
+    check [1; 0; 1]
+  
+[<Test>]
+let ``[AList] chooseA``() =
+    let l = clist [1;2;3]
+    let even = cval (Some 1)
+    let odd = cval (Some 0)
+
+    let result = 
+        l |> AList.chooseA (fun v ->
+            if v % 2 = 0 then even :> aval<_>
+            else odd :> aval<_>
+        )
+    let reader = result.GetReader()
+
+    let check (l : list<int>) =
+        reader.GetChanges AdaptiveToken.Top |> ignore
+        reader.State 
+        |> IndexList.toList
+        |> should equal l
+
+    // (1,0) (2,1) (3,0) 
+    check [0; 1; 0]
+
+    // (1,2) (2,1) (3,2)
+    transact (fun () -> odd.Value <- Some 2)
+    check [2; 1; 2]
+    
+    // (1,2) (2,1) (3,2) (4,1)
+    transact (fun () -> l.Add 4 |> ignore)
+    check [2; 1; 2; 1]
+    
+    // (1,2) (2,5) (3,2) (4,5)
+    transact (fun () -> even.Value <- Some 5)
+    check [2; 5; 2; 5]
+    
+    // (2,5) (3,2) (4,5)
+    transact (fun () -> l.RemoveAt 0 |> ignore)
+    check [5; 2; 5]
+    
+    // (2,1) (3,0) (4,1)
+    transact (fun () -> even.Value <- Some 1; odd.Value <- Some 0)
+    check [1; 0; 1]
+
+    // (2,_) (3,0) (4,_)
+    transact (fun () -> even.Value <- None)
+    check [0]
+
+    // (2,2) (3,_) (4,2)
+    transact (fun () -> even.Value <- Some 2; odd.Value <- None)
+    check [2;2]
+    
+    // (2,1) (4,1)
+    transact (fun () -> l.RemoveAt 1 |> ignore; even.Value <- Some 1; odd.Value <- Some 123)
+    check [1;1]
+
 [<Test>]
 let ``[AList] reduce group``() =
     let list = clist [1;2;3]

@@ -341,29 +341,6 @@ module internal AdaptiveIndexListImplementation =
             member x.Content = x.Content
 
 
-    /// AVal with a key
-    type ValueWithKey<'K, 'T>(key : 'K, value : aval<'T>) =
-        inherit AdaptiveObject()
-
-        member x.Key = key
-
-        member x.GetValue(token: AdaptiveToken) =
-            x.EvaluateAlways token (fun token ->
-                value.GetValue token
-            )
-
-        interface AdaptiveValue with
-            member x.GetValueUntyped t = x.GetValue t :> obj
-            member x.ContentType =
-                #if FABLE_COMPILER
-                typeof<obj>
-                #else
-                typeof<'T>
-                #endif
-
-        interface AdaptiveValue<'T> with
-            member x.GetValue t = x.GetValue t  
-
     /// Reader for map operations.
     type MapReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> 'b) =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
@@ -428,42 +405,58 @@ module internal AdaptiveIndexListImplementation =
             
     /// Reader for mapA operations.
     type MapAReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> aval<'b>) =
-        inherit AbstractDirtyReader<ValueWithKey<Index, 'b>, IndexListDelta<'b>>(IndexListDelta.monoid, checkTag "ValueWithKey")
+        inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
         let mapping = OptimizedClosures.FSharpFunc<Index, 'a, aval<'b>>.Adapt mapping
         let reader = input.GetReader()
-        let cache = 
-            Cache (fun (a,b) -> 
-                let r = mapping.Invoke(a,b)
-                let res = ValueWithKey(a, r)
-                res.Tag <- "ValueWithKey"
-                res
+        let cache = Cache (fun (a,b) -> mapping.Invoke(a,b))
+        let mutable targets = MultiSetMap.empty<aval<'b>, Index>
+        let mutable dirty = IndexList.empty<aval<'b>>
+
+        let consumeDirty() =
+            lock cache (fun () ->
+                let d = dirty
+                dirty <- IndexList.empty
+                d
             )
 
-        override x.Compute (t, dirty) =
+        override x.InputChangedObject(t, o) =
+            match o with
+            | :? aval<'b> as o ->
+                lock cache (fun () ->
+                    for i in MultiSetMap.find o targets do
+                        dirty <- IndexList.set i o dirty
+                )
+            | _ ->
+                ()
+
+        override x.Compute t =
+            let mutable dirty = consumeDirty()
             let old = reader.State
             let ops = reader.GetChanges t
 
             let mutable changes =
                 ops |> IndexListDelta.choose (fun i op ->
+                    dirty <- IndexList.remove i dirty
                     match op with
                     | Set v ->
                         let k = cache.Invoke(i,v)
                         let v = k.GetValue t
+                        targets <- MultiSetMap.add k i targets
                         Some (Set v)
                     | Remove ->
                         match IndexList.tryGet i old with
                         | Some v ->                  
                             let o = cache.Revoke(i, v)
-                            o.Outputs.Remove x |> ignore
-                            dirty.Remove o |> ignore
+                            let rem, r = MultiSetMap.remove o i targets
+                            targets <- r
+                            if rem then o.Outputs.Remove x |> ignore
                             Some Remove
                         | None ->
                             None
                 )
 
-            for d in dirty do
-                let i = d.Key
+            for i, d in IndexList.toSeqIndexed dirty do
                 let v = d.GetValue t
                 changes <- IndexListDelta.add i (Set v) changes
 
@@ -471,29 +464,45 @@ module internal AdaptiveIndexListImplementation =
      
     /// Reader for mapA operations.
     type ChooseAReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> aval<Option<'b>>) =
-        inherit AbstractDirtyReader<ValueWithKey<Index, option<'b>>, IndexListDelta<'b>>(IndexListDelta.monoid, checkTag "ValueWithKey")
+        inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
         let reader = input.GetReader()
         let mapping = OptimizedClosures.FSharpFunc<Index, 'a, aval<option<'b>>>.Adapt mapping
         let keys = UncheckedHashSet.create<Index>()
-        let cache = 
-            Cache (fun (a,b) -> 
-                let r = mapping.Invoke(a,b)
-                let res = ValueWithKey(a, r)
-                res.Tag <- "ValueWithKey"
-                res
+        let cache = Cache (fun (a,b) ->  mapping.Invoke(a,b))
+        let mutable targets = MultiSetMap.empty<aval<option<'b>>, Index>
+        let mutable dirty = IndexList.empty<aval<option<'b>>>
+
+        let consumeDirty() =
+            lock cache (fun () ->
+                let d = dirty
+                dirty <- IndexList.empty
+                d
             )
 
+        override x.InputChangedObject(t, o) =
+            match o with
+            | :? aval<option<'b>> as o ->
+                lock cache (fun () ->
+                    for i in MultiSetMap.find o targets do
+                        dirty <- IndexList.set i o dirty
+                )
+            | _ ->
+                ()
 
-        override x.Compute(t, dirty) =
+
+        override x.Compute(t) =
+            let mutable dirty = consumeDirty()
             let old = reader.State
             let ops = reader.GetChanges t
             let mutable changes =
                 ops |> IndexListDelta.choose (fun i op ->
+                    dirty <- IndexList.remove i dirty
                     match op with
                     | Set v ->
                         let k = cache.Invoke(i,v)
                         let v = k.GetValue t
+                        targets <- MultiSetMap.add k i targets
                         match v with
                         | Some v -> 
                             keys.Add i |> ignore
@@ -505,16 +514,17 @@ module internal AdaptiveIndexListImplementation =
                         match IndexList.tryGet i old with
                         | Some v ->                  
                             let o = cache.Revoke(i, v)
-                            o.Outputs.Remove x |> ignore
-                            dirty.Remove o |> ignore
+                            let rem, rest = MultiSetMap.remove o i targets
+                            targets <- rest
+                            if rem then o.Outputs.Remove x |> ignore
+
                             if keys.Remove i then Some Remove
                             else None
                         | None ->
                             None
                 )
 
-            for d in dirty do
-                let i = d.Key
+            for i, d in IndexList.toSeqIndexed dirty do
                 let v = d.GetValue t
                 match v with
                 | Some v -> 
