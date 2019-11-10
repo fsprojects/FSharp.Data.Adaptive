@@ -93,6 +93,12 @@ module ASet =
     /// of other AdaptiveObjects since it does not track dependencies.
     val force: aset<'T> -> HashSet<'T>
     
+    /// Adaptively tests if the set is empty.
+    val isEmpty: aset<'T> -> aval<bool>
+
+    /// Adaptively gets the number of elements in the set.
+    val count: aset<'T> -> aval<int>
+
     /// Reduces the set using the given `AdaptiveReduction` and returns
     /// the resulting adaptive value.
     val reduce : reduction: AdaptiveReduction<'T, 'S, 'V> -> set: aset<'T> -> aval<'V>
@@ -119,15 +125,68 @@ module ASet =
     /// Adaptively folds over the set using add for additions and recomputes the value on every removal.
     /// Note that the order of elements given to add is undefined.
     val fold : add : ('S -> 'A -> 'S) -> zero : 'S -> set : aset<'A> -> aval<'S>
+    
+    /// Adaptively checks whether the predicate holds for all entries.
+    val forall: predicate: ('T -> bool) -> list: aset<'T> -> aval<bool> 
+    
+    /// Adaptively checks whether the predicate holds for at least one entry.
+    val exists: predicate: ('T -> bool) -> list: aset<'T> -> aval<bool> 
 
-    /// Adaptively computes the sum all entries in the set.
-    val inline sum : set : aset<'A> -> aval<'B>
-        when ('A or 'B) : (static member (+) : 'B -> 'A -> 'B) 
-        and  ('A or 'B) : (static member (-) : 'B -> 'A -> 'B) 
-        and   'B : (static member Zero : 'B)
+    /// Adaptively tries to find the smallest element.
+    val inline tryMin : list : aset<'T> -> aval<option<'T>>
+        when 'T : comparison
+        
+    /// Adaptively tries to find the largest element.
+    val inline tryMax : list : aset<'T> -> aval<option<'T>>
+        when 'T : comparison
 
-    /// Adaptively computes the product of all entries in the set.
-    val inline product : set : aset<'A> -> aval<'B>
-        when ('A or 'B) : (static member (*) : 'B -> 'A -> 'B) 
-        and  ('A or 'B) : (static member (/) : 'B -> 'A -> 'B) 
-        and   'B : (static member One : 'B)
+    /// Adaptively computes the sum of all entries in the list.
+    val inline sum : list : aset<'T> -> aval<'S>
+        when ('T or 'S) : (static member (+) : 'S -> 'T -> 'S) 
+        and  ('T or 'S) : (static member (-) : 'S -> 'T -> 'S) 
+        and   'S : (static member Zero : 'S)
+        
+    /// Adaptively computes the average of all entries in the list.
+    val inline average: list : aset<'T> -> aval<'S>
+        when ('T or 'S) : (static member (+) : 'S -> 'T -> 'S) 
+        and  ('T or 'S) : (static member (-) : 'S -> 'T -> 'S) 
+        and   'S : (static member Zero : 'S)
+        and   'S : (static member DivideByInt : ^S * int -> ^S) 
+
+    /// Adaptively computes the sum of all values returned by mapping for the list.
+    val inline sumBy: mapping : ('T1 -> 'T2) -> list : aset<'T1> -> aval<'S>
+        when ('T2 or 'S) : (static member (+) : 'S -> 'T2 -> 'S) 
+        and  ('T2 or 'S) : (static member (-) : 'S -> 'T2 -> 'S) 
+        and   'S : (static member Zero : 'S)
+        
+    /// Adaptively computes the average of all values returned by mapping for the list.
+    val inline averageBy: mapping : ('T1 -> 'T2) -> list : aset<'T1> -> aval<'S>
+        when ('T2 or 'S) : (static member (+) : 'S -> 'T2 -> 'S) 
+        and  ('T2 or 'S) : (static member (-) : 'S -> 'T2 -> 'S) 
+        and   'S : (static member Zero : 'S)
+        and   'S : (static member DivideByInt : ^S * int -> ^S) 
+        
+    /// Adaptively checks whether the predicate holds for all entries.
+    val forallA: predicate: ('T -> aval<bool>) -> list: aset<'T> -> aval<bool> 
+    
+    /// Adaptively checks whether the predicate holds for at least one entry.
+    val existsA: predicate: ('T -> aval<bool>) -> list: aset<'T> -> aval<bool> 
+    
+    /// Adaptively counts all elements fulfilling the predicate
+    val countBy : predicate: ('a -> bool) -> list: aset<'a> -> aval<int>
+
+    /// Adaptively counts all elements fulfilling the predicate
+    val countByA : predicate: ('a -> aval<bool>) -> list: aset<'a> -> aval<int>
+
+    /// Adaptively computes the sum of all values returned by mapping for the list.
+    val inline sumByA: mapping : ('T1 -> aval<'T2>) -> list : aset<'T1> -> aval<'S>
+        when ('T2 or 'S) : (static member (+) : 'S -> 'T2 -> 'S) 
+        and  ('T2 or 'S) : (static member (-) : 'S -> 'T2 -> 'S) 
+        and   'S : (static member Zero : 'S)
+        
+    /// Adaptively computes the average of all values returned by mapping for the list.
+    val inline averageByA: mapping : ('T1 -> aval<'T2>) -> list : aset<'T1> -> aval<'S>
+        when ('T2 or 'S) : (static member (+) : 'S -> 'T2 -> 'S) 
+        and  ('T2 or 'S) : (static member (-) : 'S -> 'T2 -> 'S) 
+        and   'S : (static member Zero : 'S)
+        and   'S : (static member DivideByInt : ^S * int -> ^S) 

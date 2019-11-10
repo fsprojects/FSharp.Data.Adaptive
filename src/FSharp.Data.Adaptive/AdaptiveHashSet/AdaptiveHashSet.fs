@@ -964,10 +964,66 @@ module ASet =
     let delay (creator : unit -> HashSet<'T>) =
         constant creator
 
-    /// Adaptively computes the sum all entries in the set.
-    let inline sum (set : aset<'A>) =
-        foldGroup (+) (-) LanguagePrimitives.GenericZero set
+    /// Adaptively tests if the list is empty.
+    let isEmpty (l: aset<'a>) =
+        l.Content |> AVal.map HashSet.isEmpty
+        
+    /// Adaptively gets the number of elements in the list.
+    let count (l: aset<'a>) =
+        l.Content |> AVal.map HashSet.count
 
-    /// Adaptively computes the product of all entries in the set.
-    let inline product (set : aset<'T>) =
-        foldGroup (*) (/) LanguagePrimitives.GenericOne set
+    let forall (predicate: 'T -> bool) (list: aset<'T>) =
+        let r = AdaptiveReduction.countNegative |> AdaptiveReduction.mapOut (fun v -> v = 0)
+        reduceBy r predicate list
+        
+    let exists (predicate: 'T -> bool) (list: aset<'T>) =
+        let r = AdaptiveReduction.countPositive |> AdaptiveReduction.mapOut (fun v -> v <> 0)
+        reduceBy r predicate list
+        
+    let forallA (predicate: 'T -> aval<bool>) (list: aset<'T>) =
+        let r = AdaptiveReduction.countNegative |> AdaptiveReduction.mapOut (fun v -> v = 0)
+        reduceByA r predicate list
+        
+    let existsA (predicate: 'T -> aval<bool>) (list: aset<'T>) =
+        let r = AdaptiveReduction.countPositive |> AdaptiveReduction.mapOut (fun v -> v <> 0)
+        reduceByA r predicate list
+
+        
+    /// Adaptively counts all elements fulfilling the predicate
+    let countBy (predicate: 'a -> bool) (list: aset<'a>) =
+        reduceBy AdaptiveReduction.countPositive predicate list 
+
+    /// Adaptively counts all elements fulfilling the predicate
+    let countByA (predicate: 'a -> aval<bool>) (list: aset<'a>) =
+        reduceByA AdaptiveReduction.countPositive predicate list 
+
+    let inline tryMin (l : aset<'a>) =
+        let reduction = 
+            AdaptiveReduction.tryMin
+            |> AdaptiveReduction.mapOut (function ValueSome v -> Some v | ValueNone -> None)
+        reduce reduction l
+
+    let inline tryMax (l : aset<'a>) =
+        let reduction = 
+            AdaptiveReduction.tryMax
+            |> AdaptiveReduction.mapOut (function ValueSome v -> Some v | ValueNone -> None)
+        reduce reduction l
+
+    /// Adaptively computes the sum all entries in the list.
+    let inline sum (s : aset<'a>) = 
+        reduce (AdaptiveReduction.sum()) s
+    
+    let inline sumBy (mapping : 'T1 -> 'T2) (list : aset<'T1>) =
+        reduceBy (AdaptiveReduction.sum()) mapping list
+
+    let inline sumByA (mapping : 'T1 -> aval<'T2>) (list : aset<'T1>) =
+        reduceByA (AdaptiveReduction.sum()) mapping list
+
+    let inline average (s : aset<'a>) =
+        reduce (AdaptiveReduction.average()) s
+        
+    let inline averageBy (mapping : 'T1 -> 'T2) (list : aset<'T1>) =
+        reduceBy (AdaptiveReduction.average()) (fun _ v -> mapping v) list
+
+    let inline averageByA (mapping : 'T1 -> aval<'T2>) (list : aset<'T1>) =
+        reduceByA (AdaptiveReduction.average()) mapping list
