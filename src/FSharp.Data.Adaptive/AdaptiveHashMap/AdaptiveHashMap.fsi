@@ -96,6 +96,12 @@ module AMap =
     /// This should not be used inside the adaptive evaluation
     /// of other AdaptiveObjects since it does not track dependencies.
     val force: amap<'K, 'V> -> HashMap<'K, 'V>
+    
+    /// Adaptively tests if the map is empty.
+    val isEmpty: amap<'K, 'V> -> aval<bool>
+
+    /// Adaptively gets the number of elements in the map.
+    val count: amap<'K, 'V> -> aval<int>
 
     /// Reduces the map using the given `AdaptiveReduction` and returns
     /// the resulting adaptive value.
@@ -124,5 +130,48 @@ module AMap =
     /// Adaptively folds over the map using add for additions and recomputes the value on every removal.
     /// Note that the order of elements given to add is undefined.
     val fold : add : ('S -> 'K -> 'V -> 'S) -> zero : 'S -> set : amap<'K, 'V> -> aval<'S>
+    
+    /// Adaptively checks whether the predicate holds for all entries.
+    val forall: predicate: ('K -> 'V -> bool) -> list: amap<'K, 'V> -> aval<bool> 
+    
+    /// Adaptively checks whether the predicate holds for at least one entry.
+    val exists: predicate: ('K -> 'V -> bool) -> list: amap<'K, 'V> -> aval<bool> 
 
+    /// Adaptively computes the sum of all values returned by mapping for the map.
+    val inline sumBy: mapping : ('K -> 'V -> 'T) -> list : amap<'K, 'V> -> aval<'S>
+        when ('T or 'S) : (static member (+) : 'S -> 'T -> 'S) 
+        and  ('T or 'S) : (static member (-) : 'S -> 'T -> 'S) 
+        and   'S : (static member Zero : 'S)
+        
+    /// Adaptively computes the average of all values returned by mapping for the map.
+    val inline averageBy: mapping : ('K -> 'V -> 'T) -> list : amap<'K, 'V> -> aval<'S>
+        when ('T or 'S) : (static member (+) : 'S -> 'T -> 'S) 
+        and  ('T or 'S) : (static member (-) : 'S -> 'T -> 'S) 
+        and   'S : (static member Zero : 'S)
+        and   'S : (static member DivideByInt : ^S * int -> ^S) 
+        
+    /// Adaptively checks whether the predicate holds for all entries.
+    val forallA: predicate: ('K -> 'V -> aval<bool>) -> list: amap<'K, 'V> -> aval<bool> 
+    
+    /// Adaptively checks whether the predicate holds for at least one entry.
+    val existsA: predicate: ('K -> 'V -> aval<bool>) -> list: amap<'K, 'V> -> aval<bool> 
+    
+    /// Adaptively counts all elements fulfilling the predicate
+    val countBy : predicate: ('K -> 'V -> bool) -> list: amap<'K, 'V> -> aval<int>
+
+    /// Adaptively counts all elements fulfilling the predicate
+    val countByA : predicate: ('K -> 'V -> aval<bool>) -> list: amap<'K, 'V> -> aval<int>
+
+    /// Adaptively computes the sum of all values returned by mapping for the map.
+    val inline sumByA: mapping : ('K -> 'V -> aval<'T>) -> list : amap<'K, 'V> -> aval<'S>
+        when ('T or 'S) : (static member (+) : 'S -> 'T -> 'S) 
+        and  ('T or 'S) : (static member (-) : 'S -> 'T -> 'S) 
+        and   'S : (static member Zero : 'S)
+        
+    /// Adaptively computes the average of all values returned by mapping for the map.
+    val inline averageByA: mapping : ('K -> 'V -> aval<'T>) -> list : amap<'K, 'V> -> aval<'S>
+        when ('T or 'S) : (static member (+) : 'S -> 'T -> 'S) 
+        and  ('T or 'S) : (static member (-) : 'S -> 'T -> 'S) 
+        and   'S : (static member Zero : 'S)
+        and   'S : (static member DivideByInt : ^S * int -> ^S) 
 

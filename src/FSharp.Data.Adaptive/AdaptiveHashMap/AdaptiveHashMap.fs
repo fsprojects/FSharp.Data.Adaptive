@@ -793,6 +793,14 @@ module AMap =
     /// This should not be used inside the adaptive evaluation
     /// of other AdaptiveObjects since it does not track dependencies.
     let force (set : amap<'K, 'V>) = AVal.force set.Content
+    
+    /// Adaptively tests if the map is empty.
+    let isEmpty (l: amap<'K, 'V>) =
+        l.Content |> AVal.map HashMap.isEmpty
+        
+    /// Adaptively gets the number of elements in the list.
+    let count (l: amap<'K, 'V>) =
+        l.Content |> AVal.map HashMap.count
 
 
     /// Reduces the map using the given `AdaptiveReduction` and returns
@@ -811,7 +819,40 @@ module AMap =
     /// Returns the resulting adaptive value.
     let reduceByA (r : AdaptiveReduction<'b, 's, 'v>) (mapping: 'k -> 'a -> aval<'b>) (map: amap<'k, 'a>) =
         MapReductions.AdaptiveReduceByValue(r, mapping, map) :> aval<'v>
-
+        
+    let forall (predicate : 'K -> 'V -> bool) (map: amap<'K, 'V>) =
+        let reduction = AdaptiveReduction.countNegative |> AdaptiveReduction.mapOut (fun v -> v = 0)
+        reduceBy reduction predicate map
+        
+    let exists (predicate : 'K -> 'V -> bool) (map: amap<'K, 'V>) =
+        let reduction = AdaptiveReduction.countPositive |> AdaptiveReduction.mapOut (fun v -> v <> 0)
+        reduceBy reduction predicate map
+        
+    let forallA (predicate : 'K -> 'V -> aval<bool>) (map: amap<'K, 'V>) =
+        let reduction = AdaptiveReduction.countNegative |> AdaptiveReduction.mapOut (fun v -> v = 0)
+        reduceByA reduction predicate map
+        
+    let existsA (predicate : 'K -> 'V -> aval<bool>) (map: amap<'K, 'V>) =
+        let reduction = AdaptiveReduction.countPositive |> AdaptiveReduction.mapOut (fun v -> v <> 0)
+        reduceByA reduction predicate map
+        
+    let inline sumBy (mapping : 'K -> 'V -> 'T) (map : amap<'K, 'V>) =
+        reduceBy (AdaptiveReduction.sum()) mapping map
+        
+    let inline sumByA (mapping : 'K -> 'V -> aval<'T>) (map : amap<'K, 'V>) =
+        reduceByA (AdaptiveReduction.sum()) mapping map
+        
+    let inline averageBy (mapping : 'K -> 'V -> 'T) (map : amap<'K, 'V>) =
+        reduceBy (AdaptiveReduction.average()) mapping map
+        
+    let inline averageByA (mapping : 'K -> 'V -> aval<'T>) (map : amap<'K, 'V>) =
+        reduceByA (AdaptiveReduction.average()) mapping map
+        
+    let countBy (mapping : 'K -> 'V -> bool) (map : amap<'K, 'V>) =
+        reduceBy (AdaptiveReduction.countPositive) mapping map
+        
+    let countByA (mapping : 'K -> 'V -> aval<bool>) (map : amap<'K, 'V>) =
+        reduceByA (AdaptiveReduction.countPositive) mapping map
 
     /// Adaptively folds over the map using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
