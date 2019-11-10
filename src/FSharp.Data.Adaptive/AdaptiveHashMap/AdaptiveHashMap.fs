@@ -439,6 +439,7 @@ module AdaptiveHashMapImplementation =
 
         let mapping = OptimizedClosures.FSharpFunc<'k, 'a, aval<'b>>.Adapt mapping
         let reader = input.GetReader()
+        do reader.Tag <- "input"
         let cache = Cache (fun (a,b) -> mapping.Invoke(a,b))
         let mutable targets = MultiSetMap.empty<aval<'b>, 'k>
         let mutable dirty = HashMap.empty<'k, aval<'b>>
@@ -451,6 +452,12 @@ module AdaptiveHashMapImplementation =
             )
 
         override x.InputChangedObject(t, o) =
+            #if FABLE_COMPILER
+            if isNull o.Tag then
+                let o = unbox<aval<'b>> o
+                for i in MultiSetMap.find o targets do
+                    dirty <- HashMap.add i o dirty
+            #else
             match o with
             | :? aval<'b> as o ->
                 lock cache (fun () ->
@@ -459,6 +466,7 @@ module AdaptiveHashMapImplementation =
                 )
             | _ ->
                 ()
+            #endif
 
         override x.Compute t =
             let mutable dirty = consumeDirty()
@@ -497,6 +505,7 @@ module AdaptiveHashMapImplementation =
         inherit AbstractReader<HashMapDelta<'k, 'b>>(HashMapDelta.empty)
 
         let reader = input.GetReader()
+        do reader.Tag <- "input"
         let mapping = OptimizedClosures.FSharpFunc<'k, 'a, aval<option<'b>>>.Adapt mapping
         let keys = UncheckedHashSet.create<'k>()
         let cache = Cache (fun (a,b) -> mapping.Invoke(a,b))
@@ -511,6 +520,12 @@ module AdaptiveHashMapImplementation =
             )
 
         override x.InputChangedObject(t, o) =
+            #if FABLE_COMPILER
+            if isNull o.Tag then
+                let o = unbox<aval<option<'b>>> o
+                for i in MultiSetMap.find o targets do
+                    dirty <- HashMap.add i o dirty
+            #else
             match o with
             | :? aval<option<'b>> as o ->
                 lock cache (fun () ->
@@ -519,6 +534,7 @@ module AdaptiveHashMapImplementation =
                 )
             | _ ->
                 ()
+            #endif
 
 
         override x.Compute(t) =
