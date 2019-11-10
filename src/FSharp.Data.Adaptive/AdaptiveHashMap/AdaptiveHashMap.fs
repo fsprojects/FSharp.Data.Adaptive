@@ -432,6 +432,142 @@ module AdaptiveHashMapImplementation =
                         None
             ) |> HashMapDelta
 
+            
+    /// Reader for mapA operations.
+    type MapAReader<'k, 'a, 'b>(input : amap<'k, 'a>, mapping : 'k -> 'a -> aval<'b>) =
+        inherit AbstractReader<HashMapDelta<'k, 'b>>(HashMapDelta.empty)
+
+        let mapping = OptimizedClosures.FSharpFunc<'k, 'a, aval<'b>>.Adapt mapping
+        let reader = input.GetReader()
+        let cache = Cache (fun (a,b) -> mapping.Invoke(a,b))
+        let mutable targets = MultiSetMap.empty<aval<'b>, 'k>
+        let mutable dirty = HashMap.empty<'k, aval<'b>>
+
+        let consumeDirty() =
+            lock cache (fun () ->
+                let d = dirty
+                dirty <- HashMap.empty
+                d
+            )
+
+        override x.InputChangedObject(t, o) =
+            match o with
+            | :? aval<'b> as o ->
+                lock cache (fun () ->
+                    for i in MultiSetMap.find o targets do
+                        dirty <- HashMap.add i o dirty
+                )
+            | _ ->
+                ()
+
+        override x.Compute t =
+            let mutable dirty = consumeDirty()
+            let old = reader.State
+            let ops = reader.GetChanges t
+
+            let mutable changes =
+                ops |> HashMapDelta.toHashMap |> HashMap.choose (fun i op ->
+                    dirty <- HashMap.remove i dirty
+                    match op with
+                    | Set v ->
+                        let k = cache.Invoke(i,v)
+                        let v = k.GetValue t
+                        targets <- MultiSetMap.add k i targets
+                        Some (Set v)
+                    | Remove ->
+                        match HashMap.tryFind i old with
+                        | Some v ->                  
+                            let o = cache.Revoke(i, v)
+                            let rem, r = MultiSetMap.remove o i targets
+                            targets <- r
+                            if rem then o.Outputs.Remove x |> ignore
+                            Some Remove
+                        | None ->
+                            None
+                )
+
+            for i, d in dirty do
+                let v = d.GetValue t
+                changes <- HashMap.add i (Set v) changes
+
+            HashMapDelta.ofHashMap changes
+     
+    /// Reader for chooseA operations.
+    type ChooseAReader<'k, 'a, 'b>(input : amap<'k, 'a>, mapping : 'k -> 'a -> aval<Option<'b>>) =
+        inherit AbstractReader<HashMapDelta<'k, 'b>>(HashMapDelta.empty)
+
+        let reader = input.GetReader()
+        let mapping = OptimizedClosures.FSharpFunc<'k, 'a, aval<option<'b>>>.Adapt mapping
+        let keys = UncheckedHashSet.create<'k>()
+        let cache = Cache (fun (a,b) -> mapping.Invoke(a,b))
+        let mutable targets = MultiSetMap.empty<aval<option<'b>>, 'k>
+        let mutable dirty = HashMap.empty<'k, aval<option<'b>>>
+
+        let consumeDirty() =
+            lock cache (fun () ->
+                let d = dirty
+                dirty <- HashMap.empty
+                d
+            )
+
+        override x.InputChangedObject(t, o) =
+            match o with
+            | :? aval<option<'b>> as o ->
+                lock cache (fun () ->
+                    for i in MultiSetMap.find o targets do
+                        dirty <- HashMap.add i o dirty
+                )
+            | _ ->
+                ()
+
+
+        override x.Compute(t) =
+            let mutable dirty = consumeDirty()
+            let old = reader.State
+            let ops = reader.GetChanges t
+            let mutable changes =
+                ops |> HashMapDelta.toHashMap |> HashMap.choose (fun i op ->
+                    dirty <- HashMap.remove i dirty
+                    match op with
+                    | Set v ->
+                        let k = cache.Invoke(i,v)
+                        let v = k.GetValue t
+                        targets <- MultiSetMap.add k i targets
+                        match v with
+                        | Some v -> 
+                            keys.Add i |> ignore
+                            Some (Set v)
+                        | None ->
+                            if keys.Remove i then Some Remove
+                            else None
+                    | Remove ->
+                        match HashMap.tryFind i old with
+                        | Some v ->                  
+                            let o = cache.Revoke(i, v)
+                            let rem, rest = MultiSetMap.remove o i targets
+                            targets <- rest
+                            if rem then o.Outputs.Remove x |> ignore
+
+                            if keys.Remove i then Some Remove
+                            else None
+                        | None ->
+                            None
+                )
+
+            for i, d in dirty do
+                let v = d.GetValue t
+                match v with
+                | Some v -> 
+                    keys.Add i |> ignore
+                    changes <- HashMap.add i (Set v) changes
+                | None ->
+                    if keys.Remove i then
+                        changes <- HashMap.add i Remove changes
+
+            HashMapDelta.ofHashMap changes
+  
+
+
     /// Reader for union/unionWith operations.
     type UnionWithReader<'Key, 'Value>(l : amap<'Key, 'Value>, r : amap<'Key, 'Value>, resolve : 'Key -> 'Value -> 'Value -> 'Value) =
         inherit AbstractReader<HashMapDelta<'Key, 'Value>>(HashMapDelta.empty)
@@ -753,6 +889,37 @@ module AMap =
     /// Adaptively filters the set using the given predicate without exposing keys.
     let filter' (predicate : 'Value -> bool) (map : amap<'Key, 'Value>) =
         choose' (fun v -> if predicate v then Some v else None) map
+
+
+    /// Adaptively applies the given mapping function to all elements and returns a new amap containing the results.  
+    let mapA (mapping: 'K -> 'T1 -> aval<'T2>) (map: amap<'K, 'T1>) =
+        if map.IsConstant then
+            let map = force map |> HashMap.map mapping
+            if map |> HashMap.forall (fun _ v -> v.IsConstant) then
+                constant (fun () -> map |> HashMap.map (fun _ v -> AVal.force v))
+            else
+                // TODO better impl possible
+                create (fun () -> MapAReader(ofHashMap map, fun _ v -> v))
+        else
+            create (fun () -> MapAReader(map, mapping))
+
+    /// Adaptively chooses all elements returned by mapping.  
+    let chooseA (mapping: 'K ->'T1 -> aval<Option<'T2>>) (list: amap<'K, 'T1>) =
+        if list.IsConstant then
+            let list = force list |> HashMap.map mapping
+            if list |> HashMap.forall (fun _ v -> v.IsConstant) then
+                constant (fun () -> list |> HashMap.choose (fun _ v -> AVal.force v))
+            else
+                // TODO better impl possible
+                create (fun () -> ChooseAReader(ofHashMap list, fun _ v -> v))
+        else
+            create (fun () -> ChooseAReader(list, mapping))
+
+    /// Adaptively filters the list using the given predicate.
+    let filterA (predicate: 'K -> 'V -> aval<bool>) (list: amap<'K, 'V>) =
+        list |> chooseA (fun i v ->
+            predicate i v |> AVal.map (function true -> Some v | false -> None)
+        )
 
     /// Adaptively unions both maps using the given resolve functions when colliding entries are found.
     let unionWith (resolve : 'Key -> 'Value -> 'Value -> 'Value) (a : amap<'Key, 'Value>) (b : amap<'Key, 'Value>) =

@@ -462,7 +462,7 @@ module internal AdaptiveIndexListImplementation =
 
             changes
      
-    /// Reader for mapA operations.
+    /// Reader for chooseA operations.
     type ChooseAReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> aval<Option<'b>>) =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 

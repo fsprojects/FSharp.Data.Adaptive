@@ -75,6 +75,15 @@ module AMap =
     /// Adaptively filters the set using the given predicate without exposing keys.
     val filter' : predicate:('Value -> bool) -> map:amap<'Key,'Value> -> amap<'Key,'Value>
 
+    /// Adaptively applies the given mapping function to all elements and returns a new amap containing the results.
+    val mapA : mapping: ('K -> 'V -> aval<'T>) -> map: amap<'K, 'V> -> amap<'K, 'T>
+
+    /// Adaptively chooses all elements returned by mapping.  
+    val chooseA : mapping: ('K -> 'V -> aval<option<'T>>) -> map: amap<'K, 'V> -> amap<'K, 'T>
+    
+    /// Adaptively filters the list using the given predicate.
+    val filterA : predicate: ('K -> 'V -> aval<bool>) -> map: amap<'K, 'V> -> amap<'K, 'V>
+
     /// Adaptively unions both maps using the given resolve functions when colliding entries are found.
     val unionWith : resolve:('Key -> 'Value -> 'Value -> 'Value) -> a:amap<'Key,'Value> -> b:amap<'Key,'Value> -> amap<'Key,'Value>
     
