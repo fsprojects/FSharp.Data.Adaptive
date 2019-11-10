@@ -19,6 +19,272 @@ type AdaptiveHashMap<'Key, 'Value> =
 /// Adaptive map datastructure.
 and amap<'Key, 'Value> = AdaptiveHashMap<'Key, 'Value>
 
+
+
+/// Internal implementations for alist reductions.
+module internal MapReductions =
+
+    /// aval for reduce operations.
+    type ReduceValue<'k, 'a, 's, 'v>(reduction : AdaptiveReduction<'a, 's, 'v>, input : amap<'k, 'a>) =
+        inherit AdaptiveObject()
+
+        let reader = input.GetReader()
+        let mutable sum = reduction.seed
+
+        let mutable result = Unchecked.defaultof<'v>
+        let mutable state = HashMap.empty<'k, 'a>
+
+        member x.GetValue(token : AdaptiveToken) =
+            x.EvaluateAlways token (fun token ->
+                if x.OutOfDate then
+                    let ops = reader.GetChanges token
+                    let mutable working = true
+                    use e = (ops :> seq<_>).GetEnumerator()
+                    while working && e.MoveNext() do
+                        let index, op = e.Current
+                        match op with
+                        | Set a ->
+                            match HashMap.tryFind index state with
+                            | Some old ->
+                                match reduction.sub sum old with
+                                | ValueSome s -> sum <- s
+                                | ValueNone -> working <- false
+                            | None ->
+                                ()
+
+                            sum <- reduction.add sum a
+                            state <- HashMap.add index a state
+
+                        | Remove ->
+                            match HashMap.tryRemove index state with
+                            | Some(old, rest) ->
+                                state <- rest
+                                match reduction.sub sum old with
+                                | ValueSome s -> sum <- s
+                                | ValueNone -> working <- false
+                            | None ->
+                                ()
+
+                    if not working then
+                        state <- reader.State
+                        sum <- state |> HashMap.fold (fun s _ v -> reduction.add s v) reduction.seed
+
+                    result <- reduction.view sum
+
+                result
+            )
+
+        interface AdaptiveValue with
+            member x.GetValueUntyped t = 
+                x.GetValue t :> obj
+            member x.ContentType =
+                #if FABLE_COMPILER
+                typeof<obj>
+                #else
+                typeof<'v>
+                #endif
+
+        interface AdaptiveValue<'v> with
+            member x.GetValue t = x.GetValue t
+            
+    /// aval for reduceBy operations.
+    type ReduceByValue<'k, 'a, 'b, 's, 'v>(reduction : AdaptiveReduction<'b, 's, 'v>, mapping : 'k -> 'a -> 'b, input : amap<'k, 'a>) =
+        inherit AdaptiveObject()
+
+        let reader = input.GetReader()
+        let mutable sum = ValueSome reduction.seed
+
+        let mutable result = Unchecked.defaultof<'v>
+        let mutable state = HashMap.empty<'k, 'b>
+
+        let add (s : ValueOption<'s>) (v : 'b) =
+            match s with
+            | ValueSome s -> ValueSome (reduction.add s v)
+            | ValueNone -> ValueNone
+            
+        let sub (s : ValueOption<'s>) (v : 'b) =
+            match s with
+            | ValueSome s -> reduction.sub s v
+            | ValueNone -> ValueNone
+
+        member x.GetValue(token : AdaptiveToken) =
+            x.EvaluateAlways token (fun token ->
+                if x.OutOfDate then
+                    let ops = reader.GetChanges token
+                    for (index, op) in ops do
+                        match op with
+                        | Set a ->
+                            match HashMap.tryFind index state with
+                            | Some old -> sum <- sub sum old
+                            | None -> ()
+
+                            let b = mapping index a
+
+                            sum <- add sum b
+                            state <- HashMap.add index b state
+
+                        | Remove ->
+                            match HashMap.tryRemove index state with
+                            | Some(old, rest) ->
+                                state <- rest
+                                sum <- sub sum old
+                            | None ->
+                                ()
+
+                    match sum with
+                    | ValueSome s ->
+                        result <- reduction.view s
+                    | ValueNone ->
+                        let s = state |> HashMap.fold (fun s _ v -> reduction.add s v) reduction.seed
+                        sum <- ValueSome s
+                        result <- reduction.view s
+
+                result
+            )
+
+        interface AdaptiveValue with
+            member x.GetValueUntyped t = 
+                x.GetValue t :> obj
+            member x.ContentType =
+                #if FABLE_COMPILER
+                typeof<obj>
+                #else
+                typeof<'v>
+                #endif
+
+        interface AdaptiveValue<'v> with
+            member x.GetValue t = x.GetValue t
+
+    /// aval for reduceByA operations.
+    type AdaptiveReduceByValue<'k, 'a, 'b, 's, 'v>(reduction : AdaptiveReduction<'b, 's, 'v>, mapping : 'k -> 'a -> aval<'b>, l : amap<'k, 'a>) =
+        inherit AdaptiveObject()
+
+        let reader = l.GetReader()
+        do reader.Tag <- "FoldReader"
+
+        #if !FABLE_COMPILER
+        let dirtyLock = obj()
+        #endif
+
+
+        let mutable targets = MultiSetMap.empty<aval<'b>, 'k>
+        let mutable state = HashMap.empty<'k, aval<'b> * 'b>
+
+        let mutable dirty : HashMap<'k, aval<'b>> = HashMap.empty
+        let mutable sum = ValueSome reduction.seed
+        let mutable res = Unchecked.defaultof<'v>
+
+        let sub (s : ValueOption<'s>) (v : 'b) =
+            match s with
+            | ValueSome s -> reduction.sub s v
+            | ValueNone -> ValueNone
+            
+        let add (s : ValueOption<'s>) (v : 'b) =
+            match s with
+            | ValueSome s -> ValueSome (reduction.add s v)
+            | ValueNone -> ValueNone
+
+
+        let consumeDirty() =
+            #if FABLE_COMPILER
+            let d = dirty
+            dirty <- HashMap.empty
+            d
+            #else
+            lock dirtyLock (fun () ->
+                let d = dirty
+                dirty <- HashMap.empty
+                d
+            )
+            #endif
+
+        let removeIndex (x : AdaptiveReduceByValue<_,_,_,_,_>) (i : 'k) =
+            match HashMap.tryRemove i state with
+            | Some ((ov, o), newState) ->
+                state <- newState
+                sum <- sub sum o    
+                let rem, newTargets = MultiSetMap.remove ov i targets
+                targets <- newTargets
+                if rem then ov.Outputs.Remove x |> ignore
+                
+            | None ->
+                ()
+
+        override x.InputChangedObject(t, o) =
+            if isNull o.Tag then
+                #if FABLE_COMPILER
+                let o = unbox<aval<'b>> o
+                for i in MultiSetMap.find o targets do
+                    dirty <- HashMap.add i o dirty
+                #else
+                match o with
+                | :? aval<'b> as o ->
+                    lock dirtyLock (fun () -> 
+                        for i in MultiSetMap.find o targets do
+                            dirty <- HashMap.add i o dirty
+                    )
+                | _ -> 
+                    ()
+                #endif
+ 
+        member x.GetValue (t : AdaptiveToken) =
+            x.EvaluateAlways t (fun t ->
+                if x.OutOfDate then
+                    let ops = reader.GetChanges t
+                    let mutable dirty = consumeDirty()
+                    for (i, op) in ops do
+                        dirty <- HashMap.remove i dirty
+                        match op with
+                        | Set v ->
+                            removeIndex x i
+
+                            let r = mapping i v
+                            let n = r.GetValue(t)
+                            targets <- MultiSetMap.add r i targets
+                            state <- HashMap.add i (r, n) state
+                            sum <- add sum n
+
+                        | Remove ->
+                            removeIndex x i
+
+
+                    for (i, r) in dirty do
+                        let n = r.GetValue(t)
+                        state <-
+                            state |> HashMap.alter i (fun old ->
+                                match old with
+                                | Some (ro, o) -> 
+                                    assert(ro = r)
+                                    sum <- add (sub sum o) n
+                                | None -> 
+                                    sum <- add sum n
+                                Some (r, n)
+                            )
+
+                    match sum with
+                    | ValueNone ->
+                        let s = state |> HashMap.fold (fun s _ (_,v) -> reduction.add s v) reduction.seed
+                        sum <- ValueSome s
+                        res <- reduction.view s
+                    | ValueSome s ->
+                        res <- reduction.view s
+
+                res
+            )
+
+        interface AdaptiveValue with
+            member x.GetValueUntyped t = x.GetValue t :> obj
+            member x.ContentType =
+                #if FABLE_COMPILER
+                typeof<obj>
+                #else
+                typeof<'v>
+                #endif
+
+        interface AdaptiveValue<'v> with
+            member x.GetValue t = x.GetValue t  
+
+
 /// Internal implementations for amap operations.
 module AdaptiveHashMapImplementation =
 
@@ -528,64 +794,46 @@ module AMap =
     /// of other AdaptiveObjects since it does not track dependencies.
     let force (set : amap<'K, 'V>) = AVal.force set.Content
 
+
+    /// Reduces the map using the given `AdaptiveReduction` and returns
+    /// the resulting adaptive value.
+    let reduce (r : AdaptiveReduction<'a, 's, 'v>) (map: amap<'k, 'a>) =
+        MapReductions.ReduceValue(r, map) :> aval<'v>
+        
+    /// Applies the mapping function to all elements of the map and reduces the results
+    /// using the given `AdaptiveReduction`.
+    /// Returns the resulting adaptive value.
+    let reduceBy (r : AdaptiveReduction<'b, 's, 'v>) (mapping: 'k -> 'a -> 'b) (map: amap<'k, 'a>) =
+        MapReductions.ReduceByValue(r, mapping, map) :> aval<'v>
+        
+    /// Applies the mapping function to all elements of the map and reduces the results
+    /// using the given `AdaptiveReduction`.
+    /// Returns the resulting adaptive value.
+    let reduceByA (r : AdaptiveReduction<'b, 's, 'v>) (mapping: 'k -> 'a -> aval<'b>) (map: amap<'k, 'a>) =
+        MapReductions.AdaptiveReduceByValue(r, mapping, map) :> aval<'v>
+
+
     /// Adaptively folds over the map using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
     /// Also note that the order of elements given to add/trySubtract is undefined.
     let foldHalfGroup (add : 'S -> 'K -> 'V -> 'S) (trySub : 'S -> 'K -> 'V -> option<'S>) (zero : 'S) (map : amap<'K, 'V>) =
-        let r = map.GetReader()
-        let mutable res = zero
+        let inline trySub s (struct(k,v)) =
+            match trySub s k v with
+            | Some v -> ValueSome v
+            | None -> ValueNone
 
-        let rec traverse (old : HashMap<'K, 'V>) (d : list<'K * ElementOperation<'V>>) =
-            match d with
-                | [] -> true
-                | (k, op) :: rest ->
-                    match op with
-                    | Set v -> 
-                        match HashMap.tryFind k old with
-                        | None ->
-                            res <- add res k v
-                            traverse old rest
-                        | Some o ->
-                            match trySub res k o with
-                            | Some r ->
-                                res <- add r k v
-                                traverse old rest
-                            | None ->
-                                false
-                                
-                        
-
-                    | Remove ->
-                        match HashMap.tryFind k old with
-                        | Some o ->
-                            match trySub res k o with
-                            | Some s ->
-                                res <- s
-                                traverse old rest
-                            | None ->
-                                false
-                        | None ->
-                            traverse old rest
-                                  
-
-        AVal.custom (fun token ->
-            
-            let old = r.State
-            let ops = r.GetChanges token
-            let worked = traverse old (HashMapDelta.toList ops)
-
-            if not worked then
-                res <- r.State |> HashMap.fold add zero
-                
-            res
-        )
+        let inline add s (struct(k,v)) = add s k v
+        reduceBy (AdaptiveReduction.halfGroup zero add trySub) (fun k v -> struct(k,v)) map
         
     /// Adaptively folds over the map using add for additions and subtract for removals.
     /// Note that the order of elements given to add/subtract is undefined.
     let foldGroup (add : 'S -> 'K -> 'V -> 'S) (sub : 'S -> 'K -> 'V -> 'S) (zero : 'S) (map : amap<'K, 'V>) =
-        foldHalfGroup add (fun s k v -> sub s k v |> Some) zero map
+        let inline sub s (struct(k,v)) = sub s k v
+        let inline add s (struct(k,v)) = add s k v
+        reduceBy (AdaptiveReduction.group zero add sub) (fun k v -> struct(k,v)) map
         
     /// Adaptively folds over the map using add for additions and recomputes the value on every removal.
     /// Note that the order of elements given to add is undefined.
     let fold (add : 'S -> 'K -> 'V -> 'S) (zero : 'S) (map : amap<'K, 'V>) =
-        foldHalfGroup add (fun _ _ _ -> None) zero map
+        let inline add s (struct(k,v)) = add s k v
+        reduceBy (AdaptiveReduction.fold zero add) (fun k v -> struct(k,v)) map

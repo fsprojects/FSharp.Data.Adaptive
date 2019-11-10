@@ -97,6 +97,21 @@ module AMap =
     /// of other AdaptiveObjects since it does not track dependencies.
     val force: amap<'K, 'V> -> HashMap<'K, 'V>
 
+    /// Reduces the map using the given `AdaptiveReduction` and returns
+    /// the resulting adaptive value.
+    val reduce : reduction: AdaptiveReduction<'V, 'State, 'Value> -> map: amap<'K, 'V> -> aval<'Value>
+
+    /// Applies the mapping function to all elements of the map and reduces the results
+    /// using the given `AdaptiveReduction`.
+    /// Returns the resulting adaptive value.
+    val reduceBy : reduction: AdaptiveReduction<'T2, 'State, 'Value> -> mapping: ('K -> 'T1 -> 'T2) -> map: amap<'K, 'T1> -> aval<'Value>
+    
+    /// Applies the mapping function to all elements of the map and reduces the results
+    /// using the given `AdaptiveReduction`.
+    /// Returns the resulting adaptive value.
+    val reduceByA : reduction: AdaptiveReduction<'T2, 'State, 'Value> -> mapping: ('K -> 'T1 -> aval<'T2>) -> map: amap<'K, 'T1> -> aval<'Value>
+
+
     /// Adaptively folds over the map using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
     /// Also note that the order of elements given to add/trySubtract is undefined.

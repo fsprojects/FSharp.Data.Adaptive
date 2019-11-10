@@ -949,12 +949,14 @@ module ASet =
     /// Adaptively folds over the set using add for additions and recomputes the value on every removal.
     /// Note that the order of elements given to add is undefined.
     let fold (f : 'S -> 'A -> 'S) (seed : 'S) (s : aset<'A>) =
-        foldHalfGroup f (fun _ _ -> None) seed s
+        let reduction = AdaptiveReduction.fold seed f
+        reduce reduction s
 
     /// Adaptively folds over the set using add for additions and subtract for removals.
     /// Note that the order of elements given to add/subtract is undefined.
     let foldGroup (add : 'S -> 'A -> 'S) (sub : 'S -> 'A -> 'S) (zero : 'S) (s : aset<'A>) =
-        foldHalfGroup add (fun a b -> Some (sub a b)) zero s
+        let reduction = AdaptiveReduction.group zero add sub
+        reduce reduction s
 
     /// Creates an aset using the given reader-creator.
     let ofReader (creator : unit -> #IOpReader<HashSetDelta<'T>>) =
