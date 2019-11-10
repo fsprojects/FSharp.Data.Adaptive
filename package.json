@@ -18,6 +18,7 @@
   "homepage": "https://github.com/fsprojects/FSharp.Data.Adaptive#readme",
   "devDependencies": {
     "@babel/core": "^7.5.5",
+    "@babel/preset-env": "^7.7.1",
     "copy-webpack-plugin": "^5.0.4",
     "fable-compiler": "^2.4.4",
     "fable-loader": "^2.1.8",

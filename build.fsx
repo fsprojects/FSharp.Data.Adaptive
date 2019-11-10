@@ -88,10 +88,8 @@ Target.create "NpmInstall" (fun _ ->
 
 Target.create "CompileFable" (fun _ ->
     let npx = "node_modules/npx/index.js" |> Path.GetFullPath
-    let proj = "src/FSharp.Data.Adaptive/FSharp.Data.Adaptive.fsproj" |> Path.GetFullPath
-    let outDir = "bin/Fable.Splitter" |> Path.GetFullPath
 
-    CreateProcess.fromRawCommand "node" [npx; "fable-splitter"; proj; "-o"; outDir]
+    CreateProcess.fromRawCommand "node" [npx; "fable-splitter"; "-c"; "splitter-config.js"]
     |> CreateProcess.withWorkingDirectory Environment.CurrentDirectory
     |> CreateProcess.withStandardError StreamSpecification.Inherit
     |> CreateProcess.withStandardOutput StreamSpecification.Inherit
