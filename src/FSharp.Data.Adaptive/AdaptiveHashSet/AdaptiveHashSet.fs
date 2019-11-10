@@ -1023,7 +1023,7 @@ module ASet =
         reduce (AdaptiveReduction.average()) s
         
     let inline averageBy (mapping : 'T1 -> 'T2) (list : aset<'T1>) =
-        reduceBy (AdaptiveReduction.average()) (fun _ v -> mapping v) list
+        reduceBy (AdaptiveReduction.average()) mapping list
 
     let inline averageByA (mapping : 'T1 -> aval<'T2>) (list : aset<'T1>) =
         reduceByA (AdaptiveReduction.average()) mapping list
