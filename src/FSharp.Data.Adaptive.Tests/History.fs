@@ -88,7 +88,10 @@ let ``[History] weak``() : unit =
 
 [<Test>]
 let ``[History] different reader versions``() =
-    let history = History CountingHashSet.trace
+    let delta a b =
+        if CountingHashSet.isEmpty a then CountingHashSet.computeDelta a b
+        else failwith "should not happen"
+    let history = History { CountingHashSet.trace with tcomputeDelta = delta }
 
     let change (l : list<SetOperation<int>>) =
         transact (fun () ->

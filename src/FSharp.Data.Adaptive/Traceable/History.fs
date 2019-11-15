@@ -229,7 +229,6 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
     /// Adds a reference to the latest version or creates one.
     /// Returns the RelevantNode representing the latest version
     let addRefToLast() =
-        
         if not (isNull last) then
             match last.TryGetTarget() with
             | (true, lv) ->
@@ -346,6 +345,8 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
                     let (o,c) = mergeIntoPrev current
                     res <- t.tmonoid.mappend res o
                     current <- c
+                    if not (isNull c) then 
+                        c.RefCount <- c.RefCount + 1
 
                 let node = addRefToLast()
                 node, res
