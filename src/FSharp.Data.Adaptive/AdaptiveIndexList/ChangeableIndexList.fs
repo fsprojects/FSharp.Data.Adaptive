@@ -29,6 +29,33 @@ type ChangeableIndexList<'T>(initial: IndexList<'T>) =
             if not (IndexListDelta.isEmpty delta) then
                 history.Perform delta |> ignore
 
+    member x.UpdateTo(other : IndexList<'T2>, init : 'T2 -> 'T, update : 'T -> 'T2 -> 'T) =
+        let current = history.State.Content
+        let target = other.Content
+
+        let store = 
+            (current, target) ||> MapExt.choose2 (fun i l r ->
+                match l with
+                | None -> 
+                    match r with
+                    | Some r -> Some (Set (init r))
+                    | None -> None
+                | Some l ->
+                    match r with
+                    | Some r -> 
+                        let nl = update l r
+                        if cheapEqual l nl then 
+                            None
+                        else 
+                            Some (Set nl)
+                    | None ->
+                        Some Remove
+            )
+
+        let ops = IndexListDelta(store)
+        history.Perform ops |> ignore
+
+
     /// Appends an element to the list and returns its Index.
     member x.Append (element: 'T) =
         let index = 

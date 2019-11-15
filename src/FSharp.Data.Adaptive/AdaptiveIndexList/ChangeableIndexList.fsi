@@ -15,6 +15,9 @@ type ChangeableIndexList<'T> =
 
     /// Gets or sets the value for the list.
     member Value : IndexList<'T> with get, set
+    
+    /// Updates the current content to the given target list using the init/update functions.
+    member UpdateTo : target : IndexList<'T2> * init : ('T2 -> 'T) * update : ('T -> 'T2 -> 'T) -> unit
 
     /// Gets or sets an element in the list at the given index.
     member Item : index: int -> 'T with get, set

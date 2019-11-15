@@ -40,6 +40,33 @@ type ChangeableMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
         and set value =
             let ops = HashMap.computeDelta history.State value
             history.Perform ops |> ignore
+
+    member x.UpdateTo(other : HashMap<'Key, 'T2>, init : 'T2 -> 'Value, update : 'Value -> 'T2 -> 'Value) =
+        let current = history.State
+        let target = other
+
+        let store = 
+            (current, target) ||> HashMap.choose2 (fun i l r ->
+                match l with
+                | None -> 
+                    match r with
+                    | Some r -> Some (Set (init r))
+                    | None -> None
+                | Some l ->
+                    match r with
+                    | Some r -> 
+                        let nl = update l r
+                        if cheapEqual l nl then 
+                            None
+                        else 
+                            Some (Set nl)
+                    | None ->
+                        Some Remove
+            )
+
+        let ops = HashMapDelta(store)
+        history.Perform ops |> ignore
+
         
 
     /// Removes the entry for the given key and returns whether the element was deleted.
