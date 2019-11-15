@@ -1,3 +1,13 @@
+### 0.0.7
+* added CList/CMap.UpdateTo
+* optimized versions for (AList|ASet|AMap).(map|choose|filter)
+* added Transaction.using
+* improved Fable representation of WeakOutputSet
+* all collections now have mapA/chooseA/filterA
+* improved AList.mapA/chooseA
+* added standard reductions (forall, exists, countBy, isEmpty, sumBy, exists, etc.)
+* added reduce/reduceBy/reduceByA
+
 ### 0.0.6
 * fixed fable build
 
