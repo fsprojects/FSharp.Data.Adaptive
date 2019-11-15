@@ -363,6 +363,16 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
         let reader = new HistoryReader<'State, 'Delta>(x) 
         reader :> IOpReader<'State, 'Delta>
         
+    /// Creates a new reader on the history
+    member x.NewReader(trace : Traceable<'ViewState, 'ViewDelta>, mapping : 'State -> 'Delta -> 'ViewDelta) =
+        let reader = new HistoryReader<'State, 'Delta, 'ViewState, 'ViewDelta>(x, mapping, trace) 
+        reader :> IOpReader<'ViewState, 'ViewDelta>
+         
+    /// Creates a new reader on the history
+    member x.NewReader(trace : Traceable<'ViewState, 'ViewDelta>, mapping : 'Delta -> 'ViewDelta) =
+        let reader = new HistoryReader<'State, 'Delta, 'ViewState, 'ViewDelta>(x, (fun _ v -> mapping v), trace) 
+        reader :> IOpReader<'ViewState, 'ViewDelta>
+                   
     interface AdaptiveValue with
         member x.GetValueUntyped t = x.GetValue t :> obj
         member x.ContentType = 
@@ -409,6 +419,41 @@ and internal HistoryReader<'State, 'Delta>(h: History<'State, 'Delta>) =
 
     interface IOpReader<'State, 'Delta> with
         member x.State = state
+
+/// HistoryReader implements IOpReader<_,_> and takes care of managing versions correctly.
+and internal HistoryReader<'State, 'Delta, 'ViewState, 'ViewDelta>(h: History<'State, 'Delta>, mapping : 'State -> 'Delta -> 'ViewDelta, trace : Traceable<'ViewState, 'ViewDelta>) =
+    inherit AdaptiveObject()
+    //let trace = h.Trace
+    let mutable node: RelevantNode<'State, 'Delta> = null
+
+    let mutable state = h.Trace.tempty
+    let mutable viewState = trace.tempty
+    let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
+    member x.RelevantNode = 
+        node
+
+    member x.DestroyRelevantNode() =
+        node <- null
+
+    member x.GetChanges(token: AdaptiveToken) =
+        x.EvaluateAlways token (fun token ->
+            if x.OutOfDate then
+                let nt, ops = h.Read(token, node, state)
+                node <- nt
+                state <- h.State
+                let vops = mapping.Invoke(state, ops)
+                let s, vops = trace.tapplyDelta viewState vops
+                viewState <- s
+                vops
+            else
+                trace.tmonoid.mempty
+        )
+
+    interface IOpReader<'ViewDelta> with
+        member x.GetChanges c = x.GetChanges c
+
+    interface IOpReader<'ViewState, 'ViewDelta> with
+        member x.State = viewState
 
 /// Functional operators related to the History<_,_> type.
 module History =

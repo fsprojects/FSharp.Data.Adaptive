@@ -17,6 +17,9 @@ type AdaptiveIndexList<'T> =
     
     /// Gets a new reader to the list.
     abstract member GetReader : unit -> IIndexListReader<'T>
+    
+    /// Gets the underlying History instance for the alist (if any)
+    abstract member History : option<History<IndexList<'T>, IndexListDelta<'T>>>
 
 /// Adaptive list datastructure.
 type alist<'T> = AdaptiveIndexList<'T>

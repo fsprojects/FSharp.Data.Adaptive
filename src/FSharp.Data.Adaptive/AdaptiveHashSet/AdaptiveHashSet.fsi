@@ -18,6 +18,9 @@ type AdaptiveHashSet<'T> =
     /// Gets a new reader to the set.
     abstract member GetReader : unit -> IHashSetReader<'T>
 
+    /// Gets the underlying History instance for the aset (if any)
+    abstract member History : option<History<CountingHashSet<'T>, HashSetDelta<'T>>>
+
 /// Adaptive set datastructure.
 and aset<'T> = AdaptiveHashSet<'T>
 

@@ -15,6 +15,9 @@ type AdaptiveHashMap<'Key, 'Value> =
 
     /// Gets a new reader to the map.
     abstract member GetReader : unit -> IHashMapReader<'Key, 'Value>
+    
+    /// Gets the underlying History instance for the amap (if any)
+    abstract member History : option<History<HashMap<'Key, 'Value>, HashMapDelta<'Key, 'Value>>>
 
 /// Adaptive map datastructure.
 and amap<'Key, 'Value> = AdaptiveHashMap<'Key, 'Value>
@@ -303,6 +306,7 @@ module AdaptiveHashMapImplementation =
             member x.IsConstant = false
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
+            member x.History = Some history
 
     /// Efficient implementation for an empty adaptive map.
     type EmptyMap<'Key, 'Value> private() =   
@@ -318,6 +322,7 @@ module AdaptiveHashMapImplementation =
             member x.IsConstant = true
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
+            member x.History = None
 
     /// Efficient implementation for a constant adaptive map.
     type ConstantMap<'Key, 'Value>(content : Lazy<HashMap<'Key, 'Value>>) =
@@ -336,12 +341,22 @@ module AdaptiveHashMapImplementation =
             member x.IsConstant = true
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
+            member x.History = None
 
     /// Reader for map operations.
     type MapWithKeyReader<'Key, 'Value1, 'Value2>(input : amap<'Key, 'Value1>, mapping : 'Key -> 'Value1 -> 'Value2) =
         inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.empty)
         
         let reader = input.GetReader()
+
+        static member DeltaMapping (mapping : 'Key -> 'Value1 -> 'Value2) =
+            HashMapDelta.toHashMap >>
+            HashMap.map (fun k op ->
+                match op with
+                    | Set v -> Set (mapping k v)
+                    | Remove -> Remove
+            ) >> 
+            HashMapDelta
 
         override x.Compute(token) =
             let ops = reader.GetChanges token
@@ -357,6 +372,24 @@ module AdaptiveHashMapImplementation =
 
         let cache = Cache<'Value1, 'Value2>(mapping)
         let reader = input.GetReader()
+        
+        static member DeltaMapping (mapping : 'Value1 -> 'Value2) =
+            let cache = Cache<'Value1, 'Value2>(mapping)
+            fun oldState ops ->
+                ops
+                |> HashMapDelta.toHashMap
+                |> HashMap.map (fun k op ->
+                    match op with
+                    | Set v -> 
+                        let res = cache.Invoke(v)
+                        Set res
+                    | Remove -> 
+                        match HashMap.tryFind k oldState with
+                        | Some value -> cache.RevokeAndGetDeleted value |> ignore
+                        | None -> () // strange
+                        Remove
+                )
+                |> HashMapDelta
 
         override x.Compute(token) =
             let oldState = reader.State
@@ -379,6 +412,25 @@ module AdaptiveHashMapImplementation =
 
         let reader = input.GetReader()
         let livingKeys = UncheckedHashSet.create<'Key>()
+
+        static member DeltaMapping (mapping : 'Key -> 'Value1 -> option<'Value2>) =
+            let livingKeys = UncheckedHashSet.create<'Key>()
+            HashMapDelta.toHashMap >> HashMap.choose (fun k op ->
+                match op with
+                | Set v -> 
+                    match mapping k v with
+                    | Some n ->
+                        livingKeys.Add k |> ignore
+                        Some (Set n)
+                    | None ->
+                        if livingKeys.Remove k then
+                            Some Remove
+                        else
+                            None
+                | Remove -> 
+                    if livingKeys.Remove k then Some Remove
+                    else None
+            ) >> HashMapDelta
 
         override x.Compute(token) =
             let ops = reader.GetChanges token
@@ -406,6 +458,32 @@ module AdaptiveHashMapImplementation =
         let reader = input.GetReader()
         let cache = Cache f
         let livingKeys = UncheckedHashSet.create<'Key>()
+
+        static member DeltaMapping (mapping : 'Value1 -> option<'Value2>) =
+            let cache = Cache mapping
+            let livingKeys = UncheckedHashSet.create<'Key>()
+            fun (oldState : HashMap<'Key, 'Value1>) (ops : HashMapDelta<'Key, 'Value1>) ->
+                ops.Store |> HashMap.choose (fun k op ->
+                    match op with
+                    | Set v -> 
+                        match cache.Invoke v with
+                        | Some r -> 
+                            livingKeys.Add k |> ignore
+                            Some (Set r)
+                        | None -> 
+                            match HashMap.tryFind k oldState with
+                            | Some ov -> 
+                                livingKeys.Remove k |> ignore
+                                cache.Revoke ov |> ignore
+                                Some Remove
+                            | _ -> 
+                                None
+                    | Remove -> 
+                        if livingKeys.Remove k then 
+                            Some Remove
+                        else
+                            None
+                ) |> HashMapDelta
 
         override x.Compute(token) =
             let oldState = reader.State
@@ -661,6 +739,29 @@ module AdaptiveHashMapImplementation =
 
         let reader = input.GetReader()
 
+        static member DeltaMapping =
+            fun (oldState : HashMap<'Key, 'Value>) (ops : HashMapDelta<'Key, 'Value>) ->
+                let mutable deltas = HashSetDelta.empty
+                for (k,op) in ops do
+                    match op with
+                    | Set v ->
+                        match HashMap.tryFind k oldState with
+                        | None -> ()
+                        | Some oldValue ->
+                            deltas <- HashSetDelta.add (Rem(k, oldValue)) deltas
+                        deltas <- HashSetDelta.add (Add(k, v)) deltas
+                
+                    | Remove ->
+                        // NOTE: As it is not clear at what point the toASet computation has been evaluated last, it is 
+                        //       a valid case that something is removed that is not present in the current local state.
+                        match HashMap.tryFind k oldState with
+                        | None -> ()
+                        | Some ov ->
+                            deltas <- HashSetDelta.add (Rem (k, ov)) deltas
+                
+                
+                deltas
+
         override x.Compute(token) =
             let oldState = reader.State
             let ops = reader.GetChanges token
@@ -691,6 +792,16 @@ module AdaptiveHashMapImplementation =
         inherit AbstractReader<HashMapDelta<'Key, 'Value>>(HashMapDelta.empty)
 
         let reader = set.GetReader()
+
+        static member DeltaMapping (mapping : 'Key -> 'Value) =
+            fun (ops : HashSetDelta<'Key>) ->
+                ops.Store
+                |> HashMap.choose (fun key v ->
+                    if v > 0 then Some (Set (mapping key))
+                    elif v < 0 then Some Remove
+                    else None
+                )
+                |> HashMapDelta
 
         override x.Compute(token) =
             reader.GetChanges(token).Store
@@ -864,7 +975,13 @@ module AMap =
         if map.IsConstant then
             constant (fun () -> map |> force |> HashMap.map mapping)
         else
-            create (fun () -> MapWithKeyReader(map, mapping))
+            match map.History with
+            | Some history ->
+                create (fun () ->
+                    history.NewReader(HashMap.trace, MapWithKeyReader.DeltaMapping mapping)
+                )
+            | None ->
+                create (fun () -> MapWithKeyReader(map, mapping))
     
     /// Creates an amap with the keys from the set and the values given by mapping.
     let mapSet (mapping : 'Key -> 'Value) (set : aset<'Key>) =
@@ -875,28 +992,52 @@ module AMap =
                 HashMap(c.Count, newStore)
             )
         else
-            create (fun () -> MapSetReader(set, mapping))
+            match set.History with
+            | Some history ->
+                create (fun () ->
+                    history.NewReader(HashMap.trace, MapSetReader.DeltaMapping mapping)
+                )
+            | None ->
+                create (fun () -> MapSetReader(set, mapping))
 
     /// Adaptively maps over the given map without exposing keys.
     let map' (mapping : 'Value1 -> 'Value2) (map : amap<'Key, 'Value1>) =
         if map.IsConstant then
             constant (fun () -> map |> force |> HashMap.map (fun _ -> mapping))
         else
-            create (fun () -> MapReader(map, mapping))
+            match map.History with
+            | Some history ->
+                create (fun () ->
+                    history.NewReader(HashMap.trace, MapReader<'Key, 'Value1, 'Value2>.DeltaMapping mapping)
+                )
+            | None ->
+                create (fun () -> MapReader(map, mapping))
         
     /// Adaptively chooses all elements returned by mapping.  
     let choose (mapping : 'Key -> 'Value1 -> option<'Value2>) (map : amap<'Key, 'Value1>) =
         if map.IsConstant then
             constant (fun () -> map |> force |> HashMap.choose mapping)
         else
-            create (fun () -> ChooseWithKeyReader(map, mapping))
+            match map.History with
+            | Some history ->
+                create (fun () ->
+                    history.NewReader(HashMap.trace, ChooseWithKeyReader<'Key, 'Value1, 'Value2>.DeltaMapping mapping)
+                )
+            | None ->
+                create (fun () -> ChooseWithKeyReader(map, mapping))
             
     /// Adaptively chooses all elements returned by mapping without exposing keys.  
     let choose' (mapping : 'Value1 -> option<'Value2>) (map : amap<'Key, 'Value1>) =
         if map.IsConstant then
             constant (fun () -> map |> force |> HashMap.choose (fun _ -> mapping))
         else
-            create (fun () -> ChooseReader(map, mapping))
+            match map.History with
+            | Some history ->
+                create (fun () ->
+                    history.NewReader(HashMap.trace, ChooseReader<'Key, 'Value1, 'Value2>.DeltaMapping mapping)
+                )
+            | None ->
+                create (fun () -> ChooseReader(map, mapping))
  
     /// Adaptively filters the set using the given predicate.
     let filter (predicate : 'Key -> 'Value -> bool) (map : amap<'Key, 'Value>) =

@@ -16,6 +16,9 @@ type AdaptiveHashMap<'Key,'Value> =
 
     /// gets a new reader to the map.
     abstract member GetReader : unit -> IHashMapReader<'Key,'Value>
+    
+    /// Gets the underlying History instance for the amap (if any)
+    abstract member History : option<History<HashMap<'Key, 'Value>, HashMapDelta<'Key, 'Value>>>
 
 /// Adaptive map datastructure.
 type amap<'Key,'Value> = AdaptiveHashMap<'Key,'Value>

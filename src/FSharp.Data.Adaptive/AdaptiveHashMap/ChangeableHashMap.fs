@@ -72,6 +72,7 @@ type ChangeableMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
         member x.IsConstant = false
         member x.GetReader() = x.GetReader()
         member x.Content = history :> aval<_>
+        member x.History = Some history
 
 /// Changeable adaptive map that allows mutation by user-code and implements amap.
 and cmap<'Key, 'Value> = ChangeableMap<'Key, 'Value>

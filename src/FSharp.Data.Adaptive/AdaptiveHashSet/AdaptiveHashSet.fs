@@ -16,6 +16,9 @@ type AdaptiveHashSet<'T> =
     /// Gets a new reader to the set.
     abstract member GetReader : unit -> IHashSetReader<'T>
 
+    /// Gets the underlying History instance for the aset (if any)
+    abstract member History : option<History<CountingHashSet<'T>, HashSetDelta<'T>>>
+
 and aset<'T> = AdaptiveHashSet<'T>
 
 
@@ -289,6 +292,7 @@ module AdaptiveHashSetImplementation =
             member x.IsConstant = false
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
+            member x.History = Some history
 
     /// Efficient implementation for an empty adaptive set.
     type EmptySet<'T> private() =   
@@ -304,6 +308,7 @@ module AdaptiveHashSetImplementation =
             member x.IsConstant = true
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
+            member x.History = None
 
     /// Efficient implementation for a constant adaptive set.
     type ConstantSet<'T>(content : Lazy<HashSet<'T>>) =
@@ -322,6 +327,7 @@ module AdaptiveHashSetImplementation =
             member x.IsConstant = true
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
+            member x.History = None
 
 
     /// Reader for map operations.
@@ -331,6 +337,15 @@ module AdaptiveHashSetImplementation =
         let cache = Cache mapping
         let reader = input.GetReader()
         
+        static member DeltaMapping (mapping : 'A -> 'B) =    
+            let cache = Cache mapping
+            HashSetDelta.map (fun d ->
+                match d with
+                | Add(1, v) -> Add(cache.Invoke v)
+                | Rem(1, v) -> Rem(cache.Revoke v)
+                | _ -> unexpected()
+            )
+
         override x.Compute(token) =
             reader.GetChanges token |> HashSetDelta.map (fun d ->
                 match d with
@@ -345,7 +360,25 @@ module AdaptiveHashSetImplementation =
             
         let cache = Cache mapping
         let r = input.GetReader()
-        
+  
+        static member DeltaMapping (mapping : 'A -> option<'B>) =    
+            let cache = Cache mapping
+            HashSetDelta.choose (fun d ->
+                match d with
+                | Add(1, v) -> 
+                    match cache.Invoke v with
+                    | Some v -> Some (Add v)
+                    | None -> None
+
+                | Rem(1, v) ->
+                    match cache.Revoke v with
+                    | Some v -> Some (Rem v)
+                    | None -> None
+
+                | _ -> 
+                    unexpected()
+            )
+      
         override x.Compute(token) =
             r.GetChanges token |> HashSetDelta.choose (fun d ->
                 match d with
@@ -370,6 +403,15 @@ module AdaptiveHashSetImplementation =
         let cache = Cache predicate
         let r = input.GetReader()
 
+        static member DeltaMapping (predicate : 'T -> bool) =    
+            let cache = Cache predicate
+            HashSetDelta.filter (fun d ->
+                match d with
+                | Add(1, v) -> cache.Invoke v
+                | Rem(1, v) -> cache.Revoke v
+                | _ -> unexpected()
+            )
+      
         override x.Compute(token) =
             r.GetChanges token |> HashSetDelta.filter (fun d ->
                 match d with
@@ -808,21 +850,39 @@ module ASet =
         if set.IsConstant then
             constant (fun () -> set |> force |> HashSet.map mapping)
         else
-            create (fun () -> MapReader(set, mapping))
+            match set.History with
+            | Some history ->
+                create (fun () -> 
+                    history.NewReader(CountingHashSet.trace, MapReader.DeltaMapping mapping)
+                )
+            | _ ->
+                create (fun () -> MapReader(set, mapping))
           
     /// Adaptively chooses all elements returned by mapping.  
     let choose (mapping : 'A -> option<'B>) (set : aset<'A>) =
         if set.IsConstant then
             constant (fun () -> set |> force |> HashSet.choose mapping)
         else
-            create (fun () -> ChooseReader(set, mapping))
+            match set.History with
+            | Some history ->
+                create (fun () -> 
+                    history.NewReader(CountingHashSet.trace, ChooseReader.DeltaMapping mapping)
+                )
+            | _ ->
+                create (fun () -> ChooseReader(set, mapping))
             
     /// Adaptively filters the set using the given predicate.
     let filter (predicate : 'A -> bool) (set : aset<'A>) =
         if set.IsConstant then
             constant (fun () -> set |> force |> HashSet.filter predicate)
         else
-            create (fun () -> FilterReader(set, predicate))
+            match set.History with
+            | Some history ->
+                create (fun () -> 
+                    history.NewReader(CountingHashSet.trace, FilterReader.DeltaMapping predicate)
+                )
+            | _ ->
+                create (fun () -> FilterReader(set, predicate))
             
     /// Adaptively unions the given sets
     let union (a : aset<'A>) (b : aset<'A>) =

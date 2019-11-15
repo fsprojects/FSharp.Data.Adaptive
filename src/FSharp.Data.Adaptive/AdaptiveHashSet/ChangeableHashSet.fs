@@ -67,6 +67,7 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
         member x.IsConstant = false
         member x.GetReader() = x.GetReader()
         member x.Content = content
+        member x.History = Some history
         
     override x.ToString() =
         let suffix =

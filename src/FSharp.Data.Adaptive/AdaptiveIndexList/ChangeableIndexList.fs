@@ -168,6 +168,7 @@ type ChangeableIndexList<'T>(initial: IndexList<'T>) =
         member x.IsConstant = false
         member x.Content = history :> _
         member x.GetReader() = history.NewReader()
+        member x.History = Some history
 
 /// Changeable adaptive list that allows mutation by user-code and implements alist.
 type clist<'T> = ChangeableIndexList<'T>

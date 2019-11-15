@@ -17,6 +17,9 @@ type AdaptiveIndexList<'T> =
     
     /// Gets a new reader to the list.
     abstract member GetReader : unit -> IIndexListReader<'T>
+    
+    /// Gets the underlying History instance for the alist (if any)
+    abstract member History : option<History<IndexList<'T>, IndexListDelta<'T>>>
 
 /// Adaptive list datastructure.
 and alist<'T> = AdaptiveIndexList<'T>
@@ -306,6 +309,7 @@ module internal AdaptiveIndexListImplementation =
             member x.IsConstant = false
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
+            member x.History = Some history
 
     /// Efficient implementation for an empty adaptive list.
     type EmptyList<'T> private() =   
@@ -321,6 +325,7 @@ module internal AdaptiveIndexListImplementation =
             member x.IsConstant = true
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
+            member x.History = None
 
     /// Efficient implementation for a constant adaptive list.
     type ConstantList<'T>(content : Lazy<IndexList<'T>>) =
@@ -339,6 +344,7 @@ module internal AdaptiveIndexListImplementation =
             member x.IsConstant = true
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
+            member x.History = None
 
 
     /// Reader for map operations.
@@ -346,6 +352,13 @@ module internal AdaptiveIndexListImplementation =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
         let reader = input.GetReader()
+
+        static member DeltaMapping (mapping : Index -> 'a -> 'b) =
+            IndexListDelta.map (fun i op ->
+                match op with
+                | Remove -> Remove
+                | Set v -> Set (mapping i v)
+            )
 
         override x.Compute(token) =
             reader.GetChanges token |> IndexListDelta.map (fun i op ->
@@ -360,6 +373,25 @@ module internal AdaptiveIndexListImplementation =
 
         let r = input.GetReader()
         let mapping = IndexCache mapping
+
+        static member DeltaMapping (mapping : Index -> 'a -> option<'b>) =
+            let mapping = IndexCache mapping
+            IndexListDelta.choose (fun i op ->
+                match op with
+                | Remove -> 
+                    match mapping.Revoke(i) with
+                    | Some _ -> Some Remove
+                    | _ -> None
+                | Set v -> 
+                    let o, n = mapping.InvokeAndGetOld(i, v)
+                    match n with
+                    | Some res -> Some (Set res)
+                    | None -> 
+                        match o with
+                        | Some (Some _o) -> Some Remove
+                        | _ -> None
+            )
+
 
         override x.Compute(token) =
             r.GetChanges token |> IndexListDelta.choose (fun i op ->
@@ -384,6 +416,25 @@ module internal AdaptiveIndexListImplementation =
 
         let reader = input.GetReader()
         let mapping = IndexCache predicate
+
+        static member DeltaMapping (predicate : Index -> 'a -> bool) =
+            let mapping = IndexCache predicate
+            IndexListDelta.choose (fun i op ->
+                match op with
+                | Remove -> 
+                    match mapping.Revoke(i) with
+                    | Some true -> Some Remove
+                    | _ -> None
+                | Set v -> 
+                    let o, n = mapping.InvokeAndGetOld(i, v)
+                    match n with
+                    | true -> 
+                        Some (Set v)
+                    | false -> 
+                        match o with
+                            | Some true -> Some Remove
+                            | _ -> None
+            )
 
         override x.Compute(token) =
             reader.GetChanges token |> IndexListDelta.choose (fun i op ->
@@ -954,43 +1005,67 @@ module AList =
         if list.IsConstant then
             constant (fun () -> list |> force |> IndexList.mapi mapping)
         else
-            create (fun () -> MapReader(list, mapping))
+            match list.History with
+            | Some history ->
+                create (fun () -> history.NewReader(IndexList.trace, MapReader.DeltaMapping mapping))
+            | None -> 
+                create (fun () -> MapReader(list, mapping))
 
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
     let map (mapping: 'T1 -> 'T2) (list : alist<'T1>) =
         if list.IsConstant then
             constant (fun () -> list |> force |> IndexList.map mapping)
         else
-            // TODO: better implementation (caching possible since no Index needed)
-            create (fun () -> MapReader(list, fun _ -> mapping))
+            match list.History with
+            | Some history ->
+                create (fun () -> history.NewReader(IndexList.trace, MapReader.DeltaMapping (fun _ v -> mapping v)))
+            | None -> 
+                // TODO: better implementation (caching possible since no Index needed)
+                create (fun () -> MapReader(list, fun _ -> mapping))
   
     /// Adaptively chooses all elements returned by mapping.  
     let choosei (mapping: Index -> 'T1 -> option<'T2>) (list: alist<'T1>) =
         if list.IsConstant then
             constant (fun () -> list |> force |> IndexList.choosei mapping)
         else
-            create (fun () -> ChooseReader(list, mapping))
+            match list.History with
+            | Some history ->
+                create (fun () -> history.NewReader(IndexList.trace, ChooseReader.DeltaMapping mapping))
+            | None -> 
+                create (fun () -> ChooseReader(list, mapping))
   
     /// Adaptively chooses all elements returned by mapping.  
     let choose (mapping: 'T1 -> option<'T2>) (list: alist<'T1>) =
         if list.IsConstant then
             constant (fun () -> list |> force |> IndexList.choose mapping)
         else
-            create (fun () -> ChooseReader(list, fun _ v -> mapping v))
+            match list.History with
+            | Some history ->
+                create (fun () -> history.NewReader(IndexList.trace, ChooseReader.DeltaMapping (fun _ v -> mapping v)))
+            | None -> 
+                create (fun () -> ChooseReader(list, fun _ v -> mapping v))
 
     /// Adaptively filters the list using the given predicate.
     let filteri (predicate : Index -> 'T -> bool) (list: alist<'T>) =
         if list.IsConstant then
             constant (fun () -> list |> force |> IndexList.filteri predicate)
         else
-            create (fun () -> FilterReader(list, predicate))
+            match list.History with
+            | Some history ->
+                create (fun () -> history.NewReader(IndexList.trace, FilterReader.DeltaMapping predicate))
+            | None -> 
+                create (fun () -> FilterReader(list, predicate))
         
     /// Adaptively filters the list using the given predicate.
     let filter (predicate : 'T -> bool) (list: alist<'T>) =
         if list.IsConstant then
             constant (fun () -> list |> force |> IndexList.filter predicate)
         else
-            create (fun () -> FilterReader(list, fun _ v -> predicate v))
+            match list.History with
+            | Some history ->
+                create (fun () -> history.NewReader(IndexList.trace, FilterReader.DeltaMapping (fun _ v -> predicate v)))
+            | None -> 
+                create (fun () -> FilterReader(list, fun _ v -> predicate v))
 
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.  
     let mapAi (mapping: Index -> 'T1 -> aval<'T2>) (list: alist<'T1>) =
