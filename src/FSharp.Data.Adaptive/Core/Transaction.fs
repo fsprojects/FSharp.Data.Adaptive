@@ -220,6 +220,14 @@ module Transaction =
             | Some c -> Some c
             | None -> None
 
+    let using (t : Transaction) (action : unit -> 'T) =
+        let old = Transaction.Current
+        try
+            Transaction.Current <- Some t
+            action()
+        finally
+            Transaction.Current <- old
+
     let inline internal useCurrent (t : Transaction) (action : unit -> 'T) =
         let old = Transaction.Current
         try

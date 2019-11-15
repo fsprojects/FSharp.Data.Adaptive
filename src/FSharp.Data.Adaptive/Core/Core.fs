@@ -51,23 +51,6 @@ type IAdaptiveObject =
     /// Indicates whether the IAdaptiveObject is constant
     abstract member IsConstant : bool
 
-/// Datastructure for zero-cost casts between different possible representations for WeakOutputSet.
-/// We actually did experiments and for huge dependency graphs transactions were ~10% faster 
-/// than they were when using unbox.
-and [<Struct; StructLayout(LayoutKind.Explicit)>] private VolatileSetData =
-
-    [<FieldOffset(0)>]
-    val mutable public Single: WeakReference<IAdaptiveObject>
-
-    [<FieldOffset(0)>]
-    val mutable public Array: WeakReference<IAdaptiveObject>[]
-
-    [<FieldOffset(0)>]
-    val mutable public Set: HashSet<WeakReference<IAdaptiveObject>>
-
-    [<FieldOffset(8)>]
-    val mutable public Tag: int
-
 /// Represents a set of outputs for an AdaptiveObject. The references to all 
 /// contained elements are weak and the datastructure allows to add/remove entries.
 /// the only other functionality is Consume which returns all the (currently alive)
@@ -97,23 +80,137 @@ and IWeakOutputSet =
 /// entries. The only other functionality is Consume which returns all the
 /// (currently live) entries and clears the set.
 and internal WeakOutputSet() =
-    let mutable data = ReferenceHashSet.create<IAdaptiveObject>()
-    member x.Add(obj: IAdaptiveObject) = data.Add obj
-    member x.Remove(obj: IAdaptiveObject) = data.Remove obj
-    member x.Consume(): IAdaptiveObject[] = 
-        let old = data
-        data <- ReferenceHashSet.create<IAdaptiveObject>()
-        Seq.toArray old
+    static let arrayThreshold = 8
+    let mutable cnt = 0
+    let mutable data : obj = null //ReferenceHashSet.create<IAdaptiveObject>()
+    member x.Add(obj: IAdaptiveObject) = 
+        if cnt = 0 then 
+            data <- obj
+            cnt <- 1
+            true
+        elif cnt = 1 then
+            if Object.ReferenceEquals(data, obj) then
+                false
+            else             
+                let arr = Array.zeroCreate arrayThreshold
+                arr.[0] <- unbox data
+                arr.[1] <- obj     
+                data <- arr 
+                cnt <- 2 
+                true  
+        elif cnt <= arrayThreshold then
+            let arr = unbox<IAdaptiveObject[]> data
+            let mutable isNew = true
+            let mutable i = 0
+            while isNew && i < cnt do  
+                if Object.ReferenceEquals(arr.[i], obj) then isNew <- false
+                i <- i + 1
 
-    member x.IsEmpty = data.Count = 0
+            if isNew then
+                if cnt < arr.Length then 
+                    arr.[cnt] <- obj
+                    cnt <- cnt + 1
+                    true
+                else
+                    let set = ReferenceHashSet.create<IAdaptiveObject>()     
+                    for e in arr do set.Add e |> ignore
+                    cnt <- cnt + 1
+                    data <- set
+                    set.Add obj       
+            else
+                false
+        else
+            let set = unbox<HashSet<IAdaptiveObject>> data
+            set.Add obj
+
+    member x.Remove(obj: IAdaptiveObject) =
+        if cnt = 0 then 
+            false
+        elif cnt = 1 then
+            if Object.ReferenceEquals(data, obj) then 
+                cnt <- 0
+                data <- null
+                true
+            else
+                false
+        elif cnt <= arrayThreshold then
+            let arr = unbox<IAdaptiveObject[]> data
+            let mutable found = false
+            let mutable i = 0
+            while not found && i < cnt do  
+                if Object.ReferenceEquals(arr.[i], obj) then 
+                    let newCnt = cnt - 1
+                    if newCnt = 1 then
+                        if i = 0 then data <- arr.[1]
+                        else data <- arr.[0]
+                    elif i = newCnt then 
+                        arr.[i] <- Unchecked.defaultof<_>
+                    else 
+                        arr.[i] <- arr.[newCnt]
+                        arr.[newCnt] <- Unchecked.defaultof<_>
+                    cnt <- newCnt
+                    found <- true
+                i <- i + 1
+            found
+        else
+            let set = unbox<HashSet<IAdaptiveObject>> data
+            if set.Remove obj then
+                cnt <- set.Count
+                if cnt <= arrayThreshold then
+                    data <- Seq.toArray set
+                true
+            else
+                false 
+
+    member x.Consume(): IAdaptiveObject[] = 
+        if cnt = 0 then 
+            [||]
+        elif cnt = 1 then
+            let d = data
+            data <- null
+            cnt <- 0
+            [| unbox d |]  
+        elif cnt <= arrayThreshold then
+            let arr = unbox<IAdaptiveObject[]> data 
+            let c = cnt
+            data <- null
+            cnt <- 0
+            if c < arr.Length then Array.take c arr
+            else arr      
+        else
+            let set = unbox<HashSet<IAdaptiveObject>> data
+            data <- null
+            cnt <- 0
+            Seq.toArray set
+
+    member x.IsEmpty = cnt = 0
 
     interface IWeakOutputSet with
         member x.IsEmpty = x.IsEmpty
         member x.Add o = x.Add o
         member x.Remove o = x.Remove o
         member x.Consume() = x.Consume()
-
 #else
+
+
+/// Datastructure for zero-cost casts between different possible representations for WeakOutputSet.
+/// We actually did experiments and for huge dependency graphs transactions were ~10% faster 
+/// than they were when using unbox.
+and [<Struct; StructLayout(LayoutKind.Explicit)>] private VolatileSetData =
+
+    [<FieldOffset(0)>]
+    val mutable public Single: WeakReference<IAdaptiveObject>
+
+    [<FieldOffset(0)>]
+    val mutable public Array: WeakReference<IAdaptiveObject>[]
+
+    [<FieldOffset(0)>]
+    val mutable public Set: HashSet<WeakReference<IAdaptiveObject>>
+
+    [<FieldOffset(8)>]
+    val mutable public Tag: int
+
+
 /// Represents a set of outputs for an AdaptiveObject. The references to all
 /// contained elements are weak and the datastructure allows to add/remove
 /// entries. The only other functionality is Consume which returns all the
