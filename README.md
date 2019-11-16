@@ -1,9 +1,6 @@
 ### FSharp.Data.Adaptive
-
-| Platform | Status |
-|---------|----|
-| windows | [![Build status](https://ci.appveyor.com/api/projects/status/syfprdtumkycdt83/branch/master?svg=true)](https://ci.appveyor.com/project/krauthaufen/fsharp-control-incremental/branch/master) |
-| ubuntu 18.04   | [![Build status](https://ci.appveyor.com/api/projects/status/b5m7h9gdtlt0g3ji/branch/master?svg=true)](https://ci.appveyor.com/project/krauthaufen/fsharp-control-incremental-6s2nb/branch/master)  |
+[![CI - Windows](https://github.com/fsprojects/FSharp.Data.Adaptive/workflows/CI%20-%20Windows/badge.svg)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions?query=workflow%3A%22CI+-+Windows%22)
+[![CI - Linux](https://github.com/fsprojects/FSharp.Data.Adaptive/workflows/CI%20-%20Linux/badge.svg)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions?query=workflow%3A%22CI+-+Linux%22)
 
 Makes Aardvark.Base.Incremental's functionality available as a standalone library.
 
