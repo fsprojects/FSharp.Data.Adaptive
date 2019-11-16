@@ -1,3 +1,6 @@
+### 0.0.8
+* fixed ref-counting bug in history
+
 ### 0.0.7
 * added CList/CMap.UpdateTo
 * optimized versions for (AList|ASet|AMap).(map|choose|filter)
