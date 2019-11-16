@@ -106,6 +106,10 @@ let ``[History] different reader versions``() =
     let r1 = history.NewReader()
     let r2 = history.NewReader()
 
+    r0 |> eval |> should setequal List.empty<SetOperation<int>>
+    r1 |> eval |> should setequal List.empty<SetOperation<int>>
+    r2 |> eval |> should setequal List.empty<SetOperation<int>>
+
     // add 1 and pull r1
     change [Add 1]
     r1 |> eval |> should setequal [Add 1]
