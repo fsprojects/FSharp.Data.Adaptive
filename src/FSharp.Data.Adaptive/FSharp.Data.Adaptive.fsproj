@@ -7,19 +7,17 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\..\bin\Debug\</OutputPath>
     <DocumentationFile>..\..\bin\Debug\netstandard2.0\FSharp.Data.Adaptive.XML</DocumentationFile>
-    <OtherFlags></OtherFlags>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE; DEBUG; OPTIMISTIC</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>..\..\bin\Release</OutputPath>
     <DocumentationFile>..\..\bin\Release\netstandard2.0\FSharp.Data.Adaptive.XML</DocumentationFile>
+    <DefineConstants>TRACE; OPTIMISTIC</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="FableHelpers.fs" />
-	<Compile Include="Datastructures\IntMap.fs" />
-	<Compile Include="Datastructures\HashSet.fs" />
-	<Compile Include="Datastructures\HashMap.fs" />
+	<Compile Include="Datastructures\HashCollections.fs" />
 	<Compile Include="Datastructures\Operations.fs" />
 	<Compile Include="Datastructures\Index.fsi" /> 
 	<Compile Include="Datastructures\Index.fs" />

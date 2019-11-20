@@ -673,27 +673,27 @@ module AdaptiveHashMapImplementation =
             let lops = lReader.GetChanges token
             let rops = rReader.GetChanges token
 
-            let merge (key : 'Key) (lop : option<ElementOperation<'Value>>) (rop : option<ElementOperation<'Value>>) : ElementOperation<'Value> =
+            let merge (key : 'Key) (lop : option<ElementOperation<'Value>>) (rop : option<ElementOperation<'Value>>) =
                 let lv =
                     match lop with
                     | Some (Set lv) -> Some lv
                     | Some (Remove) -> None
-                    | None -> HashMap.tryFind key lReader.State
+                    | None -> lReader.State.TryFind key
                             
                 let rv =
                     match rop with
                     | Some (Set rv) -> Some rv
                     | Some (Remove) -> None
-                    | None -> HashMap.tryFind key rReader.State
+                    | None -> rReader.State.TryFind key
 
 
                 match lv, rv with
-                | None, None -> Remove
-                | Some l, None -> Set l
-                | None, Some r -> Set r
-                | Some l, Some r -> Set (resolve key l r)
+                | None, None -> Some Remove
+                | Some l, None -> Set l |> Some
+                | None, Some r -> Set r |> Some
+                | Some l, Some r -> Set (resolve key l r) |> Some
 
-            HashMap.map2 merge lops.Store rops.Store |> HashMapDelta
+            HashMap.choose2 merge lops.Store rops.Store |> HashMapDelta
 
     /// Reader for ofAVal.
     type AValReader<'Seq, 'Key, 'Value when 'Seq :> seq<'Key * 'Value>>(input : aval<'Seq>) =
@@ -988,8 +988,7 @@ module AMap =
         if set.IsConstant then
             constant (fun () ->     
                 let c = set.Content |> AVal.force
-                let newStore = c.Store |> IntMap.map (List.map (fun key -> struct(key, mapping key)))
-                HashMap(c.Count, newStore)
+                c.MapToMap mapping
             )
         else
             match set.History with

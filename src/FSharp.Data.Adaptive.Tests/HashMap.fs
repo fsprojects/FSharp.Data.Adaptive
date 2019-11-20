@@ -26,7 +26,7 @@ type StupidHash = { value : int } with
             | :? StupidHash as o -> x.value = o.value
             | _ -> false
 
-[<Property>]
+[<Property(MaxTest = 10000)>]
 let ``[HashMap] computeDelta / applyDelta`` (map1 : Map<int, int>) (map2 : Map<int, int>) (map3 : Map<int, int>) =
     let map1 = HashMap.ofMap map1
     let map2 = HashMap.ofMap map2

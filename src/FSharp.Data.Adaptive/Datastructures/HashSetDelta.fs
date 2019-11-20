@@ -46,32 +46,37 @@ type HashSetDelta<'T>(store: HashMap<'T, int>) =
 
     /// Combines two DHashSets to one using a reference counting implementation.
     member x.Combine (other: HashSetDelta<'T>) =
-        if store.IsEmpty then 
-            other
+        HashMap<'T, int>.UnionWithValueOption(store, other.Store, fun _ ld rd -> 
+            let n = ld + rd
+            if n <> 0 then ValueSome n
+            else ValueNone
+        ) |> HashSetDelta
+        //if store.IsEmpty then 
+        //    other
 
-        elif other.IsEmpty then 
-            x
+        //elif other.IsEmpty then 
+        //    x
 
-        // factor 5 heuristically determined
-        elif store.Count * 5 < other.Count then
-            let mutable big = other
-            for d in x do
-                big <- big.Add d
-            big
+        //// factor 5 heuristically determined
+        //elif store.Count * 5 < other.Count then
+        //    let mutable big = other
+        //    for d in x do
+        //        big <- big.Add d
+        //    big
 
-        elif other.Count * 5 < store.Count then
-            let mutable big = x
-            for d in other do
-                big <- big.Add d
-            big
+        //elif other.Count * 5 < store.Count then
+        //    let mutable big = x
+        //    for d in other do
+        //        big <- big.Add d
+        //    big
                 
-        else
-            HashMap.choose2 (fun k l r -> 
-                let r = Option.defaultValue 0 l + Option.defaultValue 0 r
-                if r <> 0 then Some r
-                else None
-            ) store other.Store
-            |> HashSetDelta
+        //else
+        //    HashMap.choose2 (fun k l r -> 
+        //        let r = Option.defaultValue 0 l + Option.defaultValue 0 r
+        //        if r <> 0 then Some r
+        //        else None
+        //    ) store other.Store
+        //    |> HashSetDelta
 
     /// Applies the mapping function to all operations in the set.
     member x.Map (mapping: SetOperation<'T> -> SetOperation<'T2>) =
@@ -122,15 +127,12 @@ type HashSetDelta<'T>(store: HashMap<'T, int>) =
 
     /// Creates a seq containing all operations from the set.
     member x.ToSeq() =
-        store.Store |> IntMap.toSeq |> Seq.collect (fun (_hash, values) ->
-            values |> Seq.map (fun struct(k,v) -> SetOperation(k,v))
-        )
+        store |> Seq.map (fun (k, v) -> SetOperation(k,v))
 
     /// Creates a list containing all operations from the set.
     member x.ToList() =
-        store.Store |> IntMap.toList |> List.collect (fun (_hash, values) ->
-            values |> List.map (fun struct(k,v) -> SetOperation(k,v))
-        )
+        store |> HashMap.toList |> List.map (fun (k, v) -> SetOperation(k,v))
+
         
     /// Creates an array containing all operations from the set.
     member x.ToArray() =

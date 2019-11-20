@@ -85,12 +85,15 @@ type Monitor =
 namespace Microsoft.FSharp.Core
 
 module OptimizedClosures =
+    
     type FSharpFunc<'T1, 'T2, 'T3>(value : 'T1 -> 'T2 -> 'T3) =
-        member x.Invoke(a1, a2) = value a1 a2
+        let value = System.Func<'T1, 'T2, 'T3>(value)
+        member x.Invoke(a1, a2) = value.Invoke(a1, a2)
         static member Adapt(value : 'T1 -> 'T2 -> 'T3) = FSharpFunc<'T1, 'T2, 'T3>(value)
         
     type FSharpFunc<'T1, 'T2, 'T3, 'T4>(value : 'T1 -> 'T2 -> 'T3 -> 'T4) =
-        member x.Invoke(a1, a2, a3) = value a1 a2 a3
+        let value = System.Func<'T1, 'T2, 'T3, 'T4>(value)
+        member x.Invoke(a1, a2, a3) = value.Invoke(a1, a2, a3)
         static member Adapt(value : 'T1 -> 'T2 -> 'T3 -> 'T4) = FSharpFunc<'T1, 'T2, 'T3, 'T4>(value)
 
 namespace System.Runtime.CompilerServices

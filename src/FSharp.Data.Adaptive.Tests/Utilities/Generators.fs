@@ -1464,17 +1464,38 @@ module Generators =
                         )
                         getChanges
             }
-                     
+    
+[<Struct; CustomEquality; NoComparison>]
+type StupidHash(v : int) =
+    member x.Value = v
+    override x.GetHashCode() = v % 2
+    override x.Equals o =
+        match o with
+        | :? StupidHash as o -> v = o.Value
+        | _ -> false
+
+    override x.ToString() = string v
+
 type AdaptiveGenerators() =
 
     static let relevantTypes = 
         [
-            typeof<int * int>
+            typeof<StupidHash>
             typeof<int>
             typeof<obj>
             //typeof<HashSet<int>>
             //typeof<HashSet<obj>>
         ]
+
+    static member StupidHash() =
+        { new Arbitrary<StupidHash>() with
+            member x.Generator =
+                Arb.generate<int> |> Gen.map StupidHash
+            member x.Shrinker _ =
+                Seq.empty
+        }
+        
+
         
     static member IndexList<'a>() =
         { new Arbitrary<IndexList<'a>>() with

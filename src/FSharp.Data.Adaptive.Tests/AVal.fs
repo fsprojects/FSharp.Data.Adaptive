@@ -19,7 +19,7 @@ module Helpers =
 
 type Record<'T> = { value : 'T }
 
-[<Property(Arbitrary = [| typeof<AdaptiveGenerators> |])>]
+[<Property(MaxTest = 1000, Arbitrary = [| typeof<AdaptiveGenerators> |])>]
 let ``[AVal] reference impl``() ({ real = real; ref = ref; expression = str; changes = changes } : VVal<obj>) =
     printfn "VALIDATE"
     printfn "%s" (Generators.Generators.indent (Generators.Generators.indent str))
@@ -60,7 +60,7 @@ let ``[AVal] reference impl``() ({ real = real; ref = ref; expression = str; cha
                     effective <- effective + 1
         }
 
-    Gen.eval 15 (Random.newSeed()) run
+    Gen.eval 50 (Random.newSeed()) run
 
 [<Property>]
 let ``[AVal] constant equality`` (value : obj) =
