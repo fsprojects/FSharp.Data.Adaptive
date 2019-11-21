@@ -348,6 +348,30 @@ module internal MapExtImplementation =
                         let ll, res, lr = split comparer k l
                         ll, res, join lr k2 v2 r
 
+        let rec splitV (comparer: IComparer<'Value>) k m =
+            match m with
+                | MapEmpty -> 
+                    MapEmpty, ValueNone, MapEmpty
+
+                | MapOne(k2,v2) ->
+                    let c = comparer.Compare(k, k2)
+                    if c < 0 then MapEmpty, ValueNone, MapOne(k2,v2)
+                    elif c = 0 then MapEmpty, ValueSome(v2), MapEmpty
+                    else MapOne(k2,v2), ValueNone, MapEmpty
+
+                | MapNode(k2,v2,l,r,_,_) ->
+                    let c = comparer.Compare(k, k2)
+                    if c > 0 then
+                        let rl, res, rr = splitV comparer k r
+                        join l k2 v2 rl, res, rr
+
+                    elif c = 0 then 
+                        l, ValueSome(v2), r
+
+                    else
+                        let ll, res, lr = splitV comparer k l
+                        ll, res, join lr k2 v2 r
+
         let rec getReference (comparer: IComparer<'Value>) (current : int) k m =
             match m with
                 | MapEmpty -> 
@@ -829,6 +853,133 @@ module internal MapExtImplementation =
                                 | _ -> 
                                     let k,v,r = spliceOutSuccessor r
                                     join l k v r
+            
+        let rec computeDelta 
+            (comparer: IComparer<'Key>) 
+            (set : OptimizedClosures.FSharpFunc<'Key, 'Value, 'OP>) 
+            (update : OptimizedClosures.FSharpFunc<'Key, 'Value, 'Value, voption<'OP>>) 
+            (remove : OptimizedClosures.FSharpFunc<'Key, 'Value, 'OP>) 
+            (l : MapTree<'Key, 'Value>) 
+            (r : MapTree<'Key, 'Value>) =
+            match struct (l, r) with
+                | struct (MapEmpty, MapEmpty) -> MapEmpty
+                | struct (MapEmpty, r) -> mapiOpt set r
+                | struct (l, MapEmpty) -> mapiOpt remove l
+
+                | struct (MapOne(lk, lv), MapOne(rk, rv)) ->
+                    if Object.ReferenceEquals(l, r) then
+                        MapEmpty
+                    else
+                        let c = comparer.Compare(lk, rk)
+                        if c = 0 then
+                            match update.Invoke(lk, lv, rv) with
+                            | ValueSome r -> MapOne(lk, r)
+                            | ValueNone -> MapEmpty
+                        elif c < 0 then
+                            MapNode(lk, remove.Invoke(lk, lv), MapEmpty, MapOne(rk, set.Invoke(rk, rv)), 2, 2)
+                        else
+                            MapNode(lk, remove.Invoke(lk, lv), MapOne(rk, set.Invoke(rk, rv)), MapEmpty, 2, 2)
+                            
+                | struct (MapOne(lk, lv), MapNode(nk, nv, nl, nr, _, _)) ->
+                    let c = comparer.Compare(lk, nk)
+                    if c = 0 then
+                        let ll = mapiOpt set nl
+                        let rr = mapiOpt set nr
+                        match update.Invoke(lk, lv, nv) with
+                        | ValueSome op ->
+                            join ll lk op rr
+                        | ValueNone ->
+                            match rr with
+                            | MapEmpty -> ll
+                            | _ -> 
+                                let (k,v,rr) = spliceOutSuccessor rr
+                                join ll k v rr
+                    elif c > 0 then
+                        let rr = computeDelta comparer set update remove l nr
+                        join (mapiOpt set nl) nk (set.Invoke(nk, nv)) rr
+                    else
+                        let ll = computeDelta comparer set update remove l nl
+                        join ll nk (set.Invoke(nk, nv)) (mapiOpt set nr)
+
+                | struct(MapNode(nk, nv, nl, nr, _, _), MapOne(rk, rv)) ->
+                    let c = comparer.Compare(rk, nk)
+                    if c = 0 then
+                        let ll = mapiOpt remove nl
+                        let rr = mapiOpt remove nr
+                        match update.Invoke(rk, nv, rv) with
+                        | ValueSome op ->
+                            join ll nk op rr
+                        | ValueNone ->
+                            match rr with
+                            | MapEmpty -> ll
+                            | _ -> 
+                                let (k,v,rr) = spliceOutSuccessor rr
+                                join ll k v rr
+                    elif c > 0 then
+                        let rr = computeDelta comparer set update remove nr r
+                        join (mapiOpt remove nl) nk (remove.Invoke(nk, nv)) rr
+                    else
+                        let ll = computeDelta comparer set update remove nl r
+                        join ll nk (remove.Invoke(nk, nv)) (mapiOpt remove nr)
+
+                | struct(MapNode(lka, lva, lla, lra, lha, _), MapNode(rka, rva, rla, rra, rha, _rc)) ->
+                    if Object.ReferenceEquals(l, r) then
+                        MapEmpty
+                    else
+                        let c = comparer.Compare(lka, rka)
+                        if c = 0 then
+                            let l = computeDelta comparer set update remove lla rla
+                            let r = computeDelta comparer set update remove lra rra
+                            match update.Invoke(lka, lva, rva) with
+                            | ValueSome op ->
+                                join l lka op r
+                            | ValueNone ->
+                                match r with
+                                | MapEmpty -> l
+                                | _ -> 
+                                    let (k, v, r) = spliceOutSuccessor r
+                                    join l k v r
+
+                        elif rha < lha then
+                            let (rl, rv, rr) = splitV comparer lka r
+                            let l = computeDelta comparer set update remove lla rl
+                            let r = computeDelta comparer set update remove lra rr
+                            match rv with
+                            | ValueSome rv -> 
+                                match update.Invoke(lka, lva, rv) with
+                                | ValueSome op ->
+                                    join l lka op r
+                                | ValueNone ->
+                                    match r with
+                                    | MapEmpty -> l
+                                    | _ -> 
+                                        let (k, v, r) = spliceOutSuccessor r
+                                        join l k v r
+                            | ValueNone ->
+                                let k = lka
+                                let v = remove.Invoke(lka, lva)
+                                join l k v r
+                        else
+                            let (ll, lv, lr) = splitV comparer rka l
+                            let l = computeDelta comparer set update remove ll rla
+                            let r = computeDelta comparer set update remove lr rra
+
+                            match lv with
+                            | ValueSome lv -> 
+                                match update.Invoke(rka, lv, rva) with
+                                | ValueSome op ->
+                                    join l rka op r
+                                | ValueNone ->
+                                    match r with
+                                    | MapEmpty -> l
+                                    | _ -> 
+                                        let (k, v, r) = spliceOutSuccessor r
+                                        join l k v r
+                            | ValueNone ->
+                                let k = rka
+                                let v = set.Invoke(rka, rva)
+                                join l k v r
+                                
 
         let rec intersectWithAux (f:OptimizedClosures.FSharpFunc<'Key,'T1,'T2>) (comparer: IComparer<'k>) (l : MapTree<'k, 'Key>) (r : MapTree<'k, 'T1>) : MapTree<'k, 'T2> =
             match l with
@@ -1168,6 +1319,12 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
         
     member m.Choose2(other:MapExt<'Key,'Value2>, f)  = 
         new MapExt<'Key,'Result>(comparer, MapTree.choose2 comparer f tree other.Tree)
+        
+    member m.ComputeDelta(other:MapExt<'Key,'Value>, add, update, remove)  = 
+        let add = OptimizedClosures.FSharpFunc<_,_,_>.Adapt add
+        let update = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt update
+        let remove = OptimizedClosures.FSharpFunc<_,_,_>.Adapt remove
+        new MapExt<'Key,_>(comparer, MapTree.computeDelta comparer add update remove tree other.Tree)
 
     member m.Choose(f) =
         new MapExt<'Key, 'Value2>(comparer, MapTree.choosei f tree)

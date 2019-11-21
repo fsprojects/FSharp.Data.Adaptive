@@ -98,30 +98,40 @@ module DifferentiationExtensions =
         /// Applies the given operations to the list. 
         /// Returns the new list and the 'effective' operations.
         let computeDelta (l : IndexList<'T>) (r : IndexList<'T>) : IndexListDelta<'T> =
-            if l.Count = 0 && r.Count = 0 then
-                IndexListDelta.empty
+            let inline add k v = Set v
+            let inline rem k v = Remove
+            let inline update k o n =
+                if Unchecked.equals o n then ValueNone
+                else ValueSome (Set n)
+            let res = l.Content.ComputeDelta(r.Content, add, update, rem)
+            printfn "%s" (l.Content |> MapExt.toSeq |> Seq.map string |> String.concat "; ")
+            printfn "%s" (r.Content |> MapExt.toSeq |> Seq.map string |> String.concat "; ")
+            printfn "%s" (res |> MapExt.toSeq |> Seq.map string |> String.concat "; ")
+            IndexListDelta res
+            //if l.Count = 0 && r.Count = 0 then
+            //    IndexListDelta.empty
 
-            elif l.Count = 0 then
-                r.Content |> MapExt.map (fun i v -> Set v) |> IndexListDelta.ofMap
+            //elif l.Count = 0 then
+            //    r.Content |> MapExt.map (fun i v -> Set v) |> IndexListDelta.ofMap
                 
-            elif r.Count = 0 then
-                l.Content |> MapExt.map (fun i v -> Remove) |> IndexListDelta.ofMap
+            //elif r.Count = 0 then
+            //    l.Content |> MapExt.map (fun i v -> Remove) |> IndexListDelta.ofMap
 
-            elif System.Object.ReferenceEquals (l.Content, r.Content) then
-                IndexListDelta.empty
+            //elif System.Object.ReferenceEquals (l.Content, r.Content) then
+            //    IndexListDelta.empty
 
-            else
-                // TODO: one small???
-                let merge (k : Index) (l : option<'T>) (r : option<'T>) =
-                    match l, r with
-                    | Some l, Some r when Unchecked.equals l r -> 
-                        None
-                    | _, Some r -> 
-                        Some (Set r)
-                    | Some _l, None -> 
-                        Some Remove
-                    | None, None ->
-                        None
+            //else
+            //    // TODO: one small???
+            //    let merge (k : Index) (l : option<'T>) (r : option<'T>) =
+            //        match l, r with
+            //        | Some l, Some r when Unchecked.equals l r -> 
+            //            None
+            //        | _, Some r -> 
+            //            Some (Set r)
+            //        | Some _l, None -> 
+            //            Some Remove
+            //        | None, None ->
+            //            None
 
-                MapExt.choose2 merge l.Content r.Content |> IndexListDelta.ofMap
+            //    MapExt.choose2 merge l.Content r.Content |> IndexListDelta.ofMap
 
