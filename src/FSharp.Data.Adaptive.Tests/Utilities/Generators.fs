@@ -33,8 +33,9 @@ module Helpers =
         let m = DynamicMethod("invoker", MethodAttributes.Static ||| MethodAttributes.Public, CallingConventions.Standard, typeof<obj>, dargs, typeof<obj>, true)
 
         let il = m.GetILGenerator()
-        il.Emit(OpCodes.Ldarg_0)
-        il.EmitCall(OpCodes.Call, mi, null)
+        il.Emit(OpCodes.Ldarg, 0)
+        il.EmitCall(OpCodes.Callvirt, mi, null)
+        if mi.ReturnType.IsValueType then il.Emit(OpCodes.Box, mi.ReturnType)
         il.Emit(OpCodes.Ret)
 
         let invoke = 
@@ -375,9 +376,9 @@ module Generators =
                 if typeof<'a> = typeof<HashMap<'k, 'v>> then
                     fun (v : HashMap<'k, 'v>) -> unbox v
                 elif typeof<'a> = typeof<string> then 
-                    fun (v : HashMap<'k, 'v>) -> string v |> unbox<'a>
+                    fun (v : HashMap<'k, 'v>) -> string (Unchecked.hash v) |> unbox<'a>
                 elif typeof<'a> = typeof<obj> then  
-                    fun (v : HashMap<'k, 'v>) -> string v :> obj |> unbox<'a>
+                    fun (v : HashMap<'k, 'v>) -> v :> obj |> unbox<'a>
                 elif typeof<'a> = typeof<int> then 
                     fun (v : HashMap<'k, 'v>) -> Unchecked.hash v |> unbox<'a>
                 else

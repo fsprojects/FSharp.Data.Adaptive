@@ -380,7 +380,7 @@ module internal HashMapImplementation =
         override x.LNext = null
         
         override x.ComputeHash() =
-            combineHash 431 (int x.Hash)
+            int x.Hash
 
         override x.ToArray(dst, o) =
             if !o >= dst.Value.Length then resizeArray dst (!o * 2)
@@ -2159,7 +2159,7 @@ module internal HashMapImplementation =
         let visit2 (v : HashMapVisitor2<'K, 'V1, 'V2, 'R>) (l : HashMapNode<'K, 'V1>) (r : HashMapNode<'K, 'V2>) =
             l.Accept (HashMapVisit2Visitor(v, r))
 
-        let equals (cmp : EqualityComparer<'K>) (vcmp : EqualityComparer<'V>) (l : HashMapNode<'K,'V>) (r : HashMapNode<'K,'V>) =
+        let equals (cmp : EqualityComparer<'K>) (l : HashMapNode<'K,'V>) (r : HashMapNode<'K,'V>) =
             let len = ref 0
             let arr = ref (Array.zeroCreate 4)
 
@@ -2177,9 +2177,9 @@ module internal HashMapImplementation =
                         if l == r then
                             true
                         elif l.LHash = r.LHash then
-                            len := 0
-                            let mutable r = r :> HashMapNode<_,_>
+                            let mutable rr = r :> HashMapNode<_,_>
                             let hash = l.LHash
+                            len := 0
                             l.ToArray(arr, len)
                             let len = !len
 
@@ -2187,15 +2187,15 @@ module internal HashMapImplementation =
                             let mutable eq = true
                             while eq && i < len do
                                 let struct(k, lv) = arr.Value.[i]
-                                match r.TryRemove(cmp, hash, k) with
+                                match rr.TryRemove(cmp, hash, k) with
                                 | ValueSome (rv, rest) ->
-                                    eq <- vcmp.Equals(lv, rv)
-                                    r <- rest
+                                    eq <- Unchecked.equals lv rv
+                                    rr <- rest
                                 | ValueNone ->
                                     eq <- false
                                 i <- i + 1
 
-                            if eq then r.IsEmpty
+                            if eq then rr.IsEmpty
                             else false
                         else
                             false
@@ -3658,16 +3658,16 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: EqualityComparer<'K
             | ValueSome v -> v
             | ValueNone -> raise <| KeyNotFoundException()
 
-    override x.GetHashCode() = root.ComputeHash()
+    override x.GetHashCode() = 
+        root.ComputeHash()
+
     override x.Equals o =
-        let vmcp = EqualityComparer<'V>.Default
         match o with
-        | :? HashMap<'K, 'V> as o -> HashMapNode.equals cmp vmcp root o.Root
+        | :? HashMap<'K, 'V> as o -> HashMapNode.equals cmp root o.Root
         | _ -> false
         
     member x.Equals(o : HashMap<'K, 'V>) =
-        let vmcp = EqualityComparer<'V>.Default
-        HashMapNode.equals cmp vmcp root o.Root
+        HashMapNode.equals cmp root o.Root
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Single(key: 'K, value : 'V) =  

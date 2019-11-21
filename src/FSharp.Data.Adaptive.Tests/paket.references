@@ -6,4 +6,3 @@ Microsoft.NET.Test.Sdk
 NUnit
 BenchmarkDotNet
 NUnit3TestAdapter
-Appveyor.TestLogger

@@ -236,25 +236,32 @@ let ``[HashMap] equality`` (h0 : StupidHash) =
     let b = HashMap.empty |> HashMap.add h1 1 |> HashMap.add h2 2 |> HashMap.add h3 3 |> HashMap.add h0 0
     let c = HashMap.empty |> HashMap.add h2 2 |> HashMap.add h3 3 |> HashMap.add h0 0 |> HashMap.add h1 1
     let d = HashMap.empty |> HashMap.add h3 3 |> HashMap.add h0 0 |> HashMap.add h1 1 |> HashMap.add h2 2
+    let e = HashMap.ofList [h1,1; h0,0; h3,3; h2,2]
     
     let x = d |> HashMap.add h3 4
     let y = d |> HashMap.add { value = h0.value + 4 } 4
+    let z = d |> HashMap.remove h3
 
     let ah = a.GetHashCode()
     let bh = b.GetHashCode()
     let ch = c.GetHashCode()
     let dh = d.GetHashCode()
+    let eh = e.GetHashCode()
+    
 
     a = a && b = b && c = c && d = d && x = x && y = y &&
 
     a = b && a = c && a = d && b = c && b = d && c = d && 
     b = a && c = a && d = a && c = b && d = b && d = c && 
+    e = a &&
 
-    ah = bh && bh = ch && ch = dh &&
+    ah = bh && bh = ch && ch = dh && dh = eh &&
 
     x <> a && x <> b && x <> c && x <> d &&
     y <> a && y <> b && y <> c && y <> d &&
     x <> y &&
+
+    z <> a && z <> b && z <> c && z <> d && z <> x && z <> y &&
 
     a.Count = 4 && b.Count = 4 && c.Count = 4 && d.Count = 4 && 
     x.Count = 4 && y.Count = 5
