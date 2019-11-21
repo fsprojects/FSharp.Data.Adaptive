@@ -143,14 +143,14 @@ module AVal =
 
         override x.GetHashCode() =
             let value = x.GetValue()
-            cheapHash value
+            Unchecked.hash value
 
         override x.Equals o =
             match o with
             | :? ConstantVal<'T> as o -> 
                 let xv = x.GetValue()
                 let ov = o.GetValue()
-                cheapEqual xv ov
+                Unchecked.equals xv ov
             | _ ->
                 false
     /// Aval for mapping a single value
