@@ -74,64 +74,29 @@ module DifferentiationExtensions =
         /// Determines the operations needed to transform l into r.
         /// Returns a IndexListDelta containing these operations.
         let applyDelta (x : IndexList<'T>) (deltas : IndexListDelta<'T>) =
-            if deltas.Count = 0 then
-                x, deltas
-            else
-                let mutable res = x
-                let finalDeltas =
-                    deltas |> IndexListDelta.filter (fun i op ->
-                        match op with
-                        | Remove -> 
-                            res <- res.Remove i
-                            true
-                        | Set v -> 
-                            match res.TryGet i with
-                            | Some o when Unchecked.equals o v -> 
-                                false
-                            | _ -> 
-                                res <- res.Set(i,v)
-                                true
-                    )
-
-                res, finalDeltas
+            let inline apply _ o n =
+                match n with
+                | Remove ->
+                    match o with
+                    | ValueSome _ -> struct (ValueNone, ValueSome Remove)
+                    | ValueNone -> struct (ValueNone, ValueNone)
+                | Set v ->
+                    match o with
+                    | ValueSome o ->
+                        if Unchecked.equals o v then struct (ValueSome v, ValueNone)
+                        else struct(ValueSome v, ValueSome (Set v))
+                    | ValueNone ->
+                        struct(ValueSome v, ValueSome (Set v))
+            let s, d = x.Content.ApplyDelta(deltas.Content, apply)
+            IndexList.ofMap s, IndexListDelta.ofMap d
 
         /// Applies the given operations to the list. 
         /// Returns the new list and the 'effective' operations.
         let computeDelta (l : IndexList<'T>) (r : IndexList<'T>) : IndexListDelta<'T> =
-            let inline add k v = Set v
-            let inline rem k v = Remove
-            let inline update k o n =
+            let inline add _ v = Set v
+            let inline rem _ _ = Remove
+            let inline update _ o n =
                 if Unchecked.equals o n then ValueNone
                 else ValueSome (Set n)
             let res = l.Content.ComputeDelta(r.Content, add, update, rem)
-            printfn "%s" (l.Content |> MapExt.toSeq |> Seq.map string |> String.concat "; ")
-            printfn "%s" (r.Content |> MapExt.toSeq |> Seq.map string |> String.concat "; ")
-            printfn "%s" (res |> MapExt.toSeq |> Seq.map string |> String.concat "; ")
             IndexListDelta res
-            //if l.Count = 0 && r.Count = 0 then
-            //    IndexListDelta.empty
-
-            //elif l.Count = 0 then
-            //    r.Content |> MapExt.map (fun i v -> Set v) |> IndexListDelta.ofMap
-                
-            //elif r.Count = 0 then
-            //    l.Content |> MapExt.map (fun i v -> Remove) |> IndexListDelta.ofMap
-
-            //elif System.Object.ReferenceEquals (l.Content, r.Content) then
-            //    IndexListDelta.empty
-
-            //else
-            //    // TODO: one small???
-            //    let merge (k : Index) (l : option<'T>) (r : option<'T>) =
-            //        match l, r with
-            //        | Some l, Some r when Unchecked.equals l r -> 
-            //            None
-            //        | _, Some r -> 
-            //            Some (Set r)
-            //        | Some _l, None -> 
-            //            Some Remove
-            //        | None, None ->
-            //            None
-
-            //    MapExt.choose2 merge l.Content r.Content |> IndexListDelta.ofMap
-

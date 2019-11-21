@@ -324,6 +324,22 @@ module internal MapExtImplementation =
             else
                 mk left k v right
 
+
+        let merge l r =
+            match r with
+            | MapEmpty -> l
+            | _ ->
+                match l with
+                | MapEmpty -> r
+                | _ ->
+                    let (k,v,r) = spliceOutSuccessor r
+                    join l k v r
+
+        let inline joinV left k v right =
+            match v with
+            | ValueSome v -> join left k v right
+            | ValueNone -> merge left right
+
         let rec split (comparer: IComparer<'Value>) k m =
             match m with
                 | MapEmpty -> 
@@ -621,6 +637,26 @@ module internal MapExtImplementation =
 
         let choosei f m = chooseiOpt (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
     
+        let rec chooseiOptV2 (f:OptimizedClosures.FSharpFunc<'Key,'T1,struct (voption<'T2> * voption<'T3>)>) m =
+            match m with
+                | MapEmpty -> 
+                    struct(MapEmpty, MapEmpty)
+
+                | MapOne(k,v) ->
+                    let struct (a, b) = f.Invoke(k,v)
+                    let a = match a with | ValueSome v -> MapOne(k,v) | ValueNone -> MapEmpty
+                    let b = match b with | ValueSome v -> MapOne(k,v) | ValueNone -> MapEmpty
+                    struct (a, b)
+
+                | MapNode(k,v,l,r,h,c) ->
+                    let struct(la', lb') = chooseiOptV2 f l
+                    let struct (sa', sb') = f.Invoke(k,v)
+                    let struct (ra', rb') = chooseiOptV2 f r
+
+                    let a = joinV la' k sa' ra'
+                    let b = joinV lb' k sb' rb'
+                    struct (a, b)
+
         let rec tryMinAux acc m =
             match m with
             | MapEmpty -> acc
@@ -854,6 +890,164 @@ module internal MapExtImplementation =
                                     let k,v,r = spliceOutSuccessor r
                                     join l k v r
             
+        let rec applyDelta
+            (comparer : IComparer<'Key>)
+            (apply : OptimizedClosures.FSharpFunc<'Key, voption<'Value>, 'Delta, struct (voption<'Value> * voption<'DeltaOut>)>) 
+            (onlyDelta : OptimizedClosures.FSharpFunc<'Key, 'Delta, struct (voption<'Value> * voption<'DeltaOut>)>)
+            (l : MapTree<'Key, 'Value>) 
+            (r : MapTree<'Key, 'Delta>) =
+                
+            match struct(l, r) with
+            | struct (value, MapEmpty) ->
+                struct (value, MapEmpty)
+
+            | struct (MapEmpty, r) -> 
+                chooseiOptV2 onlyDelta r
+
+            | struct (MapOne(lk, lv), MapOne(rk, rv)) ->
+                let c = comparer.Compare(lk, rk)
+                if c = 0 then
+                    let struct (s, d) = apply.Invoke(lk, ValueSome lv, rv)
+                    let s = match s with | ValueSome v -> MapOne(lk, v) | ValueNone -> MapEmpty
+                    let d = match d with | ValueSome v -> MapOne(rk, v) | ValueNone -> MapEmpty
+                    struct(s, d)
+                else
+                    let struct (s, d) = onlyDelta.Invoke(rk, rv)
+                    let d = match d with | ValueSome v -> MapOne(rk, v) | ValueNone -> MapEmpty
+                    match s with
+                    | ValueSome s ->
+                        //let state = merge (MapOne(lk, lv)) (MapOne(rk, s))
+                        let state =
+                            if c > 0 then MapNode(rk, s, MapEmpty, MapOne(lk, lv), 2, 2)
+                            else MapNode(lk, lv, MapEmpty, MapOne(rk, s), 2, 2)
+                        struct(state, d)
+                    | ValueNone ->
+                        struct (l, d)
+
+            | struct (MapOne(lk, lv), MapNode(rk, rv, rl, rr, rh, rc)) ->
+                let c = comparer.Compare(lk, rk)
+                 
+                //match tryRemove comparer lk r with
+                //| Some (rv, r) ->
+                //    let struct (s, d) = chooseiOptV2 onlyDelta r
+                //    let struct (sv, dv) = apply.Invoke(lk, ValueSome lv, rv)
+                //    let s = match sv with | ValueNone -> s | ValueSome v -> add comparer lk v s
+                //    let d = match dv with | ValueNone -> d | ValueSome v -> add comparer lk v d
+                //    struct (s, d)
+                //| None ->
+                //    let struct (s, d) = chooseiOptV2 onlyDelta r
+                //    struct(add comparer lk lv s, d)
+
+                if c = 0 then
+                    let struct (s, d) = apply.Invoke(rk, ValueSome lv, rv)
+                    let struct (rls, rld) = chooseiOptV2 onlyDelta rl
+                    let struct (rrs, rrd) = chooseiOptV2 onlyDelta rr
+
+                    let s = joinV rls rk s rrs 
+                    let d = joinV rld rk d rrd 
+                    struct (s, d)
+
+                elif c < 0 then
+                    let struct (s, d) = onlyDelta.Invoke(rk, rv)
+                    let struct (rls, rld) = applyDelta comparer apply onlyDelta l rl
+                    let struct (rrs, rrd) = chooseiOptV2 onlyDelta rr
+                    
+                    let s = joinV rls rk s rrs 
+                    let d = joinV rld rk d rrd
+                    struct (s, d)
+
+                else
+                    let struct (s, d) = onlyDelta.Invoke(rk, rv)
+                    let struct (rls, rld) = chooseiOptV2 onlyDelta rl
+                    let struct (rrs, rrd) = applyDelta comparer apply onlyDelta l rr
+                    
+                    let s = joinV rls rk s rrs 
+                    let d = joinV rld rk d rrd
+                    struct (s, d)
+
+            | struct(MapNode(lk, lv, ll, lr, _, _), MapOne(rk, rv)) ->
+                //match tryRemove comparer rk l with
+                //| Some (lv, l) ->
+                //    let struct (s, d) = apply.Invoke(rk, ValueSome lv, rv)
+                //    let s = match s with | ValueSome s -> (add comparer rk s l) | ValueNone -> l
+                //    let d = match d with | ValueSome v -> MapOne(rk, v) | ValueNone -> MapEmpty
+                //    struct (s, d)
+                //| None ->
+                //    let struct (s, d) = apply.Invoke(rk, ValueNone, rv)
+                //    let s = match s with | ValueSome s -> (add comparer rk s l) | ValueNone -> l
+                //    let d = match d with | ValueSome v -> MapOne(rk, v) | ValueNone -> MapEmpty
+                //    struct (s, d)
+                    
+                let c = comparer.Compare(lk, rk)
+                
+                if c = 0 then
+                    let struct (s, d) = apply.Invoke(lk, ValueSome lv, rv)
+                    let d = match d with | ValueSome v -> MapOne(lk, v) | ValueNone -> MapEmpty
+                    struct (
+                        joinV ll lk s lr,
+                        d
+                    )
+                    
+                elif c < 0 then
+                    // delta in right
+                    let struct (lr, d) = applyDelta comparer apply onlyDelta lr r
+                    let s = join ll lk lv lr
+                    struct (s, d)
+                else
+                    // delta in left
+                    let struct (ll, d) = applyDelta comparer apply onlyDelta ll r
+                    let s = join ll lk lv lr
+                    struct (s, d)
+                    
+            | struct(MapNode(lk, lv, ll, lr, lh, _), MapNode(rk, rv, rl, rr, rh, _)) ->
+                let c = comparer.Compare(lk, rk)
+                if c = 0 then
+                    let struct (s, d) = apply.Invoke(lk, ValueSome lv, rv)
+                    let struct (ls, ld) = applyDelta comparer apply onlyDelta ll rl
+                    let struct (rs, rd) = applyDelta comparer apply onlyDelta lr rr
+                    let s = joinV ls lk s rs 
+                    let d = joinV ld lk d rd 
+                    struct (s, d)
+                elif lh > rh then
+                    let (rl, rv, rr) = splitV comparer lk r
+                    let key = lk
+                    let rk = ()
+                    let lk = ()
+                    match rv with
+                    | ValueSome rv ->
+                        let struct (s, d) = apply.Invoke(key, ValueSome lv, rv)
+                        let struct (ls, ld) = applyDelta comparer apply onlyDelta ll rl
+                        let struct (rs, rd) = applyDelta comparer apply onlyDelta lr rr
+                        let s = joinV ls key s rs 
+                        let d = joinV ld key d rd 
+                        struct (s, d)
+                    | ValueNone ->
+                        let struct (ls, ld) = applyDelta comparer apply onlyDelta ll rl
+                        let struct (rs, rd) = applyDelta comparer apply onlyDelta lr rr
+                        let s = join ls key lv rs 
+                        let d = merge ld rd 
+                        struct (s, d)
+                else
+                    let (ll, lv, lr) = splitV comparer rk l
+                    let key = rk
+                    let rk = ()
+                    let lk = ()
+                    match lv with
+                    | ValueSome lv ->
+                        let struct (s, d) = apply.Invoke(key, ValueSome lv, rv)
+                        let struct (ls, ld) = applyDelta comparer apply onlyDelta ll rl
+                        let struct (rs, rd) = applyDelta comparer apply onlyDelta lr rr
+                        let s = joinV ls key s rs 
+                        let d = joinV ld key d rd 
+                        struct (s, d)
+                    | ValueNone ->
+                        let struct (s, d) = onlyDelta.Invoke(key, rv)
+                        let struct (ls, ld) = applyDelta comparer apply onlyDelta ll rl
+                        let struct (rs, rd) = applyDelta comparer apply onlyDelta lr rr
+                        let s = joinV ls key s rs 
+                        let d = joinV ld key d rd 
+                        struct (s, d)
+
         let rec computeDelta 
             (comparer: IComparer<'Key>) 
             (set : OptimizedClosures.FSharpFunc<'Key, 'Value, 'OP>) 
@@ -1325,6 +1519,12 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
         let update = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt update
         let remove = OptimizedClosures.FSharpFunc<_,_,_>.Adapt remove
         new MapExt<'Key,_>(comparer, MapTree.computeDelta comparer add update remove tree other.Tree)
+        
+    member m.ApplyDelta(other:MapExt<'Key,'Delta>, apply)  = 
+        let apply = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply
+        let onlyDelta = OptimizedClosures.FSharpFunc<_,_,_>.Adapt(fun k d -> apply.Invoke(k, ValueNone, d))
+        let struct (s, d) = MapTree.applyDelta comparer apply onlyDelta tree other.Tree
+        new MapExt<'Key,_>(comparer, s), new MapExt<'Key,_>(comparer, d)
 
     member m.Choose(f) =
         new MapExt<'Key, 'Value2>(comparer, MapTree.choosei f tree)

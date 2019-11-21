@@ -100,7 +100,7 @@ let ``[IndexList] tryGetPosition`` (l : list<int>) =
 
 
 
-[<Property>]
+[<Property(MaxTest = 4000)>]
 let ``[IndexList] computeDelta / applyDelta`` (l1 : list<int>) (l2 : list<int>) (l3 : list<int>) =
     let l1 = IndexList.ofList l1
     let l2 = IndexList.ofList l2
