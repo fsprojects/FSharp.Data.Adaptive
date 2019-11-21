@@ -10,6 +10,18 @@ open System.Runtime.Intrinsics.X86
 [<AutoOpen>]
 module internal HashMapUtilities =
 
+    type private EnumeratorSeq<'T>(create : unit -> System.Collections.Generic.IEnumerator<'T>) =
+        interface System.Collections.IEnumerable with
+            member x.GetEnumerator() = create() :> _
+
+        interface System.Collections.Generic.IEnumerable<'T> with
+            member x.GetEnumerator() = create()
+
+    module Seq =
+        let ofEnumerator (create : unit -> #System.Collections.Generic.IEnumerator<'T>) =
+            EnumeratorSeq(fun () -> create() :> _) :> seq<_>
+
+
     type Mask = uint32
 
     let inline combineHash (a: int) (b: int) =
@@ -1084,6 +1096,12 @@ module internal HashMapImplementation =
                 dst.[!index] <- n.Key, n.Value
                 index := !index + 1
                 copyTo index dst n.Next
+                
+        let rec copyToV (index: ref<int>) (dst : (struct ('K * 'V)) array) (n: HashMapLinked<'K, 'V>) =
+            if not (isNull n) then
+                dst.[!index] <- struct (n.Key, n.Value)
+                index := !index + 1
+                copyToV index dst n.Next
 
     [<AbstractClass>]
     type HashMapNode<'K, 'V>() =
@@ -1121,6 +1139,8 @@ module internal HashMapImplementation =
         abstract member ToArray: ref<array<struct('K * 'V)>> * ref<int> -> unit
 
         abstract member CopyTo: dst: ('K * 'V) array * index : ref<int> -> unit
+        
+        abstract member CopyToV: dst: (struct('K * 'V)) array * index : ref<int> -> unit
 
     [<AbstractClass>]
     type HashMapLeaf<'K, 'V>() =
@@ -1220,6 +1240,8 @@ module internal HashMapImplementation =
             true
 
         override x.CopyTo(_dst : ('K * 'V) array, _index : ref<int>) =
+            ()
+        override x.CopyToV(_dst : (struct ('K * 'V)) array, _index : ref<int>) =
             ()
 
     [<Sealed>]
@@ -1547,6 +1569,11 @@ module internal HashMapImplementation =
             index := !index + 1
             HashMapLinked.copyTo index dst x.Next
             
+        override x.CopyToV(dst : (struct ('K * 'V)) array, index : ref<int>) =
+            dst.[!index] <- struct (x.Key, x.Value)
+            index := !index + 1
+            HashMapLinked.copyToV index dst x.Next
+            
         static member New(h: uint32, k: 'K, v: 'V, n: HashMapLinked<'K, 'V>) : HashMapNode<'K, 'V> = 
             assert (not (isNull n))
             new HashMapCollisionLeaf<_,_>(Hash = h, Key = k, Value = v, Next = n) :> HashMapNode<'K, 'V>
@@ -1725,6 +1752,10 @@ module internal HashMapImplementation =
 
         override x.CopyTo(dst : ('K * 'V) array, index : ref<int>) =
             dst.[!index] <- (x.Key, x.Value)
+            index := !index + 1
+            
+        override x.CopyToV(dst : (struct ('K * 'V)) array, index : ref<int>) =
+            dst.[!index] <- struct (x.Key, x.Value)
             index := !index + 1
 
         static member New(h : uint32, k : 'K, v : 'V) : HashMapNode<'K, 'V> =
@@ -1946,6 +1977,10 @@ module internal HashMapImplementation =
         override x.CopyTo(dst : ('K * 'V) array, index : ref<int>) =
             x.Left.CopyTo(dst, index)
             x.Right.CopyTo(dst, index)
+            
+        override x.CopyToV(dst : (struct ('K * 'V)) array, index : ref<int>) =
+            x.Left.CopyToV(dst, index)
+            x.Right.CopyToV(dst, index)
 
         static member New(p: uint32, m: Mask, l: HashMapNode<'K, 'V>, r: HashMapNode<'K, 'V>) : HashMapNode<'K, 'V> = 
             assert(getPrefix p m = p)
@@ -3660,15 +3695,6 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: EqualityComparer<'K
         HashMap<'K, 'V>(cmp, r)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member OfListUnoptimized(elements: list<'K * 'V>) =  
-        let cmp = EqualityComparer<'K>.Default
-        let mutable r = HashMapImplementation.HashMapEmpty.Instance 
-        for (k, v) in elements do
-            let hash = cmp.GetHashCode k |> uint32
-            r <- r.Add(cmp, hash, k, v)
-        HashMap<'K, 'V>(cmp, r)
-        
-    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfArray(elements: array<'K * 'V>) =  
         let cmp = EqualityComparer<'K>.Default
         let mutable r = HashMapImplementation.HashMapEmpty.Instance 
@@ -3677,6 +3703,35 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: EqualityComparer<'K
             r <- r.AddInPlaceUnsafe(cmp, hash, k, v)
         HashMap<'K, 'V>(cmp, r)
         
+    
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfSeqV(elements: seq<struct ('K * 'V)>) =  
+        let cmp = EqualityComparer<'K>.Default
+        let mutable r = HashMapImplementation.HashMapEmpty.Instance 
+        for struct (k, v) in elements do
+            let hash = cmp.GetHashCode k |> uint32
+            r <- r.AddInPlaceUnsafe(cmp, hash, k, v)
+        HashMap<'K, 'V>(cmp, r)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfListV(elements: list<struct ('K * 'V)>) =  
+        let cmp = EqualityComparer<'K>.Default
+        let mutable r = HashMapImplementation.HashMapEmpty.Instance 
+        for struct (k, v) in elements do
+            let hash = cmp.GetHashCode k |> uint32
+            r <- r.AddInPlaceUnsafe(cmp, hash, k, v)
+        HashMap<'K, 'V>(cmp, r)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfArrayV(elements: array<struct ('K * 'V)>) =  
+        let cmp = EqualityComparer<'K>.Default
+        let mutable r = HashMapImplementation.HashMapEmpty.Instance 
+        for struct (k, v) in elements do
+            let hash = cmp.GetHashCode k |> uint32
+            r <- r.AddInPlaceUnsafe(cmp, hash, k, v)
+        HashMap<'K, 'V>(cmp, r)
+
+
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Add(key: 'K, value: 'V) =
         let hash = cmp.GetHashCode key |> uint32
@@ -3698,6 +3753,15 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: EqualityComparer<'K
         | ValueNone ->
             None
          
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.TryRemoveV(key: 'K) =
+        let hash = cmp.GetHashCode key |> uint32
+        match root.TryRemove(cmp, hash, key) with
+        | ValueSome (struct(value, newRoot)) ->
+            ValueSome (value, HashMap(cmp, newRoot))
+        | ValueNone ->
+            ValueNone
+
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.TryFind(key: 'K) =
         let hash = cmp.GetHashCode key |> uint32
@@ -3738,6 +3802,12 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: EqualityComparer<'K
         HashMap(cmp, newRoot)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.ChooseV(mapping: 'K -> 'V -> voption<'T>) =
+        let mapping = OptimizedClosures.FSharpFunc<'K, 'V, voption<'T>>.Adapt mapping
+        let newRoot = root.ChooseV(mapping)
+        HashMap(cmp, newRoot)
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Filter(predicate: 'K -> 'V -> bool) =
         let predicate = OptimizedClosures.FSharpFunc<'K, 'V, bool>.Adapt predicate
         let newRoot = root.Filter(predicate)
@@ -3766,6 +3836,29 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: EqualityComparer<'K
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member inline x.ToSeq() =
         x :> seq<_>
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.ToSeqV() =
+        let root = root
+        Seq.ofEnumerator(fun () -> new HashMapStructEnumerator<_,_>(root))
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.ToListV() =
+        let arr = Array.zeroCreate root.Count
+        let index = ref 0
+        root.CopyToV(arr, index)
+        let mutable res = []
+        for i in 1 .. arr.Length do
+            let i = arr.Length - i
+            res <- arr.[i] :: res
+        res
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.ToArrayV() =
+        let arr = Array.zeroCreate root.Count
+        let index = ref 0
+        root.CopyToV(arr, index)
+        arr
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ToList() =
@@ -3881,6 +3974,58 @@ and internal HashMapEnumerator<'K, 'V>(root: HashMapNode<'K, 'V>) =
     interface System.Collections.Generic.IEnumerator<'K * 'V> with
         member x.Dispose() = x.Dispose()
         member x.Current = x.Current
+
+and internal HashMapStructEnumerator<'K, 'V>(root: HashMapNode<'K, 'V>) =
+    let mutable stack = [root]
+    let mutable linked: HashMapLinked<'K, 'V> = null
+    let mutable current = Unchecked.defaultof<struct ('K * 'V)>
+
+    member x.MoveNext() =
+        if isNull linked then
+            match stack with
+            | (:? HashMapEmpty<'K, 'V>) :: rest ->
+                stack <- rest 
+                x.MoveNext()
+            | (:? HashMapNoCollisionLeaf<'K, 'V> as l) :: rest ->
+                stack <- rest
+                current <- struct (l.Key, l.Value)
+                true
+            | (:? HashMapCollisionLeaf<'K, 'V> as l) :: rest -> 
+                stack <- rest
+                current <- struct (l.Key, l.Value)
+                linked <- l.Next
+                true
+            | (:? HashMapInner<'K, 'V> as n) :: rest ->
+                stack <- n.Left:: n.Right:: rest
+                x.MoveNext()
+            | _ ->
+                false
+        else
+            current <- struct (linked.Key, linked.Value)
+            linked <- linked.Next
+            true
+    
+    member x.Current = current
+
+    member x.Reset() =
+        stack <- [root]
+        linked <- null
+        current <- Unchecked.defaultof<_>
+
+    member x.Dispose() =
+        stack <- []
+        linked <- null
+        current <- Unchecked.defaultof<_>
+
+    interface System.Collections.IEnumerator with
+        member x.MoveNext() = x.MoveNext()
+        member x.Current = x.Current:> obj
+        member x.Reset() = x.Reset()
+        
+    interface System.Collections.Generic.IEnumerator<struct ('K * 'V)> with
+        member x.Dispose() = x.Dispose()
+        member x.Current = x.Current
+
 
 module HashSet =
 
@@ -4101,11 +4246,6 @@ module HashMap =
     let inline ofArray (arr: array<'K * 'V>) = 
         HashMap<'K, 'V>.OfArray arr
 
-    /// Creates a map with all entries from the list.
-    /// `O(N * log N)`
-    let inline ofListUnoptimized (list: list<'K * 'V>) = 
-        HashMap<'K, 'V>.OfListUnoptimized list
-
     /// Creates a seq holding all tuples contained in the map.
     /// `O(N)`
     let inline toSeq (map: HashMap<'K, 'V>) = 
@@ -4139,10 +4279,20 @@ module HashMap =
     let inline tryRemove (key: 'K) (map: HashMap<'K, 'V>) =
         map.TryRemove(key)
 
+    /// Tries to remove the entry for the given key from the map and returns its value and the rest of the map.
+    /// `O(log N)`       
+    let inline tryRemoveV (key: 'K) (map: HashMap<'K, 'V>) =
+        map.TryRemoveV(key)
+
     /// Tries to find the value for the given key.
     /// `O(log N)`
     let inline tryFind (key: 'K) (map: HashMap<'K, 'V>) =
         map.TryFind(key)
+        
+    /// Tries to find the value for the given key.
+    /// `O(log N)`
+    let inline tryFindV (key: 'K) (map: HashMap<'K, 'V>) =
+        map.TryFindV(key)
 
     /// Finds the value for the given key and raises KeyNotFoundException on failure.
     /// `O(log N)`
@@ -4179,6 +4329,11 @@ module HashMap =
     let inline choose (mapping: 'K -> 'V -> option<'T>) (map: HashMap<'K, 'V>) =
         map.Choose mapping
     
+    /// Creates a new map (with the same keys) by applying the given function to all entries.
+    /// `O(N)`
+    let inline chooseV (mapping: 'K -> 'V -> voption<'T>) (map: HashMap<'K, 'V>) =
+        map.ChooseV mapping
+
     /// Creates a new map (with the same keys) that contains all entries for which predicate was true.
     /// `O(N)`
     let inline filter (predicate: 'K -> 'V -> bool) (map: HashMap<'K, 'V>) =
@@ -4246,52 +4401,6 @@ module HashMap =
     let inline union (l : HashMap<'K, 'V>) (r : HashMap<'K, 'V>) =
         HashMap<'K, 'V>.Union(l, r)
 
-
-
-    ///// Creates a HashSet holding all keys from the map.
-    ///// `O(N)`
-    //let inline keys (map: HashMap<'K, 'V>) = map.GetKeys()
-
-    ///// Creates a new map by applying the mapping function to all entries.
-    ///// The respective option-arguments are some whenever the left/right map has an entry for the current key.
-    ///// Note that one of the options will always be some.
-    ///// `O(N + M)`
-    //let inline map2 (mapping: 'K -> option<'V> -> option<'V2> -> 'V3) (l: HashMap<'K, 'V>) (r: HashMap<'K, 'V2>) =
-    //    l.Map2(r, mapping)
-
-    ///// Creates a new map by applying the mapping function to all entries.
-    ///// The respective option-arguments are some whenever the left/right map has an entry for the current key.
-    ///// Note that one of the options will always be some.
-    ///// `O(N + M)`
-    //let inline choose2 (mapping: 'K -> option<'V1> -> option<'V2> -> option<'V3>) (l: HashMap<'K, 'V1>) (r: HashMap<'K, 'V2>) =
-    //    l.Choose2(r, mapping)
-
-
-    //let inline computeDelta (l : HashMap<'K, 'V>) (r : HashMap<'K, 'V>) =
-    //    let inline add _k v = Set v
-    //    let inline remove _k _v = Remove
-    //    let inline update _l o n =
-    //        if Unchecked.equals o n then ValueNone
-    //        else ValueSome (Set n)
-
-    //    HashMap<'K, 'V>.ComputeDelta(l, r, add, update, remove)
-
-    //let inline applyDelta (l : HashMap<'K, 'V>) (r : HashMap<'K, ElementOperation<'V>>) =
-    //    let inline apply _ o n =
-    //        match n with
-    //        | Remove ->
-    //            match o with
-    //            | ValueSome _ -> struct (ValueNone, ValueSome Remove)
-    //            | ValueNone -> struct (ValueNone, ValueNone)
-    //        | Set v ->
-    //            match o with
-    //            | ValueSome o ->
-    //                if Unchecked.equals o v then struct (ValueSome v, ValueNone)
-    //                else struct(ValueSome v, ValueSome (Set v))
-    //            | ValueNone ->
-    //                struct(ValueSome v, ValueSome (Set v))
-
-    //    HashMap<'K, 'V>.ApplyDelta(l, r, apply)
 
 
 
