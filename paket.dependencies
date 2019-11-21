@@ -5,6 +5,7 @@ storage: none
 framework: auto-detect
 
 nuget FSharp.Core                           >= 4.6.2
+nuget System.Reflection.Emit.Lightweight    ~> 4.6.0
 
 # Tests : intentionally in main group
 nuget FsUnit                                ~> 3.4.1

@@ -122,32 +122,11 @@ module internal CheapEquality =
     open System.Runtime.CompilerServices
 
     #if FABLE_COMPILER
-    let cheapHash (a : 'T) = Unchecked.hash a
-    let cheapEqual (a : 'T) (b : 'T) = Unchecked.equals a b
+    let cheapHash (a : 'T) = ShallowEqualityComparer<'T>.ShallowHashCode a
+    let cheapEqual (a : 'T) (b : 'T) = ShallowEqualityComparer<'T>.ShallowEquals(a, b)
     #else
-    type private CheapEquality<'T> private() =
-
-        static let comparer =
-            let typ = typeof<'T>
-
-            // TODO: any reasonable ideas?
-            if FSharpType.IsRecord typ || FSharpType.IsUnion typ || FSharpType.IsTuple typ then
-                EqualityComparer<'T>.Default
-
-            elif not typ.IsValueType then
-                { new EqualityComparer<'T>() with 
-                    member x.GetHashCode(o : 'T) = RuntimeHelpers.GetHashCode o
-                    member x.Equals(a : 'T, b : 'T) = Object.ReferenceEquals(a, b)
-                }
-
-            else 
-                EqualityComparer<'T>.Default
-
-
-        static member Comparer = comparer
-
-    let cheapHash (a : 'T) = CheapEquality<'T>.Comparer.GetHashCode a
-    let cheapEqual (a : 'T) (b : 'T) = CheapEquality<'T>.Comparer.Equals(a, b)
+    let cheapHash (a : 'T) = ShallowEqualityComparer<'T>.ShallowHashCode a
+    let cheapEqual (a : 'T) (b : 'T) = ShallowEqualityComparer<'T>.ShallowEquals(a, b)
     #endif 
 
 module internal Unchecked =
