@@ -70,9 +70,7 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
     member internal x.Store = store
 
     /// Creates a HashSet with the same entries.
-    member x.ToHashSet() =
-        let setStore = store.Store |> IntMap.map (List.map (fun struct(k,_) -> k))
-        HashSet(x.Count, setStore)
+    member x.ToHashSet() = store.GetKeys()
 
     /// Checks whether the given value is contained in the set.
     member x.Contains (value : 'T) =
@@ -84,11 +82,10 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
     /// Adds the given value to the set. (one reference)
     member x.Add(value : 'T) =
-        store
-        |> HashMap.update value (fun o -> 
+        store.AlterV(value, fun o -> 
             match o with
-                | Some o -> o + 1
-                | None -> 1
+                | ValueSome o -> ValueSome (o + 1)
+                | ValueNone -> ValueSome 1
         )
         |> CountingHashSet
 
@@ -118,47 +115,45 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
     /// Unions the two sets.
     member x.Union(other : CountingHashSet<'T>) =
-        HashMap.map2 (fun k l r ->
-            match l, r with 
-                | Some l, Some r -> l + r
-                | Some l, None -> l
-                | None, Some r -> r
-                | None, None -> 0
-        ) store other.Store
-        |> CountingHashSet
+        HashMap.unionWith (fun _ l r -> l + r) store other.Store |> CountingHashSet
 
     /// Computes the set difference for both sets. (this - other)
     member x.Difference(other : CountingHashSet<'T>) =
-        HashMap.choose2 (fun k l r ->
+        (store, other.Store) 
+        ||> HashMap.choose2V (fun k l r ->
             let newRefCount = 
                 match l, r with 
-                    | Some l, Some r -> l - r
-                    | Some l, None -> l
-                    | None, Some r -> 0
-                    | None, None -> 0
+                    | ValueSome l, ValueSome r -> l - r
+                    | ValueSome l, ValueNone -> l
+                    | ValueNone, ValueSome r -> 0
+                    | ValueNone, ValueNone -> 0
 
-            if newRefCount > 0 then Some newRefCount
-            else None
-        ) store other.Store
+            if newRefCount > 0 then ValueSome newRefCount
+            else ValueNone
+        )
         |> CountingHashSet
 
     /// Computes the intersection of both sets.
     member x.Intersect(other : CountingHashSet<'T>) =
-        HashMap.choose2 (fun k l r ->
+        (store, other.Store) 
+        ||> HashMap.choose2V (fun k l r ->
             match l, r with 
-                | Some l, Some r -> Some (min l r)
-                | _ -> None
-        ) store other.Store
+                | ValueSome l, ValueSome r -> ValueSome (min l r)
+                | _ -> ValueNone
+        )
         |> CountingHashSet
 
     /// Unions both sets using resolve to aggregate ref-counts.
     member x.UnionWith(other : CountingHashSet<'T>, resolve : int -> int -> int) =
-        HashMap.map2 (fun k l r ->
-            match l, r with 
-                | Some l, Some r -> resolve l r
-                | Some l, None -> resolve l 0
-                | None, Some r -> resolve 0 r
-                | None, None -> resolve 0 0
+        HashMap.choose2V (fun k l r ->
+            let res = 
+                match l, r with 
+                    | ValueSome l, ValueSome r -> resolve l r
+                    | ValueSome l, ValueNone -> resolve l 0
+                    | ValueNone, ValueSome r -> resolve 0 r
+                    | ValueNone, ValueNone -> resolve 0 0
+            if res > 0 then ValueSome res
+            else ValueNone
         ) store other.Store
         |> CountingHashSet
 
@@ -188,7 +183,7 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
         let mutable res = HashMap.empty
         for (k,v) in HashMap.toSeq store do
             let k = mapping k
-            res <- res |> HashMap.update k (fun o -> defaultArg o 0 + v) 
+            res <- res.AlterV(k, function ValueSome o -> ValueSome (o + v) | ValueNone -> ValueSome v)
 
         CountingHashSet res
         
@@ -198,7 +193,7 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
         for (k,v) in HashMap.toSeq store do
             match mapping k with
                 | Some k ->
-                    res <- res |> HashMap.update k (fun o -> defaultArg o 0 + v) 
+                    res <- res.AlterV(k, function ValueSome o -> ValueSome (o + v) | _ -> ValueSome v) 
                 | None ->
                     ()
 
@@ -210,13 +205,15 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
     /// Creates a new set with all elements from all created sets.  (respecting ref-counts)
     member x.Collect(mapping : 'T -> CountingHashSet<'B>) =
-        let mutable res = CountingHashSet<'B>.Empty
+        let mutable res = HashMap<'B, int>.Empty
         for (k,ro) in store.ToSeq() do
             let r = mapping k
-            if ro = 1 then
-                res <- res.Union r
-            else
-                res <- res.UnionWith(r, fun li ri -> li + ro * ri)
+            let rr, _ =
+                HashMap<'B, int>.ApplyDelta(res, r.Store, fun _ oldRef delta ->
+                    let oldRef = match oldRef with | ValueSome o -> o | ValueNone -> 0
+                    struct (ValueSome (oldRef + ro * delta), ValueNone)
+                )
+            res <- rr
         res
 
     /// Iterates over all set elements. (once)
@@ -256,43 +253,14 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
         
     /// Creates a set holding all the given values.
     static member OfHashSet (set : HashSet<'T>) =
-        let mapStore = set.Store |> IntMap.map (List.map (fun a -> struct(a,1)))
-        CountingHashSet(HashMap(set.Count, mapStore))
+        set.MapToMap(fun _ -> 1) |> CountingHashSet
 
     /// Differentiates two sets returning a HashSetDelta.
     member x.ComputeDelta(other : CountingHashSet<'T>) =
-        // O(1)
-        if Object.ReferenceEquals(store.Store, other.Store.Store) then
-            HashSetDelta.empty
-
-        // O(other)
-        elif store.IsEmpty then 
-            other.Store |> HashMap.map (fun _ _ -> 1) |> HashSetDelta.ofHashMap
-
-        // O(N)
-        elif other.IsEmpty then
-            store |> HashMap.map (fun _ _ -> -1) |> HashSetDelta.ofHashMap
-        
-        // O(N + other)
-        else
-            let mutable cnt = 0
-
-            let del (l : list<struct ('T * int)>) =
-                l |> List.map (fun struct(v,_) -> cnt <- cnt + 1; struct (v, -1))
-            
-            let add (l : list<struct('T * int)>) =
-                l |> List.map (fun struct(v,_) -> cnt <- cnt + 1; struct (v, 1))
-
-            let both (_hash : int) (l : list<struct('T * int)>) (r : list<struct('T * int)>) =
-                HashMapList.mergeWithOption' (fun v l r ->
-                    match l, r with
-                    | Some l, None ->  cnt <- cnt + 1; Some -1
-                    | None, Some r ->  cnt <- cnt + 1; Some 1
-                    | _ -> None
-                ) l r
-
-            let store = IntMap.computeDelta both (IntMap.map del) (IntMap.map add) store.Store other.Store.Store
-            HashSetDelta (HashMap(cnt, store))
+        let inline add _ r = 1
+        let inline rem _ r = -1
+        let inline update _ _ _ = ValueNone
+        HashMap<'T, int>.ComputeDelta(store, other.Store, add, update, rem) |> HashSetDelta
 
     /// Same as x.ComputeDelta(empty)
     member x.RemoveAll() =
@@ -304,133 +272,47 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
     /// Integrates the given delta into the set, returns a new set and the effective deltas.
     member x.ApplyDelta (deltas : HashSetDelta<'T>) =
-        // O(1)
-        if deltas.IsEmpty then
-            x, deltas
+        let apply (k : 'T) (o : voption<int>) (d : int) =
+            let o = match o with | ValueSome o -> o | ValueNone -> 0
+            let n = d + o
 
-        // O(Delta)
-        elif store.IsEmpty then
-            let mutable maxDelta = 0
-            let state = deltas |> HashSetDelta.toHashMap |> HashMap.filter (fun _ d -> maxDelta <- max maxDelta d; d > 0)
             let delta = 
-                if maxDelta > 1 then state |> HashMap.map (fun _ _ -> 1)
-                else state
+                if o = 0 && n > 0 then ValueSome 1
+                elif o > 0 && n = 0 then ValueSome -1
+                else ValueNone
+             
+            let value = 
+                 if n <= 0 then ValueNone
+                 else ValueSome n
 
-            CountingHashSet state, HashSetDelta delta
+            struct(value, delta)
 
-        // O(Delta * log N)
-        elif deltas.Count * 5 < store.Count then
-            let mutable res = store
+        let (s, d) = HashMap<'T, int>.ApplyDelta(store, deltas.Store, apply)
+        CountingHashSet s, HashSetDelta d
 
-            let effective =
-                deltas |> HashSetDelta.choose (fun d ->
-                    let mutable delta = Unchecked.defaultof<SetOperation<'T>>
-                    let value = d.Value
-                    res <- res |> HashMap.alter value (fun cnt ->
-                        let o = defaultArg cnt 0
-                        let n = o + d.Count
-                        if n > 0 && o = 0 then 
-                            delta <- Add(value)
-                        elif n = 0 && o > 0 then
-                            delta <- Rem(value)
-
-                        if n <= 0 then None
-                        else Some n
-                    )
-
-                    if delta.Count <> 0 then Some delta
-                    else None
-                )
-
-            CountingHashSet res, effective
-
-        // O(Delta + N)
-        else
-            let mutable effective = HashSetDelta.empty
-            let deltas = HashSetDelta.toHashMap deltas
-            let newStore = 
-                (store, deltas) ||> HashMap.choose2 (fun k s d ->
-                    match d with
-                    | Some d ->
-                        let o = Option.defaultValue 0 s 
-                        let n = d + o
-                        if o = 0 && n > 0 then
-                            effective <- HashSetDelta.add (Add k) effective
-                        elif o > 0 && n = 0 then
-                            effective <- HashSetDelta.add (Rem k) effective
-                            
-                        if n <= 0 then None
-                        else Some n
-                    | None ->
-                        s
-                ) 
-
-            CountingHashSet newStore, effective
-
-    /// Integrates the given delta into the set without ref-counting, returns a new set and the effective deltas.
+    
+    /// Integrates the given delta into the set, returns a new set and the effective deltas.
     member x.ApplyDeltaNoRefCount (deltas : HashSetDelta<'T>) =
-        // O(1)
-        if deltas.IsEmpty then
-            x, deltas
+        let apply (_k : 'T) (o : voption<int>) (d : int) =
+            let o = match o with | ValueSome _ -> 1 | ValueNone -> 0
+            let n = 
+                if d > 0 then 1 
+                elif d < 0 then 0
+                else o
 
-        // O(Delta)
-        elif store.IsEmpty then
-            let state = deltas |> HashSetDelta.toHashMap |> HashMap.choose (fun _ d -> if d > 0 then Some 1 else None)
-            CountingHashSet state, HashSetDelta state
+            let delta = 
+                if o = 0 && n > 0 then ValueSome 1
+                elif o > 0 && n = 0 then ValueSome -1
+                else ValueNone
+             
+            let value = 
+                 if n <= 0 then ValueNone
+                 else ValueSome n
 
-        // O(Delta * log N)
-        elif deltas.Count * 5 < store.Count then
-            let mutable res = store
+            struct(value, delta)
 
-            let effective =
-                deltas |> HashSetDelta.choose (fun d ->
-                    let mutable delta = Unchecked.defaultof<SetOperation<'T>>
-                    let value = d.Value
-                    res <- res |> HashMap.alter value (fun cnt ->
-                        let o = defaultArg cnt 0
-                        let n = 
-                            if d.Count > 0 then 1 
-                            elif d.Count < 0 then 0
-                            else o
-
-                        if n > 0 && o = 0 then 
-                            delta <- Add(value)
-                        elif n = 0 && o > 0 then
-                            delta <- Rem(value)
-
-                        if n <= 0 then None
-                        else Some n
-                    )
-
-                    if delta.Count <> 0 then Some delta
-                    else None
-                )
-
-            CountingHashSet res, effective
-        
-        // O(Delta + N)
-        else
-            let mutable effective = HashSetDelta.empty
-            let deltas = HashSetDelta.toHashMap deltas
-            let newStore = 
-                HashMap.choose2 (fun k s d ->
-                    match d with
-                    | Some d ->
-                        let o = Option.defaultValue 0 s 
-                        let n = if d > 0 then 1 elif d < 0 then 0 else o
-
-                        if o = 0 && n > 0 then
-                            effective <- HashSetDelta.add (Add k) effective
-                        elif o > 0 && n = 0 then
-                            effective <- HashSetDelta.add (Rem k) effective
-                            
-                        if n <= 0 then None
-                        else Some n
-                    | None ->
-                        s
-                ) store deltas
-
-            CountingHashSet newStore, effective
+        let (s, d) = HashMap<'T, int>.ApplyDelta(store, deltas.Store, apply)
+        CountingHashSet s, HashSetDelta d
 
     /// Compares two sets.
     static member internal Compare(l : CountingHashSet<'T>, r : CountingHashSet<'T>) =

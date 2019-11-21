@@ -12,25 +12,17 @@ type internal ReversedCompare<'a when 'a : comparison>(value : 'a) =
         Unchecked.hash value
 
     override x.Equals o =
-        #if ADAPTIVE_NO_TYPE_TESTS
-        Unchecked.equals value (unbox<ReversedCompare<'a>> o).Value
-        #else
         match o with
         | :? ReversedCompare<'a> as o -> 
             Unchecked.equals value o.Value
         | _ -> 
             false
-        #endif
 
     interface IComparable with
         member x.CompareTo o =
-            #if ADAPTIVE_NO_TYPE_TESTS
-            compare (unbox<ReversedCompare<'a>> o).Value value
-            #else
             match o with
             | :? ReversedCompare<'a> as o -> compare o.Value value
             | _ -> 0
-            #endif
 
     #if !FABLE_COMPILER
     interface IComparable<ReversedCompare<'a>> with

@@ -21,7 +21,7 @@ let emptyDelta = HashSetDelta.empty<int>
 
 open FSharp.Data
 open Generators
-[<Property(Arbitrary = [| typeof<Generators.AdaptiveGenerators> |]); Timeout(60000)>]
+[<Property(MaxTest = 500, Arbitrary = [| typeof<Generators.AdaptiveGenerators> |]); Timeout(60000)>]
 let ``[ASet] reference impl``() ({ sreal = real; sref = ref; sexpression = str; schanges = changes } : VSet<int>) =
     printfn "VALIDATE"
 

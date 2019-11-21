@@ -61,22 +61,16 @@ module CollectionExtensions =
                 let old = reader.State
                 let mutable cnt = 0
                 let ops = 
-                    reader.GetChanges(token).Store.Store |> IntMap.mapOption (fun entries ->
-                        let result = 
-                            entries |> List.choose (fun struct(key, op) ->
-                                match op with
-                                | Set _ ->
-                                    if HashMap.containsKey key old then None
-                                    else cnt <- cnt + 1; Some (struct (key, 1))
-                                | Remove ->
-                                    if HashMap.containsKey key old then cnt <- cnt + 1; Some (struct (key, -1))
-                                    else None
-                            )
-                        match result with
-                        | [] -> None
-                        | _ -> Some result
+                    reader.GetChanges(token).Store |> HashMap.choose (fun key op ->
+                        match op with
+                        | Set _ ->
+                            if HashMap.containsKey key old then None
+                            else cnt <- cnt + 1; Some 1
+                        | Remove ->
+                            if HashMap.containsKey key old then cnt <- cnt + 1; Some -1
+                            else None
                     )
-                HashSetDelta(HashMap(cnt, ops))
+                HashSetDelta(ops)
 
         /// Reader for AList.toASet
         type ListSetReader<'T>(list: alist<'T>) =

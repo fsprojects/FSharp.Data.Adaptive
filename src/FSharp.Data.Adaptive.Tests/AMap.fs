@@ -9,7 +9,7 @@ open FsCheck.NUnit
 open FSharp.Data
 open Generators
 
-[<Property(Arbitrary = [| typeof<Generators.AdaptiveGenerators> |]); Timeout(60000)>]
+[<Property(MaxTest = 500, Arbitrary = [| typeof<Generators.AdaptiveGenerators> |]); Timeout(60000)>]
 let ``[AMap] reference impl``() ({ mreal = real; mref = ref; mexpression = str; mchanges = changes } : VMap<int, int>) =
     printfn "VALIDATE"
 
@@ -33,6 +33,8 @@ let ``[AMap] reference impl``() ({ mreal = real; mref = ref; mexpression = str; 
         let delta = HashMap.computeDelta vReal vRef |> Seq.toList
         match delta with
         | [] ->
+            if vReal <> vRef then failwith "wrong equals"
+            if vReal.GetHashCode() <> vRef.GetHashCode() then failwith "wrong hash"
             vRef
         | delta ->
             let real = vReal |> Seq.sort |> Seq.map string |> String.concat "; " |> sprintf "[%s]"

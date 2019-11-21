@@ -9,7 +9,7 @@ open FsCheck.NUnit
 open FSharp.Data
 open Generators
 
-[<Property(Arbitrary = [| typeof<Generators.AdaptiveGenerators> |]); Timeout(60000)>]
+[<Property(MaxTest = 500, Arbitrary = [| typeof<Generators.AdaptiveGenerators> |]); Timeout(60000)>]
 let ``[AList] reference impl``() ({ lreal = real; lref = ref; lexpression = str; lchanges = changes } : VList<int>) =
     printfn "VALIDATE"
 

@@ -46,22 +46,22 @@ type ChangeableMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
         let target = other
 
         let store = 
-            (current, target) ||> HashMap.choose2 (fun i l r ->
+            (current, target) ||> HashMap.choose2V (fun i l r ->
                 match l with
-                | None -> 
+                | ValueNone -> 
                     match r with
-                    | Some r -> Some (Set (init r))
-                    | None -> None
-                | Some l ->
+                    | ValueSome r -> ValueSome (Set (init r))
+                    | ValueNone -> ValueNone
+                | ValueSome l ->
                     match r with
-                    | Some r -> 
+                    | ValueSome r -> 
                         let nl = update l r
                         if cheapEqual l nl then 
-                            None
+                            ValueNone
                         else 
-                            Some (Set nl)
-                    | None ->
-                        Some Remove
+                            ValueSome (Set nl)
+                    | ValueNone ->
+                        ValueSome Remove
             )
 
         let ops = HashMapDelta(store)

@@ -43,14 +43,9 @@ type HashMapDelta<'K, [<EqualityConditionalOn>] 'V>(store : HashMap<'K, ElementO
         Unchecked.hash store
 
     override x.Equals o =
-        #if ADAPTIVE_NO_TYPE_TESTS
-        let o = unbox<HashMapDelta<'K, 'V>> o
-        Unchecked.equals store o.Store
-        #else
         match o with
         | :? HashMapDelta<'K, 'V> as o -> Unchecked.equals store o.Store
         | _ -> false
-        #endif
     /// Combines two DHashMaps to one.
     member x.Combine(other : HashMapDelta<'K, 'V>) =
         HashMapDelta (HashMap.union store other.Store)
