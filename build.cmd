@@ -5,7 +5,7 @@ PUSHD %~dp0
 
 IF NOT exist .paket\paket.exe (
 	echo installing paket
-	dotnet tool install Paket --version 5.215.0 --tool-path .paket
+	dotnet tool install Paket --version 5.236.4  --tool-path .paket
 )
 
 if NOT exist paket.lock (
