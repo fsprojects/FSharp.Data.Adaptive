@@ -1,0 +1,16 @@
+name: CI - MacOS
+
+on:
+  push:
+    branches: 
+      - master
+
+jobs:
+  build:
+
+    runs-on: macos
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build
+      run: sh ./build.sh
