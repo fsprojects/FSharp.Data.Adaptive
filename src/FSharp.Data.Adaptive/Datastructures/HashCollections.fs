@@ -10,6 +10,17 @@ open System.Runtime.Intrinsics.X86
 [<AutoOpen>]
 module internal HashMapUtilities =
 
+    let resizeArray (r : ref<'a[]>) (l : int) = 
+        let len = r.Value.Length
+        if l < len then 
+            r := Array.take l r.Value
+        elif l > len then 
+            let res = Array.zeroCreate l
+            res.[0..len-1] <- r.Value
+            r := res
+        
+
+
     type private EnumeratorSeq<'T>(create : unit -> System.Collections.Generic.IEnumerator<'T>) =
         interface System.Collections.IEnumerable with
             member x.GetEnumerator() = create() :> _
@@ -372,7 +383,7 @@ module internal HashMapImplementation =
             combineHash 431 (int x.Hash)
 
         override x.ToArray(dst, o) =
-            if !o >= dst.Value.Length then System.Array.Resize(&dst.contents, !o * 2)
+            if !o >= dst.Value.Length then resizeArray dst (!o * 2)
             dst.Value.[!o] <- x.Value
             o := !o + 1
         
@@ -518,13 +529,13 @@ module internal HashMapImplementation =
             combineHash cnt (int x.Hash)
 
         override x.ToArray(dst, o) =
-            if !o >= dst.Value.Length then System.Array.Resize(&dst.contents, !o * 2)
+            if !o >= dst.Value.Length then resizeArray dst (!o * 2)
             dst.Value.[!o] <- x.Value
             o := !o + 1
             
             let mutable n = x.Next
             while not (isNull n) do
-                if !o >= dst.Value.Length then System.Array.Resize(&dst.contents, !o * 2)
+                if !o >= dst.Value.Length then resizeArray dst (!o * 2)
                 dst.Value.[!o] <- n.Value
                 o := !o + 1
                 n <- n.Next
@@ -1279,31 +1290,16 @@ module internal HashMapImplementation =
             combineHash (int x.Hash) vh
 
         override x.ToArray(dst, o) =
-            if !o >= dst.Value.Length then System.Array.Resize(&dst.contents, !o * 2)
+            if !o >= dst.Value.Length then resizeArray dst (!o * 2)
             dst.Value.[!o] <- struct(x.Key, x.Value)
             o := !o + 1
             
             let mutable n = x.Next
             while not (isNull n) do
-                if !o >= dst.Value.Length then System.Array.Resize(&dst.contents, !o * 2)
+                if !o >= dst.Value.Length then resizeArray dst (!o * 2)
                 dst.Value.[!o] <- struct(n.Key, n.Value)
                 o := !o + 1
                 n <- n.Next
-
-        member x.GetEntries() =
-            let mutable arr = Array.zeroCreate 8
-            arr.[0] <- struct(x.Key, x.Value)
-            let mutable cnt = 1
-
-            let mutable n = x.Next
-            while not (isNull n) do
-                if cnt >= arr.Length then System.Array.Resize(&arr, cnt * 2)
-                arr.[cnt] <- struct(n.Key, n.Value)
-                cnt <- cnt + 1
-                n <- n.Next
-            if cnt < arr.Length then System.Array.Resize(&arr, cnt)
-            arr
-            
 
         override x.GetKeys() =
             HashSetCollisionLeaf<'K>.New(x.Hash, x.Key, HashMapLinked.keys x.Next)
@@ -1601,7 +1597,7 @@ module internal HashMapImplementation =
             HashSetNoCollisionLeaf.New(x.Hash, x.Key)
 
         override x.ToArray(dst, o) =
-            if !o >= dst.Value.Length then System.Array.Resize(&dst.contents, !o * 2)
+            if !o >= dst.Value.Length then resizeArray dst (!o * 2)
             dst.Value.[!o] <- struct(x.Key, x.Value)
             o := !o + 1
         
@@ -3399,7 +3395,9 @@ type HashSet<'T> internal(cmp: EqualityComparer<'T>, root: HashSetNode<'T>) =
 
     member internal x.Root = root
     
-    override x.GetHashCode() = root.ComputeHash()
+    override x.GetHashCode() = 
+        root.ComputeHash()
+
     override x.Equals o =
         match o with
         | :? HashSet<'T> as o -> HashSetNode.equals cmp root o.Root

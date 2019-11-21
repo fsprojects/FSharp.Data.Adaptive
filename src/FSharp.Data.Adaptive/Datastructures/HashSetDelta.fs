@@ -161,14 +161,9 @@ type HashSetDelta<'T>(store: HashMap<'T, int>) =
 
     override x.GetHashCode() = store.GetHashCode()
     override x.Equals o =
-        #if ADAPTIVE_NO_TYPE_TESTS
-        let o = unbox<HashSetDelta<'T>> o
-        Unchecked.equals store o.Store
-        #else
         match o with
         | :? HashSetDelta<'T> as o -> Unchecked.equals store o.Store
         | _ -> false
-        #endif
             
 
     override x.ToString() =
