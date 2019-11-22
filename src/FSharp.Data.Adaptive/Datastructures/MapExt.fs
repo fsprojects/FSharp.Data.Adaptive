@@ -409,34 +409,102 @@ module internal MapExtImplementation =
 
 
                     
+        let rec union (comparer: IComparer<'Key>) l r =
+            match struct (l, r) with
+            | struct (MapEmpty, r) -> r
+            | struct (l, MapEmpty) -> l
+            | struct (MapOne(lk, _lv), MapOne(rk, rv)) ->
+                if Object.ReferenceEquals(l, r) then 
+                    r
+                else 
+                    let c = comparer.Compare(lk, rk)
+                    if c = 0 then r
+                    elif c > 0 then mk MapEmpty rk rv l
+                    else mk l rk rv MapEmpty
+                    
+            | struct (MapOne(lk, _), MapNode(rk, rv, rl, rr, rh, rc)) ->
+                let c = comparer.Compare(lk, rk)
+                if c = 0 then r
+                elif c < 0 then join (union comparer l rl) rk rv rr
+                else join rl rk rv (union comparer l rr)
+
+            | struct (MapNode(lk, lv, ll, lr, lh, lc), MapOne(rk, rv)) ->
+                let c = comparer.Compare(lk, rk)
+                if c = 0 then MapNode(lk, rv, ll, lr, lh, lc)
+                elif c < 0 then join ll lk lv (union comparer lr r)
+                else join (union comparer ll r) lk lv lr
+
+            | struct (MapNode(lk, lv, ll, lr, lh, lc), MapNode(rk, rv, rl, rr, rh, rc)) ->
+                if Object.ReferenceEquals(l, r) then 
+                    r
+                else
+                    let c = comparer.Compare(lk, rk)
+                    if c = 0 then 
+                        let l = union comparer ll rl
+                        let r = union comparer lr rr
+                        join l rk rv r
+                    elif lh > rh then
+                        let struct (rl, rv, rr) = splitV comparer lk r
+                        let key = lk
+                        let l = union comparer ll rl
+                        let r = union comparer lr rr
+
+                        match rv with
+                        | ValueSome rv -> join l key rv r
+                        | ValueNone -> join l key lv r
+                    else
+                        let struct (ll, _, lr) = splitV comparer rk l
+                        let key = rk
+                        let l = union comparer ll rl
+                        let r = union comparer lr rr
+                        join l key rv r
 
         let rec unionWithOpt (comparer: IComparer<'Value>) (f : OptimizedClosures.FSharpFunc<_,_,_>) l r =
-            match l, r with
-                | MapEmpty, r -> r
-                | l, MapEmpty -> l
-                | MapOne(k,v), r ->
-                    r |> alter comparer k (fun o -> 
-                        match o with
-                            | None -> v |> Some
-                            | Some o -> f.Invoke(v, o) |> Some
-                    )
-
-                | l, MapOne(k,v) ->
-                    l |> alter comparer k (fun o ->
-                        match o with
-                            | None -> v |> Some
-                            | Some o -> f.Invoke(o, v) |> Some
-                    )
-
-                | MapNode(k,v,ll,lr,_,_),r ->
-                    let rs, self, rg = split comparer k r
+            match struct (l, r) with
+            | struct (MapEmpty, r) -> r
+            | struct (l, MapEmpty) -> l
+            | struct (MapOne(lk, lv), MapOne(rk, rv)) ->
+                let c = comparer.Compare(lk, rk)
+                if c = 0 then MapOne(rk, f.Invoke(lv, rv))
+                elif c > 0 then mk MapEmpty rk rv l
+                else mk l rk rv MapEmpty
                     
-                    let v = 
-                        match self with
-                            | Some rv -> f.Invoke(v, rv)
-                            | None -> v
-                    join (unionWithOpt comparer f ll rs) k v (unionWithOpt comparer f lr rg)
-                 
+            | struct (MapOne(lk, lv), MapNode(rk, rv, rl, rr, rh, rc)) ->
+                let c = comparer.Compare(lk, rk)
+                if c = 0 then MapNode(rk, f.Invoke(lv, rv), rl, rr, rh, rc)
+                elif c < 0 then join (unionWithOpt comparer f l rl) rk rv rr
+                else join rl rk rv (unionWithOpt comparer f l rr)
+
+            | struct (MapNode(lk, lv, ll, lr, lh, lc), MapOne(rk, rv)) ->
+                let c = comparer.Compare(lk, rk)
+                if c = 0 then MapNode(lk, f.Invoke(lv, rv), ll, lr, lh, lc)
+                elif c < 0 then join ll lk lv (unionWithOpt comparer f lr r)
+                else join (unionWithOpt comparer f ll r) lk lv lr
+
+            | struct (MapNode(lk, lv, ll, lr, lh, lc), MapNode(rk, rv, rl, rr, rh, rc)) ->
+                let c = comparer.Compare(lk, rk)
+                if c = 0 then 
+                    let l = unionWithOpt comparer f ll rl
+                    let r = unionWithOpt comparer f lr rr
+                    join l rk (f.Invoke(lv, rv)) r
+                elif lh > rh then
+                    let struct (rl, rv, rr) = splitV comparer lk r
+                    let key = lk
+                    let l = unionWithOpt comparer f ll rl
+                    let r = unionWithOpt comparer f lr rr
+
+                    match rv with
+                    | ValueSome rv -> join l key (f.Invoke(lv, rv)) r
+                    | ValueNone -> join l key lv r
+                else
+                    let struct (ll, lv, lr) = splitV comparer rk l
+                    let key = rk
+                    let l = unionWithOpt comparer f ll rl
+                    let r = unionWithOpt comparer f lr rr
+                    match lv with
+                    | ValueSome lv -> join l key (f.Invoke(lv, rv)) r
+                    | ValueNone -> join l key rv r
+  
         let unionWith(comparer: IComparer<'Value>) f l r =
             unionWithOpt comparer (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) l r
 
@@ -1532,6 +1600,9 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
         elif other.IsEmpty then x
         else new MapExt<'Key, 'Value>(comparer, MapTree.unionWith comparer resolve tree other.Tree)
         
+    member x.Union(other : MapExt<_,_>) =
+        new MapExt<'Key, 'Value>(comparer, MapTree.union comparer tree other.Tree)
+
     member x.IntersectWith(other : MapExt<_,_>, resolve) =
         if x.IsEmpty || other.IsEmpty then MapExt<_,_>.Empty
         else new MapExt<'Key, _>(comparer, MapTree.intersectWith resolve comparer tree other.Tree)
@@ -1813,7 +1884,7 @@ module internal MapExt =
 
 
     [<CompiledName("Union")>]
-    let union (l:MapExt<_,_>) r = l.UnionWith (r, fun _ r -> r)
+    let union (l:MapExt<_,_>) r = l.Union r
 
     [<CompiledName("UnionWith")>]
     let unionWith f (l:MapExt<_,_>) r = l.UnionWith (r, f)

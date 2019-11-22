@@ -40,7 +40,7 @@ type IndexListDelta< [<EqualityConditionalOn>] 'T> internal(content : MapExt<Ind
     member x.Combine(r : IndexListDelta<'T>) =
         if x.IsEmpty then r
         elif r.IsEmpty then x
-        else MapExt.unionWith (fun l r -> r) x.Content r.Content |> IndexListDelta
+        else MapExt.union x.Content r.Content |> IndexListDelta
 
     /// Applies the given mapping function to all deltas in the list and returns a new list containing the results.
     member x.Map(mapping : Index -> ElementOperation<'T> -> ElementOperation<'T2>) =
