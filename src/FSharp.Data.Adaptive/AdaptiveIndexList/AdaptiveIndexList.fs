@@ -773,7 +773,7 @@ module internal AdaptiveIndexListImplementation =
 
         override x.Compute(token : AdaptiveToken) =
             reader.GetChanges(token)
-            |> IndexListDelta.chooseMonotonic (fun i op ->
+            |> IndexListDelta.chooseIndexed (fun i op ->
                 match op with
                 | Set v ->
                     let outIndex = mapping.Invoke(index, i)

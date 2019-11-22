@@ -62,22 +62,23 @@ module internal MapExtImplementation =
                 let hl = height l 
                 let hr = height r 
                 let m = if hl < hr then hr else hl 
-                MapNode(k,v,l,r,m+1, 1 + size l + size r)
+                let res = MapNode(k,v,l,r,m+1, 1 + size l + size r)
+                res
 
-        let rebalance t1 k v t2 =
+        let rec rebalance t1 k v t2 =
             let t1h = height t1 
             let t2h = height t2 
             if  t2h > t1h + 2 then (* right is heavier than left *)
                 match t2 with 
                 | MapNode(t2k,t2v,t2l,t2r,_,_) -> 
                     (* one of the nodes must have height > height t1 + 1 *)
-                    if height t2l > t1h + 1 then  (* balance left: combination *)
-                        match t2l with 
-                        | MapNode(t2lk,t2lv,t2ll,t2lr,_,_) ->
-                        mk (mk t1 k v t2ll) t2lk t2lv (mk t2lr t2k t2v t2r) 
-                        | _ -> failwith "rebalance"
-                    else (* rotate left *)
-                        mk (mk t1 k v t2l) t2k t2v t2r
+                   if height t2l > t1h + 1 then  (* balance left: combination *)
+                       match t2l with 
+                       | MapNode(t2lk,t2lv,t2ll,t2lr,_,_) ->
+                           mk (mk t1 k v t2ll) t2lk t2lv (rebalance t2lr t2k t2v t2r) 
+                       | _ -> failwith "rebalance"
+                   else (* rotate left *)
+                       mk (mk t1 k v t2l) t2k t2v t2r
                 | _ -> failwith "rebalance"
             else
                 if  t1h > t2h + 2 then (* left is heavier than right *)
@@ -88,7 +89,7 @@ module internal MapExtImplementation =
                             (* balance right: combination *)
                             match t1r with 
                             | MapNode(t1rk,t1rv,t1rl,t1rr,_,_) ->
-                                mk (mk t1l t1k t1v t1rl) t1rk t1rv (mk t1rr k v t2)
+                                mk (rebalance t1l t1k t1v t1rl) t1rk t1rv (mk t1rr k v t2)
                             | _ -> failwith "rebalance"
                         else
                             mk t1l t1k t1v (mk t1r k v t2)
@@ -169,7 +170,7 @@ module internal MapExtImplementation =
             | MapNode(k2,v2,l,r,_,_) ->
                 match l with 
                 | MapEmpty -> k2,v2,r
-                | _ -> let k3,v3,l' = spliceOutSuccessor l in k3,v3,mk l' k2 v2 r
+                | _ -> let k3,v3,l' = spliceOutSuccessor l in k3,v3,rebalance l' k2 v2 r
 
         let rec remove (comparer: IComparer<'Value>) k m = 
             match m with 
@@ -187,8 +188,8 @@ module internal MapExtImplementation =
                         match r with
                         | MapEmpty -> l
                         | _ -> 
-                            let sk,sv,r' = spliceOutSuccessor r 
-                            mk l sk sv r'
+                        let sk,sv,r' = spliceOutSuccessor r 
+                        rebalance l sk sv r'
                 else 
                     rebalance l k2 v2 (remove comparer k r) 
 
@@ -215,7 +216,7 @@ module internal MapExtImplementation =
                         | MapEmpty -> Some(v2, l)
                         | _ -> 
                             let sk,sv,r' = spliceOutSuccessor r 
-                            Some(v2, mk l sk sv r')
+                            Some(v2, rebalance l sk sv r')
                 else 
                     match tryRemove comparer k r with
                     | Some (v,r) ->
@@ -296,12 +297,12 @@ module internal MapExtImplementation =
                                 | MapEmpty -> l
                                 | _ -> 
                                     let sk,sv,r' = spliceOutSuccessor r 
-                                    mk l sk sv r'
+                                    rebalance l sk sv r'
                 elif c > 0 then
                     rebalance l k2 v2 (alter comparer k f r) 
                 else
                     rebalance (alter comparer k f l)  k2 v2 r
-       
+               
         let rec join left k v right =
             let lh = height left
             let rh = height right
@@ -325,7 +326,7 @@ module internal MapExtImplementation =
                 mk left k v right
 
 
-        let merge l r =
+        let inline merge l r =
             match r with
             | MapEmpty -> l
             | _ ->
@@ -342,51 +343,51 @@ module internal MapExtImplementation =
 
         let rec split (comparer: IComparer<'Value>) k m =
             match m with
-                | MapEmpty -> 
-                    MapEmpty, None, MapEmpty
+            | MapEmpty -> 
+                MapEmpty, None, MapEmpty
 
-                | MapOne(k2,v2) ->
-                    let c = comparer.Compare(k, k2)
-                    if c < 0 then MapEmpty, None, MapOne(k2,v2)
-                    elif c = 0 then MapEmpty, Some(v2), MapEmpty
-                    else MapOne(k2,v2), None, MapEmpty
+            | MapOne(k2,v2) ->
+                let c = comparer.Compare(k, k2)
+                if c < 0 then MapEmpty, None, MapOne(k2,v2)
+                elif c = 0 then MapEmpty, Some(v2), MapEmpty
+                else MapOne(k2,v2), None, MapEmpty
 
-                | MapNode(k2,v2,l,r,_,_) ->
-                    let c = comparer.Compare(k, k2)
-                    if c > 0 then
-                        let rl, res, rr = split comparer k r
-                        join l k2 v2 rl, res, rr
+            | MapNode(k2,v2,l,r,_,_) ->
+                let c = comparer.Compare(k, k2)
+                if c > 0 then
+                    let rl, res, rr = split comparer k r
+                    join l k2 v2 rl, res, rr
 
-                    elif c = 0 then 
-                        l, Some(v2), r
+                elif c = 0 then 
+                    l, Some(v2), r
 
-                    else
-                        let ll, res, lr = split comparer k l
-                        ll, res, join lr k2 v2 r
+                else
+                    let ll, res, lr = split comparer k l
+                    ll, res, join lr k2 v2 r
 
         let rec splitV (comparer: IComparer<'Value>) k m =
             match m with
                 | MapEmpty -> 
-                    MapEmpty, ValueNone, MapEmpty
+                    struct (MapEmpty, ValueNone, MapEmpty)
 
                 | MapOne(k2,v2) ->
                     let c = comparer.Compare(k, k2)
-                    if c < 0 then MapEmpty, ValueNone, MapOne(k2,v2)
-                    elif c = 0 then MapEmpty, ValueSome(v2), MapEmpty
-                    else MapOne(k2,v2), ValueNone, MapEmpty
+                    if c < 0 then struct (MapEmpty, ValueNone, MapOne(k2,v2))
+                    elif c = 0 then struct (MapEmpty, ValueSome(v2), MapEmpty)
+                    else struct (MapOne(k2,v2), ValueNone, MapEmpty)
 
                 | MapNode(k2,v2,l,r,_,_) ->
                     let c = comparer.Compare(k, k2)
                     if c > 0 then
-                        let rl, res, rr = splitV comparer k r
-                        join l k2 v2 rl, res, rr
+                        let struct (rl, res, rr) = splitV comparer k r
+                        struct (join l k2 v2 rl, res, rr)
 
                     elif c = 0 then 
-                        l, ValueSome(v2), r
+                        struct (l, ValueSome(v2), r)
 
                     else
-                        let ll, res, lr = splitV comparer k l
-                        ll, res, join lr k2 v2 r
+                        let struct (ll, res, lr) = splitV comparer k l
+                        struct (ll, res, join lr k2 v2 r)
 
         let rec getReference (comparer: IComparer<'Value>) (current : int) k m =
             match m with
@@ -612,28 +613,19 @@ module internal MapExtImplementation =
     
         let rec chooseiOpt (f:OptimizedClosures.FSharpFunc<'Key,'T1,option<'T2>>) m =
             match m with
-                | MapEmpty -> empty
-                | MapOne(k,v) ->
-                    match f.Invoke(k,v) with
-                        | Some v -> MapOne(k,v)
-                        | None -> MapEmpty
+            | MapEmpty -> empty
+            | MapOne(k,v) ->
+                match f.Invoke(k,v) with
+                | Some v -> MapOne(k,v)
+                | None -> MapEmpty
 
-                | MapNode(k,v,l,r,h,c) ->
-                    let l' = chooseiOpt f l
-                    let s' = f.Invoke(k,v)
-                    let r' = chooseiOpt f r
-                    match s' with
-                        | None -> 
-                            match l' with
-                            | MapEmpty -> r'
-                            | _ ->
-                                match r' with
-                                | MapEmpty -> l'
-                                | _ ->
-                                    let k,v,r' = spliceOutSuccessor r'
-                                    join l' k v r'
-                        | Some v ->
-                            join l' k v r'
+            | MapNode(k,v,l,r,h,c) ->
+                let l' = chooseiOpt f l
+                let s' = f.Invoke(k,v)
+                let r' = chooseiOpt f r
+                match s' with
+                | None -> merge l' r'
+                | Some v -> join l' k v r'
 
         let choosei f m = chooseiOpt (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
     
@@ -836,7 +828,7 @@ module internal MapExtImplementation =
                     let mutable found = false
                     let res = 
                         r |> choosei (fun i rv -> 
-                            if i = k then 
+                            if comparer.Compare(i, k) = 0 then 
                                 found <- true
                                 f i (Some v) (Some rv)
                             else 
@@ -853,7 +845,7 @@ module internal MapExtImplementation =
                     let mutable found = false
                     let res = 
                         l |> choosei (fun i lv -> 
-                            if i = k then 
+                            if comparer.Compare(i, k) = 0 then 
                                 found <- true
                                 f i (Some lv) (Some v)
                             else 
@@ -871,24 +863,15 @@ module internal MapExtImplementation =
                     
                     let v = 
                         match self with
-                            | Some rv -> f k (Some v) (Some rv)
-                            | None -> f k (Some v) None
+                        | Some rv -> f k (Some v) (Some rv)
+                        | None -> f k (Some v) None
 
                     let l = choose2 comparer f ll rs
                     let r = choose2 comparer f lr rg
 
                     match v with
-                        | Some v -> 
-                            join l k v r
-                        | None -> 
-                            match l with
-                            | MapEmpty -> r
-                            | _ ->
-                                match r with
-                                | MapEmpty -> l
-                                | _ -> 
-                                    let k,v,r = spliceOutSuccessor r
-                                    join l k v r
+                    | Some v -> join l k v r
+                    | None -> merge l r
             
         let rec applyDelta
             (comparer : IComparer<'Key>)
@@ -982,11 +965,9 @@ module internal MapExtImplementation =
                 
                 if c = 0 then
                     let struct (s, d) = apply.Invoke(lk, ValueSome lv, rv)
+                    let s = joinV ll lk s lr
                     let d = match d with | ValueSome v -> MapOne(lk, v) | ValueNone -> MapEmpty
-                    struct (
-                        joinV ll lk s lr,
-                        d
-                    )
+                    struct (s, d)
                     
                 elif c < 0 then
                     // delta in right
@@ -1009,7 +990,7 @@ module internal MapExtImplementation =
                     let d = joinV ld lk d rd 
                     struct (s, d)
                 elif lh > rh then
-                    let (rl, rv, rr) = splitV comparer lk r
+                    let struct (rl, rv, rr) = splitV comparer lk r
                     let key = lk
                     let rk = ()
                     let lk = ()
@@ -1028,7 +1009,7 @@ module internal MapExtImplementation =
                         let d = merge ld rd 
                         struct (s, d)
                 else
-                    let (ll, lv, lr) = splitV comparer rk l
+                    let struct (ll, lv, lr) = splitV comparer rk l
                     let key = rk
                     let rk = ()
                     let lk = ()
@@ -1047,6 +1028,25 @@ module internal MapExtImplementation =
                         let s = joinV ls key s rs 
                         let d = joinV ld key d rd 
                         struct (s, d)
+            //| _ ->
+            //    let mutable state = l
+
+            //    let set = System.Collections.Generic.HashSet<_>()
+
+            //    let delta = 
+            //        r |> choosei (fun i op ->
+            //            if not (set.Add i) then failwith "superbad"
+            //            let l = match tryFind comparer i l with | Some l -> ValueSome l | None -> ValueNone
+            //            let struct (s, d) = apply.Invoke(i, l, op)
+            //            match s with
+            //            | ValueSome s -> state <- add comparer i s state
+            //            | ValueNone -> state <- remove comparer i state
+            //            match d with
+            //            | ValueSome d -> Some d
+            //            | ValueNone -> None
+            //        )
+            //    struct(state, delta)
+
 
         let rec computeDelta 
             (comparer: IComparer<'Key>) 
@@ -1083,11 +1083,7 @@ module internal MapExtImplementation =
                         | ValueSome op ->
                             join ll lk op rr
                         | ValueNone ->
-                            match rr with
-                            | MapEmpty -> ll
-                            | _ -> 
-                                let (k,v,rr) = spliceOutSuccessor rr
-                                join ll k v rr
+                            merge ll rr
                     elif c > 0 then
                         let rr = computeDelta comparer set update remove l nr
                         join (mapiOpt set nl) nk (set.Invoke(nk, nv)) rr
@@ -1104,11 +1100,7 @@ module internal MapExtImplementation =
                         | ValueSome op ->
                             join ll nk op rr
                         | ValueNone ->
-                            match rr with
-                            | MapEmpty -> ll
-                            | _ -> 
-                                let (k,v,rr) = spliceOutSuccessor rr
-                                join ll k v rr
+                            merge ll rr
                     elif c > 0 then
                         let rr = computeDelta comparer set update remove nr r
                         join (mapiOpt remove nl) nk (remove.Invoke(nk, nv)) rr
@@ -1128,14 +1120,10 @@ module internal MapExtImplementation =
                             | ValueSome op ->
                                 join l lka op r
                             | ValueNone ->
-                                match r with
-                                | MapEmpty -> l
-                                | _ -> 
-                                    let (k, v, r) = spliceOutSuccessor r
-                                    join l k v r
+                                merge l r
 
                         elif rha < lha then
-                            let (rl, rv, rr) = splitV comparer lka r
+                            let struct (rl, rv, rr) = splitV comparer lka r
                             let l = computeDelta comparer set update remove lla rl
                             let r = computeDelta comparer set update remove lra rr
                             match rv with
@@ -1144,17 +1132,13 @@ module internal MapExtImplementation =
                                 | ValueSome op ->
                                     join l lka op r
                                 | ValueNone ->
-                                    match r with
-                                    | MapEmpty -> l
-                                    | _ -> 
-                                        let (k, v, r) = spliceOutSuccessor r
-                                        join l k v r
+                                    merge l r
                             | ValueNone ->
                                 let k = lka
                                 let v = remove.Invoke(lka, lva)
                                 join l k v r
                         else
-                            let (ll, lv, lr) = splitV comparer rka l
+                            let struct (ll, lv, lr) = splitV comparer rka l
                             let l = computeDelta comparer set update remove ll rla
                             let r = computeDelta comparer set update remove lr rra
 
@@ -1164,11 +1148,7 @@ module internal MapExtImplementation =
                                 | ValueSome op ->
                                     join l rka op r
                                 | ValueNone ->
-                                    match r with
-                                    | MapEmpty -> l
-                                    | _ -> 
-                                        let (k, v, r) = spliceOutSuccessor r
-                                        join l k v r
+                                    merge l r
                             | ValueNone ->
                                 let k = rka
                                 let v = set.Invoke(rka, rva)
@@ -1489,7 +1469,7 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
     member m.MapMonotonic<'Key2, 'Value2 when 'Key2 : comparison> (f : 'Key -> 'Value -> 'Key2 * 'Value2) : MapExt<'Key2,'Value2> = new MapExt<'Key2,'Value2>(LanguagePrimitives.FastGenericComparer<'Key2>, MapTree.mapiMonotonic f tree)
    
     member m.ChooseMonotonic<'Key2, 'Value2 when 'Key2 : comparison> (f : 'Key -> 'Value -> option<'Key2 * 'Value2>) : MapExt<'Key2,'Value2> = new MapExt<'Key2,'Value2>(LanguagePrimitives.FastGenericComparer<'Key2>, MapTree.chooseiMonotonic f tree)
-   
+    
     member x.GetReference key =
         MapTree.getReference comparer 0 key tree
         

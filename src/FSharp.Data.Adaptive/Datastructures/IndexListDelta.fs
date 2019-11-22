@@ -144,13 +144,22 @@ module IndexListDelta =
 
     /// Applies the given mapping function to all deltas in the list and returns a new list containing the 'Some'-results.
     /// Note that the indices need to be monotonic.
-    let inline mapMonotonic (mapping : Index -> ElementOperation<'T1> -> Index * ElementOperation<'T2>) (l : IndexListDelta<'T1>) = 
-        l.MapMonotonic mapping
+    let mapIndexed (mapping : Index -> ElementOperation<'T1> -> Index * ElementOperation<'T2>) (l : IndexListDelta<'T1>) = 
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt(mapping)
+        (MapExt.empty, l.Content) ||> MapExt.fold (fun s i v ->
+            let (i, v) = mapping.Invoke(i, v)
+            MapExt.add i v s
+        ) |> ofMap
         
     /// Applies the given mapping function to all deltas in the list and returns a new list containing the 'Some'-results.
     /// Note that the indices need to be monotonic.
-    let inline chooseMonotonic (mapping : Index -> ElementOperation<'T1> -> option<Index * ElementOperation<'T2>>) (l : IndexListDelta<'T1>) = 
-        l.ChooseMonotonic mapping
+    let chooseIndexed (mapping : Index -> ElementOperation<'T1> -> option<Index * ElementOperation<'T2>>) (l : IndexListDelta<'T1>) = 
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt(mapping)
+        (MapExt.empty, l.Content) ||> MapExt.fold (fun s i v ->
+            match mapping.Invoke(i, v) with
+            | Some(i, v) -> MapExt.add i v s
+            | None -> s
+        ) |> ofMap
 
     /// Applies the given mapping function to all deltas in the list and returns a new list containing the results.
     let inline map (mapping : Index -> ElementOperation<'T1> -> ElementOperation<'T2>) (l : IndexListDelta<'T1>) = 
