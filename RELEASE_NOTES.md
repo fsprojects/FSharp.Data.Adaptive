@@ -1,3 +1,9 @@
+### 0.0.9
+* several improvements for HashMap/HashSet/MapExt
+* clist.AddRange
+* removed ADAPTIVE_NO_TYPE_TESTS
+* added ShallowEqualityComparer
+
 ### 0.0.8
 * fixed ref-counting bug in history
 
