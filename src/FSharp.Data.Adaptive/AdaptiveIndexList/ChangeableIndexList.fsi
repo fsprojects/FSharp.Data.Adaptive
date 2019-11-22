@@ -25,6 +25,9 @@ type ChangeableIndexList<'T> =
     /// Appends an element to the list and returns its Index.
     member Add : element: 'T -> Index
     
+    /// Appends all given elements to the list.
+    member AddRange : elements: seq<'T> -> unit
+
     /// Appends an element to the list and returns its Index.
     member Append : element: 'T -> Index
 

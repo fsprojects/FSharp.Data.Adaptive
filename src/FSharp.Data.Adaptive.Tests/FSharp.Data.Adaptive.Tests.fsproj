@@ -12,6 +12,9 @@
     <OutputPath>..\..\bin\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Benchmarks\BenchUtils.fs" />
+    <Compile Include="Benchmarks\Map.fs" />
+    <Compile Include="Benchmarks\Collect.fs" />
     <Compile Include="Utilities\Helpers.fs" />
     <Compile Include="Utilities\Generators.fs" />
     <Compile Include="Callbacks.fs" />

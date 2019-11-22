@@ -67,6 +67,16 @@ type ChangeableIndexList<'T>(initial: IndexList<'T>) =
        
     /// Appends an element to the list and returns its Index.
     member x.Add (element: 'T) = x.Append(element)
+    
+    /// Appends an element to the list and returns its Index.
+    member x.AddRange (elements: seq<'T>) =
+        let mutable i = Index.after history.State.MaxIndex
+        let mutable delta = IndexListDelta.empty
+        for e in elements do
+            delta <- delta.Add(i, Set e)
+            i <- Index.after i
+            
+        history.Perform(delta) |> ignore
 
     /// Prepends an element to the list and returns its Index.
     member x.Prepend (element: 'T) =

@@ -1,8 +1,9 @@
 ﻿module Program
 
-open FSharp.Data.Adaptive
+open BenchmarkDotNet.Running
 
 [<EntryPoint>]
 let main _args =
-    IndexList.``[IndexList] tryGetPosition`` [-2; 0]
+    BenchmarkRunner.Run<Benchmarks.MapBenchmark>() |> ignore
+    BenchmarkRunner.Run<Benchmarks.CollectBenchmark>() |> ignore
     0
