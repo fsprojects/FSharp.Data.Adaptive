@@ -1,3 +1,7 @@
+### 0.0.10
+* several performance improvements in Transaction
+* implemented ChangeableModelList/ChangeableModelMap here 
+
 ### 0.0.9
 * several improvements for HashMap/HashSet/MapExt
 * clist.AddRange
