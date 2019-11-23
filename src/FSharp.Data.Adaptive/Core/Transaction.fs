@@ -45,14 +45,16 @@ type Transaction() =
     [<ThreadStatic; DefaultValue>]
     static val mutable private CurrentTransaction : option<Transaction>
 
+    static let cmp = OptimizedClosures.FSharpFunc<_,_,_>.Adapt(fun struct(l,_) struct(r,_) -> compare l r)
+
     // We use a duplicate-queue here since we expect levels to be identical quite often
-    let q = DuplicatePriorityQueue<IAdaptiveObject, int>(fun o -> o.Level)
+    let q = List<struct (int * IAdaptiveObject)>()
 
     // The contained set is useful for determinig if an element has
     // already been enqueued
-    let contained = UncheckedHashSet.create<IAdaptiveObject>()
+    let contained = ReferenceHashSet.create<IAdaptiveObject>()
     let mutable current : IAdaptiveObject = Unchecked.defaultof<_>
-    let currentLevel = ref 0
+    let mutable currentLevel = 0
     let mutable finalizers : list<unit -> unit> = []
 
     let runFinalizers () =
@@ -94,12 +96,12 @@ type Transaction() =
             | _ -> Int32.MaxValue - 1
 
     /// Gets the current Level the Transaction operates on
-    member x.CurrentLevel = !currentLevel
+    member x.CurrentLevel = currentLevel
 
     /// Enqueues an adaptive object for marking
     member x.Enqueue(e : IAdaptiveObject) =
         if contained.Add e then
-            q.Enqueue e
+            q.HeapEnqueue(cmp, struct(e.Level, e))
 
     /// Gets the current AdaptiveObject being marked
     member x.CurrentAdapiveObject = 
@@ -114,18 +116,12 @@ type Transaction() =
         // and make ourselves current.
         let old = Transaction.RunningTransaction
         Transaction.RunningTransaction <- Some x
-        let mutable level = 0
-        
-        let mutable markCount = 0
-        let mutable traverseCount = 0
-        let mutable levelChangeCount = 0
         let mutable outputs = [||]
         while q.Count > 0 do
             // dequeue the next element (having the minimal level)
-            let e = q.Dequeue(currentLevel)
+            let struct(l, e) = q.HeapDequeue(cmp)
             current <- e
-
-            traverseCount <- traverseCount + 1
+            currentLevel <- l
 
             // since we're about to access the outOfDate flag
             // for this object we must acquire a lock here.
@@ -148,14 +144,13 @@ type Transaction() =
                         // might even change the asymptotic runtime behaviour of the entire
                         // system in the worst case but we opted for this approach since
                         // it is relatively simple to implement.
-                        if !currentLevel <> e.Level then
-                            q.Enqueue e
+                        if currentLevel <> e.Level then
+                            q.HeapEnqueue(cmp, struct(e.Level, e))
                         else
                             // however if the level is consistent we may proceed
                             // by marking the object as outOfDate
                             e.OutOfDate <- true
                             e.AllInputsProcessed(x)
-                            markCount <- markCount + 1
                 
                             try 
                                 // here mark and the callbacks are allowed to evaluate
@@ -179,9 +174,7 @@ type Transaction() =
                                 e.Level <- max e.Level newLevel
                                 e.OutOfDate <- false
 
-                                levelChangeCount <- levelChangeCount + 1
-
-                                q.Enqueue e
+                                q.HeapEnqueue(cmp, struct(e.Level, e))
                 
                 finally 
                     e.ExitWrite()
@@ -198,7 +191,7 @@ type Transaction() =
         // when the commit is over we restore the old
         // running transaction (if any)
         Transaction.RunningTransaction <- old
-        currentLevel := 0
+        currentLevel <- 0
 
     /// Disposes the transaction running all of its "Finalizers"
     member x.Dispose() = 
