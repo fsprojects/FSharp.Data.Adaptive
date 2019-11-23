@@ -127,7 +127,7 @@ module internal HashMapImplementation =
 
     module HashSetLinked =
     
-        let rec addInPlaceUnsafe (cmp: EqualityComparer<'T>) (value : 'T) (n: HashSetLinked<'T>) =
+        let rec addInPlaceUnsafe (cmp: IEqualityComparer<'T>) (value : 'T) (n: HashSetLinked<'T>) =
             if isNull n then
                 HashSetLinked(value)
             elif cmp.Equals(n.Value, value) then
@@ -137,7 +137,7 @@ module internal HashMapImplementation =
                 n.Next <- addInPlaceUnsafe cmp value n.Next
                 n
 
-        let rec add (cmp: EqualityComparer<'T>) (value: 'T) (n: HashSetLinked<'T>) =
+        let rec add (cmp: IEqualityComparer<'T>) (value: 'T) (n: HashSetLinked<'T>) =
             if isNull n then
                 HashSetLinked(value)
             elif cmp.Equals(n.Value, value) then
@@ -147,7 +147,7 @@ module internal HashMapImplementation =
                 if next == n.Next then n
                 else HashSetLinked(n.Value, add cmp value n.Next)
                
-        let rec alter (cmp: EqualityComparer<'T>) (value: 'T) (update: bool -> bool) (n: HashSetLinked<'T>) =
+        let rec alter (cmp: IEqualityComparer<'T>) (value: 'T) (update: bool -> bool) (n: HashSetLinked<'T>) =
             if isNull n then
                 if update false then HashSetLinked(value)
                 else null
@@ -159,7 +159,7 @@ module internal HashMapImplementation =
                 if next == n.Next then n
                 else HashSetLinked(n.Value, next)
                
-        let rec contains (cmp: EqualityComparer<'T>) (value: 'T) (n: HashSetLinked<'T>) =
+        let rec contains (cmp: IEqualityComparer<'T>) (value: 'T) (n: HashSetLinked<'T>) =
             if isNull n then false
             elif cmp.Equals(n.Value, value) then true
             else contains cmp value n.Next
@@ -168,7 +168,7 @@ module internal HashMapImplementation =
             if isNull n then ValueNone
             else ValueSome(struct (n.Value, n.Next))
             
-        let rec remove (cmp: EqualityComparer<'T>) (value: 'T) (n: HashSetLinked<'T>) =
+        let rec remove (cmp: IEqualityComparer<'T>) (value: 'T) (n: HashSetLinked<'T>) =
             if isNull n then
                 null
             elif cmp.Equals(n.Value, value) then 
@@ -178,7 +178,7 @@ module internal HashMapImplementation =
                 if rest == n.Next then n
                 else HashSetLinked(n.Value, rest)
 
-        let rec tryRemove (cmp: EqualityComparer<'T>) (value: 'T) (n: HashSetLinked<'T>) =
+        let rec tryRemove (cmp: IEqualityComparer<'T>) (value: 'T) (n: HashSetLinked<'T>) =
             if isNull n then
                 ValueNone
             elif cmp.Equals(n.Value, value) then 
@@ -259,16 +259,16 @@ module internal HashMapImplementation =
     [<AbstractClass>]
     type HashSetNode<'T>() =
         abstract member ComputeHash : unit -> int
-        abstract member Remove: EqualityComparer<'T> * uint32 * 'T -> HashSetNode<'T>
-        abstract member TryRemove: EqualityComparer<'T> * uint32 * 'T -> ValueOption<HashSetNode<'T>>
+        abstract member Remove: IEqualityComparer<'T> * uint32 * 'T -> HashSetNode<'T>
+        abstract member TryRemove: IEqualityComparer<'T> * uint32 * 'T -> ValueOption<HashSetNode<'T>>
 
         abstract member Count : int
         abstract member IsEmpty: bool
 
-        abstract member AddInPlaceUnsafe: EqualityComparer<'T> * uint32 * 'T -> HashSetNode<'T>
-        abstract member Add: EqualityComparer<'T> * uint32 * 'T -> HashSetNode<'T>
-        abstract member Alter: EqualityComparer<'T> * uint32 * 'T * (bool -> bool) -> HashSetNode<'T>
-        abstract member Contains: EqualityComparer<'T> * uint32 * 'T -> bool
+        abstract member AddInPlaceUnsafe: IEqualityComparer<'T> * uint32 * 'T -> HashSetNode<'T>
+        abstract member Add: IEqualityComparer<'T> * uint32 * 'T -> HashSetNode<'T>
+        abstract member Alter: IEqualityComparer<'T> * uint32 * 'T * (bool -> bool) -> HashSetNode<'T>
+        abstract member Contains: IEqualityComparer<'T> * uint32 * 'T -> bool
 
         abstract member MapToMap: mapping: ('T -> 'R) -> HashMapNode<'T, 'R>
         abstract member ChooseToMap: mapping: ('T -> option<'R>) -> HashMapNode<'T, 'R>
@@ -315,22 +315,22 @@ module internal HashMapImplementation =
 
         override x.IsEmpty = true
 
-        override x.Contains(_cmp: EqualityComparer<'T>, _hash: uint32, _value: 'T) =
+        override x.Contains(_cmp: IEqualityComparer<'T>, _hash: uint32, _value: 'T) =
             false
 
-        override x.Remove(_cmp: EqualityComparer<'T>, _hash: uint32, _value: 'T) =
+        override x.Remove(_cmp: IEqualityComparer<'T>, _hash: uint32, _value: 'T) =
             x:> _
             
-        override x.TryRemove(_cmp: EqualityComparer<'T>, _hash: uint32, _value: 'T) =
+        override x.TryRemove(_cmp: IEqualityComparer<'T>, _hash: uint32, _value: 'T) =
             ValueNone
 
-        override x.AddInPlaceUnsafe(_cmp: EqualityComparer<'T>, hash: uint32, value: 'T) =
+        override x.AddInPlaceUnsafe(_cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =
             HashSetNoCollisionLeaf.New(hash, value)
 
-        override x.Add(_cmp: EqualityComparer<'T>, hash: uint32, value: 'T) =
+        override x.Add(_cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =
             HashSetNoCollisionLeaf.New(hash, value)
 
-        override x.Alter(cmp: EqualityComparer<'T>, hash: uint32, value: 'T, update: bool -> bool) =
+        override x.Alter(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T, update: bool -> bool) =
             if update false then
                 HashSetNoCollisionLeaf.New(hash, value)
             else
@@ -392,25 +392,25 @@ module internal HashMapImplementation =
         override x.Accept(v: HashSetVisitor<_,_>) =
             v.VisitNoCollision x
 
-        override x.Contains(cmp: EqualityComparer<'T>, hash: uint32, value: 'T) =   
+        override x.Contains(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =   
             if hash = x.Hash && cmp.Equals(value, x.Value) then 
                 true
             else
                 false
 
-        override x.Remove(cmp: EqualityComparer<'T>, hash: uint32, value: 'T) =
+        override x.Remove(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =
             if hash = x.Hash && cmp.Equals(value, x.Value) then
                 HashSetEmpty.Instance
             else
                 x:> _
 
-        override x.TryRemove(cmp: EqualityComparer<'T>, hash: uint32, value: 'T) =
+        override x.TryRemove(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =
             if hash = x.Hash && cmp.Equals(value, x.Value) then
                 ValueSome (HashSetEmpty.Instance)
             else
                 ValueNone
 
-        override x.AddInPlaceUnsafe(cmp: EqualityComparer<'T>, hash: uint32, value: 'T) =
+        override x.AddInPlaceUnsafe(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =
             if x.Hash = hash then
                 if cmp.Equals(value, x.Value) then
                     x.Value <- value
@@ -421,7 +421,7 @@ module internal HashMapImplementation =
                 let n = HashSetNoCollisionLeaf.New(hash, value)
                 HashSetInner.Join(hash, n, x.Hash, x)
 
-        override x.Add(cmp: EqualityComparer<'T>, hash: uint32,value: 'T) =
+        override x.Add(cmp: IEqualityComparer<'T>, hash: uint32,value: 'T) =
             if x.Hash = hash then
                 if cmp.Equals(value, x.Value) then
                     x :> _
@@ -431,7 +431,7 @@ module internal HashMapImplementation =
                 let n = HashSetNoCollisionLeaf.New(hash, value)
                 HashSetInner.Join(hash, n, x.Hash, x)
         
-        override x.Alter(cmp: EqualityComparer<'T>, hash: uint32, value: 'T, update: bool -> bool) =
+        override x.Alter(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T, update: bool -> bool) =
             if x.Hash = hash then
                 if cmp.Equals(value, x.Value) then
                     if update true then
@@ -545,7 +545,7 @@ module internal HashMapImplementation =
 
         override x.IsEmpty = false
         
-        override x.Contains(cmp: EqualityComparer<'T>, hash: uint32, value: 'T) =   
+        override x.Contains(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =   
             if hash = x.Hash then
                 if cmp.Equals(value, x.Value) then 
                     true
@@ -554,7 +554,7 @@ module internal HashMapImplementation =
             else
                 false
 
-        override x.Remove(cmp: EqualityComparer<'T>, hash: uint32, value: 'T) =
+        override x.Remove(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =
             if hash = x.Hash then
                 if cmp.Equals(value, x.Value) then
                     match HashSetLinked.destruct x.Next with
@@ -569,7 +569,7 @@ module internal HashMapImplementation =
             else
                 x:> _
 
-        override x.TryRemove(cmp: EqualityComparer<'T>, hash: uint32, value: 'T) =
+        override x.TryRemove(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =
             if hash = x.Hash then
                 if cmp.Equals(value, x.Value) then
                     match HashSetLinked.destruct x.Next with
@@ -586,7 +586,7 @@ module internal HashMapImplementation =
             else
                 ValueNone
 
-        override x.AddInPlaceUnsafe(cmp: EqualityComparer<'T>, hash: uint32, value: 'T) =
+        override x.AddInPlaceUnsafe(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =
             if x.Hash = hash then
                 if cmp.Equals(value, x.Value) then
                     x.Value <- value
@@ -598,7 +598,7 @@ module internal HashMapImplementation =
                 let n = HashSetNoCollisionLeaf.New(hash, value)
                 HashSetInner.Join(hash, n, x.Hash, x)
                 
-        override x.Add(cmp: EqualityComparer<'T>, hash: uint32, value: 'T) =
+        override x.Add(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =
             if x.Hash = hash then
                 if cmp.Equals(value, x.Value) then
                     x :> _
@@ -608,7 +608,7 @@ module internal HashMapImplementation =
                 let n = HashSetNoCollisionLeaf.New(hash, value)
                 HashSetInner.Join(hash, n, x.Hash, x)
 
-        override x.Alter(cmp: EqualityComparer<'T>, hash: uint32, value: 'T, update: bool -> bool) =
+        override x.Alter(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T, update: bool -> bool) =
             if x.Hash = hash then
                 if cmp.Equals(value, x.Value) then
                     if update true then
@@ -770,7 +770,7 @@ module internal HashMapImplementation =
         override x.Accept(v: HashSetVisitor<_,_>) =
             v.VisitNode x
 
-        override x.Contains(cmp: EqualityComparer<'T>, hash: uint32, value: 'T) =
+        override x.Contains(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =
             #if OPTIMISTIC 
             let m = zeroBit hash x.Mask
             if m = 0u then x.Left.Contains(cmp, hash, value)
@@ -782,7 +782,7 @@ module internal HashMapImplementation =
             else false
             #endif
 
-        override x.Remove(cmp: EqualityComparer<'T>, hash: uint32, value: 'T) =
+        override x.Remove(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =
             let m = matchPrefixAndGetBit hash x.Prefix x.Mask
             if m = 0u then 
                 let l = x.Left.Remove(cmp, hash, value)
@@ -795,7 +795,7 @@ module internal HashMapImplementation =
             else
                 x:> _
 
-        override x.TryRemove(cmp: EqualityComparer<'T>, hash: uint32, value: 'T) =
+        override x.TryRemove(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =
             let m = matchPrefixAndGetBit hash x.Prefix x.Mask
             if m = 0u then 
                 match x.Left.TryRemove(cmp, hash, value) with
@@ -812,7 +812,7 @@ module internal HashMapImplementation =
             else
                 ValueNone
 
-        override x.AddInPlaceUnsafe(cmp: EqualityComparer<'T>, hash: uint32, value: 'T) =
+        override x.AddInPlaceUnsafe(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =
             let m = matchPrefixAndGetBit hash x.Prefix x.Mask
             if m = 0u then 
                 x.Left <- x.Left.AddInPlaceUnsafe(cmp, hash, value)
@@ -826,7 +826,7 @@ module internal HashMapImplementation =
                 let n = HashSetNoCollisionLeaf.New(hash, value)
                 HashSetInner.Join(x.Prefix, x, hash, n)
 
-        override x.Add(cmp: EqualityComparer<'T>, hash: uint32, value: 'T) =
+        override x.Add(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =
             let m = matchPrefixAndGetBit hash x.Prefix x.Mask
             if m = 0u then 
                 HashSetInner.New(x.Prefix, x.Mask, x.Left.Add(cmp, hash, value), x.Right)
@@ -836,7 +836,7 @@ module internal HashMapImplementation =
                 let n = HashSetNoCollisionLeaf.New(hash, value)
                 HashSetInner.Join(x.Prefix, x, hash, n)
 
-        override x.Alter(cmp: EqualityComparer<'T>, hash: uint32, value: 'T, update: bool -> bool) =
+        override x.Alter(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T, update: bool -> bool) =
             let m = matchPrefixAndGetBit hash x.Prefix x.Mask
             if m = 0u then 
                 let ll = x.Left.Alter(cmp, hash, value, update)
@@ -920,7 +920,7 @@ module internal HashMapImplementation =
                 HashSetLinked<'K>(n.Key, keys n.Next)
                 
 
-        let rec addInPlaceUnsafe (cmp: EqualityComparer<'K>) (key: 'K) (value: 'V) (n: HashMapLinked<'K, 'V>) =
+        let rec addInPlaceUnsafe (cmp: IEqualityComparer<'K>) (key: 'K) (value: 'V) (n: HashMapLinked<'K, 'V>) =
             if isNull n then
                 HashMapLinked(key, value)
             elif cmp.Equals(n.Key, key) then
@@ -931,7 +931,7 @@ module internal HashMapImplementation =
                 n.Next <- addInPlaceUnsafe cmp key value n.Next
                 n
 
-        let rec add (cmp: EqualityComparer<'K>) (key: 'K) (value: 'V) (n: HashMapLinked<'K, 'V>) =
+        let rec add (cmp: IEqualityComparer<'K>) (key: 'K) (value: 'V) (n: HashMapLinked<'K, 'V>) =
             if isNull n then
                 HashMapLinked(key, value)
             elif cmp.Equals(n.Key, key) then
@@ -939,7 +939,7 @@ module internal HashMapImplementation =
             else
                 HashMapLinked(n.Key, n.Value, add cmp key value n.Next)
                
-        let rec alter (cmp: EqualityComparer<'K>) (key: 'K) (update: option<'V> -> option<'V>) (n: HashMapLinked<'K, 'V>) =
+        let rec alter (cmp: IEqualityComparer<'K>) (key: 'K) (update: option<'V> -> option<'V>) (n: HashMapLinked<'K, 'V>) =
             if isNull n then
                 match update None with
                 | Some value -> 
@@ -957,7 +957,7 @@ module internal HashMapImplementation =
                 if next == n.Next then n
                 else HashMapLinked(n.Key, n.Value, next)
                
-        let rec alterV (cmp: EqualityComparer<'K>) (key: 'K) (update: voption<'V> -> voption<'V>) (n: HashMapLinked<'K, 'V>) =
+        let rec alterV (cmp: IEqualityComparer<'K>) (key: 'K) (update: voption<'V> -> voption<'V>) (n: HashMapLinked<'K, 'V>) =
             if isNull n then
                 match update ValueNone with
                 | ValueSome value -> 
@@ -975,17 +975,17 @@ module internal HashMapImplementation =
                 if next == n.Next then n
                 else HashMapLinked(n.Key, n.Value, next)
                
-        let rec tryFind (cmp: EqualityComparer<'K>) (key: 'K) (n: HashMapLinked<'K, 'V>) =
+        let rec tryFind (cmp: IEqualityComparer<'K>) (key: 'K) (n: HashMapLinked<'K, 'V>) =
             if isNull n then None
             elif cmp.Equals(n.Key, key) then Some n.Value
             else tryFind cmp key n.Next
             
-        let rec tryFindV (cmp: EqualityComparer<'K>) (key: 'K) (n: HashMapLinked<'K, 'V>) =
+        let rec tryFindV (cmp: IEqualityComparer<'K>) (key: 'K) (n: HashMapLinked<'K, 'V>) =
             if isNull n then ValueNone
             elif cmp.Equals(n.Key, key) then ValueSome n.Value
             else tryFindV cmp key n.Next
             
-        let rec containsKey (cmp: EqualityComparer<'K>) (key: 'K) (n: HashMapLinked<'K, 'V>) =
+        let rec containsKey (cmp: IEqualityComparer<'K>) (key: 'K) (n: HashMapLinked<'K, 'V>) =
             if isNull n then false
             elif cmp.Equals(n.Key, key) then true
             else containsKey cmp key n.Next
@@ -994,7 +994,7 @@ module internal HashMapImplementation =
             if isNull n then ValueNone
             else ValueSome(struct (n.Key, n.Value, n.Next))
             
-        let rec remove (cmp: EqualityComparer<'K>) (key: 'K) (n: HashMapLinked<'K, 'V>) =
+        let rec remove (cmp: IEqualityComparer<'K>) (key: 'K) (n: HashMapLinked<'K, 'V>) =
             if isNull n then
                 null
             elif cmp.Equals(n.Key, key) then 
@@ -1004,7 +1004,7 @@ module internal HashMapImplementation =
                 if rest == n.Next then n
                 else HashMapLinked(n.Key, n.Value, rest)
 
-        let rec tryRemove (cmp: EqualityComparer<'K>) (key: 'K) (n: HashMapLinked<'K, 'V>) =
+        let rec tryRemove (cmp: IEqualityComparer<'K>) (key: 'K) (n: HashMapLinked<'K, 'V>) =
             if isNull n then
                 ValueNone
             elif cmp.Equals(n.Key, key) then 
@@ -1116,20 +1116,20 @@ module internal HashMapImplementation =
 
     [<AbstractClass>]
     type HashMapNode<'K, 'V>() =
-        abstract member Remove: EqualityComparer<'K> * uint32 * 'K -> HashMapNode<'K, 'V>
-        abstract member TryRemove: EqualityComparer<'K> * uint32 * 'K -> ValueOption<struct ('V * HashMapNode<'K, 'V>)>
+        abstract member Remove: IEqualityComparer<'K> * uint32 * 'K -> HashMapNode<'K, 'V>
+        abstract member TryRemove: IEqualityComparer<'K> * uint32 * 'K -> ValueOption<struct ('V * HashMapNode<'K, 'V>)>
 
         abstract member Count : int
         abstract member IsEmpty: bool
         abstract member ComputeHash : unit -> int
 
-        abstract member AddInPlaceUnsafe: EqualityComparer<'K> * uint32 * 'K * 'V -> HashMapNode<'K, 'V>
-        abstract member Add: EqualityComparer<'K> * uint32 * 'K * 'V -> HashMapNode<'K, 'V>
-        abstract member Alter: EqualityComparer<'K> * uint32 * 'K * (option<'V> -> option<'V>) -> HashMapNode<'K, 'V>
-        abstract member TryFind: EqualityComparer<'K> * uint32 * 'K -> option<'V>
-        abstract member AlterV: EqualityComparer<'K> * uint32 * 'K * (voption<'V> -> voption<'V>) -> HashMapNode<'K, 'V>
-        abstract member TryFindV: EqualityComparer<'K> * uint32 * 'K -> voption<'V>
-        abstract member ContainsKey: EqualityComparer<'K> * uint32 * 'K -> bool
+        abstract member AddInPlaceUnsafe: IEqualityComparer<'K> * uint32 * 'K * 'V -> HashMapNode<'K, 'V>
+        abstract member Add: IEqualityComparer<'K> * uint32 * 'K * 'V -> HashMapNode<'K, 'V>
+        abstract member Alter: IEqualityComparer<'K> * uint32 * 'K * (option<'V> -> option<'V>) -> HashMapNode<'K, 'V>
+        abstract member TryFind: IEqualityComparer<'K> * uint32 * 'K -> option<'V>
+        abstract member AlterV: IEqualityComparer<'K> * uint32 * 'K * (voption<'V> -> voption<'V>) -> HashMapNode<'K, 'V>
+        abstract member TryFindV: IEqualityComparer<'K> * uint32 * 'K -> voption<'V>
+        abstract member ContainsKey: IEqualityComparer<'K> * uint32 * 'K -> bool
 
         abstract member Map: mapping: OptimizedClosures.FSharpFunc<'K, 'V, 'T> -> HashMapNode<'K, 'T>
         abstract member Choose: mapping: OptimizedClosures.FSharpFunc<'K, 'V, option<'T>> -> HashMapNode<'K, 'T>
@@ -1187,34 +1187,34 @@ module internal HashMapImplementation =
 
         override x.IsEmpty = true
 
-        override x.TryFind(_cmp: EqualityComparer<'K>, _hash: uint32, _key: 'K) =
+        override x.TryFind(_cmp: IEqualityComparer<'K>, _hash: uint32, _key: 'K) =
             None
             
-        override x.TryFindV(_cmp: EqualityComparer<'K>, _hash: uint32, _key: 'K) =
+        override x.TryFindV(_cmp: IEqualityComparer<'K>, _hash: uint32, _key: 'K) =
             ValueNone
 
-        override x.ContainsKey(_cmp: EqualityComparer<'K>, _hash: uint32, _key: 'K) =
+        override x.ContainsKey(_cmp: IEqualityComparer<'K>, _hash: uint32, _key: 'K) =
             false
 
-        override x.Remove(_cmp: EqualityComparer<'K>, _hash: uint32, _key: 'K) =
+        override x.Remove(_cmp: IEqualityComparer<'K>, _hash: uint32, _key: 'K) =
             x:> _
             
-        override x.TryRemove(_cmp: EqualityComparer<'K>, _hash: uint32, _key: 'K) =
+        override x.TryRemove(_cmp: IEqualityComparer<'K>, _hash: uint32, _key: 'K) =
             ValueNone
 
-        override x.AddInPlaceUnsafe(_cmp: EqualityComparer<'K>, hash: uint32, key: 'K, value: 'V) =
+        override x.AddInPlaceUnsafe(_cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, value: 'V) =
             HashMapNoCollisionLeaf.New(hash, key, value)
 
-        override x.Add(_cmp: EqualityComparer<'K>, hash: uint32, key: 'K, value: 'V) =
+        override x.Add(_cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, value: 'V) =
             HashMapNoCollisionLeaf.New(hash, key, value)
 
-        override x.Alter(cmp: EqualityComparer<'K>, hash: uint32, key: 'K, update: option<'V> -> option<'V>) =
+        override x.Alter(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, update: option<'V> -> option<'V>) =
             match update None with
             | None -> x:> _
             | Some value ->
                 HashMapNoCollisionLeaf.New(hash, key, value)
                 
-        override x.AlterV(cmp: EqualityComparer<'K>, hash: uint32, key: 'K, update: voption<'V> -> voption<'V>) =
+        override x.AlterV(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, update: voption<'V> -> voption<'V>) =
             match update ValueNone with
             | ValueNone -> x:> _
             | ValueSome value ->
@@ -1309,7 +1309,7 @@ module internal HashMapImplementation =
 
         override x.IsEmpty = false
         
-        override x.TryFind(cmp: EqualityComparer<'K>, hash: uint32, key: 'K) =   
+        override x.TryFind(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =   
             if hash = x.Hash then
                 if cmp.Equals(key, x.Key) then 
                     Some x.Value
@@ -1318,7 +1318,7 @@ module internal HashMapImplementation =
             else
                 None
 
-        override x.TryFindV(cmp: EqualityComparer<'K>, hash: uint32, key: 'K) =   
+        override x.TryFindV(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =   
             if hash = x.Hash then
                 if cmp.Equals(key, x.Key) then 
                     ValueSome x.Value
@@ -1327,7 +1327,7 @@ module internal HashMapImplementation =
             else
                 ValueNone
 
-        override x.ContainsKey(cmp: EqualityComparer<'K>, hash: uint32, key: 'K) =   
+        override x.ContainsKey(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =   
             if hash = x.Hash then
                 if cmp.Equals(key, x.Key) then 
                     true
@@ -1336,7 +1336,7 @@ module internal HashMapImplementation =
             else
                 false
 
-        override x.Remove(cmp: EqualityComparer<'K>, hash: uint32, key: 'K) =
+        override x.Remove(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =
             if hash = x.Hash then
                 if cmp.Equals(key, x.Key) then
                     match HashMapLinked.destruct x.Next with
@@ -1351,7 +1351,7 @@ module internal HashMapImplementation =
             else
                 x:> _
 
-        override x.TryRemove(cmp: EqualityComparer<'K>, hash: uint32, key: 'K)         =
+        override x.TryRemove(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K)         =
             if hash = x.Hash then
                 if cmp.Equals(key, x.Key) then
                     match HashMapLinked.destruct x.Next with
@@ -1373,7 +1373,7 @@ module internal HashMapImplementation =
             else
                 ValueNone
 
-        override x.AddInPlaceUnsafe(cmp: EqualityComparer<'K>, hash: uint32, key: 'K, value: 'V) =
+        override x.AddInPlaceUnsafe(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, value: 'V) =
             if x.Hash = hash then
                 if cmp.Equals(key, x.Key) then
                     x.Key <- key
@@ -1386,7 +1386,7 @@ module internal HashMapImplementation =
                 let n = HashMapNoCollisionLeaf.New(hash, key, value)
                 HashMapInner.Join(hash, n, x.Hash, x)
                 
-        override x.Add(cmp: EqualityComparer<'K>, hash: uint32, key: 'K, value: 'V) =
+        override x.Add(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, value: 'V) =
             if x.Hash = hash then
                 if cmp.Equals(key, x.Key) then
                     HashMapCollisionLeaf.New(x.Hash, key, value, x.Next)
@@ -1396,7 +1396,7 @@ module internal HashMapImplementation =
                 let n = HashMapNoCollisionLeaf.New(hash, key, value)
                 HashMapInner.Join(hash, n, x.Hash, x)
 
-        override x.Alter(cmp: EqualityComparer<'K>, hash: uint32, key: 'K, update: option<'V> -> option<'V>) =
+        override x.Alter(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, update: option<'V> -> option<'V>) =
             if x.Hash = hash then
                 if cmp.Equals(key, x.Key) then
                     match update (Some x.Value) with
@@ -1424,7 +1424,7 @@ module internal HashMapImplementation =
                     let n = HashMapNoCollisionLeaf.New(hash, key, value)
                     HashMapInner.Join(hash, n, x.Hash, x)
 
-        override x.AlterV(cmp: EqualityComparer<'K>, hash: uint32, key: 'K, update: voption<'V> -> voption<'V>) =
+        override x.AlterV(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, update: voption<'V> -> voption<'V>) =
             if x.Hash = hash then
                 if cmp.Equals(key, x.Key) then
                     match update (ValueSome x.Value) with
@@ -1606,37 +1606,37 @@ module internal HashMapImplementation =
         override x.Accept(v: HashMapVisitor<_,_,_>) =
             v.VisitNoCollision x
 
-        override x.TryFind(cmp: EqualityComparer<'K>, hash: uint32, key: 'K) =   
+        override x.TryFind(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =   
             if hash = x.Hash && cmp.Equals(key, x.Key) then 
                 Some x.Value
             else
                 None
 
-        override x.TryFindV(cmp: EqualityComparer<'K>, hash: uint32, key: 'K) =   
+        override x.TryFindV(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =   
             if hash = x.Hash && cmp.Equals(key, x.Key) then 
                 ValueSome x.Value
             else
                 ValueNone
 
-        override x.ContainsKey(cmp: EqualityComparer<'K>, hash: uint32, key: 'K) =   
+        override x.ContainsKey(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =   
             if hash = x.Hash && cmp.Equals(key, x.Key) then 
                 true
             else
                 false
 
-        override x.Remove(cmp: EqualityComparer<'K>, hash: uint32, key: 'K) =
+        override x.Remove(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =
             if hash = x.Hash && cmp.Equals(key, x.Key) then
                 HashMapEmpty.Instance
             else
                 x:> _
 
-        override x.TryRemove(cmp: EqualityComparer<'K>, hash: uint32, key: 'K) =
+        override x.TryRemove(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =
             if hash = x.Hash && cmp.Equals(key, x.Key) then
                 ValueSome (struct(x.Value, HashMapEmpty.Instance))
             else
                 ValueNone
 
-        override x.AddInPlaceUnsafe(cmp: EqualityComparer<'K>, hash: uint32, key: 'K, value: 'V) =
+        override x.AddInPlaceUnsafe(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, value: 'V) =
             if x.Hash = hash then
                 if cmp.Equals(key, x.Key) then
                     x.Key <- key
@@ -1648,7 +1648,7 @@ module internal HashMapImplementation =
                 let n = HashMapNoCollisionLeaf.New(hash, key, value)
                 HashMapInner.Join(hash, n, x.Hash, x)
 
-        override x.Add(cmp: EqualityComparer<'K>, hash: uint32, key: 'K, value: 'V) =
+        override x.Add(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, value: 'V) =
             if x.Hash = hash then
                 if cmp.Equals(key, x.Key) then
                     HashMapNoCollisionLeaf.New(x.Hash, key, value)
@@ -1658,7 +1658,7 @@ module internal HashMapImplementation =
                 let n = HashMapNoCollisionLeaf.New(hash, key, value)
                 HashMapInner.Join(hash, n, x.Hash, x)
         
-        override x.Alter(cmp: EqualityComparer<'K>, hash: uint32, key: 'K, update: option<'V> -> option<'V>) =
+        override x.Alter(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, update: option<'V> -> option<'V>) =
             if x.Hash = hash then
                 if cmp.Equals(key, x.Key) then
                     match update (Some x.Value) with
@@ -1678,7 +1678,7 @@ module internal HashMapImplementation =
                     let n = HashMapNoCollisionLeaf.New(hash, key, value)
                     HashMapInner.Join(hash, n, x.Hash, x)
            
-        override x.AlterV(cmp: EqualityComparer<'K>, hash: uint32, key: 'K, update: voption<'V> -> voption<'V>) =
+        override x.AlterV(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, update: voption<'V> -> voption<'V>) =
             if x.Hash = hash then
                 if cmp.Equals(key, x.Key) then
                     match update (ValueSome x.Value) with
@@ -1801,7 +1801,7 @@ module internal HashMapImplementation =
         override x.Accept(v: HashMapVisitor<_,_,_>) =
             v.VisitNode x
 
-        override x.TryFind(cmp: EqualityComparer<'K>, hash: uint32, key: 'K) =
+        override x.TryFind(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =
             #if OPTIMISTIC 
             let m = zeroBit hash x.Mask
             if m = 0u then x.Left.TryFind(cmp, hash, key)
@@ -1813,7 +1813,7 @@ module internal HashMapImplementation =
             else None
             #endif
 
-        override x.TryFindV(cmp: EqualityComparer<'K>, hash: uint32, key: 'K) =
+        override x.TryFindV(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =
             #if OPTIMISTIC 
             let m = zeroBit hash x.Mask
             if m = 0u then x.Left.TryFindV(cmp, hash, key)
@@ -1825,7 +1825,7 @@ module internal HashMapImplementation =
             else ValueNone
             #endif
             
-        override x.ContainsKey(cmp: EqualityComparer<'K>, hash: uint32, key: 'K) =
+        override x.ContainsKey(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =
             #if OPTIMISTIC 
             let m = zeroBit hash x.Mask
             if m = 0u then x.Left.ContainsKey(cmp, hash, key)
@@ -1837,7 +1837,7 @@ module internal HashMapImplementation =
             else false
             #endif
 
-        override x.Remove(cmp: EqualityComparer<'K>, hash: uint32, key: 'K) =
+        override x.Remove(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =
             let m = matchPrefixAndGetBit hash x.Prefix x.Mask
             if m = 0u then 
                 let l = x.Left.Remove(cmp, hash, key)
@@ -1850,7 +1850,7 @@ module internal HashMapImplementation =
             else
                 x:> _
 
-        override x.TryRemove(cmp: EqualityComparer<'K>, hash: uint32, key: 'K) =
+        override x.TryRemove(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =
             let m = matchPrefixAndGetBit hash x.Prefix x.Mask
             if m = 0u then 
                 match x.Left.TryRemove(cmp, hash, key) with
@@ -1867,7 +1867,7 @@ module internal HashMapImplementation =
             else
                 ValueNone
 
-        override x.AddInPlaceUnsafe(cmp: EqualityComparer<'K>, hash: uint32, key: 'K, value: 'V) =
+        override x.AddInPlaceUnsafe(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, value: 'V) =
             let m = matchPrefixAndGetBit hash x.Prefix x.Mask
             if m = 0u then 
                 x.Left <- x.Left.AddInPlaceUnsafe(cmp, hash, key, value)
@@ -1881,7 +1881,7 @@ module internal HashMapImplementation =
                 let n = HashMapNoCollisionLeaf.New(hash, key, value)
                 HashMapInner.Join(x.Prefix, x, hash, n)
 
-        override x.Add(cmp: EqualityComparer<'K>, hash: uint32, key: 'K, value: 'V) =
+        override x.Add(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, value: 'V) =
             let m = matchPrefixAndGetBit hash x.Prefix x.Mask
             if m = 0u then 
                 HashMapInner.New(x.Prefix, x.Mask, x.Left.Add(cmp, hash, key, value), x.Right)
@@ -1891,7 +1891,7 @@ module internal HashMapImplementation =
                 let n = HashMapNoCollisionLeaf.New(hash, key, value)
                 HashMapInner.Join(x.Prefix, x, hash, n)
 
-        override x.Alter(cmp: EqualityComparer<'K>, hash: uint32, key: 'K, update: option<'V> -> option<'V>) =
+        override x.Alter(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, update: option<'V> -> option<'V>) =
             let m = matchPrefixAndGetBit hash x.Prefix x.Mask
             if m = 0u then 
                 let ll = x.Left.Alter(cmp, hash, key, update)
@@ -1908,7 +1908,7 @@ module internal HashMapImplementation =
                     let n = HashMapNoCollisionLeaf.New(hash, key, value)
                     HashMapInner.Join(x.Prefix, x, hash, n)
                     
-        override x.AlterV(cmp: EqualityComparer<'K>, hash: uint32, key: 'K, update: voption<'V> -> voption<'V>) =
+        override x.AlterV(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, update: voption<'V> -> voption<'V>) =
             let m = matchPrefixAndGetBit hash x.Prefix x.Mask
             if m = 0u then 
                 let ll = x.Left.AlterV(cmp, hash, key, update)
@@ -2159,7 +2159,7 @@ module internal HashMapImplementation =
         let visit2 (v : HashMapVisitor2<'K, 'V1, 'V2, 'R>) (l : HashMapNode<'K, 'V1>) (r : HashMapNode<'K, 'V2>) =
             l.Accept (HashMapVisit2Visitor(v, r))
 
-        let equals (cmp : EqualityComparer<'K>) (l : HashMapNode<'K,'V>) (r : HashMapNode<'K,'V>) =
+        let equals (cmp : IEqualityComparer<'K>) (l : HashMapNode<'K,'V>) (r : HashMapNode<'K,'V>) =
             let len = ref 0
             let arr = ref (Array.zeroCreate 4)
 
@@ -2211,7 +2211,7 @@ module internal HashMapImplementation =
             }
                     
         let computeDelta 
-            (cmp : EqualityComparer<'K>)
+            (cmp : IEqualityComparer<'K>)
             (add : 'K -> 'V -> 'OP)
             (update : 'K -> 'V -> 'V -> ValueOption<'OP>)
             (remove : 'K -> 'V -> 'OP)
@@ -2325,7 +2325,7 @@ module internal HashMapImplementation =
             }
 
         let choose2 
-            (cmp : EqualityComparer<'K>)
+            (cmp : IEqualityComparer<'K>)
             (update : 'K -> ValueOption<'V1> -> ValueOption<'V2> -> ValueOption<'T>)
             (l : HashMapNode<'K, 'V1>) 
             (r : HashMapNode<'K, 'V2>)  =
@@ -2443,7 +2443,7 @@ module internal HashMapImplementation =
             }
 
         let unionWith
-            (cmp : EqualityComparer<'K>)
+            (cmp : IEqualityComparer<'K>)
             (resolve : 'K -> 'V -> 'V -> ValueOption<'V>)
             (l : HashMapNode<'K, 'V>)
             (r : HashMapNode<'K, 'V>) =
@@ -2538,7 +2538,7 @@ module internal HashMapImplementation =
             }
 
         let union
-            (cmp : EqualityComparer<'K>) 
+            (cmp : IEqualityComparer<'K>) 
             (l : HashMapNode<'K, 'V>) 
             (r : HashMapNode<'K, 'V>) =
             let len = ref 0
@@ -2632,7 +2632,7 @@ module internal HashMapImplementation =
             }
 
         let applyDelta
-            (cmp : EqualityComparer<'K>) 
+            (cmp : IEqualityComparer<'K>) 
             (apply : 'K -> voption<'V> -> 'D -> struct(voption<'V> * voption<'D>))
             (state : HashMapNode<'K, 'V>)
             (delta : HashMapNode<'K, 'D>) =
@@ -2817,7 +2817,7 @@ module internal HashMapImplementation =
         let visitMap2 (v : HashSetMapVisitor<'K, 'V, 'R>) (l : HashSetNode<'K>) (r : HashMapNode<'K, 'V>) =
             l.Accept (HashMapSetVisit2Visitor(v, r))
 
-        let equals (cmp : EqualityComparer<'T>) (l : HashSetNode<'T>) (r : HashSetNode<'T>) =
+        let equals (cmp : IEqualityComparer<'T>) (l : HashSetNode<'T>) (r : HashSetNode<'T>) =
             let len = ref 0
             let arr = ref (Array.zeroCreate 4)
 
@@ -2867,7 +2867,7 @@ module internal HashMapImplementation =
                                     
             }
         
-        let union (cmp : EqualityComparer<'T>) (l : HashSetNode<'T>) (r : HashSetNode<'T>)  =
+        let union (cmp : IEqualityComparer<'T>) (l : HashSetNode<'T>) (r : HashSetNode<'T>)  =
             let len = ref 0
             let arr = ref (Array.zeroCreate 4)
 
@@ -2944,7 +2944,7 @@ module internal HashMapImplementation =
                                     
             }
             
-        let intersect (cmp : EqualityComparer<'T>) (l : HashSetNode<'T>) (r : HashSetNode<'T>)  =
+        let intersect (cmp : IEqualityComparer<'T>) (l : HashSetNode<'T>) (r : HashSetNode<'T>)  =
             let len = ref 0
             let arr = ref (Array.zeroCreate 4)
 
@@ -3027,7 +3027,7 @@ module internal HashMapImplementation =
                                     
             }
             
-        let difference  (cmp : EqualityComparer<'T>) (l : HashSetNode<'T>) (r : HashSetNode<'T>)  =
+        let difference  (cmp : IEqualityComparer<'T>) (l : HashSetNode<'T>) (r : HashSetNode<'T>)  =
             let len = ref 0
             let arr = ref (Array.zeroCreate 4)
 
@@ -3107,7 +3107,7 @@ module internal HashMapImplementation =
             }
 
         let computeDelta 
-            (cmp : EqualityComparer<'T>)
+            (cmp : IEqualityComparer<'T>)
             (add : 'T -> 'OP)
             (remove : 'T -> 'OP)
             (l : HashSetNode<'T>) 
@@ -3208,7 +3208,7 @@ module internal HashMapImplementation =
             }
 
         let applyDelta
-            (cmp : EqualityComparer<'T>) 
+            (cmp : IEqualityComparer<'T>) 
             (apply : 'T -> bool -> 'D -> struct(bool * voption<'D>))
             (state : HashSetNode<'T>)
             (delta : HashMapNode<'T, 'D>) =
@@ -3386,9 +3386,9 @@ module internal HashMapImplementation =
 
 
 [<Struct; CustomEquality; NoComparison>]
-type HashSet<'T> internal(cmp: EqualityComparer<'T>, root: HashSetNode<'T>) =
+type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
     
-    static member Empty = HashSet<'T>(EqualityComparer<'T>.Default, HashSetEmpty.Instance)
+    static member Empty = HashSet<'T>(EqualityComparer<'T>.Default :> IEqualityComparer<_>, HashSetEmpty.Instance)
 
     member x.Count = root.Count
     member x.IsEmpty = root.IsEmpty
@@ -3409,12 +3409,12 @@ type HashSet<'T> internal(cmp: EqualityComparer<'T>, root: HashSetNode<'T>) =
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Single(value : 'T) =  
-        let cmp = EqualityComparer<'T>.Default
+        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
         HashSet(cmp, HashSetNoCollisionLeaf.New(uint32 (cmp.GetHashCode value), value))
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfSeq(elements: seq<'T>) =  
-        let cmp = EqualityComparer<'T>.Default
+        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
         let mutable r = HashMapImplementation.HashSetEmpty.Instance 
         for v in elements do
             let hash = cmp.GetHashCode v |> uint32
@@ -3423,7 +3423,7 @@ type HashSet<'T> internal(cmp: EqualityComparer<'T>, root: HashSetNode<'T>) =
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfList(elements: list<'T>) =  
-        let cmp = EqualityComparer<'T>.Default
+        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
         let mutable r = HashMapImplementation.HashSetEmpty.Instance 
         for v in elements do
             let hash = cmp.GetHashCode v |> uint32
@@ -3432,7 +3432,7 @@ type HashSet<'T> internal(cmp: EqualityComparer<'T>, root: HashSetNode<'T>) =
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfArray(elements: array<'T>) =  
-        let cmp = EqualityComparer<'T>.Default
+        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
         let mutable r = HashMapImplementation.HashSetEmpty.Instance 
         for v in elements do
             let hash = cmp.GetHashCode v |> uint32
@@ -3492,7 +3492,7 @@ type HashSet<'T> internal(cmp: EqualityComparer<'T>, root: HashSetNode<'T>) =
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Map(mapping: 'T -> 'R) =
-        let cmp = EqualityComparer<'R>.Default
+        let cmp = EqualityComparer<'R>.Default :> IEqualityComparer<_>
         let mutable res = HashSetEmpty.Instance
         for o in x do
             let v = mapping o
@@ -3502,12 +3502,12 @@ type HashSet<'T> internal(cmp: EqualityComparer<'T>, root: HashSetNode<'T>) =
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.MapToMap(mapping: 'T -> 'R) =
-        let cmp = EqualityComparer<'T>.Default
+        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
         HashMap(cmp, root.MapToMap(mapping))
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Choose(mapping: 'T -> option<'R>) =
-        let cmp = EqualityComparer<'R>.Default
+        let cmp = EqualityComparer<'R>.Default :> IEqualityComparer<_>
         let mutable res = HashSetEmpty.Instance
         for o in x do
             match mapping o with
@@ -3520,7 +3520,7 @@ type HashSet<'T> internal(cmp: EqualityComparer<'T>, root: HashSetNode<'T>) =
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ChooseV(mapping: 'T -> voption<'R>) =
-        let cmp = EqualityComparer<'R>.Default
+        let cmp = EqualityComparer<'R>.Default :> IEqualityComparer<_>
         let mutable res = HashSetEmpty.Instance
         for o in x do
             match mapping o with
@@ -3555,31 +3555,31 @@ type HashSet<'T> internal(cmp: EqualityComparer<'T>, root: HashSetNode<'T>) =
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ComputeDelta(l : HashSet<'T>, r : HashSet<'T>, add : 'T -> 'OP, remove : 'T -> 'OP) =   
-        let cmp = EqualityComparer<'T>.Default
+        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
         let result = HashSetNode.computeDelta cmp add remove l.Root r.Root
         HashMap(cmp, result)
  
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ApplyDelta(state : HashSet<'T>, delta : HashMap<'T, 'D>, apply : 'T -> bool -> 'D -> struct(bool * voption<'D>)) =   
-        let cmp = EqualityComparer<'T>.Default
+        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
         let struct(ns, nd) = HashSetNode.applyDelta cmp apply state.Root delta.Root
         HashSet(cmp, ns), HashMap(cmp, nd)
      
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Union(l : HashSet<'T>, r : HashSet<'T>) =   
-        let cmp = EqualityComparer<'T>.Default
+        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
         let result = HashSetNode.union cmp l.Root r.Root
         HashSet(cmp, result)
  
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Difference(l : HashSet<'T>, r : HashSet<'T>) =   
-        let cmp = EqualityComparer<'T>.Default
+        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
         let result = HashSetNode.difference cmp l.Root r.Root
         HashSet(cmp, result)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Intersect(l : HashSet<'T>, r : HashSet<'T>) =   
-        let cmp = EqualityComparer<'T>.Default
+        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
         let result = HashSetNode.intersect cmp l.Root r.Root
         HashSet(cmp, result)
  
@@ -3642,9 +3642,9 @@ and internal HashSetEnumerator<'T>(root: HashSetNode<'T>) =
 
 
 [<Struct; CustomEquality; NoComparison>]
-type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: EqualityComparer<'K>, root: HashMapNode<'K, 'V>) =
+type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'K>, root: HashMapNode<'K, 'V>) =
 
-    static member Empty = HashMap<'K, 'V>(EqualityComparer<'K>.Default, HashMapEmpty.Instance)
+    static member Empty = HashMap<'K, 'V>(EqualityComparer<'K>.Default :> IEqualityComparer<_>, HashMapEmpty.Instance)
 
     member x.Count = root.Count
     member x.IsEmpty = root.IsEmpty
@@ -3671,12 +3671,12 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: EqualityComparer<'K
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Single(key: 'K, value : 'V) =  
-        let cmp = EqualityComparer<'K>.Default
+        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
         HashMap(cmp, HashMapNoCollisionLeaf.New(uint32 (cmp.GetHashCode key), key, value))
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfSeq(elements: seq<'K * 'V>) =  
-        let cmp = EqualityComparer<'K>.Default
+        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
         let mutable r = HashMapImplementation.HashMapEmpty.Instance 
         for (k, v) in elements do
             let hash = cmp.GetHashCode k |> uint32
@@ -3685,7 +3685,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: EqualityComparer<'K
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfList(elements: list<'K * 'V>) =  
-        let cmp = EqualityComparer<'K>.Default
+        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
         let mutable r = HashMapImplementation.HashMapEmpty.Instance 
         for (k, v) in elements do
             let hash = cmp.GetHashCode k |> uint32
@@ -3694,7 +3694,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: EqualityComparer<'K
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfArray(elements: array<'K * 'V>) =  
-        let cmp = EqualityComparer<'K>.Default
+        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
         let mutable r = HashMapImplementation.HashMapEmpty.Instance 
         for (k, v) in elements do
             let hash = cmp.GetHashCode k |> uint32
@@ -3704,7 +3704,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: EqualityComparer<'K
     
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfSeqV(elements: seq<struct ('K * 'V)>) =  
-        let cmp = EqualityComparer<'K>.Default
+        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
         let mutable r = HashMapImplementation.HashMapEmpty.Instance 
         for struct (k, v) in elements do
             let hash = cmp.GetHashCode k |> uint32
@@ -3713,7 +3713,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: EqualityComparer<'K
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfListV(elements: list<struct ('K * 'V)>) =  
-        let cmp = EqualityComparer<'K>.Default
+        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
         let mutable r = HashMapImplementation.HashMapEmpty.Instance 
         for struct (k, v) in elements do
             let hash = cmp.GetHashCode k |> uint32
@@ -3722,7 +3722,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: EqualityComparer<'K
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfArrayV(elements: array<struct ('K * 'V)>) =  
-        let cmp = EqualityComparer<'K>.Default
+        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
         let mutable r = HashMapImplementation.HashMapEmpty.Instance 
         for struct (k, v) in elements do
             let hash = cmp.GetHashCode k |> uint32
@@ -3882,37 +3882,37 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: EqualityComparer<'K
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ComputeDelta(l : HashMap<'K, 'V>, r : HashMap<'K, 'V>, add : 'K -> 'V -> 'OP, update : 'K -> 'V -> 'V -> ValueOption<'OP>, remove : 'K -> 'V -> 'OP) =   
-        let cmp = EqualityComparer<'K>.Default
+        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
         let result = HashMapNode.computeDelta cmp add update remove l.Root r.Root
         HashMap(cmp, result)
  
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member UnionWith(l : HashMap<'K, 'V>, r : HashMap<'K, 'V>, resolve : 'K -> 'V -> 'V -> 'V) =   
-        let cmp = EqualityComparer<'K>.Default
+        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
         let result = HashMapNode.unionWith cmp (fun k l r -> resolve k l r |> ValueSome) l.Root r.Root
         HashMap(cmp, result)
   
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member UnionWithValueOption(l : HashMap<'K, 'V>, r : HashMap<'K, 'V>, resolve : 'K -> 'V -> 'V -> ValueOption<'V>) =   
-        let cmp = EqualityComparer<'K>.Default
+        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
         let result = HashMapNode.unionWith cmp resolve l.Root r.Root
         HashMap(cmp, result)
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Union(l : HashMap<'K, 'V>, r : HashMap<'K, 'V>) =   
-        let cmp = EqualityComparer<'K>.Default
+        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
         let result = HashMapNode.union cmp l.Root r.Root
         HashMap(cmp, result)
   
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ApplyDelta(state : HashMap<'K, 'V>, delta : HashMap<'K, 'D>, apply : 'K -> voption<'V> -> 'D -> struct(voption<'V> * voption<'D>)) =   
-        let cmp = EqualityComparer<'K>.Default
+        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
         let struct (ns, nd) = HashMapNode.applyDelta cmp apply state.Root delta.Root
         HashMap(cmp, ns), HashMap(cmp, nd)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Choose2(l : HashMap<'K, 'V>, r : HashMap<'K, 'T>, resolve : 'K -> voption<'V> -> voption<'T> -> voption<'R>) =   
-        let cmp = EqualityComparer<'K>.Default
+        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
         let result = HashMapNode.choose2 cmp resolve l.Root r.Root
         HashMap(cmp, result)
 

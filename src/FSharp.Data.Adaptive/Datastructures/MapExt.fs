@@ -697,6 +697,22 @@ module internal MapExtImplementation =
 
         let choosei f m = chooseiOpt (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
     
+        let rec chooseiOptV (f:OptimizedClosures.FSharpFunc<'Key,'T1,voption<'T2>>) m =
+            match m with
+            | MapEmpty -> empty
+            | MapOne(k,v) ->
+                match f.Invoke(k,v) with
+                | ValueSome v -> MapOne(k,v)
+                | ValueNone -> MapEmpty
+
+            | MapNode(k,v,l,r,h,c) ->
+                let l' = chooseiOptV f l
+                let s' = f.Invoke(k,v)
+                let r' = chooseiOptV f r
+                match s' with
+                | ValueNone -> merge l' r'
+                | ValueSome v -> join l' k v r'
+
         let rec chooseiOptV2 (f:OptimizedClosures.FSharpFunc<'Key,'T1,struct (voption<'T2> * voption<'T3>)>) m =
             match m with
                 | MapEmpty -> 
@@ -887,60 +903,79 @@ module internal MapExtImplementation =
                             | Some rv -> f k (Some v) (Some rv)
                             | None -> f k (Some v) None
                     join (map2 comparer f ll rs) k v (map2 comparer f lr rg)
-                      
-        let rec choose2 (comparer: IComparer<'Value>) f l r =
+
+        let rec choose2VOpt 
+            (comparer: IComparer<'Key>) 
+            (f : OptimizedClosures.FSharpFunc<'Key, voption<'T1>, voption<'T2>, voption<'T3>>) 
+            (lo : OptimizedClosures.FSharpFunc<'Key, 'T1, voption<'T3>>) 
+            (ro : OptimizedClosures.FSharpFunc<'Key, 'T2, voption<'T3>>)
+            l r =
             match l, r with
-                | MapEmpty, r -> choosei (fun i rv -> f i None (Some rv)) r
-                | l, MapEmpty -> choosei (fun i lv -> f i (Some lv) None) l
-                | MapOne(k,v), r ->
-                    let mutable found = false
-                    let res = 
-                        r |> choosei (fun i rv -> 
-                            if comparer.Compare(i, k) = 0 then 
-                                found <- true
-                                f i (Some v) (Some rv)
-                            else 
-                                f i None (Some rv)
-                        )
-                    if found then 
-                        res 
-                    else 
-                        match f k (Some v) None with
-                            | Some v -> add comparer k v res
-                            | None -> res
+                | MapEmpty, r -> chooseiOptV ro r
+                | l, MapEmpty -> chooseiOptV lo l
+                | MapOne(lk, lv), MapOne(rk, rv) ->
+                    let c = comparer.Compare(lk, rk)
+                    if c = 0 then
+                        match f.Invoke(lk, ValueSome lv, ValueSome rv) with
+                        | ValueSome r -> MapOne(lk, r)
+                        | ValueNone -> MapEmpty
+                    else
+                        let l = match f.Invoke(lk, ValueSome lv, ValueNone) with | ValueSome r -> MapOne(lk, r) | ValueNone -> MapEmpty
+                        let r = match f.Invoke(rk, ValueNone, ValueSome rv) with | ValueSome r -> MapOne(rk, r) | ValueNone -> MapEmpty
+                        merge l r
 
-                | l, MapOne(k,v) ->
-                    let mutable found = false
-                    let res = 
-                        l |> choosei (fun i lv -> 
-                            if comparer.Compare(i, k) = 0 then 
-                                found <- true
-                                f i (Some lv) (Some v)
-                            else 
-                                f i (Some lv) None
-                        )
-                    if found then 
-                        res 
-                    else 
-                        match f k None (Some v) with
-                            | Some v -> add comparer k v res
-                            | None -> res
+                | MapNode(lk, lv, ll, lr, lh, lc), MapOne(rk, rv) ->
+                    let c = comparer.Compare(lk, rk)
+                    if c = 0 then
+                        let ll = chooseiOptV lo ll
+                        let lr = chooseiOptV lo lr
+                        match f.Invoke(lk, ValueSome lv, ValueSome rv) with
+                        | ValueSome v -> join ll lk v lr
+                        | ValueNone -> merge ll lr
+                    elif c > 0 then
+                        joinV (choose2VOpt comparer f lo ro ll r) lk (lo.Invoke(lk, lv)) (chooseiOptV lo lr)
+                    else
+                        joinV (chooseiOptV lo ll) lk (lo.Invoke(lk, lv)) (choose2VOpt comparer f lo ro lr r)
+                        
 
-                | MapNode(k,v,ll,lr,_,_),r ->
-                    let rs, self, rg = split comparer k r
+                | MapOne(lk, lv), MapNode(rk, rv, rl, rr, rh, rc) ->
+                    let c = comparer.Compare(lk, rk)
+                    if c = 0 then
+                        let rl = chooseiOptV ro rl
+                        let rr = chooseiOptV ro rr
+                        match f.Invoke(rk, ValueSome lv, ValueSome rv) with
+                        | ValueSome v -> join rl rk v rr
+                        | ValueNone -> merge rl rr
+                    elif c > 0 then
+                        joinV (chooseiOptV ro rl) rk (ro.Invoke(rk, rv)) (choose2VOpt comparer f lo ro l rr)
+                    else
+                        joinV (choose2VOpt comparer f lo ro l rl) rk (ro.Invoke(rk, rv)) (chooseiOptV ro rr)
                     
-                    let v = 
-                        match self with
-                        | Some rv -> f k (Some v) (Some rv)
-                        | None -> f k (Some v) None
+                | MapNode(lk, lv, ll, lr, lh, lc), MapNode(rk, rv, rl, rr, rh, rc) ->
+                    let c = comparer.Compare(lk, rk)
+                    if c = 0 then
+                        joinV (choose2VOpt comparer f lo ro ll rl) lk (f.Invoke(lk, ValueSome lv, ValueSome rv)) (choose2VOpt comparer f lo ro  lr rr)
+                    elif lh > rh then
+                        let struct (rl, rv, rr) = splitV comparer lk r
+                        joinV (choose2VOpt comparer f lo ro ll rl) lk (f.Invoke(lk, ValueSome lv, rv)) (choose2VOpt comparer f lo ro  lr rr)
+                    else
+                        let struct (ll, lv, lr) = splitV comparer rk l
+                        joinV (choose2VOpt comparer f lo ro ll rl) rk (f.Invoke(rk, lv, ValueSome rv)) (choose2VOpt comparer f lo ro  lr rr)
 
-                    let l = choose2 comparer f ll rs
-                    let r = choose2 comparer f lr rg
 
-                    match v with
-                    | Some v -> join l k v r
-                    | None -> merge l r
-            
+        let choose2V 
+            (comparer: IComparer<'Key>) 
+            (mapping : 'Key -> voption<'T1> -> voption<'T2> -> voption<'T3>) 
+            l r =
+                
+            let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
+            let lo = OptimizedClosures.FSharpFunc<_,_,_>.Adapt (fun k l -> mapping.Invoke(k, ValueSome l, ValueNone))
+            let ro = OptimizedClosures.FSharpFunc<_,_,_>.Adapt (fun k r -> mapping.Invoke(k, ValueNone, ValueSome r))
+
+            choose2VOpt comparer mapping lo ro l r
+
+
+
         let rec applyDelta
             (comparer : IComparer<'Key>)
             (apply : OptimizedClosures.FSharpFunc<'Key, voption<'Value>, 'Delta, struct (voption<'Value> * voption<'DeltaOut>)>) 
@@ -1536,7 +1571,8 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
     
     member m.MapMonotonic<'Key2, 'Value2 when 'Key2 : comparison> (f : 'Key -> 'Value -> 'Key2 * 'Value2) : MapExt<'Key2,'Value2> = new MapExt<'Key2,'Value2>(LanguagePrimitives.FastGenericComparer<'Key2>, MapTree.mapiMonotonic f tree)
    
-    member m.ChooseMonotonic<'Key2, 'Value2 when 'Key2 : comparison> (f : 'Key -> 'Value -> option<'Key2 * 'Value2>) : MapExt<'Key2,'Value2> = new MapExt<'Key2,'Value2>(LanguagePrimitives.FastGenericComparer<'Key2>, MapTree.chooseiMonotonic f tree)
+    member m.ChooseMonotonic<'Key2, 'Value2 when 'Key2 : comparison> (f : 'Key -> 'Value -> option<'Key2 * 'Value2>) : MapExt<'Key2,'Value2> = 
+        new MapExt<'Key2,'Value2>(LanguagePrimitives.FastGenericComparer<'Key2>, MapTree.chooseiMonotonic f tree)
     
     member x.GetReference key =
         MapTree.getReference comparer 0 key tree
@@ -1560,7 +1596,15 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
         new MapExt<'Key,'Result>(comparer, MapTree.map2 comparer f tree other.Tree)
         
     member m.Choose2(other:MapExt<'Key,'Value2>, f)  = 
-        new MapExt<'Key,'Result>(comparer, MapTree.choose2 comparer f tree other.Tree)
+        let inline v o = match o with | Some v -> ValueSome v | None -> ValueNone
+        let inline o o = match o with | ValueSome v -> Some v | ValueNone -> None
+
+        let f = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt f
+        let mapping k l r = f.Invoke(k, o l, o r) |> v
+        new MapExt<'Key,'Result>(comparer, MapTree.choose2V comparer mapping tree other.Tree)
+        
+    member m.Choose2V(other:MapExt<'Key,'Value2>, f)  = 
+        new MapExt<'Key,'Result>(comparer, MapTree.choose2V comparer f tree other.Tree)
         
     member m.ComputeDelta(other:MapExt<'Key,'Value>, add, update, remove)  = 
         let add = OptimizedClosures.FSharpFunc<_,_,_>.Adapt add
@@ -1903,6 +1947,9 @@ module internal MapExt =
     
     [<CompiledName("Choose2")>]
     let choose2 f (l:MapExt<_,_>) r = l.Choose2 (r, f)
+    
+    [<CompiledName("Choose2Value")>]
+    let choose2V f (l:MapExt<_,_>) r = l.Choose2V (r, f)
     
     [<CompiledName("Neighbours")>]
     let neighbours k (m:MapExt<_,_>) = m.Neighbours k
