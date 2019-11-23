@@ -226,6 +226,36 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
         else
             false
 
+
+    /// Appends operations to the history and updates the state
+    /// Returns whether or not the operation effectively changed the state
+    let appendUnsafe (s : 'State) (op: 'Delta) =
+        // assume the delta is already sound!!!!
+        state <- s
+
+        // only append non-empty ops
+        if not (t.tmonoid.misEmpty op) then
+            // if last is null no reader is interested in ops.
+            // therefore we simply discard them here
+            if not (isNull last) then
+                match last.TryGetTarget() with
+                | (true, lv) ->
+                    // last is non-null and alive and no one pulled it yet
+                    // so we can append our op to it
+                    lv.Value <- t.tmonoid.mappend lv.Value op
+                | _ -> 
+                    last <- null
+                    finalize op
+            else
+                last <- null
+                finalize op
+
+            prune()
+            true
+        else
+            false
+
+
     /// Adds a reference to the latest version or creates one.
     /// Returns the RelevantNode representing the latest version
     let addRefToLast() =
@@ -324,6 +354,18 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
             true
         else
             false
+
+    /// Imperatively performs operations on the history (similar to ModRef.Value <- ...)
+    /// and assumes that newState represents the current history-state with the given operations applied. (hence the Unsafe suffix)
+    /// Since the history may need to be marked a Transaction needs to be current.
+    member x.PerformUnsafe(newState : 'State, op: 'Delta) =
+        let changed = lock x (fun () -> appendUnsafe newState op)
+        if changed then
+            x.MarkOutdated()
+            true
+        else
+            false
+
 
     /// Used by HistoryReader to pull the operations since the old RelevantNode.
     /// Additionaly the reader provides its latest state. 

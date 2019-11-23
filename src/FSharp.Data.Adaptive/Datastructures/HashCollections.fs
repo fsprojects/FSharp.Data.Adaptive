@@ -2633,7 +2633,7 @@ module internal HashMapImplementation =
 
         let applyDelta
             (cmp : IEqualityComparer<'K>) 
-            (apply : 'K -> voption<'V> -> 'D -> struct(voption<'V> * voption<'D>))
+            (apply : 'K -> voption<'V> -> 'D -> struct(voption<'V> * voption<'DOut>))
             (state : HashMapNode<'K, 'V>)
             (delta : HashMapNode<'K, 'D>) =
 
@@ -2644,7 +2644,7 @@ module internal HashMapImplementation =
             let onlyDelta = OptimizedClosures.FSharpFunc<_,_,_>.Adapt(fun k d -> apply.Invoke(k, ValueNone, d))
     
             (state, delta) ||> HashMapNode.visit2 {
-                new HashMapVisitor2<'K, 'V, 'D, struct (HashMapNode<'K, 'V> * HashMapNode<'K, 'D>)>() with
+                new HashMapVisitor2<'K, 'V, 'D, struct (HashMapNode<'K, 'V> * HashMapNode<'K, 'DOut>)>() with
 
                     member x.VisitEE(_, _) = 
                         struct (HashMapEmpty.Instance, HashMapEmpty.Instance)
@@ -3209,7 +3209,7 @@ module internal HashMapImplementation =
 
         let applyDelta
             (cmp : IEqualityComparer<'T>) 
-            (apply : 'T -> bool -> 'D -> struct(bool * voption<'D>))
+            (apply : 'T -> bool -> 'D -> struct(bool * voption<'DOut>))
             (state : HashSetNode<'T>)
             (delta : HashMapNode<'T, 'D>) =
 
@@ -3220,7 +3220,7 @@ module internal HashMapImplementation =
             let onlyDelta = OptimizedClosures.FSharpFunc<_,_,_>.Adapt(fun k d -> apply.Invoke(k, false, d))
     
             (state, delta) ||> visitMap2 {
-                new HashSetMapVisitor<'T, 'D, struct (HashSetNode<'T> * HashMapNode<'T, 'D>)>() with
+                new HashSetMapVisitor<'T, 'D, struct (HashSetNode<'T> * HashMapNode<'T, 'DOut>)>() with
 
                     member x.VisitEE(_, _) = 
                         struct (HashSetEmpty.Instance, HashMapEmpty.Instance)
@@ -3560,7 +3560,7 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         HashMap(cmp, result)
  
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member ApplyDelta(state : HashSet<'T>, delta : HashMap<'T, 'D>, apply : 'T -> bool -> 'D -> struct(bool * voption<'D>)) =   
+    static member ApplyDelta(state : HashSet<'T>, delta : HashMap<'T, 'D>, apply : 'T -> bool -> 'D -> struct(bool * voption<'DOut>)) =   
         let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
         let struct(ns, nd) = HashSetNode.applyDelta cmp apply state.Root delta.Root
         HashSet(cmp, ns), HashMap(cmp, nd)
@@ -3905,7 +3905,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         HashMap(cmp, result)
   
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member ApplyDelta(state : HashMap<'K, 'V>, delta : HashMap<'K, 'D>, apply : 'K -> voption<'V> -> 'D -> struct(voption<'V> * voption<'D>)) =   
+    static member ApplyDelta(state : HashMap<'K, 'V>, delta : HashMap<'K, 'D>, apply : 'K -> voption<'V> -> 'D -> struct(voption<'V> * voption<'DOut>)) =   
         let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
         let struct (ns, nd) = HashMapNode.applyDelta cmp apply state.Root delta.Root
         HashMap(cmp, ns), HashMap(cmp, nd)

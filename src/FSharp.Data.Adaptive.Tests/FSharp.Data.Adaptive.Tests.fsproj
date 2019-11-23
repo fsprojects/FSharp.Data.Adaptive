@@ -15,6 +15,7 @@
     <Compile Include="Benchmarks\BenchUtils.fs" />
     <Compile Include="Benchmarks\Map.fs" />
     <Compile Include="Benchmarks\Collect.fs" />
+    <Compile Include="Benchmarks\Transact.fs" />
     <Compile Include="Utilities\Helpers.fs" />
     <Compile Include="Utilities\Generators.fs" />
     <Compile Include="Callbacks.fs" />
@@ -30,6 +31,7 @@
     <Compile Include="AMap.fs" />
     <Compile Include="AList.fs" />
     <Compile Include="Transaction.fs" />
+    <Compile Include="AdaptifyHelpers.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
