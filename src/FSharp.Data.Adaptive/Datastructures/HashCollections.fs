@@ -771,16 +771,9 @@ module internal HashMapImplementation =
             v.VisitNode x
 
         override x.Contains(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =
-            #if OPTIMISTIC 
             let m = zeroBit hash x.Mask
             if m = 0u then x.Left.Contains(cmp, hash, value)
             else x.Right.Contains(cmp, hash, value)
-            #else
-            let m = matchPrefixAndGetBit hash x.Prefix x.Mask
-            if m = 0u then x.Left.Contains(cmp, hash, value)
-            elif m = 1u then x.Right.Contains(cmp, hash, value)
-            else false
-            #endif
 
         override x.Remove(cmp: IEqualityComparer<'T>, hash: uint32, value: 'T) =
             let m = matchPrefixAndGetBit hash x.Prefix x.Mask
@@ -1802,40 +1795,19 @@ module internal HashMapImplementation =
             v.VisitNode x
 
         override x.TryFind(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =
-            #if OPTIMISTIC 
             let m = zeroBit hash x.Mask
             if m = 0u then x.Left.TryFind(cmp, hash, key)
             else x.Right.TryFind(cmp, hash, key)
-            #else
-            let m = matchPrefixAndGetBit hash x.Prefix x.Mask
-            if m = 0u then x.Left.TryFind(cmp, hash, key)
-            elif m = 1u then x.Right.TryFind(cmp, hash, key)
-            else None
-            #endif
 
         override x.TryFindV(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =
-            #if OPTIMISTIC 
             let m = zeroBit hash x.Mask
             if m = 0u then x.Left.TryFindV(cmp, hash, key)
             else x.Right.TryFindV(cmp, hash, key)
-            #else
-            let m = matchPrefixAndGetBit hash x.Prefix x.Mask
-            if m = 0u then x.Left.TryFindV(cmp, hash, key)
-            elif m = 1u then x.Right.TryFindV(cmp, hash, key)
-            else ValueNone
-            #endif
             
         override x.ContainsKey(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =
-            #if OPTIMISTIC 
             let m = zeroBit hash x.Mask
             if m = 0u then x.Left.ContainsKey(cmp, hash, key)
             else x.Right.ContainsKey(cmp, hash, key)
-            #else
-            let m = matchPrefixAndGetBit hash x.Prefix x.Mask
-            if m = 0u then x.Left.ContainsKey(cmp, hash, key)
-            elif m = 1u then x.Right.ContainsKey(cmp, hash, key)
-            else false
-            #endif
 
         override x.Remove(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K) =
             let m = matchPrefixAndGetBit hash x.Prefix x.Mask

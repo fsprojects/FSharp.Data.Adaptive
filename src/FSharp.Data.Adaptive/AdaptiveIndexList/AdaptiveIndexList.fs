@@ -657,7 +657,7 @@ module internal AdaptiveIndexListImplementation =
             | Some r ->
                 release(list)
                 r.Outputs.Remove x |> ignore
-                x.Outputs.Consume() |> ignore
+                x.Outputs.Clear()
                 reader <- None
             | None ->   
                 ()
@@ -842,7 +842,7 @@ module internal AdaptiveIndexListImplementation =
                     match reader with
                         | Some(_,old) ->
                             let remOld = IndexList.computeDelta old.State IndexList.empty
-                            old.Outputs.Consume() |> ignore
+                            old.Outputs.Clear()
                             IndexListDelta.combine remOld addNew
                         | None ->
                             addNew

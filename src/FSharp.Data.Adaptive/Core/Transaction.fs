@@ -116,7 +116,9 @@ type Transaction() =
         // and make ourselves current.
         let old = Transaction.RunningTransaction
         Transaction.RunningTransaction <- Some x
-        let mutable outputs = [||]
+        let outputs = ref (Array.zeroCreate 8)
+        let mutable outputCount = 0
+
         while q.Count > 0 do
             // dequeue the next element (having the minimal level)
             let struct(l, e) = q.HeapDequeue(cmp)
@@ -159,11 +161,11 @@ type Transaction() =
                                 if e.Mark() then
                                     // if everything succeeded we return all current outputs
                                     // which will cause them to be enqueued 
-                                    outputs <- e.Outputs.Consume()
+                                    outputCount <- e.Outputs.Consume(outputs)
 
                                 else
                                     e.OutOfDate <- false
-                                    outputs <- [||]
+                                    outputCount <- 0
                                     // if Mark told us not to continue we're done here
                                     ()
 
@@ -180,8 +182,8 @@ type Transaction() =
                     e.ExitWrite()
 
                 // finally we enqueue all returned outputs
-                for i in 0 .. outputs.Length - 1 do
-                    let o = outputs.[i]
+                for i in 0 .. outputCount - 1 do
+                    let o = outputs.Value.[i]
                     o.InputChanged(x, e)
                     x.Enqueue o
 

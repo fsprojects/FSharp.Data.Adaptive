@@ -26,10 +26,12 @@ let ``[WeakOutputSet] add``() =
         for m in many do
             set.Add m |> should be True
 
-        let all = set.Consume()
-        all.Length |> should equal many.Length
+        let arr = ref (Array.zeroCreate 8)
+        let cnt = set.Consume(arr)
+        cnt |> should equal many.Length
 
-        for a in all do
+        for i in 0 .. cnt - 1 do
+            let a = arr.Value.[i]
             many |> Array.exists (fun m -> Object.ReferenceEquals(m, a)) |> should be True
     )
 
@@ -41,9 +43,10 @@ let ``[WeakOutputSet] remove``() =
         let many = Array.init cnt (fun _ -> NonEqualObject())
         for m in many do set.Add m |> should be True
         for m in many do set.Remove m |> should be True
-
-        let all = set.Consume()
-        all |> should be Empty
+        
+        let arr = ref (Array.zeroCreate 8)
+        let cnt = set.Consume(arr)
+        cnt |> should equal 0
     )
 
 
@@ -58,5 +61,7 @@ let ``[WeakOutputSet] actually weak``() =
 
         addDead()
         ensureGC()
-        set.Consume() |> should be Empty
+        let arr = ref (Array.zeroCreate 8)
+        let cnt = set.Consume(arr)
+        cnt |> should equal 0
     )

@@ -70,8 +70,10 @@ and IWeakOutputSet =
 
     /// Returns all currenty living entries from the set
     /// And clears its content.
-    abstract member Consume : unit -> IAdaptiveObject[]
+    abstract member Consume : ref<IAdaptiveObject[]> -> int 
 
+    /// Clears the set.
+    abstract member Clear : unit -> unit
 
 #if FABLE_COMPILER
 
@@ -82,7 +84,8 @@ and IWeakOutputSet =
 and internal WeakOutputSet() =
     static let arrayThreshold = 8
     let mutable cnt = 0
-    let mutable data : obj = null //ReferenceHashSet.create<IAdaptiveObject>()
+    let mutable data : obj = null
+
     member x.Add(obj: IAdaptiveObject) = 
         if cnt = 0 then 
             data <- obj
@@ -162,26 +165,33 @@ and internal WeakOutputSet() =
             else
                 false 
 
-    member x.Consume(): IAdaptiveObject[] = 
+    member x.Consume(output : ref<IAdaptiveObject[]>): int  = 
         if cnt = 0 then 
-            [||]
+            0
         elif cnt = 1 then
             let d = data
             data <- null
             cnt <- 0
-            [| unbox d |]  
+            output.Value.[0] <- unbox d
+            1
         elif cnt <= arrayThreshold then
             let arr = unbox<IAdaptiveObject[]> data 
             let c = cnt
             data <- null
             cnt <- 0
-            if c < arr.Length then Array.take c arr
-            else arr      
+            if c >= output.Value.Length then resizeArray output (arr.Length * 2)
+            for i in 0 .. c - 1 do output.Value.[i] <- arr.[i]
+            c
         else
             let set = unbox<HashSet<IAdaptiveObject>> data
             data <- null
             cnt <- 0
-            Seq.toArray set
+            let mutable oi = 0
+            for e in set do 
+                if oi >= output.Value.Length then resizeArray output (oi * 2)
+                output.Value.[oi] <- e
+                oi <- oi + 1
+            oi
 
     member x.IsEmpty = cnt = 0
 
@@ -189,7 +199,8 @@ and internal WeakOutputSet() =
         member x.IsEmpty = x.IsEmpty
         member x.Add o = x.Add o
         member x.Remove o = x.Remove o
-        member x.Consume() = x.Consume()
+        member x.Consume(outputs) = x.Consume(outputs)
+        member x.Clear() = data <- null; cnt <- 0
 #else
 
 
@@ -283,8 +294,10 @@ and internal WeakOutputSet() =
             // TODO: better heuristic?
             if setOps > 100 then
                 setOps <- 0
-                let all = x.Consume()
-                for a in all do add a |> ignore
+                let arr = ref (Array.zeroCreate 100)
+                let cnt = x.Consume arr
+                for i in 0 .. cnt - 1 do
+                    add arr.Value.[i] |> ignore
         )
 
     /// Adds a weak reference to the given AdaptiveObject to the set
@@ -366,7 +379,7 @@ and internal WeakOutputSet() =
 
     /// Returns all currenty living entries from the set
     /// And clears its content.
-    member x.Consume(): IAdaptiveObject[] =
+    member x.Consume(output : ref<IAdaptiveObject[]>): int =
         lock x (fun () ->
             let n = data
             data <- Unchecked.defaultof<_>
@@ -374,30 +387,40 @@ and internal WeakOutputSet() =
             match n.Tag with
             | 0 ->  
                 if isNull n.Single then 
-                    [||]
+                    0
                 else 
                     match n.Single.TryGetTarget() with
-                    | (true, v) -> [| v |]
-                    | _ -> [||]
+                    | (true, v) -> 
+                        output.Value.[0] <- v
+                        1
+                    | _ ->
+                        0
             | 1 ->  
-                n.Array |> Array.choose (fun r ->
-                    if isNull r then None
-                    else 
+                let mutable oi = 0
+                for i in 0 .. n.Array.Length - 1 do
+                    let r = n.Array.[i]
+                    if not (isNull r) then
                         match r.TryGetTarget() with
-                        | (true, v) -> Some v
-                        | _ -> None
-                )
+                        | (true, v) -> 
+                            if oi >= output.Value.Length then resizeArray output (oi <<< 2)
+                            output.Value.[oi] <- v
+                            oi <- oi + 1
+                        | _ -> ()
+                oi
             | _ ->
-                let mutable cnt = 0
-                let mutable arr = Array.zeroCreate n.Set.Count
+                let mutable oi = 0
                 let mutable o = Unchecked.defaultof<_>
                 for r in n.Set do
                     if r.TryGetTarget(&o) then
-                        arr.[cnt] <- o
-                        cnt <- cnt + 1
-                if cnt < arr.Length then Array.Resize(&arr, cnt)
-                arr
+                        if oi >= output.Value.Length then resizeArray output (oi <<< 2)
+                        output.Value.[oi] <- o
+                        oi <- oi + 1
+                oi
         )
+
+    member x.Clear() =
+        data <- Unchecked.defaultof<_>
+        setOps <- 0
 
     /// Indicates whether the set is (conservatively) known to be empty.
     /// Note that we don't dereference any WeakReferences here.
@@ -410,17 +433,18 @@ and internal WeakOutputSet() =
         member x.IsEmpty = x.IsEmpty
         member x.Add o = x.Add o
         member x.Remove o = x.Remove o
-        member x.Consume() = x.Consume()
+        member x.Consume(output) = x.Consume(output)
+        member x.Clear() = x.Clear()
 
 #endif
 
 and internal EmptyOutputSet() =
-    static let emptyArray : IAdaptiveObject[] = Array.zeroCreate 0
     interface IWeakOutputSet with
         member x.IsEmpty = true
         member x.Add _ = false
         member x.Remove _ = false
-        member x.Consume() = emptyArray
+        member x.Consume(_) = 0
+        member x.Clear() = ()
     
 
 /// Supporting operations for the WeakOutputSet type.
