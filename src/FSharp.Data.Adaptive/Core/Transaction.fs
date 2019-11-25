@@ -2,8 +2,6 @@
 
 open System
 open System.Threading
-open System.Collections.Generic
-open System.Runtime.CompilerServices
 
 [<AutoOpen>]
 module internal LockingExtensions =
@@ -48,11 +46,8 @@ type Transaction() =
     static let cmp = OptimizedClosures.FSharpFunc<_,_,_>.Adapt(fun struct(l,_) struct(r,_) -> compare l r)
 
     // We use a duplicate-queue here since we expect levels to be identical quite often
-    let q = List<struct (int * IAdaptiveObject)>()
+    let q = HashQueue<int, IAdaptiveObject>()
 
-    // The contained set is useful for determinig if an element has
-    // already been enqueued
-    let contained = ReferenceHashSet.create<IAdaptiveObject>()
     let mutable current : IAdaptiveObject = Unchecked.defaultof<_>
     let mutable currentLevel = 0
     let mutable finalizers : list<unit -> unit> = []
@@ -72,7 +67,7 @@ type Transaction() =
         Interlocked.Change(&finalizers, (fun a -> f::a) ) |> ignore
         #endif
 
-    member x.IsContained e = contained.Contains e
+    member x.IsContained e = q.Contains e
 
     /// Gets or sets the transaction currently running on this thread (if any)
     static member Running
@@ -100,8 +95,7 @@ type Transaction() =
 
     /// Enqueues an adaptive object for marking
     member x.Enqueue(e : IAdaptiveObject) =
-        if contained.Add e then
-            q.HeapEnqueue(cmp, struct(e.Level, e))
+        q.Enqueue(e.Level, e)
 
     /// Gets the current AdaptiveObject being marked
     member x.CurrentAdapiveObject = 
@@ -119,9 +113,9 @@ type Transaction() =
         let outputs = ref (Array.zeroCreate 8)
         let mutable outputCount = 0
 
-        while q.Count > 0 do
+        while not q.IsEmpty do
             // dequeue the next element (having the minimal level)
-            let struct(l, e) = q.HeapDequeue(cmp)
+            let struct(l, e) = q.Dequeue()
             current <- e
             currentLevel <- l
 
@@ -147,7 +141,7 @@ type Transaction() =
                         // system in the worst case but we opted for this approach since
                         // it is relatively simple to implement.
                         if currentLevel <> e.Level then
-                            q.HeapEnqueue(cmp, struct(e.Level, e))
+                            q.Enqueue(e.Level, e)
                         else
                             // however if the level is consistent we may proceed
                             // by marking the object as outOfDate
@@ -176,7 +170,7 @@ type Transaction() =
                                 e.Level <- max e.Level newLevel
                                 e.OutOfDate <- false
 
-                                q.HeapEnqueue(cmp, struct(e.Level, e))
+                                q.Enqueue(e.Level, e)
                 
                 finally 
                     e.ExitWrite()
@@ -187,7 +181,6 @@ type Transaction() =
                     o.InputChanged(x, e)
                     x.Enqueue o
 
-            contained.Remove e |> ignore
             current <- Unchecked.defaultof<_>
             
         // when the commit is over we restore the old

@@ -1,3 +1,6 @@
+### 0.0.11
+* Transaction performance improvements
+
 ### 0.0.10
 * several performance improvements in Transaction
 * implemented ChangeableModelList/ChangeableModelMap here 

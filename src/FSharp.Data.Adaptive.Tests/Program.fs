@@ -44,6 +44,7 @@ module Profile =
         System.Console.ReadLine() |> ignore
         transact (fun () -> inputDiamond.MarkOutdated())
         
+        printfn "done"
         System.Console.ReadLine() |> ignore
 
 
