@@ -42,22 +42,22 @@ module internal PrimeSizes =
         |]
 
 [<AllowNullLiteral; Sealed>]
-type internal HashQueueEntry<'K, 'V>() =
+type internal TransactQueueEntry<'V>() =
     [<DefaultValue>]
     val mutable public Hash : uint32
     [<DefaultValue>]
     val mutable public Slot : int
     [<DefaultValue>]
-    val mutable public Key : 'K
+    val mutable public Key : int
     [<DefaultValue>]
     val mutable public Value : 'V
     [<DefaultValue>]
-    val mutable public Prev : HashQueueEntry<'K, 'V>
+    val mutable public Prev : TransactQueueEntry<'V>
     [<DefaultValue>]
-    val mutable public Next : HashQueueEntry<'K, 'V>
+    val mutable public Next : TransactQueueEntry<'V>
     
     static member inline New(h, s, k, v, p, n) = 
-        new HashQueueEntry<'K, 'V>(
+        new TransactQueueEntry<_>(
             Hash = h, 
             Slot = s, 
             Key = k, 
@@ -66,33 +66,88 @@ type internal HashQueueEntry<'K, 'V>() =
             Next = n
         )
 
+module internal TransactQueueEntryHeap =
 
-/// Implements a priority queue (with 'K as priority) where each
+    /// Swaps the given elements inside the list.
+    let inline swap (heap: List<TransactQueueEntry<'V>>) (l: int) (r: int) =
+        let t = heap.[l]
+        heap.[l] <- heap.[r]
+        heap.[r] <- t
+
+    /// Moves an element in the list 'up' in heap-order.
+    /// Assumes that the list is in heap-order except for the given element.
+    let rec bubbleUp (heap: List<TransactQueueEntry<'V>>) (i: int) (v: TransactQueueEntry<'V>) =
+        if i > 0 then
+            let pi = (i - 1) >>> 1
+            let pe = heap.[pi]
+
+            if pe.Key > v.Key then
+                swap heap pi i
+                bubbleUp heap pi v
+                
+    /// Moves an element in the list 'down' in heap-order.
+    /// Assumes that the list is in heap-order except for the given element.
+    let rec pushDown (heap: List<TransactQueueEntry<'V>>) (i: int) (v: TransactQueueEntry<'V>) =
+        let li = (i <<< 1) + 1
+        let ri = li + 1
+
+        let cl = if li < heap.Count then v.Key <= heap.[li].Key else true
+        let cr = if ri < heap.Count then v.Key <= heap.[ri].Key else true
+
+        if cl && not cr then
+            swap heap ri i
+            pushDown heap ri v
+
+        elif not cl && cr then
+            swap heap li i
+            pushDown heap li v
+
+        elif not cl && not cr then
+            if heap.[li].Key < heap.[ri].Key then
+                swap heap li i
+                pushDown heap li v
+            else
+                swap heap ri i
+                pushDown heap ri v
+         
+
+    let inline enqueue (queue : List<TransactQueueEntry<'V>>) (value: TransactQueueEntry<'V>): unit =
+        let index = queue.Count
+        queue.Add value
+        bubbleUp queue index value
+
+    let inline dequeue (x : List<TransactQueueEntry<'V>>): TransactQueueEntry<'V> =
+        let result = x.[0]
+        let li = x.Count - 1
+        let l = x.[li]
+        x.[0] <- l
+        x.RemoveAt li
+        pushDown x 0 l
+        result
+
+/// Implements a priority queue (with int as priority) where each
 /// 'V (by reference) can only be enqueued once.
 /// Note that the order for 'colliding' keys is undefined.
 [<Sealed>]
-type internal HashQueue<'K, 'V when 'V : not struct>() =
-    static let cmp = Comparer<'K>.Default :> IComparer<_>
-    static let cmp = OptimizedClosures.FSharpFunc<HashQueueEntry<'K, _>,HashQueueEntry<'K, _>,_>.Adapt (fun l r -> cmp.Compare(l.Key, r.Key))
-
+type internal TransactQueue<'V when 'V : not struct>() =
     let mutable capacityIndex = 0
 
     let mutable count = 0
-    let mutable store : HashQueueEntry<'K, 'V>[] = Array.zeroCreate PrimeSizes.primeSizes.[capacityIndex]
-    let mutable heap = List<HashQueueEntry<'K, 'V>>() 
-    let mutable reuse : HashQueueEntry<'K, 'V> = null
+    let mutable store : TransactQueueEntry<'V>[] = Array.zeroCreate PrimeSizes.primeSizes.[capacityIndex]
+    let mutable heap = List<TransactQueueEntry<'V>>() 
+    let mutable reuse : TransactQueueEntry<'V> = null
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     let newEntry () =
         if isNull reuse then 
-            HashQueueEntry()
+            TransactQueueEntry()
         else
             let e = reuse
             reuse <- e.Next
             e
             
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    let free (e : HashQueueEntry<'K, 'V>) =
+    let free (e : TransactQueueEntry<'V>) =
         e.Next <- reuse
         reuse <- e
         
@@ -100,7 +155,7 @@ type internal HashQueue<'K, 'V when 'V : not struct>() =
     let resize (newCapIndex : int) =
         if newCapIndex <> capacityIndex then
             capacityIndex <- newCapIndex
-            let newStore : HashQueueEntry<_,_>[] = Array.zeroCreate PrimeSizes.primeSizes.[newCapIndex]
+            let newStore : TransactQueueEntry<_>[] = Array.zeroCreate PrimeSizes.primeSizes.[newCapIndex]
 
             for i in 0 .. heap.Count - 1 do
                 let e = heap.[i]
@@ -116,7 +171,7 @@ type internal HashQueue<'K, 'V when 'V : not struct>() =
             store <- newStore
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    let enqueue (key : 'K) (value : 'V) =
+    let enqueue (key : int) (value : 'V) =
         let hash = RuntimeHelpers.GetHashCode value |> uint32
         let mutable slot = 
             hash % uint32 store.Length |> int
@@ -147,11 +202,11 @@ type internal HashQueue<'K, 'V when 'V : not struct>() =
             if not (isNull o) then o.Prev <- e
             store.[slot] <- e
             count <- count + 1
-            heap.HeapEnqueue(cmp, e)
+            TransactQueueEntryHeap.enqueue heap e
            
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]     
     let dequeue() =
-        let e = heap.HeapDequeue(cmp)
+        let e = TransactQueueEntryHeap.dequeue heap
         
         let p = e.Prev
         let n = e.Next
@@ -188,7 +243,7 @@ type internal HashQueue<'K, 'V when 'V : not struct>() =
         
     /// Enqueue a key/value pair to the queue.
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    member x.Enqueue(k : 'K, v : 'V) =
+    member x.Enqueue(k : int, v : 'V) =
         enqueue k v
         
     /// Dequeues the minimal element from the queue and returns the key/value pair

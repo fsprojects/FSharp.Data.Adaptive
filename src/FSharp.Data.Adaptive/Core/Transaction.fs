@@ -46,7 +46,7 @@ type Transaction() =
     static let cmp = OptimizedClosures.FSharpFunc<_,_,_>.Adapt(fun struct(l,_) struct(r,_) -> compare l r)
 
     // We use a duplicate-queue here since we expect levels to be identical quite often
-    let q = HashQueue<int, IAdaptiveObject>()
+    let q = TransactQueue<IAdaptiveObject>()
 
     let mutable current : IAdaptiveObject = Unchecked.defaultof<_>
     let mutable currentLevel = 0
