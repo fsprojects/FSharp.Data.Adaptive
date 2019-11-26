@@ -96,6 +96,34 @@ module CollectionExtensions =
                 )
                 |> HashSetDelta.ofSeq
 
+        /// Reader for AList.ofASet
+        type ToListReader<'a>(input : aset<'a>) =
+            inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
+
+            let reader = input.GetReader()
+            let mutable last = Index.zero
+            let newIndex (v : 'a) =
+                let i = Index.after last
+                last <- i
+                i
+
+            let newIndex = Cache newIndex
+
+            override x.Compute(token) =
+                reader.GetChanges token
+                    |> HashSetDelta.toSeq
+                    |> Seq.map (fun d ->
+                    match d with
+                        | Add(1,v) -> 
+                            let i = newIndex.Invoke v
+                            i, Set v
+                        | Rem(1,v) ->
+                            let i = newIndex.Revoke v
+                            i, Remove
+                        | _ ->
+                            unexpected()
+                    )
+                    |> IndexListDelta.ofSeq
 
 
 
@@ -155,6 +183,15 @@ module CollectionExtensions =
 
         /// Sorts the set.
         let inline sort (set: aset<'T>) = sortWith compare set
+        
+        /// Creates an alist from the set with undefined element order.
+        let toAList (set: aset<'T>) =
+            if set.IsConstant then
+                set.Content
+                |> AVal.force
+                |> AList.ofSeq
+            else
+                AList.ofReader (fun () -> ToListReader(set))
 
     /// Functional operators for alist<_>
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -162,3 +199,6 @@ module CollectionExtensions =
         
         /// Creates an aset holding all elements of the given list.
         let toASet (list: alist<'T>) = ASet.ofAList list
+        
+        /// Creates an alist from the set with undefined element order.
+        let ofASet (set: aset<'T>) = ASet.toAList set
