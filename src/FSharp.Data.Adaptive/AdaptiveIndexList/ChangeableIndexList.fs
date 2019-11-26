@@ -23,11 +23,8 @@ type ChangeableIndexList<'T>(initial: IndexList<'T>) =
     member x.Value
         with get() = 
             history.State
-
-        and set (state: IndexList<'T>) =
-            let delta = IndexList.computeDelta history.State state
-            if not (IndexListDelta.isEmpty delta) then
-                history.Perform delta |> ignore
+        and set (state: IndexList<'T>) = 
+            x.UpdateTo state
                 
     /// Sets the current state as List applying the init function to new elements and the update function to
     /// existing ones.

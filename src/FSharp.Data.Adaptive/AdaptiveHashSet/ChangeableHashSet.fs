@@ -30,11 +30,8 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
     member x.Value
         with get() = 
             AVal.force content
-        and set newSet =
-            let nonCountingSet = AVal.force content
-            if not (cheapEqual nonCountingSet newSet) then
-                let delta = HashSet.computeDelta nonCountingSet newSet
-                history.Perform(delta) |> ignore
+        and set newSet = 
+            x.UpdateTo newSet
                 
     /// Sets the current state as HashSet.
     member x.UpdateTo(newSet : HashSet<'T>) =
