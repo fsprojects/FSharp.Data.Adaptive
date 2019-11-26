@@ -46,8 +46,12 @@ type ChangeableMap<'Key,'Value> =
     /// Gets or sets the current state as HashMap.
     member Value : HashMap<'Key,'Value> with get, set
     
-    /// Updates the current content to the given target map using the init/update functions.
+    /// Sets the current state as HashMap applying the init function to new elements and the update function to
+    /// existing ones.
     member UpdateTo : target : HashMap<'Key, 'T2> * init : ('T2 -> 'Value) * update : ('Value -> 'T2 -> 'Value) -> unit
+    
+    /// Sets the current state as HashMap.
+    member UpdateTo : target : HashMap<'Key, 'Value> -> unit
 
 /// Changeable adaptive map that allows mutation by user-code and implements amap.
 type cmap<'Key,'Value> = ChangeableMap<'Key,'Value>

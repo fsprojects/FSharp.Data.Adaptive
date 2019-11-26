@@ -41,6 +41,9 @@ type ChangeableValue<'T> =
 
     /// Gets the current value and adds a dependency to the caller (if any)
     member GetValue : token : AdaptiveToken -> 'T
+    
+    /// Sets the current state of the cval.
+    member UpdateTo : 'T -> unit
 
     /// Creates a new changeable value, intially holding the given value
     new : value : 'T -> cval<'T>

@@ -40,7 +40,9 @@ type ChangeableMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
         and set value =
             let ops = HashMap.computeDelta history.State value
             history.Perform ops |> ignore
-
+            
+    /// Sets the current state as HashMap applying the init function to new elements and the update function to
+    /// existing ones.
     member x.UpdateTo(other : HashMap<'Key, 'T2>, init : 'T2 -> 'Value, update : 'Value -> 'T2 -> 'Value) =
         let current = history.State
         let target = other
@@ -66,6 +68,12 @@ type ChangeableMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
 
         let ops = HashMapDelta(store)
         history.Perform ops |> ignore
+        
+    /// Sets the current state as HashMap.
+    member x.UpdateTo(other : HashMap<'Key, 'Value>) =
+        if not (cheapEqual history.State other) then
+            let delta = HashMap.computeDelta history.State other
+            history.PerformUnsafe(other, delta) |> ignore
 
         
 

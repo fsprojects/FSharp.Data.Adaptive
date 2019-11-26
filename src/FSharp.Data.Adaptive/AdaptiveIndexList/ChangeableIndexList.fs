@@ -28,7 +28,9 @@ type ChangeableIndexList<'T>(initial: IndexList<'T>) =
             let delta = IndexList.computeDelta history.State state
             if not (IndexListDelta.isEmpty delta) then
                 history.Perform delta |> ignore
-
+                
+    /// Sets the current state as List applying the init function to new elements and the update function to
+    /// existing ones.
     member x.UpdateTo(other : IndexList<'T2>, init : 'T2 -> 'T, update : 'T -> 'T2 -> 'T) =
         let current = history.State.Content
         let target = other.Content
@@ -54,7 +56,12 @@ type ChangeableIndexList<'T>(initial: IndexList<'T>) =
 
         let ops = IndexListDelta(store)
         history.Perform ops |> ignore
-
+        
+    /// Sets the current state as List.
+    member x.UpdateTo(other : IndexList<'T>) =
+        if not (cheapEqual history.State other) then
+            let delta = IndexList.computeDelta history.State other
+            history.PerformUnsafe(other, delta) |> ignore
 
     /// Appends an element to the list and returns its Index.
     member x.Append (element: 'T) =

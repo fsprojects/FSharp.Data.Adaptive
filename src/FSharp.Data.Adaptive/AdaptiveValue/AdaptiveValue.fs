@@ -30,6 +30,12 @@ type ChangeableValue<'T>(value : 'T) =
             value
         )
 
+    member x.UpdateTo(newValue: 'T) =
+        if not (cheapEqual value newValue) then
+            value <- newValue
+            x.MarkOutdated()
+        
+
     interface AdaptiveValue with
         member x.GetValueUntyped t = x.GetValue t :> obj
         member x.ContentType =
