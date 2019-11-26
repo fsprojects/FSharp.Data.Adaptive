@@ -99,17 +99,19 @@ module AdadptiveObjectExtensions =
 
         static member Add(action : unit -> unit) =
             if AdaptiveObject.UnsafeEvaluationDepth <= 0 then action()
+            elif isNull (AfterEvaluateCallbacks._Callbacks :> obj) then AfterEvaluateCallbacks._Callbacks <- [action]
             else AfterEvaluateCallbacks._Callbacks <- action :: AfterEvaluateCallbacks._Callbacks
             
         [<CompilerMessage("for internal use", 7331, IsHidden = true)>]
         static member Run() =
-            match AfterEvaluateCallbacks._Callbacks with
-            | [] -> ()
-            | cbs -> 
-                AfterEvaluateCallbacks._Callbacks <- []
-                transact (fun () ->
-                    cbs |> List.iter (fun cb -> cb())
-                )
+            if not (isNull (AfterEvaluateCallbacks._Callbacks :> obj)) then
+                match AfterEvaluateCallbacks._Callbacks with
+                | [] -> ()
+                | cbs -> 
+                    AfterEvaluateCallbacks._Callbacks <- []
+                    transact (fun () ->
+                        cbs |> List.iter (fun cb -> cb())
+                    )
 
     type AdaptiveObject with
 
