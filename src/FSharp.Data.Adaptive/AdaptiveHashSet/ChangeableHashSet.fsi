@@ -16,6 +16,9 @@ type ChangeableHashSet<'T> =
 
     /// Gets or sets the current state as HashSet.
     member Value: HashSet<'T> with get, set
+    
+    /// Sets the current state as HashSet.
+    member UpdateTo: HashSet<'T> -> unit
 
     /// Adds a value and returns whether the element was new.
     member Add: value: 'T -> bool
