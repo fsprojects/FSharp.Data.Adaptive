@@ -90,7 +90,33 @@ type AdaptiveObject() =
    
 [<AutoOpen>]
 module AdadptiveObjectExtensions =
+
+    [<CompilerMessage("for internal use", 7331, IsHidden = true)>]
+    type AfterEvaluateCallbacks =
+    
+        [<DefaultValue; ThreadStatic>]
+        static val mutable private _Callbacks : list<unit -> unit>
+
+        static member Add(action : unit -> unit) =
+            if AdaptiveObject.UnsafeEvaluationDepth <= 0 then action()
+            else AfterEvaluateCallbacks._Callbacks <- action :: AfterEvaluateCallbacks._Callbacks
+            
+        [<CompilerMessage("for internal use", 7331, IsHidden = true)>]
+        static member Run() =
+            match AfterEvaluateCallbacks._Callbacks with
+            | [] -> ()
+            | cbs -> 
+                AfterEvaluateCallbacks._Callbacks <- []
+                transact (fun () ->
+                    cbs |> List.iter (fun cb -> cb())
+                )
+
     type AdaptiveObject with
+
+        /// Executes the given action after the (currently running) evaluation has finished (once).
+        static member inline RunAfterEvaluate(action: unit -> unit) =
+            AfterEvaluateCallbacks.Add action
+
 
         /// Utility function for evaluating an object even if it is not marked as outOfDate.
         /// This method takes care of appropriate locking
@@ -138,8 +164,10 @@ module AdadptiveObjectExtensions =
                 reraise()
                 
             AdaptiveObject.UnsafeEvaluationDepth <- depth
-            // downgrade to read
             Monitor.Exit x
+
+            if depth = 0 && isNull (token.caller :> obj) && not Transaction.HasRunning then
+                AfterEvaluateCallbacks.Run()
 
             res
 

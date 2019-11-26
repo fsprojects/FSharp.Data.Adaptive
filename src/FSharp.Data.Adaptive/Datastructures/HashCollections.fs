@@ -4006,9 +4006,10 @@ module HashSet =
     /// The number of elements in the set `O(1)`
     let inline count (set: HashSet<'T>) = set.Count
     
-    /// Is the map empty? `O(1)`
+    /// Is the set empty? `O(1)`
     let inline isEmpty (set: HashSet<'T>) = set.IsEmpty
 
+    /// Are the sets equal? `O(N)`
     let inline equals (a : HashSet<'T>) (b : HashSet<'T>) =
         a.Equals(b)
 
@@ -4075,6 +4076,7 @@ module HashSet =
     let inline contains (value: 'T) (set: HashSet<'T>) =
         set.Contains(value)
 
+
     let inline alter (value: 'T) (update: bool -> bool) (set: HashSet<'T>) =
         set.Alter(value, update)
     
@@ -4082,8 +4084,6 @@ module HashSet =
     /// `O(N)`
     let inline map (mapping: 'T -> 'R) (set: HashSet<'T>) =
         set.Map mapping
-    
-
     
     /// Creates a new map (with the same keys) by applying the given function to all entries.
     /// `O(N)`
@@ -4133,26 +4133,6 @@ module HashSet =
         for a in set do
             result <- union result (mapping a)
         result
-
-
-    ///// Creates a HashSet holding all keys from the map.
-    ///// `O(N)`
-    //let inline keys (map: HashMap<'K, 'V>) = map.GetKeys()
-
-    ///// Creates a new map by applying the mapping function to all entries.
-    ///// The respective option-arguments are some whenever the left/right map has an entry for the current key.
-    ///// Note that one of the options will always be some.
-    ///// `O(N + M)`
-    //let inline map2 (mapping: 'K -> option<'V> -> option<'V2> -> 'V3) (l: HashMap<'K, 'V>) (r: HashMap<'K, 'V2>) =
-    //    l.Map2(r, mapping)
-
-    ///// Creates a new map by applying the mapping function to all entries.
-    ///// The respective option-arguments are some whenever the left/right map has an entry for the current key.
-    ///// Note that one of the options will always be some.
-    ///// `O(N + M)`
-    //let inline choose2 (mapping: 'K -> option<'V1> -> option<'V2> -> option<'V3>) (l: HashMap<'K, 'V1>) (r: HashMap<'K, 'V2>) =
-    //    l.Choose2(r, mapping)
-
 
     let inline computeDelta (l : HashSet<'T>) (r : HashSet<'T>) =
         let inline add _v = 1

@@ -216,6 +216,15 @@ module Transaction =
         finally
             Transaction.Current <- old
 
+    let makeCurrent (t : Transaction) : IDisposable =
+        let old = Transaction.Current
+        Transaction.Current <- Some t
+
+        { new IDisposable with
+            member x.Dispose() = 
+                Transaction.Current <- old
+        }
+
     let inline internal useCurrent (t : Transaction) (action : unit -> 'T) =
         let old = Transaction.Current
         try
