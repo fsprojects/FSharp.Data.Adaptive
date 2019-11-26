@@ -21,7 +21,7 @@ type ChangeableValue<'T>(value : 'T) =
     member x.Value
         with get() = value
         and set v =
-            if not (cheapEqual value v) then
+            if not (Unchecked.equals value v) then
                 value <- v
                 x.MarkOutdated()
                 
@@ -31,7 +31,7 @@ type ChangeableValue<'T>(value : 'T) =
         )
 
     member x.UpdateTo(newValue: 'T) =
-        if not (cheapEqual value newValue) then
+        if not (Unchecked.equals value newValue) then
             value <- newValue
             x.MarkOutdated()
         
