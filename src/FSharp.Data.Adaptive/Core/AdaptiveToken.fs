@@ -2,6 +2,8 @@
 
 open System.Threading
 
+#nowarn "7331"
+
 /// AdaptiveToken represents a token that can be passed to
 /// inner AdaptiveObjects for evaluation.
 /// when passing an AdaptiveToken to the evaluation-function of 
@@ -15,49 +17,15 @@ type AdaptiveToken =
     ///
     /// Note, this is only mutable because that exposes the underlying field
     /// for (reportedly) more performant access.
-    val mutable internal caller : IAdaptiveObject
+    [<CompilerMessage("for internal use", 7331, IsHidden = true)>]
+    val mutable caller : IAdaptiveObject
 
     member x.Caller =
         if Unchecked.isNull x.caller then None
         else Some x.caller
 
-    /// Enters the read-lock on the given object
-    member inline internal x.EnterRead(o : IAdaptiveObject) =
-        Monitor.Enter o
-                
-    /// Exits the read-lock on the given object when evaluation faulted
-    member inline internal x.ExitFaultedRead(o : IAdaptiveObject) =
-        Monitor.Exit o
-
-    /// Exits the read-lock on the given object downgrading it to a weak-lock
-    member inline internal x.Downgrade(o : IAdaptiveObject) =
-        //if x.Locked.Add o then
-        //    o.ReaderCount <- o.ReaderCount + 1
-        Monitor.Exit o
-
-    /// Exits the read-lock on the given object
-    member inline internal x.ExitRead(o : IAdaptiveObject) =
-        //if x.Locked.Remove o then
-        //    lock o (fun () ->
-        //        let rc = o.ReaderCount - 1
-        //        o.ReaderCount <- rc
-        //        if rc = 0 then Monitor.PulseAll o
-        //    )
-        Monitor.Exit o
-
-    /// Releases all held weak-locks
-    member inline internal x.Release() =
-        //for o in x.Locked do
-        //    lock o (fun () ->
-        //        let rc = o.ReaderCount - 1
-        //        o.ReaderCount <- rc
-        //        if rc = 0 then Monitor.PulseAll o
-        //    )
-        //x.Locked.Clear()
-        ()
-
     /// Creates a new AdaptiveToken with the given caller
-    member inline internal x.WithCaller (c : IAdaptiveObject) =
+    member x.WithCaller (c : IAdaptiveObject) =
         AdaptiveToken(c)
 
     /// The top-level AdaptiveToken without a calling IAdaptiveObject
