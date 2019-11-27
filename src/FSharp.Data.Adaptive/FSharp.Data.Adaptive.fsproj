@@ -58,6 +58,7 @@
 	<Compile Include="AdaptiveIndexList\ChangeableIndexList.fsi" /> 
 	<Compile Include="AdaptiveIndexList\ChangeableIndexList.fs" />
 	<Compile Include="CollectionExtensions.fs" />
+	<Compile Include="EvaluationCallbackExtensions.fs" />
 	<Compile Include="ComputationExpressions.fs" />
 	<Compile Include="AdaptifyHelpers.fs" />
   </ItemGroup>

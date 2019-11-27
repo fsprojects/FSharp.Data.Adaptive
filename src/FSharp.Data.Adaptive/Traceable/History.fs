@@ -16,6 +16,9 @@ type IOpReader<'Delta> =
 type IOpReader<'State, 'Delta> =
     inherit IOpReader<'Delta>
 
+    /// The Traceable instance for the reader.
+    abstract member Trace : Traceable<'State, 'Delta>
+
     /// The latest state of the Reader.
     /// Note that the state gets updated after each evaluation (GetChanges)
     abstract member State: 'State
@@ -46,14 +49,14 @@ type AbstractReader<'Delta>(empty: 'Delta) =
 
 /// Abstract base class for implementing IOpReader<_,_>
 [<AbstractClass>]
-type AbstractReader<'State, 'Delta>(t: Traceable<'State, 'Delta>) =
-    inherit AbstractReader<'Delta>(t.tmonoid.mempty)
+type AbstractReader<'State, 'Delta>(trace: Traceable<'State, 'Delta>) =
+    inherit AbstractReader<'Delta>(trace.tmonoid.mempty)
 
-    let mutable state = t.tempty
+    let mutable state = trace.tempty
 
     /// Applies the delta to the current state and returns the 'effective' delta.
     override x.Apply o =
-        let (s, o) = t.tapplyDelta state o
+        let (s, o) = trace.tapplyDelta state o
         state <- s
         o
 
@@ -61,6 +64,7 @@ type AbstractReader<'State, 'Delta>(t: Traceable<'State, 'Delta>) =
     member x.State = state
 
     interface IOpReader<'State, 'Delta> with
+        member x.Trace = trace
         member x.State = state
 
 /// Abstract base class for implementing IOpReader<_> when dirty inputs are needed on evaluation.
@@ -461,6 +465,7 @@ and internal HistoryReader<'State, 'Delta>(h: History<'State, 'Delta>) =
         member x.GetChanges c = x.GetChanges c
 
     interface IOpReader<'State, 'Delta> with
+        member x.Trace = trace
         member x.State = state
 
 /// HistoryReader implements IOpReader<_,_> and takes care of managing versions correctly.
@@ -496,6 +501,7 @@ and internal HistoryReader<'State, 'Delta, 'ViewState, 'ViewDelta>(h: History<'S
         member x.GetChanges c = x.GetChanges c
 
     interface IOpReader<'ViewState, 'ViewDelta> with
+        member x.Trace = trace
         member x.State = viewState
 
 /// Functional operators related to the History<_,_> type.
@@ -511,6 +517,7 @@ module History =
                 member x.GetChanges(_caller) = t.tmonoid.mempty
     
             interface IOpReader<'State, 'Delta> with
+                member x.Trace = t
                 member x.State = t.tempty
 
         /// A constant reader.
@@ -532,6 +539,7 @@ module History =
                     )
 
             interface IOpReader<'State, 'Delta> with
+                member x.Trace = t
                 member x.State = state
     
     /// Creates a history depending on the given reader. 

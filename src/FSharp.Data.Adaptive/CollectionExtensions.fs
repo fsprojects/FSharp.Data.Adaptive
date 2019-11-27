@@ -125,6 +125,21 @@ module CollectionExtensions =
                     )
                     |> IndexListDelta.ofSeq
 
+        type MapToListReader<'T>(input : amap<Index, 'T>) =
+            inherit AbstractReader<IndexList<'T>, IndexListDelta<'T>>(IndexList.trace)
+            let reader = input.GetReader()
+            override x.Compute(token : AdaptiveToken) =
+                reader.GetChanges token 
+                |> HashMapDelta.toSeq
+                |> IndexListDelta.ofSeq
+
+        type ListToMapReader<'T>(input : alist<'T>) =
+            inherit AbstractReader<HashMap<Index, 'T>, HashMapDelta<Index, 'T>>(HashMap.trace)
+            let reader = input.GetReader()
+            override x.Compute(token : AdaptiveToken) =
+                reader.GetChanges token 
+                |> IndexListDelta.toSeq
+                |> HashMapDelta.ofSeq
 
 
     /// Functional operators for amap<_,_>
@@ -139,6 +154,41 @@ module CollectionExtensions =
                 |> ASet.ofHashSet
             else
                 ASet.ofReader (fun () -> MapKeysReader(map))
+
+        /// Creates an alist using the given amap<Index, 'T>.
+        let toAList (map: amap<Index, 'Value>) =
+            if map.IsConstant then
+                AMap.force map |> IndexList.ofSeqIndexed |> AList.ofIndexList
+            else
+                { new alist<'Value> with
+                    member x.IsConstant = false
+                    member x.Content = map.Content |> AVal.map IndexList.ofSeqIndexed
+                    member x.History = None
+                    member x.GetReader() =
+                        match  map.History with
+                        | Some history -> 
+                            history.NewReader(IndexList.trace, HashMapDelta.toSeq >> IndexListDelta.ofSeq)
+                        | None ->
+                            MapToListReader(map) :> _
+                }
+             
+        /// Creates an amap using the given alist.
+        let ofAList (list: alist<'T>) =
+            if list.IsConstant then
+                list |> AList.force |> IndexList.toSeqIndexed |> HashMap.ofSeq |> AMap.ofHashMap
+            else
+                { new amap<Index, 'T> with
+                    member x.IsConstant = false
+                    member x.Content = list.Content |> AVal.map (IndexList.toSeqIndexed >> HashMap.ofSeq)
+                    member x.History = None
+                    member x.GetReader() =
+                        match list.History with
+                        | Some history ->
+                            history.NewReader(HashMap.trace, IndexListDelta.toSeq >> HashMapDelta.ofSeq)
+                        | None ->
+                            ListToMapReader(list) :> _
+                }
+
 
     /// Functional operators for aset<_>
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -202,3 +252,11 @@ module CollectionExtensions =
         
         /// Creates an alist from the set with undefined element order.
         let ofASet (set: aset<'T>) = ASet.toAList set
+
+        /// Creates an amap using the given alist.
+        let toAMap (list: alist<'T>) = AMap.ofAList list
+
+        /// Creates an alist using the given amap<Index, 'T>.
+        let ofAMap (map: amap<Index, 'T>) = AMap.toAList map
+
+
