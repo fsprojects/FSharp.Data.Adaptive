@@ -7,31 +7,28 @@ namespace CSharpInterop
     {
         static void Main(string[] args)
         {
-            var dict = new ChangeableHashMap<int, int> { { 1, 2 } };
-            dict[10] = 100;
+            var changeableSet = new ChangeableHashSet<int>(new[] { 1, 2, 3, 4 });
 
-            var constant = new ConstantValue<int>(10);
+            var dependent =
+                changeableSet
+                .Filter(a => a < 10)
+                .MapAdaptive(a => AdaptiveValue.Constant(a))
+                .MapNullable(a => a < 3 ? (int?)a : null)
+                .Collect(a => new[] { a % 2 }.ToAdaptiveHashSet())
+                .FilterAdaptive(a => AdaptiveValue.Constant(true))
+                .UnionWith(new[] { 4, 5, 6 }.ToAdaptiveHashSet())
+                .SortBy(a => -a);
 
-            var c = new ChangeableValue<int>(10);
-            var dependent = c.Select(v => v * 2);
+            dependent.AddCallback((s, d) => { Console.WriteLine("{0}, {1}", s, d); });
 
-            var d = dependent.AddCallback(v => Console.WriteLine("{0}", v));
-
-            dependent.AddMarkingCallback(() => Console.WriteLine("marked"));
-
-
-            using(Adaptive.Transact)
-            {
-                c.Value = 100;
-            }
-
-
+            Console.WriteLine("{0}", dependent.GetValue());
             using (Adaptive.Transact)
             {
-                c.Value = 321;
+                changeableSet.Value = new HashSetBuilder<int>() { 5, 6, 7, 8, 9, 0 }.ToHashSet();
             }
+            Console.WriteLine("{0}", dependent.GetValue());
 
-            d.Dispose();
+
         }
     }
 }

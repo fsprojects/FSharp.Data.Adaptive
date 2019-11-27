@@ -7,7 +7,7 @@ type IHashMapReader<'Key,'Value> = IOpReader<HashMap<'Key,'Value>,HashMapDelta<'
 
 /// Adaptive map datastructure.
 [<Interface>]
-type AdaptiveHashMap<'Key,'Value> =
+type IAdaptiveHashMap<'Key,'Value> =
     /// is the map constant?
     abstract member IsConstant : bool
 
@@ -21,7 +21,7 @@ type AdaptiveHashMap<'Key,'Value> =
     abstract member History : option<History<HashMap<'Key, 'Value>, HashMapDelta<'Key, 'Value>>>
 
 /// Adaptive map datastructure.
-type amap<'Key,'Value> = AdaptiveHashMap<'Key,'Value>
+type amap<'Key,'Value> = IAdaptiveHashMap<'Key,'Value>
 
 /// Functional operators for amap<_,_>
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

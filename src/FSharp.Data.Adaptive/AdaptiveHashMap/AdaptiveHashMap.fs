@@ -6,7 +6,7 @@ open FSharp.Data.Traceable
 type IHashMapReader<'Key, 'Value> = IOpReader<HashMap<'Key, 'Value>, HashMapDelta<'Key, 'Value>>
 
 /// Adaptive map datastructure.
-type AdaptiveHashMap<'Key, 'Value> =
+type IAdaptiveHashMap<'Key, 'Value> =
     /// Is the map constant?
     abstract member IsConstant : bool
 
@@ -20,7 +20,7 @@ type AdaptiveHashMap<'Key, 'Value> =
     abstract member History : option<History<HashMap<'Key, 'Value>, HashMapDelta<'Key, 'Value>>>
 
 /// Adaptive map datastructure.
-and amap<'Key, 'Value> = AdaptiveHashMap<'Key, 'Value>
+and amap<'Key, 'Value> = IAdaptiveHashMap<'Key, 'Value>
 
 
 
@@ -77,7 +77,7 @@ module internal MapReductions =
                 result
             )
 
-        interface AdaptiveValue with
+        interface IAdaptiveValue with
             member x.GetValueUntyped t = 
                 x.GetValue t :> obj
             member x.ContentType =
@@ -87,7 +87,7 @@ module internal MapReductions =
                 typeof<'v>
                 #endif
 
-        interface AdaptiveValue<'v> with
+        interface IAdaptiveValue<'v> with
             member x.GetValue t = x.GetValue t
             
     /// aval for reduceBy operations.
@@ -145,7 +145,7 @@ module internal MapReductions =
                 result
             )
 
-        interface AdaptiveValue with
+        interface IAdaptiveValue with
             member x.GetValueUntyped t = 
                 x.GetValue t :> obj
             member x.ContentType =
@@ -155,7 +155,7 @@ module internal MapReductions =
                 typeof<'v>
                 #endif
 
-        interface AdaptiveValue<'v> with
+        interface IAdaptiveValue<'v> with
             member x.GetValue t = x.GetValue t
 
     /// aval for reduceByA operations.
@@ -275,7 +275,7 @@ module internal MapReductions =
                 res
             )
 
-        interface AdaptiveValue with
+        interface IAdaptiveValue with
             member x.GetValueUntyped t = x.GetValue t :> obj
             member x.ContentType =
                 #if FABLE_COMPILER
@@ -284,7 +284,7 @@ module internal MapReductions =
                 typeof<'v>
                 #endif
 
-        interface AdaptiveValue<'v> with
+        interface IAdaptiveValue<'v> with
             member x.GetValue t = x.GetValue t  
 
 
@@ -302,7 +302,7 @@ module AdaptiveHashMapImplementation =
         member x.Content =
             history :> aval<_>
 
-        interface AdaptiveHashMap<'Key, 'Value> with
+        interface IAdaptiveHashMap<'Key, 'Value> with
             member x.IsConstant = false
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
@@ -318,7 +318,7 @@ module AdaptiveHashMapImplementation =
         member x.Content = content
         member x.GetReader() = reader
         
-        interface AdaptiveHashMap<'Key, 'Value> with
+        interface IAdaptiveHashMap<'Key, 'Value> with
             member x.IsConstant = true
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
@@ -337,7 +337,7 @@ module AdaptiveHashMapImplementation =
                 content
             ) :> IHashMapReader<_,_>
 
-        interface AdaptiveHashMap<'Key, 'Value> with
+        interface IAdaptiveHashMap<'Key, 'Value> with
             member x.IsConstant = true
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
@@ -840,7 +840,7 @@ module AdaptiveHashMapImplementation =
             if x.OutOfDate then System.String.Format("aval*({0})", cache)
             else System.String.Format("aval({0})", cache)
             
-        interface AdaptiveValue with
+        interface IAdaptiveValue with
             member x.GetValueUntyped t = x.GetValue t :> obj
             member x.ContentType = 
                 #if FABLE_COMPILER
@@ -849,7 +849,7 @@ module AdaptiveHashMapImplementation =
                 typeof<'T>
                 #endif
     
-        interface AdaptiveValue<'T> with
+        interface IAdaptiveValue<'T> with
             member x.GetValue t = x.GetValue t  
     
     /// Reader used for ofASet operations.

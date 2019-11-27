@@ -5,7 +5,7 @@ open FSharp.Data.Traceable
 /// Changeable adaptive list that allows mutation by user-code and implements alist.
 [<Sealed>]
 type ChangeableIndexList<'T> =
-    interface AdaptiveIndexList<'T>
+    interface IAdaptiveIndexList<'T>
 
     /// is the list currently empty?
     member IsEmpty : bool

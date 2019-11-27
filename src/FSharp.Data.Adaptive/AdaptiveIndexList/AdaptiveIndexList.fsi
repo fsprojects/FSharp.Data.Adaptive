@@ -8,7 +8,7 @@ type IIndexListReader<'T> =
 
 /// Adaptive list datastructure.
 [<Interface>]
-type AdaptiveIndexList<'T> =
+type IAdaptiveIndexList<'T> =
     /// Is the list constant?
     abstract member IsConstant : bool
 
@@ -22,7 +22,7 @@ type AdaptiveIndexList<'T> =
     abstract member History : option<History<IndexList<'T>, IndexListDelta<'T>>>
 
 /// Adaptive list datastructure.
-type alist<'T> = AdaptiveIndexList<'T>
+type alist<'T> = IAdaptiveIndexList<'T>
 
 
 /// Functional operators for the alist<_> type.

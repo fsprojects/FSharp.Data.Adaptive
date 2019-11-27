@@ -9,7 +9,6 @@ module private AdaptiveValueHelpers =
     let inline addCallback (v : aval<'T>) (action: 'T -> unit) =
         v.AddCallback(action)
 
-
 type ConstantValue<'T>(value : 'T) =
     inherit ConstantObject()
     
@@ -30,11 +29,11 @@ type ConstantValue<'T>(value : 'T) =
     override x.ToString() =
         sprintf "%A" value
 
-    interface AdaptiveValue with
+    interface IAdaptiveValue with
         member x.ContentType = x.ContentType
         member x.GetValueUntyped t = x.GetValueUntyped t
 
-    interface AdaptiveValue<'T> with
+    interface IAdaptiveValue<'T> with
         member x.GetValue t = x.GetValue t
 
 [<AbstractClass; Sealed; Extension>]
@@ -63,15 +62,15 @@ type AdaptiveValue private() =
     /// Returns a new adaptive value that adaptively applies the mapping function to the given 
     /// adaptive inputs.
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member Select(this: aval<'T1>, selector: Func<'T1, 'T2>) =
+    static member Map(this: aval<'T1>, selector: Func<'T1, 'T2>) =
         AVal.map selector.Invoke this
 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member Select(value1: aval<'T1>, value2: aval<'T2>, selector: Func<'T1, 'T2, 'T3>) =
+    static member Map(value1: aval<'T1>, value2: aval<'T2>, selector: Func<'T1, 'T2, 'T3>) =
         AVal.map2 (fun l r -> selector.Invoke(l, r)) value1 value2
         
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member Select(value1: aval<'T1>, value2: aval<'T2>, value3: aval<'T3>, selector: Func<'T1, 'T2, 'T3, 'T4>) =
+    static member Map(value1: aval<'T1>, value2: aval<'T2>, value3: aval<'T3>, selector: Func<'T1, 'T2, 'T3, 'T4>) =
         AVal.map3 (fun v0 v1 v2 -> selector.Invoke(v0, v1, v2)) value1 value2 value3
         
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]

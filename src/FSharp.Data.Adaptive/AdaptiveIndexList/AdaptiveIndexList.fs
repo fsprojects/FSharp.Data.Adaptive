@@ -8,7 +8,7 @@ type IIndexListReader<'T> =
 
 /// Adaptive list datastructure.
 [<Interface>]
-type AdaptiveIndexList<'T> =
+type IAdaptiveIndexList<'T> =
     /// Is the list constant?
     abstract member IsConstant : bool
 
@@ -22,7 +22,7 @@ type AdaptiveIndexList<'T> =
     abstract member History : option<History<IndexList<'T>, IndexListDelta<'T>>>
 
 /// Adaptive list datastructure.
-and alist<'T> = AdaptiveIndexList<'T>
+and alist<'T> = IAdaptiveIndexList<'T>
 
 /// Internal implementations for alist reductions.
 module internal Reductions =
@@ -77,7 +77,7 @@ module internal Reductions =
                 result
             )
 
-        interface AdaptiveValue with
+        interface IAdaptiveValue with
             member x.GetValueUntyped t = 
                 x.GetValue t :> obj
             member x.ContentType =
@@ -87,7 +87,7 @@ module internal Reductions =
                 typeof<'v>
                 #endif
 
-        interface AdaptiveValue<'v> with
+        interface IAdaptiveValue<'v> with
             member x.GetValue t = x.GetValue t
             
     /// aval for reduceBy operations.
@@ -145,7 +145,7 @@ module internal Reductions =
                 result
             )
 
-        interface AdaptiveValue with
+        interface IAdaptiveValue with
             member x.GetValueUntyped t = 
                 x.GetValue t :> obj
             member x.ContentType =
@@ -155,7 +155,7 @@ module internal Reductions =
                 typeof<'v>
                 #endif
 
-        interface AdaptiveValue<'v> with
+        interface IAdaptiveValue<'v> with
             member x.GetValue t = x.GetValue t
 
     /// aval for reduceByA operations.
@@ -275,7 +275,7 @@ module internal Reductions =
                 res
             )
 
-        interface AdaptiveValue with
+        interface IAdaptiveValue with
             member x.GetValueUntyped t = x.GetValue t :> obj
             member x.ContentType =
                 #if FABLE_COMPILER
@@ -284,7 +284,7 @@ module internal Reductions =
                 typeof<'v>
                 #endif
 
-        interface AdaptiveValue<'v> with
+        interface IAdaptiveValue<'v> with
             member x.GetValue t = x.GetValue t  
 
 
@@ -305,7 +305,7 @@ module internal AdaptiveIndexListImplementation =
         member x.Content =
             history :> aval<_>
 
-        interface AdaptiveIndexList<'T> with
+        interface IAdaptiveIndexList<'T> with
             member x.IsConstant = false
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
@@ -321,7 +321,7 @@ module internal AdaptiveIndexListImplementation =
         member x.Content = content
         member x.GetReader() = reader
         
-        interface AdaptiveIndexList<'T> with
+        interface IAdaptiveIndexList<'T> with
             member x.IsConstant = true
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
@@ -340,7 +340,7 @@ module internal AdaptiveIndexListImplementation =
                 content
             ) :> IIndexListReader<_>
 
-        interface AdaptiveIndexList<'T> with
+        interface IAdaptiveIndexList<'T> with
             member x.IsConstant = true
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content

@@ -139,11 +139,11 @@ type EagerVal<'T>(input : aval<'T>) =
             res
         )
         
-    interface AdaptiveValue with
+    interface IAdaptiveValue with
         member x.GetValueUntyped(t) = x.GetValue t :> obj
         member x.ContentType = typeof<'T>
 
-    interface AdaptiveValue<'T> with
+    interface IAdaptiveValue<'T> with
         member x.GetValue(t) = x.GetValue t
         
 [<Test>]

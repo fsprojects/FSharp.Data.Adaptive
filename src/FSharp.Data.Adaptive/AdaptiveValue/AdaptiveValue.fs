@@ -2,16 +2,16 @@
 
 open System
 
-type AdaptiveValue =
+type IAdaptiveValue =
     inherit IAdaptiveObject
     abstract member GetValueUntyped: AdaptiveToken -> obj
     abstract member ContentType : Type
 
-type AdaptiveValue<'T> =
-    inherit AdaptiveValue
+type IAdaptiveValue<'T> =
+    inherit IAdaptiveValue
     abstract member GetValue: AdaptiveToken -> 'T
 
-and aval<'T> = AdaptiveValue<'T>
+and aval<'T> = IAdaptiveValue<'T>
 
 [<Sealed; StructuredFormatDisplay("{AsString}")>]
 type ChangeableValue<'T>(value : 'T) =
@@ -36,7 +36,7 @@ type ChangeableValue<'T>(value : 'T) =
             x.MarkOutdated()
         
 
-    interface AdaptiveValue with
+    interface IAdaptiveValue with
         member x.GetValueUntyped t = x.GetValue t :> obj
         member x.ContentType =
             #if FABLE_COMPILER
@@ -45,7 +45,7 @@ type ChangeableValue<'T>(value : 'T) =
             typeof<'T>
             #endif
 
-    interface AdaptiveValue<'T> with
+    interface IAdaptiveValue<'T> with
         member x.GetValue t = x.GetValue t
         
     member private x.AsString = sprintf "cval(%A)" x.Value
@@ -83,7 +83,7 @@ module AVal =
             if x.OutOfDate then String.Format("aval*({0})", valueCache)
             else String.Format("aval({0})", valueCache)
             
-        interface AdaptiveValue with
+        interface IAdaptiveValue with
             member x.GetValueUntyped t = x.GetValue t :> obj
             member x.ContentType =
                 #if FABLE_COMPILER
@@ -92,7 +92,7 @@ module AVal =
                 typeof<'T>
                 #endif
 
-        interface AdaptiveValue<'T> with
+        interface IAdaptiveValue<'T> with
             member x.GetValue t = x.GetValue t  
             
     /// Lazy without locking
@@ -123,7 +123,7 @@ module AVal =
         member x.GetValue(_token: AdaptiveToken): 'T = 
             x.GetValue()
             
-        interface AdaptiveValue with
+        interface IAdaptiveValue with
             member x.GetValueUntyped t = x.GetValue t :> obj
             member x.ContentType = 
                 #if FABLE_COMPILER
@@ -132,7 +132,7 @@ module AVal =
                 typeof<'T>
                 #endif
 
-        interface AdaptiveValue<'T> with
+        interface IAdaptiveValue<'T> with
             member x.GetValue t = x.GetValue t    
 
         static member Lazy (create: unit -> 'T) =
@@ -176,7 +176,7 @@ module AVal =
                 cache <- ValueSome(struct (i, b))
                 b
 
-        interface AdaptiveValue<'T2> with
+        interface IAdaptiveValue<'T2> with
             member x.GetValue t = x.GetValue t
 
     /// Aval for mapping 2 values in 'parallel'

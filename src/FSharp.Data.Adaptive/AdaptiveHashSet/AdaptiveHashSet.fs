@@ -6,7 +6,7 @@ open FSharp.Data.Traceable
 type IHashSetReader<'T> = IOpReader<CountingHashSet<'T>, HashSetDelta<'T>>
 
 /// Adaptive set datastructure.
-type AdaptiveHashSet<'T> =
+type IAdaptiveHashSet<'T> =
     /// Is the set constant?
     abstract member IsConstant : bool
 
@@ -19,7 +19,7 @@ type AdaptiveHashSet<'T> =
     /// Gets the underlying History instance for the aset (if any)
     abstract member History : option<History<CountingHashSet<'T>, HashSetDelta<'T>>>
 
-and aset<'T> = AdaptiveHashSet<'T>
+and aset<'T> = IAdaptiveHashSet<'T>
 
 
 /// Internal implementations for aset reductions.
@@ -59,7 +59,7 @@ module SetReductions =
                 result
             )
 
-        interface AdaptiveValue with
+        interface IAdaptiveValue with
             member x.GetValueUntyped t = 
                 x.GetValue t :> obj
             member x.ContentType =
@@ -69,7 +69,7 @@ module SetReductions =
                 typeof<'v>
                 #endif
 
-        interface AdaptiveValue<'v> with
+        interface IAdaptiveValue<'v> with
             member x.GetValue t = x.GetValue t
             
     /// aval for reduceBy operations.
@@ -127,7 +127,7 @@ module SetReductions =
                 result
             )
 
-        interface AdaptiveValue with
+        interface IAdaptiveValue with
             member x.GetValueUntyped t = 
                 x.GetValue t :> obj
             member x.ContentType =
@@ -137,7 +137,7 @@ module SetReductions =
                 typeof<'v>
                 #endif
 
-        interface AdaptiveValue<'v> with
+        interface IAdaptiveValue<'v> with
             member x.GetValue t = x.GetValue t
 
     /// aval for reduceByA operations.
@@ -257,7 +257,7 @@ module SetReductions =
                 res
             )
 
-        interface AdaptiveValue with
+        interface IAdaptiveValue with
             member x.GetValueUntyped t = x.GetValue t :> obj
             member x.ContentType =
                 #if FABLE_COMPILER
@@ -266,7 +266,7 @@ module SetReductions =
                 typeof<'v>
                 #endif
 
-        interface AdaptiveValue<'v> with
+        interface IAdaptiveValue<'v> with
             member x.GetValue t = x.GetValue t  
   
 
@@ -288,7 +288,7 @@ module AdaptiveHashSetImplementation =
         member x.Content =
             content
 
-        interface AdaptiveHashSet<'T> with
+        interface IAdaptiveHashSet<'T> with
             member x.IsConstant = false
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
@@ -304,7 +304,7 @@ module AdaptiveHashSetImplementation =
         member x.Content = content
         member x.GetReader() = reader
         
-        interface AdaptiveHashSet<'T> with
+        interface IAdaptiveHashSet<'T> with
             member x.IsConstant = true
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content
@@ -323,7 +323,7 @@ module AdaptiveHashSetImplementation =
                 lazy (CountingHashSet.ofHashSet content.Value)
             ) :> IHashSetReader<_>
 
-        interface AdaptiveHashSet<'T> with
+        interface IAdaptiveHashSet<'T> with
             member x.IsConstant = true
             member x.GetReader() = x.GetReader()
             member x.Content = x.Content

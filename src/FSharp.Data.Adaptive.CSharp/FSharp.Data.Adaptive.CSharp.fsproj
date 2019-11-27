@@ -13,6 +13,7 @@
     <Compile Include="Core.fs" />
     <Compile Include="AVal.fs" />
     <Compile Include="ASet.fs" />
+    <Compile Include="AList.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FSharp.Data.Adaptive\FSharp.Data.Adaptive.fsproj" />
