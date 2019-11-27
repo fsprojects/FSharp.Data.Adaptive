@@ -4,7 +4,7 @@ open FSharp.Data.Traceable
 
 /// Changeable adaptive map that allows mutation by user-code and implements amap.
 [<Sealed>]
-type ChangeableMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
+type ChangeableHashMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
     let history = 
         let h = History(HashMap.trace)
         h.Perform(HashMap.computeDelta HashMap.empty initial) |> ignore
@@ -81,7 +81,7 @@ type ChangeableMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
         
     /// Adds the given key/value pair to the map and returns true when the map changed. (overrides existing values)
     member x.Add(key : 'Key, value : 'Value) =
-        history.Perform (HashMap.single key (Set value) |> HashMapDelta) 
+        history.Perform (HashMap.single key (Set value) |> HashMapDelta)
         
     /// Gets or sets the value associated to key.
     member x.Item
@@ -96,10 +96,13 @@ type ChangeableMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
         history.NewReader()
 
     /// Creates a new empty cmap.
-    new() = ChangeableMap(HashMap.empty)
+    new() = ChangeableHashMap(HashMap.empty)
 
     /// Creates a new cmap containing all the given elements.
-    new(elements : seq<'Key * 'Value>) = ChangeableMap(HashMap.ofSeq elements)
+    new(elements : seq<'Key * 'Value>) = ChangeableHashMap(HashMap.ofSeq elements)
+    
+    interface System.Collections.IEnumerable with
+        member x.GetEnumerator() = (history.State :> System.Collections.IEnumerable).GetEnumerator()
 
     interface AdaptiveHashMap<'Key, 'Value> with
         member x.IsConstant = false
@@ -108,7 +111,7 @@ type ChangeableMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
         member x.History = Some history
 
 /// Changeable adaptive map that allows mutation by user-code and implements amap.
-and cmap<'Key, 'Value> = ChangeableMap<'Key, 'Value>
+and cmap<'Key, 'Value> = ChangeableHashMap<'Key, 'Value>
 
 
 

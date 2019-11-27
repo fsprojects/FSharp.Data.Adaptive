@@ -4,17 +4,17 @@ open FSharp.Data.Traceable
 
 /// Changeable adaptive map that allows mutation by user-code and implements amap.
 [<Sealed>]
-type ChangeableMap<'Key,'Value> =
+type ChangeableHashMap<'Key,'Value> =
     interface AdaptiveHashMap<'Key,'Value>
 
     /// Creates a new empty cmap.
-    new : unit -> ChangeableMap<'Key,'Value>
+    new : unit -> ChangeableHashMap<'Key,'Value>
 
     /// Creates a new cmap containing all the given elements.
-    new : initial:HashMap<'Key,'Value> -> ChangeableMap<'Key,'Value>
+    new : initial:HashMap<'Key,'Value> -> ChangeableHashMap<'Key,'Value>
 
     /// Creates a new cmap containing all the given elements.
-    new : elements:seq<'Key * 'Value> -> ChangeableMap<'Key,'Value>
+    new : elements:seq<'Key * 'Value> -> ChangeableHashMap<'Key,'Value>
 
     /// The number of entries currently in the map.
     member Count : int
@@ -53,5 +53,7 @@ type ChangeableMap<'Key,'Value> =
     /// Sets the current state as HashMap.
     member UpdateTo : target : HashMap<'Key, 'Value> -> unit
 
+    interface System.Collections.IEnumerable
+
 /// Changeable adaptive map that allows mutation by user-code and implements amap.
-type cmap<'Key,'Value> = ChangeableMap<'Key,'Value>
+type cmap<'Key,'Value> = ChangeableHashMap<'Key,'Value>
