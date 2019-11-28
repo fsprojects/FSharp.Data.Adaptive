@@ -36,7 +36,14 @@ namespace CSharpInterop
             }
             Console.WriteLine("{0}", dependent.GetValue());
 
-
+            using (Adaptive.Transact)
+            {
+                changeableSet.Value = HashSetModule.empty<int>();
+                changeableMap.Value = HashMapModule.empty<int, int>();
+                changeableList.Value = IndexListModule.empty<int>();
+                changeableList.Add(1);
+            }
+            Console.WriteLine("{0}", dependent.GetValue());
         }
     }
 }

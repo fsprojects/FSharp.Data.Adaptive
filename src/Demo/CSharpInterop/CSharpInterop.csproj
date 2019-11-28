@@ -12,7 +12,7 @@
   </PropertyGroup>
   <Import Project="..\..\..\.paket\Paket.Restore.targets" />
   <ItemGroup>
-    <ProjectReference Include="..\..\FSharp.Data.Adaptive.CSharp\FSharp.Data.Adaptive.CSharp.fsproj" />
+    <ProjectReference Include="..\..\CSharp.Data.Adaptive\CSharp.Data.Adaptive.fsproj" />
     <ProjectReference Include="..\..\FSharp.Data.Adaptive\FSharp.Data.Adaptive.fsproj" />
   </ItemGroup>
 </Project>

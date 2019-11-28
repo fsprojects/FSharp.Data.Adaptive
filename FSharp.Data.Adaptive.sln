@@ -14,7 +14,7 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Fable", "src\Demo\Fable\Fab
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "EventInterop", "src\Demo\EventInterop\EventInterop.fsproj", "{B978F3DF-9F10-493E-97E9-0248491D41D9}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FSharp.Data.Adaptive.CSharp", "src\FSharp.Data.Adaptive.CSharp\FSharp.Data.Adaptive.CSharp.fsproj", "{6AB825AF-A940-40C4-B528-52E86FE8E160}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "CSharp.Data.Adaptive", "src\CSharp.Data.Adaptive\CSharp.Data.Adaptive.fsproj", "{6AB825AF-A940-40C4-B528-52E86FE8E160}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSharpInterop", "src\Demo\CSharpInterop\CSharpInterop.csproj", "{D4058F6D-A8D5-4587-AE05-D32A3B99B625}"
 EndProject
