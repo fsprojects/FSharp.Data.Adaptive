@@ -10,6 +10,9 @@
     <OutputPath>..\..\bin\Debug\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="HashSet.fs" />
+    <Compile Include="HashMap.fs" />
+    <Compile Include="IndexList.fs" />
     <Compile Include="Core.fs" />
     <Compile Include="AVal.fs" />
     <Compile Include="ASet.fs" />

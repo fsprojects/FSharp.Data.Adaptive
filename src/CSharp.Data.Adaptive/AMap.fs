@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data.Adaptive
+﻿namespace CSharp.Data.Adaptive
 
 open System
 open System.Runtime.CompilerServices
