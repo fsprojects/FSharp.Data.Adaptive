@@ -4,9 +4,9 @@ VisualStudioVersion = 16.0.29215.179
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FSharp.Data.Adaptive", "src\FSharp.Data.Adaptive\FSharp.Data.Adaptive.fsproj", "{2608AC59-39AC-438B-93B5-7C8271FE3304}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FSharp.Data.Adaptive.Tests", "src\FSharp.Data.Adaptive.Tests\FSharp.Data.Adaptive.Tests.fsproj", "{8D70969B-D38F-43D7-8E68-A0DE731B8C28}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FSharp.Data.Adaptive.Tests", "src\Test\FSharp.Data.Adaptive.Tests\FSharp.Data.Adaptive.Tests.fsproj", "{8D70969B-D38F-43D7-8E68-A0DE731B8C28}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FSharp.Data.Adaptive.Reference", "src\FSharp.Data.Adaptive.Reference\FSharp.Data.Adaptive.Reference.fsproj", "{5D252EE8-6739-4CAA-A1D1-050DEAFDC5B1}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FSharp.Data.Adaptive.Reference", "src\Test\FSharp.Data.Adaptive.Reference\FSharp.Data.Adaptive.Reference.fsproj", "{5D252EE8-6739-4CAA-A1D1-050DEAFDC5B1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Demo", "Demo", "{B5A29D79-4C76-4148-A69F-814ED1BEEFCE}"
 EndProject
@@ -16,7 +16,9 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "EventInterop", "src\Demo\Ev
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "CSharp.Data.Adaptive", "src\CSharp.Data.Adaptive\CSharp.Data.Adaptive.fsproj", "{6AB825AF-A940-40C4-B528-52E86FE8E160}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSharpInterop", "src\Demo\CSharpInterop\CSharpInterop.csproj", "{D4058F6D-A8D5-4587-AE05-D32A3B99B625}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CSharpInterop", "src\Demo\CSharpInterop\CSharpInterop.csproj", "{D4058F6D-A8D5-4587-AE05-D32A3B99B625}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{3F9BDA4B-D949-46D6-B237-07FE80CBBB53}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,6 +59,8 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{8D70969B-D38F-43D7-8E68-A0DE731B8C28} = {3F9BDA4B-D949-46D6-B237-07FE80CBBB53}
+		{5D252EE8-6739-4CAA-A1D1-050DEAFDC5B1} = {3F9BDA4B-D949-46D6-B237-07FE80CBBB53}
 		{03B1322E-F6C8-4CF2-84DD-8996A2373479} = {B5A29D79-4C76-4148-A69F-814ED1BEEFCE}
 		{B978F3DF-9F10-493E-97E9-0248491D41D9} = {B5A29D79-4C76-4148-A69F-814ED1BEEFCE}
 		{D4058F6D-A8D5-4587-AE05-D32A3B99B625} = {B5A29D79-4C76-4148-A69F-814ED1BEEFCE}
