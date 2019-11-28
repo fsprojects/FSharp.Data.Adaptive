@@ -217,4 +217,13 @@ type AdaptiveHashSet private() =
     static member MapToMap(this: aset<'T>, mapping: Func<'T, 'Value>) =
         this |> ASet.mapToAMap mapping.Invoke
 
+        
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member ToAdaptiveHashMap(this: aset<'K * 'V>) =
+        AMap.ofASet this
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member ToAdaptiveHashMapIgnoreDuplicates(this: aset<'K * 'V>) =
+        AMap.ofASetIgnoreDuplicates this
+
 

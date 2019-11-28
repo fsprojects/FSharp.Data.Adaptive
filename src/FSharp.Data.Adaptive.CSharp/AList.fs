@@ -187,6 +187,10 @@ type AdaptiveIndexList private() =
         this |> AList.reduceByA reduction (fun _ v -> mapping.Invoke v)
         
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Indexed(this: alist<'T>) =
+        this |> AList.indexed
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member SortBy(this: alist<'T>, projection: Func<'T, 'C>) =
         this |> AList.sortBy projection.Invoke
 
@@ -210,3 +214,16 @@ type AdaptiveIndexList private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ToAdaptiveHashMap(this: alist<'T>) =
         this |> AList.toAMap
+        
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Reverse(this: alist<'T>) =
+        this |> AList.rev
+        
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member TryAt(this: alist<'T>, index: int) =
+        this |> AList.tryAt index
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member TryAt(this: alist<'T>, index: Index) =
+        this |> AList.tryGet index
+

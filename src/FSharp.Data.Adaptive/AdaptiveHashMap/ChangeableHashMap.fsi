@@ -15,6 +15,9 @@ type ChangeableHashMap<'Key,'Value> =
 
     /// Creates a new cmap containing all the given elements.
     new : elements:seq<'Key * 'Value> -> ChangeableHashMap<'Key,'Value>
+    
+    /// Creates a new cmap containing all the given elements.
+    new : elements:seq<struct('Key * 'Value)> -> ChangeableHashMap<'Key, 'Value>
 
     /// The number of entries currently in the map.
     member Count : int

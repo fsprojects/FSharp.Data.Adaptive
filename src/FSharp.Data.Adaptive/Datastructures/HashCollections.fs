@@ -4034,7 +4034,7 @@ and internal HashMapStructEnumerator<'K, 'V>(root: HashMapNode<'K, 'V>) =
         member x.Dispose() = x.Dispose()
         member x.Current = x.Current
 
-
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module HashSet =
 
     /// The empty set.
@@ -4191,7 +4191,7 @@ module HashSet =
 
         HashSet<'T>.ApplyDelta(l, r, apply)
 
-
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module HashMap =
 
     /// The empty map.

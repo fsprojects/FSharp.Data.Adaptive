@@ -101,6 +101,9 @@ type ChangeableHashMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
     /// Creates a new cmap containing all the given elements.
     new(elements : seq<'Key * 'Value>) = ChangeableHashMap(HashMap.ofSeq elements)
     
+    /// Creates a new cmap containing all the given elements.
+    new(elements : seq<struct('Key * 'Value)>) = ChangeableHashMap(HashMap.OfSeqV elements)
+    
     //interface System.Collections.IEnumerable with
     //    member x.GetEnumerator() = (history.State :> System.Collections.IEnumerable).GetEnumerator()
 

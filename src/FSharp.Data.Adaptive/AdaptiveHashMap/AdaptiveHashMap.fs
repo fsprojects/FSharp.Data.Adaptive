@@ -966,6 +966,10 @@ module AMap =
             )
         else
             create (fun () -> SetReader(set, id))
+            
+    /// Creates an amap using the given reader-creator.
+    let ofReader (creator : unit -> #IOpReader<HashMapDelta<'Key, 'Value>>) =
+        create creator
 
     /// Creates an aval providing access to the current content of the map.
     let toAVal (map : amap<'Key, 'Value>) = map.Content
