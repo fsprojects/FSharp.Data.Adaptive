@@ -1102,35 +1102,30 @@ module ASet =
                         let newMin = lowerBound.GetValue(token)
                         let newMax = upperBound.GetValue(token)
 
+                        let (maxIncreaseLow, maxIncreaseHigh), 
+                            (maxDecreaseLow, maxDecreaseHigh),
+                            (minDecreaseLow, minDecreaseHigh),
+                            (minIncreaseLow, minIncreaseHigh) = 
+                              RangeDelta.rangeChange (lastMin, lastMax, newMin, newMax) 
+
                         let mutable delta = HashSetDelta.empty
-                        if newMax > lastMax then 
-                            let low = max newMin (lastMax + one) // start the add at newMin if necessary
-                            //printfn "max increase: newMin = %d, lastMax = %d, newMax = %d, adding %d to %d" newMin lastMax newMax low newMax
-                            for i in low .. newMax do  
-                                delta <- delta.Add(SetOperation.Add i)
 
-                        if newMax < lastMax then 
-                            let high = max (newMax + one) lastMin  // limit the removal to lastMin if necessary
-                            //printfn "max decrease: lastMax = %d, newMax = %d, lastMin = %d, removing %d down to %d" lastMax newMax lastMin lastMax high
-                            for i in lastMax .. minusOne .. high do  
-                                delta <- delta.Add(SetOperation.Rem i)
+                        // Count up through additions caused by increasing maximum
+                        for i in maxIncreaseLow .. maxIncreaseHigh do  
+                            delta <- delta.Add(SetOperation.Add i)
 
-                        if newMin < lastMin then 
-                            let low = min newMax (lastMin - one) // start the addition at newMax if necessary
-                            let low = min low ((max newMin (lastMax + one)) - one) // prevent double insertion after max increase
-                            //printfn "min decrease: lastMin = %d, newMin = %d, adding %d down to %d" lastMin newMin low newMin
-                            for i in low .. minusOne .. newMin do  
-                                delta <- delta.Add(SetOperation.Add i)
+                        // Count down through removals caused by decreasing maximum
+                        for i in maxDecreaseLow .. minusOne .. maxDecreaseHigh do  
+                            delta <- delta.Add(SetOperation.Rem i)
 
-                        if newMin > lastMin then 
-                            let high = min (newMin - one) lastMax  // limit the removal to lastMax if necessary
-                            let high = min high ((max (newMax + one) lastMin) - one) // prevent double removal after max decrease
-                            //printfn "min increase: lastMin = %d, newMin = %d, lastMax = %d, removing %d to %d" lastMin newMin lastMax lastMin high
-                            for i in lastMin .. high do  
-                                delta <- delta.Add(SetOperation.Rem i)
+                        // Count down through additions caused by decreasing minimum
+                        for i in minDecreaseLow .. minusOne .. minDecreaseHigh do  
+                            delta <- delta.Add(SetOperation.Add i)
+
+                        // Count up through removals caused by increasing minimum
+                        for i in minIncreaseLow .. minIncreaseHigh do  
+                            delta <- delta.Add(SetOperation.Rem i)
 
                         lastMax <- newMax
                         lastMin <- newMin
-                        //printfn "delta = %A" delta
-                        //printfn "idxs = %A" (idxs |> IndexList.toList)
                         delta })

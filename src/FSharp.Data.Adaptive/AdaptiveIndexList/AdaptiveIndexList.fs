@@ -1337,43 +1337,38 @@ module AList =
                         let newMin = lowerBound.GetValue(token)
                         let newMax = upperBound.GetValue(token)
 
+                        let (maxIncreaseLow, maxIncreaseHigh), 
+                            (maxDecreaseLow, maxDecreaseHigh),
+                            (minDecreaseLow, minDecreaseHigh),
+                            (minIncreaseLow, minIncreaseHigh) = 
+                              RangeDelta.rangeChange (lastMin, lastMax, newMin, newMax) 
+
                         let mutable delta = IndexListDelta.empty
-                        if newMax > lastMax then 
-                            let low = max newMin (lastMax + one) // start the add at newMin if necessary
-                            //printfn "max increase: newMin = %d, lastMax = %d, newMax = %d, adding %d to %d" newMin lastMax newMax low newMax
-                            for i in low .. newMax do  
-                                idxs <- idxs.Add i
-                                delta <- delta.Add(IndexList.lastIndex idxs, Set i)
+                        
+                        // Count up through additions caused by increasing maximum
+                        for i in maxIncreaseLow .. maxIncreaseHigh do  
+                            idxs <- idxs.Add i
+                            delta <- delta.Add(IndexList.lastIndex idxs, Set i)
 
-                        if newMax < lastMax then 
-                            let high = max (newMax + one) lastMin  // limit the removal to lastMin if necessary
-                            //printfn "max decrease: lastMax = %d, newMax = %d, lastMin = %d, removing %d down to %d" lastMax newMax lastMin lastMax high
-                            for _ in lastMax .. minusOne .. high do  
-                                let lastMaxIdx = IndexList.lastIndex idxs
-                                delta <- delta.Add(lastMaxIdx, Remove)
-                                idxs <- IndexList.remove lastMaxIdx idxs 
+                        // Count down through removals caused by decreasing maximum
+                        for i in maxDecreaseLow .. minusOne .. maxDecreaseHigh do  
+                            let lastMaxIdx = IndexList.lastIndex idxs
+                            delta <- delta.Add(lastMaxIdx, Remove)
+                            idxs <- IndexList.remove lastMaxIdx idxs 
 
-                        if newMin < lastMin then 
-                            let low = min newMax (lastMin - one) // start the addition at newMax if necessary
-                            let low = min low ((max newMin (lastMax + one)) - one) // prevent double insertion after max increase
-                            //printfn "min decrease: lastMin = %d, newMin = %d, adding %d down to %d" lastMin newMin low newMin
-                            for i in low .. minusOne .. newMin do  
-                                idxs <- idxs.Prepend i
-                                delta <- delta.Add(IndexList.firstIndex idxs, Set i)
+                        // Count down through additions caused by decreasing minimum
+                        for i in minDecreaseLow .. minusOne .. minDecreaseHigh do  
+                            idxs <- idxs.Prepend i
+                            delta <- delta.Add(IndexList.firstIndex idxs, Set i)
 
-                        if newMin > lastMin then 
-                            let high = min (newMin - one) lastMax  // limit the removal to lastMax if necessary
-                            let high = min high ((max (newMax + one) lastMin) - one) // prevent double removal after max decrease
-                            //printfn "min increase: lastMin = %d, newMin = %d, lastMax = %d, removing %d to %d" lastMin newMin lastMax lastMin high
-                            for _ in lastMin .. high do  
-                                let lastMinIdx = IndexList.firstIndex idxs
-                                delta <- delta.Add(lastMinIdx, Remove)
-                                idxs <- IndexList.remove lastMinIdx idxs 
+                        // Count up through removals caused by increasing minimum
+                        for i in minIncreaseLow .. minIncreaseHigh do  
+                            let lastMinIdx = IndexList.firstIndex idxs
+                            delta <- delta.Add(lastMinIdx, Remove)
+                            idxs <- IndexList.remove lastMinIdx idxs 
 
                         lastMax <- newMax
                         lastMin <- newMin
-                        //printfn "delta = %A" delta
-                        //printfn "idxs = %A" (idxs |> IndexList.toList)
                         delta })
         
     /// Adaptively counts all elements fulfilling the predicate

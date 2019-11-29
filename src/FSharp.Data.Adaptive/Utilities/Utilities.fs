@@ -301,3 +301,41 @@ module internal AdaptiveIndexListHelpers =
                 | _ ->
                     failwith "uncomparable"
 
+
+module internal RangeDelta =
+
+    /// Determine the changes in a range of integers
+    let inline rangeChange (lastMin: ^T, lastMax, newMin, newMax) =
+        let one = LanguagePrimitives.GenericOne< ^T >
+        let maxIncrease = 
+            if newMax > lastMax then 
+                let low = max newMin (lastMax + one) // start the add at newMin if necessary
+                (low, newMax)
+            else 
+                (lastMax + one, newMax)
+
+        let maxDecrease = 
+            if newMax < lastMax then 
+                let high = max (newMax + one) lastMin  // limit the removal to lastMin if necessary
+                (lastMax, high)
+            else
+                (lastMax, newMax + one)
+
+        let minDecrease = 
+            if newMin < lastMin then 
+                let low = min newMax (lastMin - one) // start the addition at newMax if necessary
+                let low = min low ((max newMin (lastMax + one)) - one) // prevent double insertion after max increase
+                (low, newMin)
+            else 
+                (lastMin - one, newMin)
+
+        let minIncrease =
+            if newMin > lastMin then 
+                let high = min (newMin - one) lastMax  // limit the removal to lastMax if necessary
+                let high = min high ((max (newMax + one) lastMin) - one) // prevent double removal after max decrease
+                //printfn "min increase: lastMin = %d, newMin = %d, lastMax = %d, removing %d to %d" lastMin newMin lastMax lastMin high
+                (lastMin, high)
+            else
+                (lastMin, newMin - one)
+
+        maxIncrease, maxDecrease, minDecrease, minIncrease
