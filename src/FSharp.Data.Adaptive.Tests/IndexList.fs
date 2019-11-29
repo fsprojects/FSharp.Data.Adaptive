@@ -88,6 +88,19 @@ let ``[IndexList] equality`` (l : list<int>) =
     a |> should not' (equal (IndexList.prepend 1 a))
 
 [<Property>]
+let ``[IndexList] range`` (lowerBound: int)  (upperBound: int)=
+    let a = IndexList.range lowerBound upperBound
+
+    a |> IndexList.toList |> should equal [ lowerBound .. upperBound ]
+
+[<Property>]
+let ``[IndexList] init`` (length: int)  =
+    if length >= 0 then 
+        let a = IndexList.init length id 
+
+        a |> IndexList.toList |> should equal [ 0 .. length - 1 ]
+
+[<Property>]
 let ``[IndexList] tryGetPosition`` (l : list<int>) =
     let l = IndexList.ofList l
     let mutable i = 0

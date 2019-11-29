@@ -51,6 +51,22 @@ module AList =
     /// Creates an alist using the given reader-creator.
     val ofReader : create : (unit -> #IOpReader<IndexListDelta<'T>>) -> alist<'T>
     
+    /// Creates an alist using the given value generator
+    val constant: value: (unit -> IndexList<'T>) -> alist<'T>
+    
+    /// Generate a list of adaptive length using the given intializer
+    val init: length: aval<int> -> initializer: (int -> 'T) -> alist<'T>
+
+    /// Generate an adaptive range of items based on lower/upper bound
+    val inline range: lowerBound: aval< ^T > -> upperBound: aval< ^T > -> alist< ^T >
+                                when ^T : (static member (+)   : ^T * ^T -> ^T) 
+                                and ^T : (static member (-)   : ^T * ^T -> ^T) 
+                                and ^T : (static member (~-)   : ^T -> ^T) 
+                                and ^T : (static member One  : ^T)
+                                and ^T : (static member Zero : ^T)
+                                and ^T : equality
+                                and ^T : comparison 
+
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
     val mapi : mapping: (Index -> 'T1 -> 'T2) -> list: alist<'T1> -> alist<'T2>
 
