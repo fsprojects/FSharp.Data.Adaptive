@@ -31,6 +31,9 @@ module ASet =
     [<GeneralizableValue>]
     val empty<'T> : aset<'T> 
 
+    /// Creates an aset using the given set generator
+    val constant: value: (unit -> HashSet<'T>) -> aset<'T>
+    
     /// A constant aset holding a single value.
     val single : value : 'T -> aset<'T>
     
@@ -48,6 +51,16 @@ module ASet =
 
     /// Creates an aval providing access to the current content of the set.
     val toAVal : set : aset<'T> -> aval<HashSet<'T>>
+
+    /// Generate an adaptive range of items based on lower/upper bound
+    val inline range: lowerBound: aval< ^T > -> upperBound: aval< ^T > -> aset< ^T >
+                                when ^T : (static member (+)   : ^T * ^T -> ^T) 
+                                and ^T : (static member (-)   : ^T * ^T -> ^T) 
+                                and ^T : (static member (~-)   : ^T -> ^T) 
+                                and ^T : (static member One  : ^T)
+                                and ^T : (static member Zero : ^T)
+                                and ^T : equality
+                                and ^T : comparison 
 
     /// Adaptively maps over the given set.
     val map : mapping : ('A -> 'B) -> set : aset<'A> -> aset<'B>

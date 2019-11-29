@@ -647,6 +647,7 @@ module AdaptiveHashSetImplementation =
 
             deltas
             
+
     /// Reader for mapA
     type MapAReader<'A, 'B>(input : aset<'A>, mapping : 'A -> aval<'B>) =
         inherit AbstractDirtyReader<aval<'B>, HashSetDelta<'B>>(HashSetDelta.monoid, isNull)
@@ -803,18 +804,18 @@ module AdaptiveHashSetImplementation =
     let inline force (set : aset<'T>) = 
         AVal.force set.Content
 
-    /// Creates a constant set using the creation function.
-    let inline constant (content : unit -> HashSet<'T>) = 
-        ConstantSet(lazy(content())) :> aset<_> 
-
-    /// Creates an adaptive set using the reader.
-    let inline create (reader : unit -> #IOpReader<HashSetDelta<'T>>) =
-        AdaptiveHashSetImpl(fun () -> reader() :> IOpReader<_>) :> aset<_>
-
 /// Functional operators for aset<_>
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ASet =
     open AdaptiveHashSetImplementation
+
+    /// Creates a constant set using the creation function.
+    let constant (content : unit -> HashSet<'T>) = 
+        ConstantSet(lazy(content())) :> aset<_> 
+
+    /// Creates an aset using the given reader-creator.
+    let ofReader (reader : unit -> #IOpReader<HashSetDelta<'T>>) =
+        AdaptiveHashSetImpl(fun () -> reader() :> IOpReader<_>) :> aset<_>
 
     /// The empty aset.
     [<GeneralizableValue>]
@@ -823,23 +824,23 @@ module ASet =
 
     /// A constant aset holding a single value.
     let single (value : 'T) =
-        lazy (HashSet.single value) |> ConstantSet :> aset<_>
+        constant (fun () -> HashSet.single value)
         
     /// Creates an aset holding the given values.
     let ofSeq (s : seq<'T>) =
-        lazy (HashSet.ofSeq s) |> ConstantSet :> aset<_>
+        constant (fun () -> HashSet.ofSeq s)
         
     /// Creates an aset holding the given values.
     let ofList (s : list<'T>) =
-        lazy (HashSet.ofList s) |> ConstantSet :> aset<_>
+        constant (fun () -> HashSet.ofList s)
         
     /// Creates an aset holding the given values.
     let ofArray (s : 'T[]) =
-        lazy (HashSet.ofArray s) |> ConstantSet :> aset<_>
+        constant (fun () -> HashSet.ofArray s)
         
     /// Creates an aset holding the given values. `O(1)`
     let ofHashSet (elements : HashSet<'T>) =
-        ConstantSet(lazy elements) :> aset<_>
+        constant (fun () -> elements)
 
     /// Creates an aval providing access to the current content of the set.
     let toAVal (set : aset<'T>) =
@@ -852,11 +853,11 @@ module ASet =
         else
             match set.History with
             | Some history ->
-                create (fun () -> 
+                ofReader (fun () -> 
                     history.NewReader(CountingHashSet.trace, MapReader.DeltaMapping mapping)
                 )
             | _ ->
-                create (fun () -> MapReader(set, mapping))
+                ofReader (fun () -> MapReader(set, mapping))
           
     /// Adaptively chooses all elements returned by mapping.  
     let choose (mapping : 'A -> option<'B>) (set : aset<'A>) =
@@ -865,11 +866,11 @@ module ASet =
         else
             match set.History with
             | Some history ->
-                create (fun () -> 
+                ofReader (fun () -> 
                     history.NewReader(CountingHashSet.trace, ChooseReader.DeltaMapping mapping)
                 )
             | _ ->
-                create (fun () -> ChooseReader(set, mapping))
+                ofReader (fun () -> ChooseReader(set, mapping))
             
     /// Adaptively filters the set using the given predicate.
     let filter (predicate : 'A -> bool) (set : aset<'A>) =
@@ -878,11 +879,11 @@ module ASet =
         else
             match set.History with
             | Some history ->
-                create (fun () -> 
+                ofReader (fun () -> 
                     history.NewReader(CountingHashSet.trace, FilterReader.DeltaMapping predicate)
                 )
             | _ ->
-                create (fun () -> FilterReader(set, predicate))
+                ofReader (fun () -> FilterReader(set, predicate))
             
     /// Adaptively unions the given sets
     let union (a : aset<'A>) (b : aset<'A>) =
@@ -895,7 +896,7 @@ module ASet =
             else constant (fun () -> HashSet.union va vb)
         else
             // TODO: can be optimized in case one of the two sets is constant.
-            create (fun () -> UnionConstantReader (HashSet.ofList [a;b]))
+            ofReader (fun () -> UnionConstantReader (HashSet.ofList [a;b]))
 
     /// Adaptively unions all the given sets
     let unionMany (sets : aset<aset<'A>>) = 
@@ -907,10 +908,10 @@ module ASet =
                 constant (fun () -> all |> HashSet.collect force)
             else
                 // inner sets non-constant
-                create (fun () -> UnionConstantReader all)
+                ofReader (fun () -> UnionConstantReader all)
         else
             // sadly no way to know if inner sets will always be constants.
-            create (fun () -> UnionReader sets)
+            ofReader (fun () -> UnionReader sets)
 
     /// Adaptively maps over the given set and unions all resulting sets.
     let collect (mapping : 'A -> aset<'B>) (set : aset<'A>) =   
@@ -922,23 +923,23 @@ module ASet =
                 constant (fun () -> all |> HashSet.collect force)
             else
                 // inner sets non-constant
-                create (fun () -> UnionConstantReader all)
+                ofReader (fun () -> UnionConstantReader all)
         else
-            create (fun () -> CollectReader(set, mapping))
+            ofReader (fun () -> CollectReader(set, mapping))
 
     /// Creates an aset for the given aval.
     let ofAVal (value : aval<#seq<'T>>) =
         if value.IsConstant then
             constant (fun () -> AVal.force value :> seq<'T> |> HashSet.ofSeq)
         else
-            create (fun () -> AValReader(value))
+            ofReader (fun () -> AValReader(value))
 
     /// Adaptively maps over the given aval and returns the resulting set.
     let bind (mapping : 'A -> aset<'B>) (value : aval<'A>) =
         if value.IsConstant then
             value |> AVal.force |> mapping
         else
-            create (fun () -> BindReader(value, mapping))
+            ofReader (fun () -> BindReader(value, mapping))
 
     /// Adaptively flattens the set of adaptive avals.
     let flattenA (set : aset<aval<'A>>) =
@@ -948,24 +949,24 @@ module ASet =
                 constant (fun () -> all |> HashSet.map AVal.force)
             else
                 // TODO: better implementation possible
-                create (fun () -> FlattenAReader(set))
+                ofReader (fun () -> FlattenAReader(set))
         else
-            create (fun () -> FlattenAReader(set))
+            ofReader (fun () -> FlattenAReader(set))
             
     /// Adaptively maps over the set and also respects inner changes.
     let mapA (mapping : 'A -> aval<'B>) (set : aset<'A>) =
         // TODO: constants
-        create (fun () -> MapAReader(set, mapping))
+        ofReader (fun () -> MapAReader(set, mapping))
 
     /// Adaptively maps over the set and also respects inner changes.
     let chooseA (mapping : 'A -> aval<option<'B>>) (set : aset<'A>) =
         // TODO: constants
-        create (fun () -> ChooseAReader(set, mapping))
+        ofReader (fun () -> ChooseAReader(set, mapping))
 
     /// Adaptively filters the set and also respects inner changes.
     let filterA (predicate : 'A -> aval<bool>) (set : aset<'A>) =
         // TODO: direct implementation
-        create (fun () -> 
+        ofReader (fun () -> 
             let mapping (a : 'A) =  
                 predicate a 
                 |> AVal.map (function true -> Some a | false -> None)
@@ -1017,10 +1018,6 @@ module ASet =
     let foldGroup (add : 'S -> 'A -> 'S) (sub : 'S -> 'A -> 'S) (zero : 'S) (s : aset<'A>) =
         let reduction = AdaptiveReduction.group zero add sub
         reduce reduction s
-
-    /// Creates an aset using the given reader-creator.
-    let ofReader (creator : unit -> #IOpReader<HashSetDelta<'T>>) =
-        create creator
 
     /// Creates a constant aset lazy content.
     let delay (creator : unit -> HashSet<'T>) =
@@ -1089,3 +1086,51 @@ module ASet =
 
     let inline averageByA (mapping : 'T1 -> aval<'T2>) (list : aset<'T1>) =
         reduceByA (AdaptiveReduction.average()) mapping list
+
+    let inline range (lowerBound: aval< ^T >) (upperBound: aval< ^T >) =
+        if lowerBound.IsConstant && upperBound.IsConstant then
+            constant (fun () -> HashSet.ofSeq (seq { AVal.force lowerBound .. AVal.force upperBound }))
+        else
+            ofReader (fun () -> 
+                let zero = LanguagePrimitives.GenericZero< ^T >
+                let one = LanguagePrimitives.GenericOne< ^T >
+                let minusOne = -one
+                let mutable lastMax = minusOne
+                let mutable lastMin = zero
+                { new AbstractReader<HashSetDelta< ^T >>(HashSetDelta.empty) with 
+                    override x.Compute(token) =
+                        let newMin = lowerBound.GetValue(token)
+                        let newMax = upperBound.GetValue(token)
+
+                        let mutable delta = HashSetDelta.empty
+                        if newMax > lastMax then 
+                            let low = max newMin (lastMax + one) // start the add at newMin if necessary
+                            //printfn "max increase: newMin = %d, lastMax = %d, newMax = %d, adding %d to %d" newMin lastMax newMax low newMax
+                            for i in low .. newMax do  
+                                delta <- delta.Add(SetOperation.Add i)
+
+                        if newMax < lastMax then 
+                            let high = max (newMax + one) lastMin  // limit the removal to lastMin if necessary
+                            //printfn "max decrease: lastMax = %d, newMax = %d, lastMin = %d, removing %d down to %d" lastMax newMax lastMin lastMax high
+                            for i in lastMax .. minusOne .. high do  
+                                delta <- delta.Add(SetOperation.Rem i)
+
+                        if newMin < lastMin then 
+                            let low = min newMax (lastMin - one) // start the addition at newMax if necessary
+                            let low = min low ((max newMin (lastMax + one)) - one) // prevent double insertion after max increase
+                            //printfn "min decrease: lastMin = %d, newMin = %d, adding %d down to %d" lastMin newMin low newMin
+                            for i in low .. minusOne .. newMin do  
+                                delta <- delta.Add(SetOperation.Add i)
+
+                        if newMin > lastMin then 
+                            let high = min (newMin - one) lastMax  // limit the removal to lastMax if necessary
+                            let high = min high ((max (newMax + one) lastMin) - one) // prevent double removal after max decrease
+                            //printfn "min increase: lastMin = %d, newMin = %d, lastMax = %d, removing %d to %d" lastMin newMin lastMax lastMin high
+                            for i in lastMin .. high do  
+                                delta <- delta.Add(SetOperation.Rem i)
+
+                        lastMax <- newMax
+                        lastMin <- newMin
+                        //printfn "delta = %A" delta
+                        //printfn "idxs = %A" (idxs |> IndexList.toList)
+                        delta })

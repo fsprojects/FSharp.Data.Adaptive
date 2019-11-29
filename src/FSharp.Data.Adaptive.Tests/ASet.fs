@@ -486,6 +486,63 @@ let ``[ASet] reduceByA fold``() =
 
 
 
+let checkReader (actual: aset<_>) expected = 
+    let reader = actual.GetReader()
+    fun () ->
+        reader.GetChanges AdaptiveToken.Top |> ignore
+        let actualValue = reader.State |> CountingHashSet.toList
+
+        let expectedValue = expected()
+        if actualValue <> expectedValue then 
+            printfn "actual = %A, exp = %A" actualValue expectedValue
+            failwith "fail"
+        actualValue |> should equal expectedValue
+
+[<Test>]
+let ``[ASet] range smoke``() =
+    let lower = cval 1
+    let upper = cval 1
+    
+    let actual =  ASet.range lower upper
+    let expected () = [ lower.Value .. upper.Value ]
+    let check = checkReader actual expected
+
+    check ()
+    transact (fun () -> 
+        lower.Value <- 0
+        upper.Value <- 4
+    )
+    check()
+
+let inline ASetRangeSystematic(low, high) =
+    let range = [ low .. high ]
+    for pl in range do
+        for pu in range do 
+           for l in range do 
+               for u in range do 
+                printfn "checking change from (%A .. %A) to (%A .. %A)" pl pu l u
+                let lower = cval pl
+                let upper = cval pu
+    
+                let actual =  ASet.range lower upper
+                let expected () = [ lower.Value .. upper.Value ]
+                let check = checkReader actual expected
+
+                check ()
+                transact (fun () -> 
+                    lower.Value <- l
+                    upper.Value <- u
+                )
+                check()
+    printfn "checked %d cases" (range.Length * range.Length * range.Length * range.Length)
+
+[<Test>]
+let ``[ASet] range systematic int32``() =
+    ASetRangeSystematic(0, 4)
+
+[<Test>]
+let ``[ASet] range systematic int64``() =
+    ASetRangeSystematic(0L, 4L)
 
 
 

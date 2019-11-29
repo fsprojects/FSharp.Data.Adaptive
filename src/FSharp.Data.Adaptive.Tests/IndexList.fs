@@ -88,10 +88,10 @@ let ``[IndexList] equality`` (l : list<int>) =
     a |> should not' (equal (IndexList.prepend 1 a))
 
 [<Property>]
-let ``[IndexList] range`` (lowerBound: int)  (upperBoundInclusive: int)=
-    let a = IndexList.range lowerBound upperBoundInclusive
+let ``[IndexList] range`` (lowerBound: int)  (upperBound: int)=
+    let a = IndexList.range lowerBound upperBound
 
-    a |> IndexList.toList |> should equal [ lowerBound .. upperBoundInclusive ]
+    a |> IndexList.toList |> should equal [ lowerBound .. upperBound ]
 
 [<Property>]
 let ``[IndexList] init`` (length: int)  =

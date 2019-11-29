@@ -745,14 +745,13 @@ let ``[AList] range smoke``() =
     )
     check()
 
-[<Test>]
-let ``[AList] range systematic``() =
-    let range = [ 0 .. 4 ]
+let inline AListRangeSystematic(low, high) =
+    let range = [ low .. high ]
     for pl in range do
         for pu in range do 
            for l in range do 
                for u in range do 
-                printfn "checking change from (%d .. %d) to (%d .. %d)" pl pu l u
+                printfn "checking change from (%A .. %A) to (%A .. %A)" pl pu l u
                 let lower = cval pl
                 let upper = cval pu
     
@@ -767,3 +766,12 @@ let ``[AList] range systematic``() =
                 )
                 check()
     printfn "checked %d cases" (range.Length * range.Length * range.Length * range.Length)
+
+[<Test>]
+let ``[AList] range systematic int32``() =
+    AListRangeSystematic(0, 4)
+
+[<Test>]
+let ``[AList] range systematic int64``() =
+    AListRangeSystematic(0L, 4L)
+
