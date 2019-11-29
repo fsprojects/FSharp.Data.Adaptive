@@ -718,6 +718,14 @@ module IndexList =
     let inline map (mapping : 'T1 -> 'T2) (list : IndexList<'T1>) = 
         list.Map (fun _ v -> mapping v)
         
+    /// Create a list of the given length using the given initializer
+    let inline init len (initializer : int -> 'T) = 
+        ofList (List.init len initializer)
+        
+    /// Create a list of the given length using the given initializer
+    let inline range lowerBound upperBoundInclusive = 
+        ofList [ lowerBound .. upperBoundInclusive]
+        
     /// applies the mapping function to all elements in the list and drops None results.
     let inline choosei (mapping : Index -> 'T1 -> option<'T2>) (list : IndexList<'T1>) = 
         list.Choose mapping

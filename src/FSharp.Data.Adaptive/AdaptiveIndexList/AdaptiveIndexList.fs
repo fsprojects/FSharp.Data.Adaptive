@@ -347,6 +347,74 @@ module internal AdaptiveIndexListImplementation =
             member x.History = None
 
 
+    /// Reader for init operation
+    type InitReader<'T>(input : aval<int>, mapping : int -> 'T) =
+        inherit AbstractReader<IndexListDelta<'T>>(IndexListDelta.empty)
+        let mutable lastLength = 0
+        let mutable idxs = IndexList.empty
+        override x.Compute(token) =
+            let newLength = input.GetValue(token)
+            let mutable delta = IndexListDelta.empty
+            for i in lastLength .. newLength - 1 do  
+                idxs <- idxs.Add ()
+                let nextIdx = IndexList.lastIndex idxs
+                delta <- delta.Add(nextIdx, Set (mapping i))
+            for _ in lastLength - 1 .. -1 .. newLength do  
+                let lastIdx = IndexList.lastIndex idxs
+                delta <- delta.Add(lastIdx, Remove)
+                idxs <- IndexList.remove lastIdx idxs 
+            lastLength <- newLength
+            delta
+
+    /// Reader for init operation
+    type RangeReader(lowerBound: aval<int>, upperBoundInclusive: aval<int>) =
+        inherit AbstractReader<IndexListDelta<int>>(IndexListDelta.empty)
+        let mutable lastMax = -1
+        let mutable lastMin = 0
+        let mutable idxs = IndexList.empty
+        override x.Compute(token) =
+            let newMin = lowerBound.GetValue(token)
+            let newMax = upperBoundInclusive.GetValue(token)
+
+            let mutable delta = IndexListDelta.empty
+            if newMax > lastMax then 
+                let low = max newMin (lastMax + 1) // start the add at newMin if necessary
+                //printfn "max increase: newMin = %d, lastMax = %d, newMax = %d, adding %d to %d" newMin lastMax newMax low newMax
+                for i in low .. newMax do  
+                    idxs <- idxs.Add i
+                    delta <- delta.Add(IndexList.lastIndex idxs, Set i)
+
+            if newMax < lastMax then 
+                let high = max (newMax + 1) lastMin  // limit the removal to lastMin if necessary
+                //printfn "max decrease: lastMax = %d, newMax = %d, lastMin = %d, removing %d down to %d" lastMax newMax lastMin lastMax high
+                for _ in lastMax .. -1 .. high do  
+                    let lastMaxIdx = IndexList.lastIndex idxs
+                    delta <- delta.Add(lastMaxIdx, Remove)
+                    idxs <- IndexList.remove lastMaxIdx idxs 
+
+            if newMin < lastMin then 
+                let low = min newMax (lastMin - 1) // start the addition at newMax if necessary
+                let low = min low ((max newMin (lastMax + 1)) - 1) // prevent double insertion after max increase
+                //printfn "min decrease: lastMin = %d, newMin = %d, adding %d down to %d" lastMin newMin low newMin
+                for i in low .. -1 .. newMin do  
+                    idxs <- idxs.Prepend i
+                    delta <- delta.Add(IndexList.firstIndex idxs, Set i)
+
+            if newMin > lastMin then 
+                let high = min (newMin - 1) lastMax  // limit the removal to lastMax if necessary
+                let high = min high ((max (newMax + 1) lastMin) - 1) // prevent double removal after max decrease
+                //printfn "min increase: lastMin = %d, newMin = %d, lastMax = %d, removing %d to %d" lastMin newMin lastMax lastMin high
+                for _ in lastMin .. high do  
+                    let lastMinIdx = IndexList.firstIndex idxs
+                    delta <- delta.Add(lastMinIdx, Remove)
+                    idxs <- IndexList.remove lastMinIdx idxs 
+
+            lastMax <- newMax
+            lastMin <- newMin
+            //printfn "delta = %A" delta
+            //printfn "idxs = %A" (idxs |> IndexList.toList)
+            delta
+
     /// Reader for map operations.
     type MapReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> 'b) =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
@@ -1297,6 +1365,17 @@ module AList =
         let r = AdaptiveReduction.countPositive |> AdaptiveReduction.mapOut (fun v -> v <> 0)
         reduceByA r (fun _ v -> predicate v) list
 
+    let init (len: aval<int>) (initializer: int -> 'T) =
+        if len.IsConstant then
+            constant (fun () -> IndexList.init (AVal.force len) initializer)
+        else
+            create (fun () -> InitReader(len, initializer))
+        
+    let range (lowerBound: aval<int>) (upperBound: aval<int>) =
+        if lowerBound.IsConstant && upperBound.IsConstant then
+            constant (fun () -> IndexList.ofSeq (seq { AVal.force lowerBound .. AVal.force upperBound }))
+        else
+            create (fun () -> RangeReader(lowerBound, upperBound))
         
     /// Adaptively counts all elements fulfilling the predicate
     let countBy (predicate: 'a -> bool) (list: alist<'a>) =
