@@ -308,34 +308,27 @@ module internal RangeDelta =
     let inline rangeChange (lastMin: ^T, lastMax, newMin, newMax) =
         let one = LanguagePrimitives.GenericOne< ^T >
         let maxIncrease = 
-            if newMax > lastMax then 
-                let low = max newMin (lastMax + one) // start the add at newMin if necessary
-                (low, newMax)
-            else 
-                (lastMax + one, newMax)
+            // start the add at newMin if necessary
+            let low = max newMin (lastMax + one) 
+            (low, newMax)
 
         let maxDecrease = 
-            if newMax < lastMax then 
-                let high = max (newMax + one) lastMin  // limit the removal to lastMin if necessary
-                (lastMax, high)
-            else
-                (lastMax, newMax + one)
+            // limit the removal to lastMin if necessary
+            let high = max (newMax + one) lastMin  
+            (lastMax, high)
 
         let minDecrease = 
-            if newMin < lastMin then 
-                let low = min newMax (lastMin - one) // start the addition at newMax if necessary
-                let low = min low ((max newMin (lastMax + one)) - one) // prevent double insertion after max increase
-                (low, newMin)
-            else 
-                (lastMin - one, newMin)
+            // start the addition at newMax if necessary
+            let low = min newMax (lastMin - one) 
+            // prevent double insertion after max increase
+            let low = if newMax > lastMax then min low (fst maxIncrease - one) else low
+            (low, newMin)
 
         let minIncrease =
-            if newMin > lastMin then 
-                let high = min (newMin - one) lastMax  // limit the removal to lastMax if necessary
-                let high = min high ((max (newMax + one) lastMin) - one) // prevent double removal after max decrease
-                //printfn "min increase: lastMin = %d, newMin = %d, lastMax = %d, removing %d to %d" lastMin newMin lastMax lastMin high
-                (lastMin, high)
-            else
-                (lastMin, newMin - one)
+            // limit the removal to lastMax if necessary
+            let high = min (newMin - one) lastMax  
+            // prevent double removal after max decrease
+            let high = if newMax < lastMax then min high (snd maxDecrease - one) else high
+            (lastMin, high)
 
         maxIncrease, maxDecrease, minDecrease, minIncrease
