@@ -1110,7 +1110,7 @@ module ASet =
 
                         let mutable delta = HashSetDelta.empty
 
-                        // Count up through additions caused by increasing maximum
+                        // Count up through additions caused by increasing maximum 
                         for i in maxIncreaseLow .. maxIncreaseHigh do  
                             delta <- delta.Add(SetOperation.Add i)
 
