@@ -355,10 +355,12 @@ module internal AdaptiveIndexListImplementation =
         override x.Compute(token) =
             let newLength = input.GetValue(token)
             let mutable delta = IndexListDelta.empty
+            // length increase
             for i in lastLength .. newLength - 1 do  
                 idxs <- idxs.Add ()
                 let nextIdx = IndexList.lastIndex idxs
                 delta <- delta.Add(nextIdx, Set (mapping i))
+            // length decrease
             for _ in lastLength - 1 .. -1 .. newLength do  
                 let lastIdx = IndexList.lastIndex idxs
                 delta <- delta.Add(lastIdx, Remove)
@@ -366,7 +368,7 @@ module internal AdaptiveIndexListImplementation =
             lastLength <- newLength
             delta
 
-    /// Reader for init operation
+    /// Reader for range operation
     type RangeReader(lowerBound: aval<int>, upperBoundInclusive: aval<int>) =
         inherit AbstractReader<IndexListDelta<int>>(IndexListDelta.empty)
         let mutable lastMax = -1
