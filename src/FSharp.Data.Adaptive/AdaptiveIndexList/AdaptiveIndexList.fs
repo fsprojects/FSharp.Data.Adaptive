@@ -294,8 +294,8 @@ module internal AdaptiveIndexListImplementation =
     let inline checkTag (value : 'a) (real : obj) = Unchecked.equals (value :> obj) real
     
     /// Core implementation for a dependent list.
-    type AdaptiveIndexListImpl<'T>(createReader : unit -> IOpReader<IndexListDelta<'T>>) =
-        let history = History(createReader, IndexList.trace)
+    type AdaptiveIndexListImpl<'T>(ofReaderReader : unit -> IOpReader<IndexListDelta<'T>>) =
+        let history = History(ofReaderReader, IndexList.trace)
 
         /// Gets a new reader to the list.
         member x.GetReader() : IIndexListReader<'T> =
@@ -346,6 +346,27 @@ module internal AdaptiveIndexListImplementation =
             member x.Content = x.Content
             member x.History = None
 
+
+    /// Reader for init operation
+    type InitReader<'T>(input : aval<int>, mapping : int -> 'T) =
+        inherit AbstractReader<IndexListDelta<'T>>(IndexListDelta.empty)
+        let mutable lastLength = 0
+        let mutable idxs = IndexList.empty
+        override x.Compute(token) =
+            let newLength = input.GetValue(token)
+            let mutable delta = IndexListDelta.empty
+            // length increase
+            for i in lastLength .. newLength - 1 do  
+                idxs <- idxs.Add ()
+                let nextIdx = IndexList.lastIndex idxs
+                delta <- delta.Add(nextIdx, Set (mapping i))
+            // length decrease
+            for _ in lastLength - 1 .. -1 .. newLength do  
+                let lastIdx = IndexList.lastIndex idxs
+                delta <- delta.Add(lastIdx, Remove)
+                idxs <- IndexList.remove lastIdx idxs 
+            lastLength <- newLength
+            delta
 
     /// Reader for map operations.
     type MapReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> 'b) =
@@ -949,56 +970,51 @@ module internal AdaptiveIndexListImplementation =
     let inline force (list : alist<'T>) = 
         AVal.force list.Content
 
-    /// Creates a constant list using the creation function.
-    let inline constant (content : unit -> IndexList<'T>) = 
-        ConstantList(lazy(content())) :> alist<_> 
-
-    /// Creates an adaptive list using the reader.
-    let inline create (reader : unit -> #IOpReader<IndexListDelta<'T>>) =
-        AdaptiveIndexListImpl(fun () -> reader() :> IOpReader<_>) :> alist<_>
-
 
 /// Functional operators for the alist<_> type.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module AList =
     open AdaptiveIndexListImplementation
 
+    /// Creates an alist using the given reader-creator.
+    let ofReader (create: unit -> #IOpReader<IndexListDelta<'T>>) =
+        AdaptiveIndexListImpl(fun () -> create() :> IOpReader<_>) :> alist<_>
+
     /// The empty alist.
     [<GeneralizableValue>]
     let empty<'T> : alist<'T> = 
         EmptyList<'T>.Instance
 
+    /// Creates an alist holding the given values.
+    let constant (f : unit -> IndexList<'T>) =
+        lazy f() |> ConstantList :> alist<_>
+        
     /// A constant alist holding a single value.
     let single (value : 'T) =
-        lazy (IndexList.single value) |> ConstantList :> alist<_>
+        constant (fun () -> IndexList.single value)
         
     /// Creates an alist holding the given values.
-    let ofSeq (s : seq<'T>) =
-        lazy (IndexList.ofSeq s) |> ConstantList :> alist<_>
+    let ofSeq (s : seq<'T>) = 
+        constant (fun () -> IndexList.ofSeq s)
         
     /// Creates an alist holding the given values.
     let ofList (s : list<'T>) =
-        lazy (IndexList.ofList s) |> ConstantList :> alist<_>
+        constant (fun () -> IndexList.ofList s)
         
     /// Creates an alist holding the given values.
     let ofArray (s : 'T[]) =
-        lazy (IndexList.ofArray s) |> ConstantList :> alist<_>
+        constant (fun () -> IndexList.ofArray s)
         
     /// Creates an alist holding the given values. `O(1)`
     let ofIndexList (elements : IndexList<'T>) =
-        ConstantList(lazy elements) :> alist<_>
-
-    /// Creates an alist using the given reader-creator.
-    let ofReader (creator : unit -> #IOpReader<IndexListDelta<'T>>) =
-        create creator
+        constant (fun () -> elements)
 
     /// Creates an alist from the given adaptive content
     let ofAVal (value: aval<#seq<'T>>) =
         if value.IsConstant then
             constant (fun () -> IndexList.ofSeq (AVal.force value))
         else
-            create (fun () -> AValReader(value))
-
+            ofReader (fun () -> AValReader(value))
 
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
     let mapi (mapping: Index -> 'T1 -> 'T2) (list : alist<'T1>) =
@@ -1007,9 +1023,9 @@ module AList =
         else
             match list.History with
             | Some history ->
-                create (fun () -> history.NewReader(IndexList.trace, MapReader.DeltaMapping mapping))
+                ofReader (fun () -> history.NewReader(IndexList.trace, MapReader.DeltaMapping mapping))
             | None -> 
-                create (fun () -> MapReader(list, mapping))
+                ofReader (fun () -> MapReader(list, mapping))
 
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
     let map (mapping: 'T1 -> 'T2) (list : alist<'T1>) =
@@ -1018,10 +1034,10 @@ module AList =
         else
             match list.History with
             | Some history ->
-                create (fun () -> history.NewReader(IndexList.trace, MapReader.DeltaMapping (fun _ v -> mapping v)))
+                ofReader (fun () -> history.NewReader(IndexList.trace, MapReader.DeltaMapping (fun _ v -> mapping v)))
             | None -> 
                 // TODO: better implementation (caching possible since no Index needed)
-                create (fun () -> MapReader(list, fun _ -> mapping))
+                ofReader (fun () -> MapReader(list, fun _ -> mapping))
   
     /// Adaptively chooses all elements returned by mapping.  
     let choosei (mapping: Index -> 'T1 -> option<'T2>) (list: alist<'T1>) =
@@ -1030,9 +1046,9 @@ module AList =
         else
             match list.History with
             | Some history ->
-                create (fun () -> history.NewReader(IndexList.trace, ChooseReader.DeltaMapping mapping))
+                ofReader (fun () -> history.NewReader(IndexList.trace, ChooseReader.DeltaMapping mapping))
             | None -> 
-                create (fun () -> ChooseReader(list, mapping))
+                ofReader (fun () -> ChooseReader(list, mapping))
   
     /// Adaptively chooses all elements returned by mapping.  
     let choose (mapping: 'T1 -> option<'T2>) (list: alist<'T1>) =
@@ -1041,9 +1057,9 @@ module AList =
         else
             match list.History with
             | Some history ->
-                create (fun () -> history.NewReader(IndexList.trace, ChooseReader.DeltaMapping (fun _ v -> mapping v)))
+                ofReader (fun () -> history.NewReader(IndexList.trace, ChooseReader.DeltaMapping (fun _ v -> mapping v)))
             | None -> 
-                create (fun () -> ChooseReader(list, fun _ v -> mapping v))
+                ofReader (fun () -> ChooseReader(list, fun _ v -> mapping v))
 
     /// Adaptively filters the list using the given predicate.
     let filteri (predicate : Index -> 'T -> bool) (list: alist<'T>) =
@@ -1052,9 +1068,9 @@ module AList =
         else
             match list.History with
             | Some history ->
-                create (fun () -> history.NewReader(IndexList.trace, FilterReader.DeltaMapping predicate))
+                ofReader (fun () -> history.NewReader(IndexList.trace, FilterReader.DeltaMapping predicate))
             | None -> 
-                create (fun () -> FilterReader(list, predicate))
+                ofReader (fun () -> FilterReader(list, predicate))
         
     /// Adaptively filters the list using the given predicate.
     let filter (predicate : 'T -> bool) (list: alist<'T>) =
@@ -1063,9 +1079,9 @@ module AList =
         else
             match list.History with
             | Some history ->
-                create (fun () -> history.NewReader(IndexList.trace, FilterReader.DeltaMapping (fun _ v -> predicate v)))
+                ofReader (fun () -> history.NewReader(IndexList.trace, FilterReader.DeltaMapping (fun _ v -> predicate v)))
             | None -> 
-                create (fun () -> FilterReader(list, fun _ v -> predicate v))
+                ofReader (fun () -> FilterReader(list, fun _ v -> predicate v))
 
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.  
     let mapAi (mapping: Index -> 'T1 -> aval<'T2>) (list: alist<'T1>) =
@@ -1075,9 +1091,9 @@ module AList =
                 constant (fun () -> list |> IndexList.map AVal.force)
             else
                 // TODO better impl possible
-                create (fun () -> MapAReader(ofIndexList list, fun _ v -> v))
+                ofReader (fun () -> MapAReader(ofIndexList list, fun _ v -> v))
         else
-            create (fun () -> MapAReader(list, mapping))
+            ofReader (fun () -> MapAReader(list, mapping))
 
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.  
     let mapA (mapping: 'T1 -> aval<'T2>) (list: alist<'T1>) =
@@ -1091,9 +1107,9 @@ module AList =
                 constant (fun () -> list |> IndexList.choose AVal.force)
             else
                 // TODO better impl possible
-                create (fun () -> ChooseAReader(ofIndexList list, fun _ v -> v))
+                ofReader (fun () -> ChooseAReader(ofIndexList list, fun _ v -> v))
         else
-            create (fun () -> ChooseAReader(list, mapping))
+            ofReader (fun () -> ChooseAReader(list, mapping))
 
     /// Adaptively chooses all elements returned by mapping.  
     let chooseA (mapping: 'T1 -> aval<option<'T2>>) (list: alist<'T1>) =
@@ -1118,16 +1134,16 @@ module AList =
             if content |> Seq.forall (fun l -> l.IsConstant) then
                 constant (fun () -> content |> IndexList.collect force)
             else
-                create (fun () -> ConcatReader(content))
+                ofReader (fun () -> ConcatReader(content))
         else
-            create (fun () -> CollectReader(list, mapping))
+            ofReader (fun () -> CollectReader(list, mapping))
                      
     /// Adaptively applies the given mapping function to all elements and returns a new alist holding the concatenated results.
     let collect (mapping: 'T1 -> alist<'T2>) (list : alist<'T1>) =
         // TODO: better implementation possible (caching?)
         collecti (fun _ v -> mapping v) list
 
-    /// Adaptively creates an alist with the source-indices.
+    /// Adaptively ofReaders an alist with the source-indices.
     let indexed (list : alist<'T>) =
         list |> mapi (fun i v -> (i, v))
 
@@ -1139,7 +1155,7 @@ module AList =
         elif lists |> Seq.forall (fun l -> l.IsConstant) then
             constant (fun () -> lists |> IndexList.collect force)
         else
-            create (fun () -> ConcatReader(lists))
+            ofReader (fun () -> ConcatReader(lists))
 
     /// Adaptively concatenates the given lists.
     let append (l: alist<'T>) (r: alist<'T>) =
@@ -1154,7 +1170,7 @@ module AList =
         if value.IsConstant then
             value |> AVal.force |> mapping
         else
-            create (fun () -> BindReader(value, mapping))
+            ofReader (fun () -> BindReader(value, mapping))
 
     /// Sorts the list using the keys given by projection.
     /// Note that the sorting is stable.
@@ -1162,7 +1178,7 @@ module AList =
         if list.IsConstant then
             constant (fun () -> force list |> IndexList.sortByi projection)
         else
-            create (fun () -> SortByReader(list, projection))
+            ofReader (fun () -> SortByReader(list, projection))
             
     /// Sorts the list using the keys given by projection.
     /// Note that the sorting is stable.
@@ -1170,7 +1186,7 @@ module AList =
         if list.IsConstant then
             constant (fun () -> force list |> IndexList.sortBy projection)
         else
-            create (fun () -> SortByReader(list, fun _ v -> projection v))
+            ofReader (fun () -> SortByReader(list, fun _ v -> projection v))
 
     /// Sorts the list using the keys given by projection in descending order.
     /// Note that the sorting is stable.
@@ -1179,7 +1195,7 @@ module AList =
             constant (fun () -> force list |> IndexList.sortByDescendingi projection)
         else
             let inline projection i v = ReversedCompare(projection i v)
-            create (fun () -> SortByReader(list, projection))
+            ofReader (fun () -> SortByReader(list, projection))
             
     /// Sorts the list using the keys given by projection in descending order.
     /// Note that the sorting is stable.
@@ -1188,7 +1204,7 @@ module AList =
             constant (fun () -> force list |> IndexList.sortByDescending projection)
         else
             let inline projection _ v = ReversedCompare(projection v)
-            create (fun () -> SortByReader(list, projection))
+            ofReader (fun () -> SortByReader(list, projection))
 
     /// Sorts the list using the given compare function.
     /// Note that the sorting is stable.
@@ -1196,7 +1212,7 @@ module AList =
         if list.IsConstant then
             constant (fun () -> force list |> IndexList.sortWith compare)
         else
-            create (fun () -> SortWithReader(list, compare))
+            ofReader (fun () -> SortWithReader(list, compare))
 
     /// Sorts the list.
     let inline sort (list: alist<'T>) = sortWith compare list
@@ -1297,6 +1313,63 @@ module AList =
         let r = AdaptiveReduction.countPositive |> AdaptiveReduction.mapOut (fun v -> v <> 0)
         reduceByA r (fun _ v -> predicate v) list
 
+    let init (len: aval<int>) (initializer: int -> 'T) =
+        if len.IsConstant then
+            constant (fun () -> IndexList.init (AVal.force len) initializer)
+        else
+            ofReader (fun () -> InitReader(len, initializer))
+        
+    let inline range (lowerBound: aval< ^T >) (upperBound: aval< ^T >) =
+        if lowerBound.IsConstant && upperBound.IsConstant then
+            ofSeq (seq { AVal.force lowerBound .. AVal.force upperBound })
+        else
+            // Reader for range operation
+            // Must be inline via object expression since this is generic
+            ofReader (fun () -> 
+                let zero = LanguagePrimitives.GenericZero< ^T >
+                let one = LanguagePrimitives.GenericOne< ^T >
+                let minusOne = -one
+                let mutable lastMax = minusOne
+                let mutable lastMin = zero
+                let mutable idxs = IndexList.empty
+                { new AbstractReader<IndexListDelta< ^T >>(IndexListDelta.empty) with 
+                    override x.Compute(token) =
+                        let newMin = lowerBound.GetValue(token)
+                        let newMax = upperBound.GetValue(token)
+
+                        let (maxIncreaseLow, maxIncreaseHigh), 
+                            (maxDecreaseLow, maxDecreaseHigh),
+                            (minDecreaseLow, minDecreaseHigh),
+                            (minIncreaseLow, minIncreaseHigh) = 
+                              RangeDelta.rangeChange (lastMin, lastMax, newMin, newMax) 
+
+                        let mutable delta = IndexListDelta.empty
+                        
+                        // Count up through additions caused by increasing maximum
+                        for i in maxIncreaseLow .. maxIncreaseHigh do  
+                            idxs <- idxs.Add i
+                            delta <- delta.Add(IndexList.lastIndex idxs, Set i)
+
+                        // Count down through removals caused by decreasing maximum
+                        for i in maxDecreaseLow .. minusOne .. maxDecreaseHigh do  
+                            let lastMaxIdx = IndexList.lastIndex idxs
+                            delta <- delta.Add(lastMaxIdx, Remove)
+                            idxs <- IndexList.remove lastMaxIdx idxs 
+
+                        // Count down through additions caused by decreasing minimum
+                        for i in minDecreaseLow .. minusOne .. minDecreaseHigh do  
+                            idxs <- idxs.Prepend i
+                            delta <- delta.Add(IndexList.firstIndex idxs, Set i)
+
+                        // Count up through removals caused by increasing minimum
+                        for i in minIncreaseLow .. minIncreaseHigh do  
+                            let lastMinIdx = IndexList.firstIndex idxs
+                            delta <- delta.Add(lastMinIdx, Remove)
+                            idxs <- IndexList.remove lastMinIdx idxs 
+
+                        lastMax <- newMax
+                        lastMin <- newMin
+                        delta })
         
     /// Adaptively counts all elements fulfilling the predicate
     let countBy (predicate: 'a -> bool) (list: alist<'a>) =

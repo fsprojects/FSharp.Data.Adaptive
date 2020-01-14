@@ -111,7 +111,6 @@ module AList =
     let append (l : alist<'T>) (r : alist<'T>) =
         (l.Content, r.Content) ||> AVal.map2 IndexList.append |> ofRef
 
-
     let collecti (mapping: Index -> 'T1 -> alist<'T2>) (list: alist<'T1>) =
         list.Content |> AVal.map (IndexList.collecti (fun i v -> (mapping i v).Content |> AVal.force)) |> ofRef
         

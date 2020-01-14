@@ -701,3 +701,77 @@ let ``[AList] duplicate inner``() =
 
     for i in 1 .. 0 do
         randomChange()
+
+
+let checkReader (actual: alist<_>) expected = 
+    let reader = actual.GetReader()
+    fun () ->
+        reader.GetChanges AdaptiveToken.Top |> ignore
+        let actualValue = reader.State |> IndexList.toList
+
+        let expectedValue = expected()
+        if actualValue <> expectedValue then 
+            printfn "actual = %A, exp = %A" actualValue expectedValue
+            failwith "fail"
+        actualValue |> should equal expectedValue
+
+[<Test>]
+let ``[AList] init``() =
+    let len = cval 1
+    
+    let actual = AList.init len (fun i -> i + 1)
+    let expected () = List.init len.Value (fun i -> i + 1)
+    let check = checkReader actual expected
+
+    check ()
+
+    for i in [ 0 ; 4; 2; 1; 6; 6  ] do
+        transact (fun () -> len.Value <- i)
+        check()
+
+[<Test>]
+let ``[AList] range smoke``() =
+    let lower = cval 1
+    let upper = cval 1
+    
+    let actual =  AList.range lower upper
+    let expected () = [ lower.Value .. upper.Value ]
+    let check = checkReader actual expected
+
+    check ()
+    transact (fun () -> 
+        lower.Value <- 0
+        upper.Value <- 4
+    )
+    check()
+
+let inline AListRangeSystematic(low, high) =
+    let range = [ low .. high ]
+    for pl in range do
+        for pu in range do 
+           for l in range do 
+               for u in range do 
+                printfn "checking change from (%A .. %A) to (%A .. %A)" pl pu l u
+                let lower = cval pl
+                let upper = cval pu
+    
+                let actual =  AList.range lower upper
+                let expected () = [ lower.Value .. upper.Value ]
+                let check = checkReader actual expected
+
+                check ()
+                transact (fun () -> 
+                    lower.Value <- l
+                    upper.Value <- u
+                )
+                check()
+    printfn "checked %d cases" (range.Length * range.Length * range.Length * range.Length)
+
+[<Test>]
+let ``[AList] range systematic int32``() =
+    AListRangeSystematic(0, 4)
+
+[<Test>]
+let ``[AList] range systematic int64``() =
+    AListRangeSystematic(0L, 4L)
+

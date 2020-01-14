@@ -31,8 +31,10 @@ type IndexListDelta< [<EqualityConditionalOn>] 'T> internal(content : MapExt<Ind
 
     /// Returns all Index/Operation tuples from the list.
     member x.ToSeq() = content |> MapExt.toSeq
+
     /// Returns all Index/Operation tuples from the list.
     member x.ToList() = content |> MapExt.toList
+
     /// Returns all Index/Operation tuples from the list.
     member x.ToArray() = content |> MapExt.toArray
 
