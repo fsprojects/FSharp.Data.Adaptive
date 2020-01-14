@@ -6,10 +6,10 @@
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>..\..\bin\Debug\</OutputPath>
+    <OutputPath>..\..\..\bin\Debug\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>..\..\bin\Release\</OutputPath>
+    <OutputPath>..\..\..\bin\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Benchmarks\BenchUtils.fs" />
@@ -35,8 +35,8 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\FSharp.Data.Adaptive\FSharp.Data.Adaptive.fsproj" />
     <ProjectReference Include="..\FSharp.Data.Adaptive.Reference\FSharp.Data.Adaptive.Reference.fsproj" />
-    <ProjectReference Include="..\FSharp.Data.Adaptive\FSharp.Data.Adaptive.fsproj" />
   </ItemGroup>
-  <Import Project="..\..\.paket\Paket.Restore.targets" />
+  <Import Project="..\..\..\.paket\Paket.Restore.targets" />
 </Project>

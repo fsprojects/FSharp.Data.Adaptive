@@ -3357,7 +3357,7 @@ module internal HashMapImplementation =
 
 
 
-[<Struct; CustomEquality; NoComparison>]
+[<Struct; CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}")>]
 type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
     
     static member Empty = HashSet<'T>(EqualityComparer<'T>.Default :> IEqualityComparer<_>, HashSetEmpty.Instance)
@@ -3367,6 +3367,15 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
 
     member internal x.Root = root
     
+    member private x.AsString = x.ToString()
+
+    override x.ToString() =
+        if x.Count > 8 then
+            x |> Seq.take 8 |> Seq.map (sprintf "%A") |> String.concat "; " |> sprintf "HashSet [%s; ...]"
+        else
+            x |> Seq.map (sprintf "%A") |> String.concat "; " |> sprintf "HashSet [%s]"
+
+
     override x.GetHashCode() = 
         root.ComputeHash()
 
@@ -3411,6 +3420,16 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
             r <- r.AddInPlaceUnsafe(cmp, hash, v)
         HashSet<'T>(cmp, r)
         
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfArrayRange(elements: array<'T>, offset: int, length: int) =  
+        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
+        let mutable r = HashMapImplementation.HashSetEmpty.Instance 
+        for i in offset .. offset + length - 1 do
+            let v = elements.[i]
+            let hash = cmp.GetHashCode v |> uint32
+            r <- r.AddInPlaceUnsafe(cmp, hash, v)
+
+        HashSet<'T>(cmp, r)
     member inline x.ToSeq() =
         x :> seq<_>
     
@@ -3613,7 +3632,7 @@ and internal HashSetEnumerator<'T>(root: HashSetNode<'T>) =
         member x.Current = x.Current
 
 
-[<Struct; CustomEquality; NoComparison>]
+[<Struct; CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}")>]
 type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'K>, root: HashMapNode<'K, 'V>) =
 
     static member Empty = HashMap<'K, 'V>(EqualityComparer<'K>.Default :> IEqualityComparer<_>, HashMapEmpty.Instance)
@@ -3629,6 +3648,14 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
             match root.TryFindV(cmp, uint32 hash, k) with
             | ValueSome v -> v
             | ValueNone -> raise <| KeyNotFoundException()
+            
+    member private x.AsString = x.ToString()
+
+    override x.ToString() =
+        if x.Count > 8 then
+            x |> Seq.take 8 |> Seq.map (sprintf "%A") |> String.concat "; " |> sprintf "HashMap [%s; ...]"
+        else
+            x |> Seq.map (sprintf "%A") |> String.concat "; " |> sprintf "HashMap [%s]"
 
     override x.GetHashCode() = 
         root.ComputeHash()
@@ -3700,6 +3727,17 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
             let hash = cmp.GetHashCode k |> uint32
             r <- r.AddInPlaceUnsafe(cmp, hash, k, v)
         HashMap<'K, 'V>(cmp, r)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfArrayRangeV(elements: array<struct ('K * 'V)>, offset: int, length: int) =  
+        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
+        let mutable r = HashMapImplementation.HashMapEmpty.Instance 
+        for i in offset .. offset + length - 1 do
+            let struct (k, v) = elements.[i]
+            let hash = cmp.GetHashCode k |> uint32
+            r <- r.AddInPlaceUnsafe(cmp, hash, k, v)
+        HashMap<'K, 'V>(cmp, r)
+
 
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3996,7 +4034,7 @@ and internal HashMapStructEnumerator<'K, 'V>(root: HashMapNode<'K, 'V>) =
         member x.Dispose() = x.Dispose()
         member x.Current = x.Current
 
-
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module HashSet =
 
     /// The empty set.
@@ -4153,7 +4191,7 @@ module HashSet =
 
         HashSet<'T>.ApplyDelta(l, r, apply)
 
-
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module HashMap =
 
     /// The empty map.

@@ -420,7 +420,7 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
         let reader = new HistoryReader<'State, 'Delta, 'ViewState, 'ViewDelta>(x, (fun _ v -> mapping v), trace) 
         reader :> IOpReader<'ViewState, 'ViewDelta>
                    
-    interface AdaptiveValue with
+    interface IAdaptiveValue with
         member x.GetValueUntyped t = x.GetValue t :> obj
         member x.ContentType = 
             #if FABLE_COMPILER
@@ -429,7 +429,7 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
             typeof<'State>
             #endif
 
-    interface AdaptiveValue<'State> with
+    interface IAdaptiveValue<'State> with
         member x.GetValue t = x.GetValue t
 
     new (t: Traceable<'State, 'Delta>, finalize: 'Delta -> unit) = History<'State, 'Delta>(None, t, finalize)

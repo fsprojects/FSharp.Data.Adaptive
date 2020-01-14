@@ -7,7 +7,7 @@ type IHashMapReader<'Key,'Value> = IOpReader<HashMap<'Key,'Value>,HashMapDelta<'
 
 /// Adaptive map datastructure.
 [<Interface>]
-type AdaptiveHashMap<'Key,'Value> =
+type IAdaptiveHashMap<'Key,'Value> =
     /// is the map constant?
     abstract member IsConstant : bool
 
@@ -21,7 +21,7 @@ type AdaptiveHashMap<'Key,'Value> =
     abstract member History : option<History<HashMap<'Key, 'Value>, HashMapDelta<'Key, 'Value>>>
 
 /// Adaptive map datastructure.
-type amap<'Key,'Value> = AdaptiveHashMap<'Key,'Value>
+type amap<'Key,'Value> = IAdaptiveHashMap<'Key,'Value>
 
 /// Functional operators for amap<_,_>
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -53,6 +53,9 @@ module AMap =
     
     /// Creates an amap from the given set and takes an arbitrary value for duplicate entries.
     val ofASetIgnoreDuplicates : elements:aset<'Key * 'Value> -> amap<'Key, 'Value>
+    
+    /// Creates an amap using the given reader-creator.
+    val ofReader : create: (unit -> #IOpReader<HashMapDelta<'Key, 'Value>>) -> amap<'Key, 'Value>
 
     /// Creates an aval providing access to the current content of the map.
     val toAVal : map:amap<'Key, 'Value> -> aval<HashMap<'Key,'Value>>

@@ -3,7 +3,7 @@
 /// Changeable adaptive set that allows mutation by user-code and implements aset.
 [<Sealed>]
 type ChangeableHashSet<'T> =
-    interface AdaptiveHashSet<'T>
+    interface IAdaptiveHashSet<'T>
 
     /// The number of entries currently in the set.
     member Count: int

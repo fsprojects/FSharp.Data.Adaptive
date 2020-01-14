@@ -20,6 +20,10 @@ type SetOperation<'T>(value : 'T, cnt : int) =
         elif cnt < 0 then sprintf "Rem%d(%A)" -cnt value
         else "Nop"
 
+    static member Add(value: 'T) = SetOperation(value, 1)
+    static member Rem(value: 'T) = SetOperation(value, -1)
+
+
 /// Functional operators for SetOperation<_>
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module SetOperation =

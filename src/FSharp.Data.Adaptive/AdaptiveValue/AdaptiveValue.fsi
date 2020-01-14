@@ -3,7 +3,7 @@
 /// Represents a dependency-aware value that may change as changes are fed into the system.
 /// An AdaptiveValue cannot be changed directly but gets updated by the dependency graph. 
 [<Interface>]
-type AdaptiveValue =
+type IAdaptiveValue =
     inherit IAdaptiveObject
     
     /// Evaluates the AdaptiveValue using the given token and returns the current value.
@@ -18,22 +18,22 @@ type AdaptiveValue =
 /// An AdaptiveValue cannot be changed directly but gets updated by the dependency graph. 
 /// For changeable inputs see cval<'T>
 [<Interface>]
-type AdaptiveValue<'T> =
-    inherit AdaptiveValue
+type IAdaptiveValue<'T> =
+    inherit IAdaptiveValue
 
     /// Evaluates the AdaptiveValue<'T> using the given token and returns the current value.
     /// Dependencies will be tracked automatically when the token is correctly passed to all inner evaluation-calls.
     abstract member GetValue : token : AdaptiveToken -> 'T
 
 /// An abbreviation for AdaptiveValue
-and aval<'T> = AdaptiveValue<'T>
+and aval<'T> = IAdaptiveValue<'T>
 
 /// Represents an adaptive value that can be changed by application code and
 /// Used in dependency-aware computations.
 [<Sealed; Class>]
 type ChangeableValue<'T> =
     inherit AdaptiveObject
-    interface AdaptiveValue<'T>
+    interface IAdaptiveValue<'T>
 
     /// Gets or sets the current value.
     /// Setting the value requires a Transaction to be active using `transact`.
@@ -59,8 +59,8 @@ module AVal =
     [<AbstractClass>]
     type AbstractVal<'T> =
         inherit AdaptiveObject
-        interface AdaptiveValue
-        interface AdaptiveValue<'T>
+        interface IAdaptiveValue
+        interface IAdaptiveValue<'T>
         member GetValue : AdaptiveToken -> 'T
         abstract member Compute : AdaptiveToken -> 'T
         new : unit -> AbstractVal<'T>

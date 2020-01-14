@@ -8,7 +8,7 @@ type IHashSetReader<'T> =
 
 /// Adaptive set datastructure.
 [<Interface>]
-type AdaptiveHashSet<'T> =
+type IAdaptiveHashSet<'T> =
     /// Is the set constant?
     abstract member IsConstant : bool
 
@@ -22,7 +22,7 @@ type AdaptiveHashSet<'T> =
     abstract member History : option<History<CountingHashSet<'T>, HashSetDelta<'T>>>
 
 /// Adaptive set datastructure.
-and aset<'T> = AdaptiveHashSet<'T>
+and aset<'T> = IAdaptiveHashSet<'T>
 
 /// Functional operators for aset<_>
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

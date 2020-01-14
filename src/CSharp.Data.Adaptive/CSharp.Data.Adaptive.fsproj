@@ -3,18 +3,21 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>..\..\bin\Debug\</OutputPath>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>..\..\bin\Release\</OutputPath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>..\..\bin\Debug\</OutputPath>
+  </PropertyGroup>
   <ItemGroup>
-    <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="AdaptiveValue.fs" />
-    <Compile Include="AdaptiveHashSet.fs" />
-    <Compile Include="AdaptiveHashMap.fs" />
-    <Compile Include="AdaptiveIndexList.fs" />
+    <Compile Include="HashSet.fs" />
+    <Compile Include="HashMap.fs" />
+    <Compile Include="IndexList.fs" />
+    <Compile Include="Core.fs" />
+    <Compile Include="AVal.fs" />
+    <Compile Include="ASet.fs" />
+    <Compile Include="AList.fs" />
+    <Compile Include="AMap.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FSharp.Data.Adaptive\FSharp.Data.Adaptive.fsproj" />

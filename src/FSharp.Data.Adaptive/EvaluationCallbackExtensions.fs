@@ -7,7 +7,7 @@ open System.Runtime.CompilerServices
 [<AutoOpen>]
 /// Callback Extensions for adaptive datatypes.
 module EvaluationCallbackExtensions =
-    type AdaptiveValue with
+    type IAdaptiveValue with
         /// Adds a disposable callback to the aval that will be executed whenever the
         /// avals value changed.
         member value.AddCallback(action: obj -> unit) =
@@ -32,7 +32,7 @@ module EvaluationCallbackExtensions =
 
             sub
 
-    type AdaptiveValue<'T> with
+    type IAdaptiveValue<'T> with
         /// Adds a disposable callback to the aval that will be executed whenever the
         /// avals value changed.
         member value.AddCallback(action: 'T -> unit) =
@@ -81,7 +81,7 @@ module EvaluationCallbackExtensions =
 
             sub
 
-    type AdaptiveHashSet<'T> with
+    type IAdaptiveHashSet<'T> with
         /// Adds a disposable callback to the aset that will be executed whenever
         /// changes happen to the aset. The given action will be called with the
         /// asets state prior to the change and all changes applied to that state.
@@ -90,7 +90,7 @@ module EvaluationCallbackExtensions =
             reader.AddCallback(action)
 
         
-    type AdaptiveHashMap<'Key, 'Value> with
+    type IAdaptiveHashMap<'Key, 'Value> with
         /// Adds a disposable callback to the amap that will be executed whenever
         /// changes happen to the amap. The given action will be called with the
         /// amaps state prior to the change and all changes applied to that state.
@@ -98,7 +98,7 @@ module EvaluationCallbackExtensions =
             let reader = value.GetReader()
             reader.AddCallback(action)
 
-    type AdaptiveIndexList<'T> with
+    type IAdaptiveIndexList<'T> with
         /// Adds a disposable callback to the alist that will be executed whenever
         /// changes happen to the alist. The given action will be called with the
         /// alists state prior to the change and all changes applied to that state.

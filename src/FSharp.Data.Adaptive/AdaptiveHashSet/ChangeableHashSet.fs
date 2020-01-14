@@ -68,7 +68,7 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
     member x.GetReader() : IHashSetReader<'T> =
         history.NewReader()
 
-    interface AdaptiveHashSet<'T> with
+    interface IAdaptiveHashSet<'T> with
         member x.IsConstant = false
         member x.GetReader() = x.GetReader()
         member x.Content = content

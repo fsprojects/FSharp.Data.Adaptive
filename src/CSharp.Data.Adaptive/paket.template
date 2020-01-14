@@ -1,0 +1,7 @@
+type project
+authors fsprojects
+owners fsprojects
+projectUrl https://github.com/fsprojects/FSharp.Data.Adaptive
+licenseUrl https://raw.githubusercontent.com/fsprojects/FSharp.Data.Adaptive/master/LICENSE
+description
+    CSharp.Data.Adaptive provides C# friendly bindings for FSharp.Data.Adaptive
