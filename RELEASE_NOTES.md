@@ -1,3 +1,7 @@
+### 0.0.13
+* building with lowest matching FSharp.Core version
+* avoiding C#-project problems
+
 ### 0.0.12
 * added CSharp.Data.Adaptive package template
 

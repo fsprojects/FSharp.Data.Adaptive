@@ -10,9 +10,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\..\..\bin\Debug\</OutputPath>
   </PropertyGroup>
-  <Import Project="..\..\..\.paket\Paket.Restore.targets" />
   <ItemGroup>
     <ProjectReference Include="..\..\CSharp.Data.Adaptive\CSharp.Data.Adaptive.fsproj" />
     <ProjectReference Include="..\..\FSharp.Data.Adaptive\FSharp.Data.Adaptive.fsproj" />
   </ItemGroup>
+  <Import Project="..\..\..\.paket\Paket.Restore.targets" />
 </Project>

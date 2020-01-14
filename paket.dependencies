@@ -1,10 +1,10 @@
-version 5.236.4 
+version 6.0.0-alpha014
 source https://api.nuget.org/v3/index.json
 redirects: off
 storage: none
 framework: auto-detect
 
-nuget FSharp.Core                           >= 4.6.2
+nuget FSharp.Core                           >= 4.6.2 lowest_matching: true
 nuget System.Reflection.Emit.Lightweight    ~> 4.6.0
 
 # Tests : intentionally in main group
@@ -21,6 +21,7 @@ nuget Fable.Core                            ~> 3.1.1
 nuget Fable.Browser.Dom                     ~> 1.1.0
 
 group Build
+  framework: netcoreapp2.0
   source https://api.nuget.org/v3/index.json
   nuget fake-cli ~> 5.16.1
   nuget Fake.DotNet.Cli ~> 5.16.1
