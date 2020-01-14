@@ -1,3 +1,6 @@
+### 0.0.12
+* added CSharp.Data.Adaptive package template
+
 ### 0.0.11
 * Transaction performance improvements
 
