@@ -67,8 +67,8 @@ type GitRemoteStatus =
     }
 
 
-    member x.remoteAhead = x.mergeBase = x.local
-    member x.localAhead = x.mergeBase = x.remote
+    member x.remoteAhead = not x.isSync && x.mergeBase = x.local
+    member x.localAhead = not x.isSync && x.mergeBase = x.remote
     member x.isSync = x.local = x.remote
 
     static member TryGet (repoDir : string) =
