@@ -18,6 +18,95 @@ let notes = ReleaseNotes.load "RELEASE_NOTES.md"
 let isWindows =
     Environment.OSVersion.Platform <> PlatformID.Unix && Environment.OSVersion.Platform <> PlatformID.MacOSX
 
+
+
+type GitDescription =
+    {
+        tag             : string
+        commitsSince    : int
+        dirty           : bool
+        objectName      : string
+    }
+
+    static member TryParse(description : string) =
+        let rx = Regex @"^(.*?)-([0-9]+)-g(.*?)(-dirty)?$"
+        let m = rx.Match description
+        if m.Success then
+            let tag = m.Groups.[1].Value
+            let commitsSince = m.Groups.[2].Value |> int
+            let objectName = m.Groups.[3].Value
+            let dirty = m.Groups.[4].Success
+            Some { tag = tag; commitsSince = commitsSince; dirty = dirty; objectName = objectName }
+        else
+            None
+
+    static member TryGet (repoDir : string) =
+        let success, lines, err = Git.CommandHelper.runGitCommand repoDir "describe --tags --long --always --dirty"
+        match lines with
+        | d :: _ when success ->
+            match GitDescription.TryParse d with
+            | Some desc -> Ok desc
+            | None -> Error err
+        | _ ->
+            Error err
+        
+    static member Get (repoDir : string) =
+        match GitDescription.TryGet repoDir with
+        | Ok desc -> desc
+        | Error err ->
+            Trace.traceErrorfn "%s" err
+            failwithf "git could not get information: %s" err
+     
+     
+type GitRemoteStatus =
+    {
+        branch    : string
+        remote    : string
+        local     : string
+        mergeBase : string
+    }
+
+
+    member x.remoteAhead = x.mergeBase = x.local
+    member x.localAhead = x.mergeBase = x.remote
+
+    static member TryGet (repoDir : string) =
+        Git.CommandHelper.directRunGitCommandAndFail repoDir "fetch"
+        let branch = Git.Information.getBranchName repoDir
+
+        match Git.CommandHelper.runGitCommand repoDir (sprintf "rev-parse %s" branch) with
+        | true, [localName], _ ->
+            match Git.CommandHelper.runGitCommand repoDir (sprintf "rev-parse origin/%s" branch) with
+            | true, [remoteName], _ ->
+                match Git.CommandHelper.runGitCommand repoDir (sprintf "merge-base %s origin/%s" branch branch) with
+                | true, [mergeBase], _ ->
+                    Ok {
+                        branch = branch
+                        remote = remoteName
+                        local = localName
+                        mergeBase = mergeBase
+                    }
+                | _, _, err ->
+                    Error err
+            | _, _, _ ->
+                Ok {
+                    branch = branch
+                    remote = "empty"
+                    local = localName
+                    mergeBase = "empty"
+                }
+        | _, _, err ->
+            Error err
+
+    static member Get(repoDir : string) =
+        match GitRemoteStatus.TryGet repoDir with
+        | Ok status -> status
+        | Error err -> failwithf "git could not get remote status: %s" err
+
+
+
+
+
 Target.create "Clean" (fun _ ->
     if Directory.Exists "bin/Debug" then
         Trace.trace "deleting bin/Debug"
@@ -129,6 +218,33 @@ Target.create "Pack" (fun _ ->
     )
 )
 
+Target.create "CheckPush" (fun _ ->
+
+    let desc = GitDescription.Get "."
+    let newTag = notes.NugetVersion
+
+    if desc.dirty then
+        Git.Information.showStatus "."
+        failwith "repo not clean (please commit your changes)"
+
+    let status = GitRemoteStatus.Get "."
+
+    if status.remoteAhead then
+        failwithf "remote branch %s contains new commits (please pull)" status.branch
+    elif status.localAhead then
+        Trace.traceImportantfn "local branch %s contains new commits. would you like to push it? (y|N)" status.branch
+        let answer = Console.ReadLine().Trim().ToLower()
+        match answer with
+        | "y" -> Git.CommandHelper.directRunGitCommandAndFail "." (sprintf "push origin %s" status.branch)
+        | _ -> failwithf "local branch %s contains new commits." status.branch
+
+    if desc.tag = newTag && desc.commitsSince > 0 then
+        failwithf "cannot push package version %s since current head is %d commits ahead of the tag" newTag desc.commitsSince 
+
+
+    
+)
+
 Target.create "Push" (fun _ ->
     let packageNameRx = Regex @"^(?<name>[a-zA-Z_0-9\.-]+?)\.(?<version>([0-9]+\.)*[0-9]+.*?)\.nupkg$"
     
@@ -137,51 +253,58 @@ Target.create "Push" (fun _ ->
         failwith "repo not clean"
 
     
-    if File.exists "deploy.targets" then
-        let packages =
-            !!"bin/*.nupkg"
-            |> Seq.filter (fun path ->
-                let name = Path.GetFileName path
-                let m = packageNameRx.Match name
-                if m.Success then
-                    m.Groups.["version"].Value = notes.NugetVersion
-                else
-                    false
-            )
-            |> Seq.toList
+    let packages =
+        !!"bin/*.nupkg"
+        |> Seq.filter (fun path ->
+            let name = Path.GetFileName path
+            let m = packageNameRx.Match name
+            if m.Success then
+                m.Groups.["version"].Value = notes.NugetVersion
+            else
+                false
+        )
+        |> Seq.toList
 
-        let targetsAndKeys =
-            File.ReadAllLines "deploy.targets"
-            |> Array.map (fun l -> l.Split(' '))
-            |> Array.choose (function [|dst; key|] -> Some (dst, key) | _ -> None)
-            |> Array.choose (fun (dst, key) ->
-                let path = 
-                    Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                        ".ssh",
-                        key
-                    )
-                if File.exists path then
-                    let key = File.ReadAllText(path).Trim()
-                    Some (dst, key)
-                else
-                    None
-            )
-            |> Map.ofArray
+    let targetsAndKeys =
+        (if File.Exists "deploy.targets" then File.ReadAllLines "deploy.targets" else [||])
+        |> Array.map (fun l -> l.Split(' '))
+        |> Array.choose (function [|dst; key|] -> Some (dst, key) | _ -> None)
+        |> Array.choose (fun (dst, key) ->
+            let path = 
+                Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ".ssh",
+                    key
+                )
+            if File.exists path then
+                let key = File.ReadAllText(path).Trim()
+                Some (dst, key)
+            else
+                None
+        )
+        |> Map.ofArray
             
-        
-        Git.CommandHelper.directRunGitCommandAndFail "." "fetch --tags"
-        Git.Branches.tag "." notes.NugetVersion
+    if List.isEmpty packages then
+        failwith "no packages produced"
 
+    if Map.isEmpty targetsAndKeys then
+        failwith "no deploy targets"
+            
+
+    Git.CommandHelper.directRunGitCommandAndFail "." "fetch --tags"
+
+    try Git.Branches.tag "." notes.NugetVersion
+    with _ -> Trace.tracefn "tag %s already exists" notes.NugetVersion
+
+    let desc = GitDescription.Get "."
+    if not desc.dirty && desc.commitsSince = 0 then
         let branch = Git.Information.getBranchName "."
-        Git.Branches.pushBranch "." "origin" branch
 
-        if List.isEmpty packages then
-            failwith "no packages produced"
+        try Git.Branches.pushBranch "." "origin" branch
+        with _ ->
+            Trace.traceErrorfn "could not push %s" branch
+            reraise()
 
-        if Map.isEmpty targetsAndKeys then
-            failwith "no deploy targets"
-            
         for (dst, key) in Map.toSeq targetsAndKeys do
             Trace.tracefn "pushing to %s" dst
             let options (o : Paket.PaketPushParams) =
@@ -193,7 +316,10 @@ Target.create "Push" (fun _ ->
 
             Paket.pushFiles options packages
 
-        Git.Branches.pushTag "." "origin" notes.NugetVersion
+        try Git.Branches.pushTag "." "origin" notes.NugetVersion
+        with _ ->
+            Trace.traceErrorfn "could not push tag %s: PLEASE PUSH MANUALLY" notes.NugetVersion
+            reraise()
     ()
 )
 
@@ -207,8 +333,6 @@ Target.create "RunTest" (fun _ ->
         }
     DotNet.test options "FSharp.Data.Adaptive.sln"
 )
-
-Target.create "Test" (fun _ -> ())
 
 Target.create "Default" ignore
 
@@ -296,17 +420,27 @@ Target.create "ReleaseDocs" (fun _ ->
     "GenerateDocs" ==> 
     "ReleaseDocs"
 
-"RunTest" ==> "Test"
 
-"Compile" ==> 
-    "Test" ==> 
-    "Pack" ==>
-    "Push"
+"CheckPush" ?=> "Compile"
+"Compile" ?=> "RunTest"
+"RunTest" ?=> "Pack"
 
-"Compile" ==> 
-    "Test" ==>
-    "Default"
+"Compile" ==> "Pack"
 
+"Pack" ==> "Push"
+"RunTest" ==> "Push"
+"CheckPush" ==> "Push"
+
+"Compile" ==> "Default"
+"RunTest" ==> "Default"
+
+
+
+Target.create "Sepp" (fun _ ->
+    let d = GitDescription.Get "."
+    Trace.tracefn "info: %A" d
+        
+)
 
 Target.runOrDefault "Default"
 
