@@ -246,6 +246,48 @@ Target.create "CheckPush" (fun _ ->
     
 )
 
+let releaseGithub() =
+    let packageNameRx = Regex @"^(?<name>[a-zA-Z_0-9\.-]+?)\.(?<version>([0-9]+\.)*[0-9]+.*?)\.nupkg$"
+    
+    let packages =
+        !!"bin/*.nupkg"
+        |> Seq.filter (fun path ->
+            let name = Path.GetFileName path
+            let m = packageNameRx.Match name
+            if m.Success then
+                m.Groups.["version"].Value = notes.NugetVersion
+            else
+                false
+        )
+        |> Seq.toList
+
+    let token =
+        let path = 
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".ssh",
+                "github.token"
+            )
+        if File.Exists path then File.ReadAllText path |> Some
+        else None
+
+    match token with
+    | Some token -> 
+        Fake.Api.GitHub.createClientWithToken token
+        |> Fake.Api.GitHub.createRelease "fsprojects" "FSharp.Data.Adaptive" notes.NugetVersion (fun p ->
+            { p with
+                Draft = true
+                Prerelease = notes.SemVer.PreRelease |> Option.isSome
+                Body = String.concat "\r\n" notes.Notes
+            }
+        )
+        |> Fake.Api.GitHub.uploadFiles packages
+        |> Fake.Api.GitHub.publishDraft
+        |> Async.RunSynchronously
+    | None ->
+        ()
+
+
 Target.create "Push" (fun _ ->
     let packageNameRx = Regex @"^(?<name>[a-zA-Z_0-9\.-]+?)\.(?<version>([0-9]+\.)*[0-9]+.*?)\.nupkg$"
     
@@ -340,8 +382,12 @@ Target.create "Push" (fun _ ->
                 with _ ->
                     Trace.traceErrorfn "could not push tag %s: PLEASE PUSH MANUALLY" notes.NugetVersion
                     reraise()
-    ()
+
+                releaseGithub()
 )
+
+
+
 
 Target.create "RunTest" (fun _ ->
     let options (o : DotNet.TestOptions) =
@@ -452,6 +498,7 @@ Target.create "ReleaseDocs" (fun _ ->
 "Pack" ==> "Push"
 "RunTest" ==> "Push"
 "CheckPush" ==> "Push"
+
 
 "Compile" ==> "Default"
 "RunTest" ==> "Default"

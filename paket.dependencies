@@ -21,6 +21,7 @@ nuget Fable.Core                            ~> 3.1.1
 nuget Fable.Browser.Dom                     ~> 1.1.0
 
 group Build
+  framework: netstandard2.0
   source https://api.nuget.org/v3/index.json
   nuget fake-cli ~> 5.16.1
   nuget Fake.DotNet.Cli ~> 5.16.1
@@ -28,6 +29,7 @@ group Build
   nuget Fake.DotNet.Paket ~> 5.16.1
   nuget Fake.Core.ReleaseNotes ~> 5.16.1
   nuget Fake.Tools.Git ~> 5.16.1
+  nuget Fake.Api.GitHub ~> 5.16.1
 
 group Docs
   framework: net461
