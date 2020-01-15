@@ -3395,12 +3395,16 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfSeq(elements: seq<'T>) =  
-        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
-        let mutable r = HashMapImplementation.HashSetEmpty.Instance 
-        for v in elements do
-            let hash = cmp.GetHashCode v |> uint32
-            r <- r.AddInPlaceUnsafe(cmp, hash, v)
-        HashSet<'T>(cmp, r)
+        match elements with
+        | :? HashSet<'T> as set ->
+            set
+        | _ ->
+            let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
+            let mutable r = HashMapImplementation.HashSetEmpty.Instance 
+            for v in elements do
+                let hash = cmp.GetHashCode v |> uint32
+                r <- r.AddInPlaceUnsafe(cmp, hash, v)
+            HashSet<'T>(cmp, r)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfList(elements: list<'T>) =  
@@ -3674,13 +3678,17 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         HashMap(cmp, HashMapNoCollisionLeaf.New(uint32 (cmp.GetHashCode key), key, value))
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member OfSeq(elements: seq<'K * 'V>) =  
-        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
-        let mutable r = HashMapImplementation.HashMapEmpty.Instance 
-        for (k, v) in elements do
-            let hash = cmp.GetHashCode k |> uint32
-            r <- r.AddInPlaceUnsafe(cmp, hash, k, v)
-        HashMap<'K, 'V>(cmp, r)
+    static member OfSeq(elements: seq<'K * 'V>) = 
+        match elements with
+        | :? HashMap<'K, 'V> as map ->
+            map
+        | _ -> 
+            let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
+            let mutable r = HashMapImplementation.HashMapEmpty.Instance 
+            for (k, v) in elements do
+                let hash = cmp.GetHashCode k |> uint32
+                r <- r.AddInPlaceUnsafe(cmp, hash, k, v)
+            HashMap<'K, 'V>(cmp, r)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfList(elements: list<'K * 'V>) =  
