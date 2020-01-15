@@ -291,7 +291,7 @@ module internal Reductions =
 /// Internal implementations for alist operations.
 module internal AdaptiveIndexListImplementation =
 
-    let inline checkTag (value : 'a) (real : obj) = Unchecked.equals (value :> obj) real
+    let inline checkTag (value : 'a) (real : obj) = DefaultEquality.equals (value :> obj) real
     
     /// Core implementation for a dependent list.
     type AdaptiveIndexListImpl<'T>(ofReaderReader : unit -> IOpReader<IndexListDelta<'T>>) =
@@ -549,7 +549,7 @@ module internal AdaptiveIndexListImplementation =
         let reader = input.GetReader()
         do reader.Tag <- "input"
         let mapping = OptimizedClosures.FSharpFunc<Index, 'a, aval<option<'b>>>.Adapt mapping
-        let keys = UncheckedHashSet.create<Index>()
+        let keys = DefaultHashSet.create<Index>()
         let cache = Cache (fun (a,b) ->  mapping.Invoke(a,b))
         let mutable targets = MultiSetMap.empty<aval<option<'b>>, Index>
         let mutable dirty = IndexList.empty<aval<option<'b>>>
@@ -628,7 +628,7 @@ module internal AdaptiveIndexListImplementation =
     type MultiReader<'a>(mapping : IndexMapping<Index * Index>, list : alist<'a>, release : alist<'a> -> unit) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
             
-        let targets = UncheckedHashSet.create<Index>()
+        let targets = DefaultHashSet.create<Index>()
 
         let mutable reader = None
 
@@ -714,8 +714,8 @@ module internal AdaptiveIndexListImplementation =
         inherit AbstractDirtyReader<MultiReader<'b>, IndexListDelta<'b>>(IndexListDelta.monoid, checkTag "MultiReader")
             
         let mapping = IndexMapping<Index * Index>()
-        let cache = UncheckedDictionary.create<Index, 'a * alist<'b>>()
-        let readers = UncheckedDictionary.create<alist<'b>, MultiReader<'b>>()
+        let cache = DefaultDictionary.create<Index, 'a * alist<'b>>()
+        let readers = DefaultDictionary.create<alist<'b>, MultiReader<'b>>()
         let input = input.GetReader()
 
         let removeReader (l : alist<'b>) =
@@ -733,7 +733,7 @@ module internal AdaptiveIndexListImplementation =
         member x.Invoke (dirty : System.Collections.Generic.HashSet<MultiReader<'b>>, i : Index, v : 'a) =
             match cache.TryGetValue(i) with
             | (true, (oldValue, oldList)) ->
-                if Unchecked.equals oldValue v then
+                if DefaultEquality.equals oldValue v then
                     let r = getReader(oldList)
                     dirty.Add r |> ignore
                     IndexListDelta.empty
@@ -876,7 +876,7 @@ module internal AdaptiveIndexListImplementation =
 
         let reader = input.GetReader()
         let idx = IndexMapping<('b * Index)>()
-        let cache = UncheckedDictionary.create<Index, 'b>()
+        let cache = DefaultDictionary.create<Index, 'b>()
 
         override x.Compute(token : AdaptiveToken) =
             reader.GetChanges(token).Content

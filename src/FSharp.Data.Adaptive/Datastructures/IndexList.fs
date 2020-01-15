@@ -9,12 +9,12 @@ type internal ReversedCompare<'a when 'a : comparison>(value : 'a) =
     member x.Value = value
 
     override x.GetHashCode() =
-        Unchecked.hash value
+        DefaultEquality.hash value
 
     override x.Equals o =
         match o with
         | :? ReversedCompare<'a> as o -> 
-            Unchecked.equals value o.Value
+            DefaultEquality.equals value o.Value
         | _ -> 
             false
 
@@ -217,7 +217,7 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
 
     /// Tries to find the smallest index for the given element.
     member x.TryFind(element : 'T) : option<Index> =
-        match content |> MapExt.toSeq |> Seq.tryFind (fun (k,v) -> Unchecked.equals v element) with
+        match content |> MapExt.toSeq |> Seq.tryFind (fun (k,v) -> DefaultEquality.equals v element) with
         | Some (k, v) -> Some k
         | _ -> None
 
@@ -311,7 +311,7 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
 
     /// Tries to find the position for the given entry or -1 if the entry does not exist. O(N)
     member x.IndexOf(item : 'T) =
-        x |> Seq.tryFindIndex (Unchecked.equals item) |> Option.defaultValue -1
+        x |> Seq.tryFindIndex (DefaultEquality.equals item) |> Option.defaultValue -1
 
     /// Tries to find the position for the given Index or -1 if the Index does not exist. O(N)
     member x.IndexOf(index : Index) =
@@ -321,7 +321,7 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
         member x.Add(v) = raise (NotSupportedException("IndexList cannot be mutated"))
         member x.Clear() = raise (NotSupportedException("IndexList cannot be mutated"))
         member x.Remove(v) = raise (NotSupportedException("IndexList cannot be mutated"))
-        member x.Contains(v) = content |> MapExt.exists (fun _ vi -> Unchecked.equals vi v)
+        member x.Contains(v) = content |> MapExt.exists (fun _ vi -> DefaultEquality.equals vi v)
         member x.CopyTo(arr,i) = x.CopyTo(arr, i)
         member x.IsReadOnly = true
         member x.Count = x.Count

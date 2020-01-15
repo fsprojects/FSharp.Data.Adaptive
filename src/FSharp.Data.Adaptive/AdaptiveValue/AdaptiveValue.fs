@@ -21,7 +21,7 @@ type ChangeableValue<'T>(value : 'T) =
     member x.Value
         with get() = value
         and set v =
-            if not (Unchecked.equals value v) then
+            if not (DefaultEquality.equals value v) then
                 value <- v
                 x.MarkOutdated()
                 
@@ -31,7 +31,7 @@ type ChangeableValue<'T>(value : 'T) =
         )
 
     member x.UpdateTo(newValue: 'T) =
-        if not (Unchecked.equals value newValue) then
+        if not (DefaultEquality.equals value newValue) then
             value <- newValue
             x.MarkOutdated()
         
@@ -149,14 +149,14 @@ module AVal =
 
         override x.GetHashCode() =
             let value = x.GetValue()
-            Unchecked.hash value
+            DefaultEquality.hash value
 
         override x.Equals o =
             match o with
             | :? ConstantVal<'T> as o -> 
                 let xv = x.GetValue()
                 let ov = o.GetValue()
-                Unchecked.equals xv ov
+                DefaultEquality.equals xv ov
             | _ ->
                 false
     /// Aval for mapping a single value

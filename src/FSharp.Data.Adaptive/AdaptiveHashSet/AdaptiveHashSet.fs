@@ -273,7 +273,7 @@ module SetReductions =
 /// Internal implementations for aset operations.
 module AdaptiveHashSetImplementation =
 
-    let inline checkTag (value : 'a) (real : obj) = Unchecked.equals (value :> obj) real
+    let inline checkTag (value : 'a) (real : obj) = DefaultEquality.equals (value :> obj) real
     
     /// Core implementation for a dependent set.
     type AdaptiveHashSetImpl<'T>(createReader : unit -> IOpReader<HashSetDelta<'T>>) =
@@ -608,7 +608,7 @@ module AdaptiveHashSetImplementation =
         do r.Tag <- "Input"
 
         let mutable initial = true
-        let cache = UncheckedDictionary.create<aval<'T>, 'T>()
+        let cache = DefaultDictionary.create<aval<'T>, 'T>()
 
         member x.Invoke(token : AdaptiveToken, m : aval<'T>) =
             let v = m.GetValue token
@@ -642,7 +642,7 @@ module AdaptiveHashSetImplementation =
 
             for d in dirty do
                 let o, n = x.Invoke2(token, d)
-                if not (Unchecked.equals o n) then
+                if not (DefaultEquality.equals o n) then
                     deltas <- HashSetDelta.combine deltas (HashSetDelta.ofList [Add n; Rem o])
 
             deltas
@@ -655,7 +655,7 @@ module AdaptiveHashSetImplementation =
         let reader = input.GetReader()
         do reader.Tag <- "Reader"
         let mapping = Cache mapping
-        let cache = UncheckedDictionary.create<aval<'B>, ref<int * 'B>>()
+        let cache = DefaultDictionary.create<aval<'B>, ref<int * 'B>>()
 
         member x.Invoke(token : AdaptiveToken, v : 'A) =
             let m = mapping.Invoke v
@@ -704,7 +704,7 @@ module AdaptiveHashSetImplementation =
 
             for d in dirty do
                 let o, n = x.Invoke2(token, d)
-                if not (Unchecked.equals o n) then
+                if not (DefaultEquality.equals o n) then
                     deltas <- HashSetDelta.combine deltas (HashSetDelta.ofList [Add n; Rem o])
 
             deltas
@@ -718,7 +718,7 @@ module AdaptiveHashSetImplementation =
 
         let f = Cache f
         let mutable initial = true
-        let cache = UncheckedDictionary.create<aval<option<'B>>, ref<int * option<'B>>>()
+        let cache = DefaultDictionary.create<aval<option<'B>>, ref<int * option<'B>>>()
 
         member x.Invoke(token : AdaptiveToken, v : 'A) =
             let m = f.Invoke v
@@ -789,7 +789,7 @@ module AdaptiveHashSetImplementation =
                         deltas
                         |> HashSetDelta.add (Rem o)
 
-                | Some o, Some n when not (Unchecked.equals o n) ->
+                | Some o, Some n when not (DefaultEquality.equals o n) ->
                     deltas <- 
                         deltas
                         |> HashSetDelta.add (Rem o)

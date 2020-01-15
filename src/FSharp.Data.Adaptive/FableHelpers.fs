@@ -1,36 +1,5 @@
 ﻿namespace FSharp.Data.Adaptive
 
-type UncheckedEqualityComparer<'T> private() =
-    static let cmp =
-        { new System.Collections.Generic.IEqualityComparer<'T> with
-            member __.GetHashCode(o : 'T) = Unchecked.hash o
-            member __.Equals(l : 'T, r : 'T) = Unchecked.equals l r
-        }
-    static member Instance = cmp
-
-type ReferenceEqualityComparer<'T when 'T : not struct> private() =
-    static let cmp =
-        { new System.Collections.Generic.IEqualityComparer<'T> with
-            member __.GetHashCode(o : 'T) = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode o
-            member __.Equals(l : 'T, r : 'T) = System.Object.ReferenceEquals(l, r)
-        }
-    static member Instance = cmp
-
-module UncheckedDictionary =
-    let inline create<'Key, 'Value> () =
-        System.Collections.Generic.Dictionary<'Key, 'Value>(UncheckedEqualityComparer<'Key>.Instance)
-
-module UncheckedHashSet =
-    let inline create<'T> () =
-        System.Collections.Generic.HashSet<'T>(UncheckedEqualityComparer<'T>.Instance)
-
-
-module ReferenceHashSet =
-    let inline create<'T when 'T : not struct> () =
-        System.Collections.Generic.HashSet<'T>(ReferenceEqualityComparer<'T>.Instance)
-
-
-
 #if FABLE_COMPILER
 namespace System.Collections.Generic
 

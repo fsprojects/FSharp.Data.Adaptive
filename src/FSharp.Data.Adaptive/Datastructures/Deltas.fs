@@ -45,7 +45,7 @@ module DifferentiationExtensions =
             let inline add _k v = Set v
             let inline remove _k _v = Remove
             let inline update _l o n =
-                if Unchecked.equals o n then ValueNone
+                if DefaultEquality.equals o n then ValueNone
                 else ValueSome (Set n)
 
             HashMap<'A, 'B>.ComputeDelta(l, r, add, update, remove) |> HashMapDelta
@@ -60,7 +60,7 @@ module DifferentiationExtensions =
                 | Set v ->
                     match o with
                     | ValueSome o ->
-                        if Unchecked.equals o v then struct (ValueSome v, ValueNone)
+                        if DefaultEquality.equals o v then struct (ValueSome v, ValueNone)
                         else struct(ValueSome v, ValueSome (Set v))
                     | ValueNone ->
                         struct(ValueSome v, ValueSome (Set v))
@@ -83,7 +83,7 @@ module DifferentiationExtensions =
                 | Set v ->
                     match o with
                     | ValueSome o ->
-                        if Unchecked.equals o v then struct (ValueSome v, ValueNone)
+                        if DefaultEquality.equals o v then struct (ValueSome v, ValueNone)
                         else struct(ValueSome v, ValueSome (Set v))
                     | ValueNone ->
                         struct(ValueSome v, ValueSome (Set v))
@@ -96,7 +96,7 @@ module DifferentiationExtensions =
             let inline add _ v = Set v
             let inline rem _ _ = Remove
             let inline update _ o n =
-                if Unchecked.equals o n then ValueNone
+                if DefaultEquality.equals o n then ValueNone
                 else ValueSome (Set n)
             let res = l.Content.ComputeDelta(r.Content, add, update, rem)
             IndexListDelta res

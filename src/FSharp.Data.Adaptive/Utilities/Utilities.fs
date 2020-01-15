@@ -152,10 +152,10 @@ module internal AdaptiveIndexListHelpers =
 
         member x.Value = value
 
-        override x.GetHashCode() = Unchecked.hash value
+        override x.GetHashCode() = DefaultEquality.hash value
         override x.Equals o =
             match o with
-            | :? UCmp<'a> as o -> Unchecked.equals value o.Value
+            | :? UCmp<'a> as o -> DefaultEquality.equals value o.Value
             | _ -> false
             
         member x.CompareTo(o : UCmp<'a>) = compare.Invoke(value, o.Value)
@@ -238,12 +238,12 @@ module internal AdaptiveIndexListHelpers =
             CustomIndexMapping(OptimizedClosures.FSharpFunc<_,_,_>.Adapt compare)
 
     type IndexCache<'a, 'b>(f : Index -> 'a -> 'b, release : 'b -> unit) =
-        let store = UncheckedDictionary.create<Index, 'a * 'b>()
+        let store = DefaultDictionary.create<Index, 'a * 'b>()
 
         member x.InvokeAndGetOld(i : Index, a : 'a) =
             match store.TryGetValue(i) with
                 | (true, (oa, old)) ->
-                    if Unchecked.equals oa a then
+                    if DefaultEquality.equals oa a then
                         None, old
                     else
                         let res = f i a
@@ -285,10 +285,10 @@ module internal AdaptiveIndexListHelpers =
 
         override x.ToString() = value.ToString()
 
-        override x.GetHashCode() = combineHash(Unchecked.hash value) id
+        override x.GetHashCode() = combineHash(DefaultEquality.hash value) id
         override x.Equals o =
             match o with
-            | :? Unique<'b> as o -> Unchecked.equals value o.Value && id = o.Id
+            | :? Unique<'b> as o -> DefaultEquality.equals value o.Value && id = o.Id
             | _ -> false
 
         interface IComparable with

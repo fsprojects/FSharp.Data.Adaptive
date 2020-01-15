@@ -1689,7 +1689,7 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
         let mutable res = 0
         for (KeyValue(x,y)) in this do
             res <- combineHash res (hash x)
-            res <- combineHash res (Unchecked.hash y)
+            res <- combineHash res (DefaultEquality.hash y)
         abs res
 
     override this.Equals(that) = 
@@ -1703,7 +1703,7 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
                 let rec loop () = 
                     let m1 = e1.MoveNext() 
                     let m2 = e2.MoveNext()
-                    (m1 = m2) && (not m1 || let e1c, e2c = e1.Current, e2.Current in ((e1c.Key = e2c.Key) && (Unchecked.equals e1c.Value e2c.Value) && loop()))
+                    (m1 = m2) && (not m1 || let e1c, e2c = e1.Current, e2.Current in ((e1c.Key = e2c.Key) && (DefaultEquality.equals e1c.Value e2c.Value) && loop()))
                 loop()
             | _ -> false
 
@@ -1738,7 +1738,7 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
     //    member __.Add(x) = ignore(x); raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"));
     //    member __.Clear() = raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"));
     //    member __.Remove(x) = ignore(x); raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"));
-    //    member s.Contains(x) = s.ContainsKey(x.Key) && Unchecked.equals s.[x.Key] x.Value
+    //    member s.Contains(x) = s.ContainsKey(x.Key) && DefaultEquality.equals s.[x.Key] x.Value
     //    member __.CopyTo(arr,i) = MapTree.copyToArray tree arr i
     //    member s.IsReadOnly = true
     //    member s.Count = s.Count

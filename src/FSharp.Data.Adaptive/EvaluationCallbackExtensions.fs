@@ -18,7 +18,7 @@ module EvaluationCallbackExtensions =
                     t.AddFinalizer(fun () ->
                         let v = value.GetValueUntyped AdaptiveToken.Top
                         match !last with
-                        | ValueSome o when Unchecked.equals o v -> 
+                        | ValueSome o when DefaultEquality.equals o v -> 
                             ()
                         | _ ->
                             last := ValueSome v
@@ -43,7 +43,7 @@ module EvaluationCallbackExtensions =
                     t.AddFinalizer(fun () ->
                         let v = AVal.force value
                         match !last with
-                        | ValueSome o when Unchecked.equals o v -> 
+                        | ValueSome o when DefaultEquality.equals o v -> 
                             ()
                         | _ ->
                             last := ValueSome v

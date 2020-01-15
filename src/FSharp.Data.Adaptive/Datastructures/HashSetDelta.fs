@@ -162,7 +162,7 @@ type HashSetDelta<'T>(store: HashMap<'T, int>) =
     override x.GetHashCode() = store.GetHashCode()
     override x.Equals o =
         match o with
-        | :? HashSetDelta<'T> as o -> Unchecked.equals store o.Store
+        | :? HashSetDelta<'T> as o -> DefaultEquality.equals store o.Store
         | _ -> false
             
 

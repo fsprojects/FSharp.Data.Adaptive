@@ -109,7 +109,7 @@ let ``[ASet] reference impl``() ({ sreal = real; sref = ref; sexpression = str; 
                             changeAll |> List.map (fun c -> c())
                         )
                     let v = check beforeChangeStr beforeChange latestChange
-                    if not (Unchecked.equals v lastValue) then
+                    if not (DefaultEquality.equals v lastValue) then
                         
                         printfn "  change %d => %A" effective v
                         lastValue <- v

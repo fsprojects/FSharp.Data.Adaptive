@@ -40,11 +40,11 @@ type HashMapDelta<'K, [<EqualityConditionalOn>] 'V>(store : HashMap<'K, ElementO
         sprintf "HashMapDelta [%s%s]" elements suffix
 
     override x.GetHashCode() =
-        Unchecked.hash store
+        DefaultEquality.hash store
 
     override x.Equals o =
         match o with
-        | :? HashMapDelta<'K, 'V> as o -> Unchecked.equals store o.Store
+        | :? HashMapDelta<'K, 'V> as o -> DefaultEquality.equals store o.Store
         | _ -> false
     /// Combines two DHashMaps to one.
     member x.Combine(other : HashMapDelta<'K, 'V>) =

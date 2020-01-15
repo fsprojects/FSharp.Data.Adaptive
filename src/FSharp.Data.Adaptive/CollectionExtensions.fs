@@ -89,7 +89,7 @@ module CollectionExtensions =
                     | Set v ->
                         match MapExt.tryFind i old with
                         | Some ov ->
-                            if Unchecked.equals v ov then Seq.empty
+                            if DefaultEquality.equals v ov then Seq.empty
                             else [Add v; Rem ov] :> seq<_>
                         | None ->
                             Seq.singleton (Add v)

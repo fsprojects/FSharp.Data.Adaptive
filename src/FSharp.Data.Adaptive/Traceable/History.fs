@@ -72,7 +72,7 @@ type AbstractReader<'State, 'Delta>(trace: Traceable<'State, 'Delta>) =
 type AbstractDirtyReader<'T, 'Delta when 'T :> IAdaptiveObject>(t: Monoid<'Delta>, take : obj -> bool) =
     inherit AdaptiveObject()
 
-    let dirty = ref <| UncheckedHashSet.create<'T>()
+    let dirty = ref <| DefaultHashSet.create<'T>()
 
     override x.InputChangedObject(_, o) =
         #if FABLE_COMPILER
@@ -98,7 +98,7 @@ type AbstractDirtyReader<'T, 'Delta when 'T :> IAdaptiveObject>(t: Monoid<'Delta
                 let dirty = 
                     lock dirty (fun () ->
                         let d = !dirty
-                        dirty := UncheckedHashSet.create()
+                        dirty := DefaultHashSet.create()
                         d
                     )
                 x.Compute(token, dirty) |> x.Apply

@@ -435,7 +435,7 @@ type largeuint(data : uint32[]) =
     override x.GetHashCode() =
         let inline combine a b =
             uint32 a ^^^ uint32 b + 0x9e3779b9u + (uint32 a <<< 6) + (uint32 a >>> 2) |> int
-        data |> Array.fold (fun c v -> combine c (Unchecked.hash v)) 0
+        data |> Array.fold (fun c v -> combine c (DefaultEquality.hash v)) 0
 
     override x.Equals o =
         match o with

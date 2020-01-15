@@ -411,10 +411,10 @@ module AdaptiveHashMapImplementation =
         inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.empty)
 
         let reader = input.GetReader()
-        let livingKeys = UncheckedHashSet.create<'Key>()
+        let livingKeys = DefaultHashSet.create<'Key>()
 
         static member DeltaMapping (mapping : 'Key -> 'Value1 -> option<'Value2>) =
-            let livingKeys = UncheckedHashSet.create<'Key>()
+            let livingKeys = DefaultHashSet.create<'Key>()
             HashMapDelta.toHashMap >> HashMap.choose (fun k op ->
                 match op with
                 | Set v -> 
@@ -457,11 +457,11 @@ module AdaptiveHashMapImplementation =
 
         let reader = input.GetReader()
         let cache = Cache f
-        let livingKeys = UncheckedHashSet.create<'Key>()
+        let livingKeys = DefaultHashSet.create<'Key>()
 
         static member DeltaMapping (mapping : 'Value1 -> option<'Value2>) =
             let cache = Cache mapping
-            let livingKeys = UncheckedHashSet.create<'Key>()
+            let livingKeys = DefaultHashSet.create<'Key>()
             fun (oldState : HashMap<'Key, 'Value1>) (ops : HashMapDelta<'Key, 'Value1>) ->
                 ops.Store |> HashMap.choose (fun k op ->
                     match op with
@@ -585,7 +585,7 @@ module AdaptiveHashMapImplementation =
         let reader = input.GetReader()
         do reader.Tag <- "input"
         let mapping = OptimizedClosures.FSharpFunc<'k, 'a, aval<option<'b>>>.Adapt mapping
-        let keys = UncheckedHashSet.create<'k>()
+        let keys = DefaultHashSet.create<'k>()
         let cache = Cache (fun (a,b) -> mapping.Invoke(a,b))
         let mutable targets = MultiSetMap.empty<aval<option<'b>>, 'k>
         let mutable dirty = HashMap.empty<'k, aval<option<'b>>>
@@ -715,7 +715,7 @@ module AdaptiveHashMapImplementation =
             let v = value.GetValue token
             
             match oldValue with
-            | Some (ov, r) when Unchecked.equals ov v ->
+            | Some (ov, r) when DefaultEquality.equals ov v ->
                 r.GetChanges(token)
             | _ ->
                 let rem =
@@ -859,7 +859,7 @@ module AdaptiveHashMapImplementation =
         inherit AbstractReader<HashMapDelta<'Key, 'View>>(HashMapDelta.empty)
 
         let reader = input.GetReader()
-        let state = UncheckedDictionary.create<'Key, HashSet<'Value>>()
+        let state = DefaultDictionary.create<'Key, HashSet<'Value>>()
 
         override x.Compute (token : AdaptiveToken) =
             reader.GetChanges token |> Seq.choose (fun op ->

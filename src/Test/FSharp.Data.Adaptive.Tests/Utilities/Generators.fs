@@ -376,11 +376,11 @@ module Generators =
                 if typeof<'a> = typeof<HashMap<'k, 'v>> then
                     fun (v : HashMap<'k, 'v>) -> unbox v
                 elif typeof<'a> = typeof<string> then 
-                    fun (v : HashMap<'k, 'v>) -> string (Unchecked.hash v) |> unbox<'a>
+                    fun (v : HashMap<'k, 'v>) -> string (DefaultEquality.hash v) |> unbox<'a>
                 elif typeof<'a> = typeof<obj> then  
                     fun (v : HashMap<'k, 'v>) -> v :> obj |> unbox<'a>
                 elif typeof<'a> = typeof<int> then 
-                    fun (v : HashMap<'k, 'v>) -> Unchecked.hash v |> unbox<'a>
+                    fun (v : HashMap<'k, 'v>) -> DefaultEquality.hash v |> unbox<'a>
                 else
                     fun (v : HashMap<'k, 'v>) -> Arb.generate<'a> |> Gen.eval 1 (Random.newSeed())
 

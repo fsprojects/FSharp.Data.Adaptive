@@ -1275,10 +1275,10 @@ module internal HashMapImplementation =
         override x.LNext = x.Next
 
         override x.ComputeHash() =
-            let mutable vh = (Unchecked.hash x.Value)
+            let mutable vh = (DefaultEquality.hash x.Value)
             let mutable c = x.Next
             while not (isNull c) do
-                vh <- vh ^^^ (Unchecked.hash c.Value)
+                vh <- vh ^^^ (DefaultEquality.hash c.Value)
                 c <- c.Next
             combineHash (int x.Hash) vh
 
@@ -1584,7 +1584,7 @@ module internal HashMapImplementation =
         override x.LNext = null
         
         override x.ComputeHash() =
-            combineHash (int x.Hash) (Unchecked.hash x.Value)
+            combineHash (int x.Hash) (DefaultEquality.hash x.Value)
 
         override x.GetKeys() =
             HashSetNoCollisionLeaf.New(x.Hash, x.Key)
@@ -2161,7 +2161,7 @@ module internal HashMapImplementation =
                                 let struct(k, lv) = arr.Value.[i]
                                 match rr.TryRemove(cmp, hash, k) with
                                 | ValueSome (rv, rest) ->
-                                    eq <- Unchecked.equals lv rv
+                                    eq <- DefaultEquality.equals lv rv
                                     rr <- rest
                                 | ValueNone ->
                                     eq <- false
@@ -3360,7 +3360,7 @@ module internal HashMapImplementation =
 [<Struct; CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}")>]
 type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
     
-    static member Empty = HashSet<'T>(EqualityComparer<'T>.Default :> IEqualityComparer<_>, HashSetEmpty.Instance)
+    static member Empty = HashSet<'T>(DefaultEqualityComparer<'T>.Instance, HashSetEmpty.Instance)
 
     member x.Count = root.Count
     member x.IsEmpty = root.IsEmpty
@@ -3390,7 +3390,7 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Single(value : 'T) =  
-        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'T>.Instance
         HashSet(cmp, HashSetNoCollisionLeaf.New(uint32 (cmp.GetHashCode value), value))
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3399,7 +3399,7 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         | :? HashSet<'T> as set ->
             set
         | _ ->
-            let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
+            let cmp = DefaultEqualityComparer<'T>.Instance
             let mutable r = HashMapImplementation.HashSetEmpty.Instance 
             for v in elements do
                 let hash = cmp.GetHashCode v |> uint32
@@ -3408,7 +3408,7 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfList(elements: list<'T>) =  
-        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'T>.Instance
         let mutable r = HashMapImplementation.HashSetEmpty.Instance 
         for v in elements do
             let hash = cmp.GetHashCode v |> uint32
@@ -3417,7 +3417,7 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfArray(elements: array<'T>) =  
-        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'T>.Instance
         let mutable r = HashMapImplementation.HashSetEmpty.Instance 
         for v in elements do
             let hash = cmp.GetHashCode v |> uint32
@@ -3426,7 +3426,7 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfArrayRange(elements: array<'T>, offset: int, length: int) =  
-        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'T>.Instance
         let mutable r = HashMapImplementation.HashSetEmpty.Instance 
         for i in offset .. offset + length - 1 do
             let v = elements.[i]
@@ -3487,7 +3487,7 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Map(mapping: 'T -> 'R) =
-        let cmp = EqualityComparer<'R>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'R>.Instance
         let mutable res = HashSetEmpty.Instance
         for o in x do
             let v = mapping o
@@ -3497,12 +3497,12 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.MapToMap(mapping: 'T -> 'R) =
-        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'T>.Instance
         HashMap(cmp, root.MapToMap(mapping))
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Choose(mapping: 'T -> option<'R>) =
-        let cmp = EqualityComparer<'R>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'R>.Instance
         let mutable res = HashSetEmpty.Instance
         for o in x do
             match mapping o with
@@ -3515,7 +3515,7 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ChooseV(mapping: 'T -> voption<'R>) =
-        let cmp = EqualityComparer<'R>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'R>.Instance
         let mutable res = HashSetEmpty.Instance
         for o in x do
             match mapping o with
@@ -3550,31 +3550,31 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ComputeDelta(l : HashSet<'T>, r : HashSet<'T>, add : 'T -> 'OP, remove : 'T -> 'OP) =   
-        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'T>.Instance
         let result = HashSetNode.computeDelta cmp add remove l.Root r.Root
         HashMap(cmp, result)
  
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ApplyDelta(state : HashSet<'T>, delta : HashMap<'T, 'D>, apply : 'T -> bool -> 'D -> struct(bool * voption<'DOut>)) =   
-        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'T>.Instance
         let struct(ns, nd) = HashSetNode.applyDelta cmp apply state.Root delta.Root
         HashSet(cmp, ns), HashMap(cmp, nd)
      
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Union(l : HashSet<'T>, r : HashSet<'T>) =   
-        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'T>.Instance
         let result = HashSetNode.union cmp l.Root r.Root
         HashSet(cmp, result)
  
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Difference(l : HashSet<'T>, r : HashSet<'T>) =   
-        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'T>.Instance
         let result = HashSetNode.difference cmp l.Root r.Root
         HashSet(cmp, result)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Intersect(l : HashSet<'T>, r : HashSet<'T>) =   
-        let cmp = EqualityComparer<'T>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'T>.Instance
         let result = HashSetNode.intersect cmp l.Root r.Root
         HashSet(cmp, result)
  
@@ -3639,7 +3639,7 @@ and internal HashSetEnumerator<'T>(root: HashSetNode<'T>) =
 [<Struct; CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}")>]
 type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'K>, root: HashMapNode<'K, 'V>) =
 
-    static member Empty = HashMap<'K, 'V>(EqualityComparer<'K>.Default :> IEqualityComparer<_>, HashMapEmpty.Instance)
+    static member Empty = HashMap<'K, 'V>(DefaultEqualityComparer<'K>.Instance, HashMapEmpty.Instance)
 
     member x.Count = root.Count
     member x.IsEmpty = root.IsEmpty
@@ -3674,7 +3674,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Single(key: 'K, value : 'V) =  
-        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'K>.Instance
         HashMap(cmp, HashMapNoCollisionLeaf.New(uint32 (cmp.GetHashCode key), key, value))
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3683,7 +3683,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         | :? HashMap<'K, 'V> as map ->
             map
         | _ -> 
-            let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
+            let cmp = DefaultEqualityComparer<'K>.Instance
             let mutable r = HashMapImplementation.HashMapEmpty.Instance 
             for (k, v) in elements do
                 let hash = cmp.GetHashCode k |> uint32
@@ -3692,7 +3692,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfList(elements: list<'K * 'V>) =  
-        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'K>.Instance
         let mutable r = HashMapImplementation.HashMapEmpty.Instance 
         for (k, v) in elements do
             let hash = cmp.GetHashCode k |> uint32
@@ -3701,7 +3701,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfArray(elements: array<'K * 'V>) =  
-        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'K>.Instance
         let mutable r = HashMapImplementation.HashMapEmpty.Instance 
         for (k, v) in elements do
             let hash = cmp.GetHashCode k |> uint32
@@ -3711,7 +3711,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
     
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfSeqV(elements: seq<struct ('K * 'V)>) =  
-        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'K>.Instance
         let mutable r = HashMapImplementation.HashMapEmpty.Instance 
         for struct (k, v) in elements do
             let hash = cmp.GetHashCode k |> uint32
@@ -3720,7 +3720,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfListV(elements: list<struct ('K * 'V)>) =  
-        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'K>.Instance
         let mutable r = HashMapImplementation.HashMapEmpty.Instance 
         for struct (k, v) in elements do
             let hash = cmp.GetHashCode k |> uint32
@@ -3729,7 +3729,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfArrayV(elements: array<struct ('K * 'V)>) =  
-        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'K>.Instance
         let mutable r = HashMapImplementation.HashMapEmpty.Instance 
         for struct (k, v) in elements do
             let hash = cmp.GetHashCode k |> uint32
@@ -3738,7 +3738,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfArrayRangeV(elements: array<struct ('K * 'V)>, offset: int, length: int) =  
-        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'K>.Instance
         let mutable r = HashMapImplementation.HashMapEmpty.Instance 
         for i in offset .. offset + length - 1 do
             let struct (k, v) = elements.[i]
@@ -3900,37 +3900,37 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ComputeDelta(l : HashMap<'K, 'V>, r : HashMap<'K, 'V>, add : 'K -> 'V -> 'OP, update : 'K -> 'V -> 'V -> ValueOption<'OP>, remove : 'K -> 'V -> 'OP) =   
-        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'K>.Instance
         let result = HashMapNode.computeDelta cmp add update remove l.Root r.Root
         HashMap(cmp, result)
  
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member UnionWith(l : HashMap<'K, 'V>, r : HashMap<'K, 'V>, resolve : 'K -> 'V -> 'V -> 'V) =   
-        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'K>.Instance
         let result = HashMapNode.unionWith cmp (fun k l r -> resolve k l r |> ValueSome) l.Root r.Root
         HashMap(cmp, result)
   
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member UnionWithValueOption(l : HashMap<'K, 'V>, r : HashMap<'K, 'V>, resolve : 'K -> 'V -> 'V -> ValueOption<'V>) =   
-        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'K>.Instance
         let result = HashMapNode.unionWith cmp resolve l.Root r.Root
         HashMap(cmp, result)
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Union(l : HashMap<'K, 'V>, r : HashMap<'K, 'V>) =   
-        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'K>.Instance
         let result = HashMapNode.union cmp l.Root r.Root
         HashMap(cmp, result)
   
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ApplyDelta(state : HashMap<'K, 'V>, delta : HashMap<'K, 'D>, apply : 'K -> voption<'V> -> 'D -> struct(voption<'V> * voption<'DOut>)) =   
-        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'K>.Instance
         let struct (ns, nd) = HashMapNode.applyDelta cmp apply state.Root delta.Root
         HashMap(cmp, ns), HashMap(cmp, nd)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Choose2(l : HashMap<'K, 'V>, r : HashMap<'K, 'T>, resolve : 'K -> voption<'V> -> voption<'T> -> voption<'R>) =   
-        let cmp = EqualityComparer<'K>.Default :> IEqualityComparer<_>
+        let cmp = DefaultEqualityComparer<'K>.Instance
         let result = HashMapNode.choose2 cmp resolve l.Root r.Root
         HashMap(cmp, result)
 

@@ -20,7 +20,7 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
         #endif 
 
     /// cache for non-null values.
-    let cache = UncheckedDictionary.create<'T1, 'T2 * ref<int>>()
+    let cache = DefaultDictionary.create<'T1, 'T2 * ref<int>>()
 
     /// cache for null values (needed for option, unit, etc.)
     let mutable nullCache = None

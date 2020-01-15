@@ -16,8 +16,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="FableHelpers.fs" />
     <Compile Include="ShallowEquality.fs" />
+    <Compile Include="Equality.fs" />
+    <Compile Include="FableHelpers.fs" />
 	<Compile Include="Datastructures\HashCollections.fs" />
 	<Compile Include="Datastructures\Operations.fs" />
 	<Compile Include="Datastructures\Index.fsi" /> 

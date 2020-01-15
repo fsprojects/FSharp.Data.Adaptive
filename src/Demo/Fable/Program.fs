@@ -136,12 +136,12 @@ let example() =
     
 
 
-    let dict = UncheckedDictionary.create<obj, int>()
+    let dict = DefaultDictionary.create<obj, int>()
 
     let a = AVal.constant 1
     let b = AVal.constant 1
 
-    log "%A" (Unchecked.equals a b)
+    log "%A" (DefaultEquality.equals a b)
 
     dict.[a] <- 1
     dict.[b] <- 2

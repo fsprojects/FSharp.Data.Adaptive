@@ -53,7 +53,7 @@ let ``[AVal] reference impl``() ({ real = real; ref = ref; expression = str; cha
                         changeAll |> List.map (fun c -> c()) |> ignore
                     )
                     let v = check()
-                    if not (Unchecked.equals v lastValue) then
+                    if not (DefaultEquality.equals v lastValue) then
                         printfn "  change %d => %A" effective v
                         lastValue <- v
 
@@ -125,7 +125,7 @@ type EagerVal<'T>(input : aval<'T>) =
     override x.MarkObject() = 
         let v = input.GetValue AdaptiveToken.Top
         match last with
-        | Some old when Unchecked.equals old v -> 
+        | Some old when DefaultEquality.equals old v -> 
             printfn "shortcut %A" v
             false
         | _ ->

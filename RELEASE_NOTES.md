@@ -1,3 +1,7 @@
+### 0.0.15
+* consistent equality everywhere
+* DefaultEqualityComparer.SetProvider allows to override default equality before first use
+
 ### 0.0.14
 * fixed fable build
 * HashSet/HashMap.ofSeq now type-tests the given seq

@@ -18,12 +18,12 @@ type ConstantValue<'T>(value : 'T) =
     member x.GetValueUntyped t = x.GetValue t :> obj
 
     override x.GetHashCode() = 
-        Unchecked.hash value
+        DefaultEquality.hash value
 
     override x.Equals o =
         match o with
-        | :? ConstantValue<'T> as o -> Unchecked.equals value o.Value
-        | :? aval<'T> as o when o.IsConstant -> Unchecked.equals value (AVal.force o)
+        | :? ConstantValue<'T> as o -> DefaultEquality.equals value o.Value
+        | :? aval<'T> as o when o.IsConstant -> DefaultEquality.equals value (AVal.force o)
         | _ -> false
 
     override x.ToString() =

@@ -9,8 +9,11 @@ namespace CSharpInterop
     public class Program
     {
 
+
         public static void Main()
         {
+            DefaultEqualityComparer.SetProvider(DefaultEqualityComparer.System);
+
             var mappy =
                 new HashMapBuilder<int, int> { { 1, 3 }, { 2, 4 } }
                 .ToHashMap()
@@ -78,6 +81,36 @@ namespace CSharpInterop
                 changeableList.Add(1);
             }
             Console.WriteLine("{0}", dependent.GetValue());
+
+
+            var set = new ChangeableHashSet<int[]>();
+            var len = set.Map((arr) => arr.Length);
+
+            var arr1 = new[] { 1, 2, 3 };
+            var arr2 = new[] { 1, 2, 3 };
+
+            using (Adaptive.Transact)
+            {
+                set.Add(arr1);
+            }
+            Console.WriteLine("{0}", len.Content.GetValue());
+
+            using (Adaptive.Transact)
+            {
+                set.Remove(arr2);
+            }
+            Console.WriteLine("{0}", len.Content.GetValue());
+
+
+            using (Adaptive.Transact)
+            {
+                set.Remove(arr1);
+            }
+            Console.WriteLine("{0}", len.Content.GetValue());
+
+
+
+
         }
     }
 }

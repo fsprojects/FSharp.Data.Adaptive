@@ -57,10 +57,10 @@ module Helpers =
                     let mutable errors = []
                     let mutable rest = real
                     for (ek, ev) in expected do
-                        match rest |> Array.tryFindIndex (fun (rk, rv) -> Unchecked.equals rk ek) with
+                        match rest |> Array.tryFindIndex (fun (rk, rv) -> DefaultEquality.equals rk ek) with
                         | Some idx ->
                             let (rk, rv) = rest.[idx]
-                            if Unchecked.equals rv ev then
+                            if DefaultEquality.equals rv ev then
                                 rest <- Array.append (Array.take idx rest) (Array.skip (idx + 1) rest)
                             else
                                 errors <- (sprintf "%A: %A vs %A" rk rv ev) :: errors
