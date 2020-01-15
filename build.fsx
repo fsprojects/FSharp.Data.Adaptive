@@ -69,6 +69,7 @@ type GitRemoteStatus =
 
     member x.remoteAhead = x.mergeBase = x.local
     member x.localAhead = x.mergeBase = x.remote
+    member x.isSync = x.local = x.remote
 
     static member TryGet (repoDir : string) =
         Git.CommandHelper.directRunGitCommandAndFail repoDir "fetch"
@@ -248,11 +249,6 @@ Target.create "CheckPush" (fun _ ->
 Target.create "Push" (fun _ ->
     let packageNameRx = Regex @"^(?<name>[a-zA-Z_0-9\.-]+?)\.(?<version>([0-9]+\.)*[0-9]+.*?)\.nupkg$"
     
-    if not (Git.Information.isCleanWorkingCopy ".") then
-        Git.Information.showStatus "."
-        failwith "repo not clean"
-
-    
     let packages =
         !!"bin/*.nupkg"
         |> Seq.filter (fun path ->
@@ -285,41 +281,65 @@ Target.create "Push" (fun _ ->
         |> Map.ofArray
             
     if List.isEmpty packages then
-        failwith "no packages produced"
+        Trace.traceImportant "no packages produced"
 
-    if Map.isEmpty targetsAndKeys then
-        failwith "no deploy targets"
+    elif Map.isEmpty targetsAndKeys then
+        Trace.traceImportant "no deploy targets"
+
+    else      
+        Git.CommandHelper.directRunGitCommandAndFail "." "fetch --tags"
+
+        try Git.Branches.tag "." notes.NugetVersion
+        with _ -> Trace.traceImportantfn "tag %s already exists" notes.NugetVersion
+
+        let status = GitRemoteStatus.Get "."
+        let desc = GitDescription.Get "."
+
+        if desc.dirty then
+            Git.Information.showStatus "."
+            failwith "repo not clean (please commit your changes)"
             
+        if desc.commitsSince > 0 then
+            failwithf "cannot push package version %s since current head is %d commits ahead of the tag" desc.tag desc.commitsSince 
 
-    Git.CommandHelper.directRunGitCommandAndFail "." "fetch --tags"
+        if status.remoteAhead then
+            failwithf "remote branch %s contains new commits (please pull)" status.branch
 
-    try Git.Branches.tag "." notes.NugetVersion
-    with _ -> Trace.tracefn "tag %s already exists" notes.NugetVersion
+        if status.localAhead then
+            failwithf "local branch %s contains new commits." status.branch
 
-    let desc = GitDescription.Get "."
-    if not desc.dirty && desc.commitsSince = 0 then
-        let branch = Git.Information.getBranchName "."
 
-        try Git.Branches.pushBranch "." "origin" branch
-        with _ ->
-            Trace.traceErrorfn "could not push %s" branch
-            reraise()
 
-        for (dst, key) in Map.toSeq targetsAndKeys do
-            Trace.tracefn "pushing to %s" dst
-            let options (o : Paket.PaketPushParams) =
-                { o with 
-                    PublishUrl = dst
-                    ApiKey = key 
-                    WorkingDir = "bin"
-                }
+        if not desc.dirty && desc.commitsSince = 0 && status.isSync then
+            let mutable failed = Set.empty
+            for (dst, key) in Map.toSeq targetsAndKeys do
+                Trace.tracefn "pushing to %s" dst
+                let options (o : Paket.PaketPushParams) =
+                    { o with 
+                        PublishUrl = dst
+                        ApiKey = key 
+                        WorkingDir = "bin"
+                    }
 
-            Paket.pushFiles options packages
+                try 
+                    Paket.pushFiles options packages
+                with _ -> 
+                    failed <- Set.add dst failed
 
-        try Git.Branches.pushTag "." "origin" notes.NugetVersion
-        with _ ->
-            Trace.traceErrorfn "could not push tag %s: PLEASE PUSH MANUALLY" notes.NugetVersion
-            reraise()
+            let allFailed = targetsAndKeys |> Map.forall (fun dst _ -> Set.contains dst failed)
+
+            if allFailed then
+                Trace.traceErrorfn "could not push any packages (deleting tag)"
+                Git.Branches.deleteTag "." notes.NugetVersion
+            else
+                if not (Set.isEmpty failed) then
+                    for f in failed do
+                        Trace.traceErrorfn "could not push to %s (please push manually)" f
+                        
+                try Git.Branches.pushTag "." "origin" notes.NugetVersion
+                with _ ->
+                    Trace.traceErrorfn "could not push tag %s: PLEASE PUSH MANUALLY" notes.NugetVersion
+                    reraise()
     ()
 )
 
