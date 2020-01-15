@@ -1,6 +1,7 @@
 ### FSharp.Data.Adaptive
 [![CI - Windows](https://github.com/fsprojects/FSharp.Data.Adaptive/workflows/CI%20-%20Windows/badge.svg?branch=master)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions?query=workflow%3A%22CI+-+Windows%22)
 [![CI - Linux](https://github.com/fsprojects/FSharp.Data.Adaptive/workflows/CI%20-%20Linux/badge.svg?branch=master)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions?query=workflow%3A%22CI+-+Linux%22)
+[![CI - MacOS](https://github.com/fsprojects/FSharp.Data.Adaptive/workflows/CI%20-%20MacOS/badge.svg?branch=master)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions?query=workflow%3A%22CI+-+MacOS%22)
 [![CI - Fable](https://github.com/fsprojects/FSharp.Data.Adaptive/workflows/CI%20-%20Fable/badge.svg?branch=master)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions?query=workflow%3A%22CI+-+Fable%22)
 
 Makes Aardvark.Base.Incremental's functionality available as a standalone library.
