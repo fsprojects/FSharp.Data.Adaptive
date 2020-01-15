@@ -311,7 +311,7 @@ Target.create "Push" (fun _ ->
 
 
         if not desc.dirty && desc.commitsSince = 0 && status.isSync then
-            let mutable failed = Set.empty
+            let failed = ref Set.empty
             for (dst, key) in Map.toSeq targetsAndKeys do
                 Trace.tracefn "pushing to %s" dst
                 let options (o : Paket.PaketPushParams) =
@@ -324,16 +324,16 @@ Target.create "Push" (fun _ ->
                 try 
                     Paket.pushFiles options packages
                 with _ -> 
-                    failed <- Set.add dst failed
+                    failed := Set.add dst !failed
 
-            let allFailed = targetsAndKeys |> Map.forall (fun dst _ -> Set.contains dst failed)
+            let allFailed = targetsAndKeys |> Map.forall (fun dst _ -> Set.contains dst !failed)
 
             if allFailed then
                 Trace.traceErrorfn "could not push any packages (deleting tag)"
                 Git.Branches.deleteTag "." notes.NugetVersion
             else
-                if not (Set.isEmpty failed) then
-                    for f in failed do
+                if not (Set.isEmpty !failed) then
+                    for f in !failed do
                         Trace.traceErrorfn "could not push to %s (please push manually)" f
                         
                 try Git.Branches.pushTag "." "origin" notes.NugetVersion
@@ -444,8 +444,10 @@ Target.create "ReleaseDocs" (fun _ ->
 "CheckPush" ?=> "Compile"
 "Compile" ?=> "RunTest"
 "RunTest" ?=> "Pack"
+"Compile" ?=> "CompileFable"
 
 "Compile" ==> "Pack"
+"CompileFable" ==> "Pack"
 
 "Pack" ==> "Push"
 "RunTest" ==> "Push"
@@ -454,13 +456,6 @@ Target.create "ReleaseDocs" (fun _ ->
 "Compile" ==> "Default"
 "RunTest" ==> "Default"
 
-
-
-Target.create "Sepp" (fun _ ->
-    let d = GitDescription.Get "."
-    Trace.tracefn "info: %A" d
-        
-)
 
 Target.runOrDefault "Default"
 
