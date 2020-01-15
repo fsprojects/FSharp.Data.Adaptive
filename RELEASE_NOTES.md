@@ -1,3 +1,7 @@
+### 0.0.14
+* fixed fable build
+* HashSet/HashMap.ofSeq now type-tests the given seq
+
 ### 0.0.13
 * building with lowest matching FSharp.Core version
 * avoiding C#-project problems
