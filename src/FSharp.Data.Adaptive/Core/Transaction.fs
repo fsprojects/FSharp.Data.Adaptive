@@ -129,6 +129,8 @@ type Transaction() =
             else
                 e.EnterWrite()
                 try
+                    outputCount <- 0
+
                     // if the element is already outOfDate we
                     // do not traverse the graph further.
                     if e.OutOfDate then
@@ -159,7 +161,6 @@ type Transaction() =
 
                                 else
                                     e.OutOfDate <- false
-                                    outputCount <- 0
                                     // if Mark told us not to continue we're done here
                                     ()
 
@@ -169,7 +170,6 @@ type Transaction() =
                                 // mark it upToDate again (since it would otherwise not be processed again)
                                 e.Level <- max e.Level newLevel
                                 e.OutOfDate <- false
-
                                 q.Enqueue(e.Level, e)
                 
                 finally 
@@ -208,7 +208,7 @@ module Transaction =
             | Some c -> Some c
             | None -> None
 
-    let using (t : Transaction) (action : unit -> 'T) =
+    let useTransaction (t : Transaction) (action : unit -> 'T) =
         let old = Transaction.Current
         try
             Transaction.Current <- Some t

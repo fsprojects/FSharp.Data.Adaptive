@@ -1,3 +1,7 @@
+### 0.0.16
+* fixed transaction bug
+* proper locking in WeakOutputSet
+
 ### 0.0.15
 * consistent equality everywhere
 * DefaultEqualityComparer.SetProvider allows to override default equality before first use

@@ -98,7 +98,7 @@ module AdadptiveObjectExtensions =
         static val mutable private _Callbacks : list<unit -> unit>
 
         static member Add(action : unit -> unit) =
-            if AdaptiveObject.UnsafeEvaluationDepth <= 0 then action()
+            if AdaptiveObject.UnsafeEvaluationDepth <= 0 then transact action
             elif isNull (AfterEvaluateCallbacks._Callbacks :> obj) then AfterEvaluateCallbacks._Callbacks <- [action]
             else AfterEvaluateCallbacks._Callbacks <- action :: AfterEvaluateCallbacks._Callbacks
             

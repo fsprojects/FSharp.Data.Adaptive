@@ -419,15 +419,19 @@ and internal WeakOutputSet() =
         )
 
     member x.Clear() =
-        data <- Unchecked.defaultof<_>
-        setOps <- 0
+        lock x (fun () ->
+            data <- Unchecked.defaultof<_>
+            setOps <- 0
+        )
 
     /// Indicates whether the set is (conservatively) known to be empty.
     /// Note that we don't dereference any WeakReferences here.
     member x.IsEmpty =
-        match data.Tag with
-        | 0 -> isNull data.Single
-        | _ -> false
+        lock x (fun () ->
+            match data.Tag with
+            | 0 -> isNull data.Single
+            | _ -> false
+        )
 
     interface IWeakOutputSet with
         member x.IsEmpty = x.IsEmpty
