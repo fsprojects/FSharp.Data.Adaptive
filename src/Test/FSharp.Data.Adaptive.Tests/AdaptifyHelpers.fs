@@ -8,6 +8,16 @@ open FSharp.Data.Traceable
 open FsCheck
 open FsCheck.NUnit
 
+type Enum =
+    | A = 1
+    | B = 2
+
+[<Test>]
+let ``[Enum] shallowEquals``() =
+    ShallowEqualityComparer.Instance.Equals(Enum.A, Enum.A) |> should be True
+
+
+
 [<Property>]
 let ``[CModelMap] update``(m : Map<int, string>) =
     let init v = cval v

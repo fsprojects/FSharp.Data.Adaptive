@@ -55,7 +55,9 @@ type ShallowEqualityComparer<'a> private() =
     static let self = typedefof<ShallowEqualityComparer<_>>
 
     static let isUnmanaged =
-        if typ.IsValueType then
+        if typ.IsEnum then
+            true
+        elif typ.IsValueType then
             let arr : 'a[] = [|Unchecked.defaultof<'a>|]
             try
                 let g = GCHandle.Alloc(arr, GCHandleType.Pinned)
