@@ -1,3 +1,7 @@
+### 0.0.17
+* fixed shallowEquals for enums
+* added several shallowEquals tests
+
 ### 0.0.16
 * fixed transaction bug
 * proper locking in WeakOutputSet

@@ -12,10 +12,23 @@ type Enum =
     | A = 1
     | B = 2
 
-[<Test>]
-let ``[Enum] shallowEquals``() =
-    ShallowEqualityComparer.Instance.Equals(Enum.A, Enum.A) |> should be True
+[<Struct>]
+type Bla(a : obj) = member x.A = a
+type Del = delegate of unit -> unit
 
+[<Test>]
+let ``[ShallowEquals] special types``() =
+    let bla = Bla (obj())
+    let del = Del id
+
+    ShallowEqualityComparer.Instance.Equals(Enum.A, Enum.A) |> should be True
+    ShallowEqualityComparer.Instance.Equals(Enum.A, Enum.B) |> should be False
+    ShallowEqualityComparer.Instance.Equals(1, 1) |> should be True
+    ShallowEqualityComparer.Instance.Equals(obj(), obj()) |> should be False
+    ShallowEqualityComparer.Instance.Equals(bla.A, bla.A) |> should be True
+
+    ShallowEqualityComparer.Instance.Equals(bla, bla) |> should be True
+    ShallowEqualityComparer.Instance.Equals(del, del) |> should be True
 
 
 [<Property>]
