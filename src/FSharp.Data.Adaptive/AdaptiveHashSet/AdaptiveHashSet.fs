@@ -817,6 +817,14 @@ module ASet =
     let ofReader (reader : unit -> #IOpReader<HashSetDelta<'T>>) =
         AdaptiveHashSetImpl(fun () -> reader() :> IOpReader<_>) :> aset<_>
 
+    let custom (f : AdaptiveToken -> CountingHashSet<'a> -> HashSetDelta<'a>) : aset<'a> = 
+        ofReader (fun () -> 
+            { new AbstractReader<CountingHashSet<'a>,HashSetDelta<'a>>(CountingHashSet.Trace) with
+                override x.Compute(t) = 
+                    f t x.State
+            }
+        )
+
     /// The empty aset.
     [<GeneralizableValue>]
     let empty<'T> : aset<'T> = 

@@ -4397,6 +4397,9 @@ module HashMap =
     let inline union (l : HashMap<'K, 'V>) (r : HashMap<'K, 'V>) =
         HashMap<'K, 'V>.Union(l, r)
 
+    let unionMany (xs : seq<HashSet<'a>>) = 
+        Seq.fold HashSet.union HashSet.empty xs
+
 
 
 
