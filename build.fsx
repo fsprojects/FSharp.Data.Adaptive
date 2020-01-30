@@ -1,3 +1,4 @@
+#nowarn "213"
 #r "paket: groupref Build //"
 #load ".fake/build.fsx/intellisense.fsx"
 
@@ -67,9 +68,9 @@ type GitRemoteStatus =
     }
 
 
-    member x.remoteAhead = not x.isSync && x.mergeBase = x.local
-    member x.localAhead = not x.isSync && x.mergeBase = x.remote
-    member x.isSync = x.local = x.remote
+    member x.RemoteAhead = not x.IsSync && x.mergeBase = x.local
+    member x.LocalAhead = not x.IsSync && x.mergeBase = x.remote
+    member x.IsSync = x.local = x.remote
 
     static member TryGet (repoDir : string) =
         Git.CommandHelper.directRunGitCommandAndFail repoDir "fetch"
@@ -230,9 +231,9 @@ Target.create "CheckPush" (fun _ ->
 
     let status = GitRemoteStatus.Get "."
 
-    if status.remoteAhead then
+    if status.RemoteAhead then
         failwithf "remote branch %s contains new commits (please pull)" status.branch
-    elif status.localAhead then
+    elif status.LocalAhead then
         Trace.traceImportantfn "local branch %s contains new commits. would you like to push it? (y|N)" status.branch
         let answer = Console.ReadLine().Trim().ToLower()
         match answer with
@@ -344,15 +345,15 @@ Target.create "Push" (fun _ ->
         if desc.commitsSince > 0 then
             failwithf "cannot push package version %s since current head is %d commits ahead of the tag" desc.tag desc.commitsSince 
 
-        if status.remoteAhead then
+        if status.RemoteAhead then
             failwithf "remote branch %s contains new commits (please pull)" status.branch
 
-        if status.localAhead then
+        if status.LocalAhead then
             failwithf "local branch %s contains new commits." status.branch
 
 
 
-        if not desc.dirty && desc.commitsSince = 0 && status.isSync then
+        if not desc.dirty && desc.commitsSince = 0 && status.IsSync then
             let failed = ref Set.empty
             for (dst, key) in Map.toSeq targetsAndKeys do
                 Trace.tracefn "pushing to %s" dst
