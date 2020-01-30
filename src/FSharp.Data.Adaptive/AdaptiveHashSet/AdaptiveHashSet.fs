@@ -25,6 +25,22 @@ and aset<'T> = IAdaptiveHashSet<'T>
 /// Internal implementations for aset reductions.
 module SetReductions =
     
+    /// aval for contains queries.
+    type ContainsValue<'T>(input : aset<'T>, value : 'T) =
+        inherit AbstractVal<bool>()
+
+        let mutable refCount = 0
+        let reader = input.GetReader()
+
+        override x.Compute (token : AdaptiveToken) =
+            let ops = reader.GetChanges token |> HashSetDelta.toHashMap
+            match HashMap.tryFindV value ops with
+            | ValueSome delta ->
+                refCount <- refCount + delta
+            | ValueNone ->
+                ()
+            refCount > 0
+
     /// aval for reduce operations.
     type ReduceValue<'a, 's, 'v>(reduction : AdaptiveReduction<'a, 's, 'v>, input : aset<'a>) =
         inherit AdaptiveObject()
@@ -420,7 +436,7 @@ module AdaptiveHashSetImplementation =
                 | _ -> unexpected()
             )
 
-    /// Reader for fully dynamic uinon operations.
+    /// Reader for fully dynamic union operations.
     type UnionReader<'T>(input : aset<aset<'T>>) =
         inherit AbstractDirtyReader<IHashSetReader<'T>, HashSetDelta<'T>>(HashSetDelta.monoid, checkTag "InnerReader")
 
@@ -462,6 +478,56 @@ module AdaptiveHashSetImplementation =
                 deltas <- HashSetDelta.combine deltas (d.GetChanges token)
 
             deltas
+
+    /// Reader for binary intersect operations.
+    type IntersectReader<'T>(set1 : aset<'T>, set2 : aset<'T>) =
+        inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.empty)
+
+        let mutable state : HashMap<'T, struct(int * int)> = HashMap.empty
+        let r1 = set1.GetReader()
+        let r2 = set2.GetReader()
+
+        override x.Compute (token : AdaptiveToken) = 
+            let changes1 = r1.GetChanges token |> HashSetDelta.toHashMap
+            let changes2 = r2.GetChanges token |> HashSetDelta.toHashMap
+            let changes = (changes1, changes2) ||> HashMap.map2V (fun _k l r -> struct(l,r))
+
+            let inline apply (_key : 'T) (value : voption<struct(int * int)>) (struct(delta1 : voption<int>, delta2 : voption<int>)) : struct(voption<struct(int * int)> * voption<int>) = 
+                let struct(oldRef1, oldRef2) =
+                    match value with
+                    | ValueSome s -> s
+                    | ValueNone -> struct(0, 0)
+
+                let newRef1 = 
+                    match delta1 with
+                    | ValueSome d1 -> oldRef1 + d1
+                    | ValueNone -> oldRef1
+
+                let newRef2 = 
+                    match delta2 with
+                    | ValueSome d2 -> oldRef2 + d2
+                    | ValueNone -> oldRef2
+
+                let oldRef = min oldRef1 oldRef2
+                let newRef = min newRef1 newRef2
+
+                let outDelta =
+                    if newRef > 0 && oldRef <= 0 then ValueSome 1
+                    elif newRef <= 0 && oldRef > 0 then ValueSome -1
+                    else ValueNone
+
+                let outRef =
+                    if newRef1 >= 0 || newRef2 >= 0 then ValueSome(struct (newRef1, newRef2))
+                    else ValueNone
+
+                struct (outRef, outDelta)
+                
+            let newState, delta = HashMap.ApplyDelta(state, changes, apply)
+            state <- newState
+            HashSetDelta.ofHashMap delta
+
+
+
 
     /// Reader for unioning a constant set of asets.
     type UnionConstantReader<'T>(input : HashSet<aset<'T>>) =
@@ -816,10 +882,11 @@ module ASet =
     /// Creates an aset using the given reader-creator.
     let ofReader (reader : unit -> #IOpReader<HashSetDelta<'T>>) =
         AdaptiveHashSetImpl(fun () -> reader() :> IOpReader<_>) :> aset<_>
-
+        
+    /// Creates an aset using the given compute function
     let custom (f : AdaptiveToken -> CountingHashSet<'a> -> HashSetDelta<'a>) : aset<'a> = 
         ofReader (fun () -> 
-            { new AbstractReader<CountingHashSet<'a>,HashSetDelta<'a>>(CountingHashSet.Trace) with
+            { new AbstractReader<CountingHashSet<'a>,HashSetDelta<'a>>(CountingHashSet.trace) with
                 override x.Compute(t) = 
                     f t x.State
             }
@@ -905,6 +972,19 @@ module ASet =
         else
             // TODO: can be optimized in case one of the two sets is constant.
             ofReader (fun () -> UnionConstantReader (HashSet.ofList [a;b]))
+            
+    /// Adaptively intersects the given sets
+    let intersect (a : aset<'T>) (b : aset<'T>) =
+        if a = b then
+            a
+        elif a.IsConstant && b.IsConstant then
+            let va = force a
+            let vb = force b
+            if va.IsEmpty && vb.IsEmpty then empty
+            else constant (fun () -> HashSet.intersect va vb)
+        else
+            ofReader (fun () -> IntersectReader(a, b))
+            
 
     /// Adaptively unions all the given sets
     let unionMany (sets : aset<aset<'A>>) = 
@@ -1047,6 +1127,9 @@ module ASet =
         let r = AdaptiveReduction.countPositive |> AdaptiveReduction.mapOut (fun v -> v <> 0)
         reduceBy r predicate list
         
+    let contains (value: 'T) (set: aset<'T>) =
+        SetReductions.ContainsValue(set, value) :> aval<_>
+
     let forallA (predicate: 'T -> aval<bool>) (list: aset<'T>) =
         let r = AdaptiveReduction.countNegative |> AdaptiveReduction.mapOut (fun v -> v = 0)
         reduceByA r predicate list

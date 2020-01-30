@@ -813,45 +813,6 @@ module AdaptiveHashMapImplementation =
             |> HashMapDelta
 
 
-    /// Base class for standard avals
-    [<AbstractClass; StructuredFormatDisplay("{AsString}")>]
-    type internal AbstractVal<'T>() =
-        inherit AdaptiveObject()
-
-        let mutable cache = Unchecked.defaultof<'T>
-
-        abstract member Compute: AdaptiveToken -> 'T
-
-        member x.GetValue(token: AdaptiveToken) =
-            x.EvaluateAlways token (fun token ->
-                if x.OutOfDate then
-                    let v = x.Compute token
-                    cache <- v
-                    v
-                else
-                    cache                
-            )
-
-        member private x.AsString =
-            if x.OutOfDate then sprintf "aval*(%A)" cache
-            else sprintf "aval(%A)" cache
-
-        override x.ToString() =
-            if x.OutOfDate then System.String.Format("aval*({0})", cache)
-            else System.String.Format("aval({0})", cache)
-            
-        interface IAdaptiveValue with
-            member x.GetValueUntyped t = x.GetValue t :> obj
-            member x.ContentType = 
-                #if FABLE_COMPILER
-                typeof<obj>
-                #else
-                typeof<'T>
-                #endif
-    
-        interface IAdaptiveValue<'T> with
-            member x.GetValue t = x.GetValue t  
-    
     /// Reader used for ofASet operations.
     /// It's safe to assume that the view function will only be called with non-empty HashSets.
     /// Internally assumes that the view function is cheap.
@@ -970,6 +931,16 @@ module AMap =
     /// Creates an amap using the given reader-creator.
     let ofReader (creator : unit -> #IOpReader<HashMapDelta<'Key, 'Value>>) =
         create creator
+
+            
+    /// Creates an amap using the given compute function
+    let custom (f : AdaptiveToken -> HashMap<'Key, 'Value> -> HashMapDelta<'Key, 'Value>) : amap<'Key, 'Value> = 
+        ofReader (fun () -> 
+            { new AbstractReader<HashMap<'Key, 'Value>,HashMapDelta<'Key, 'Value>>(HashMap.trace) with
+                override x.Compute(t) = 
+                    f t x.State
+            }
+        )
 
     /// Creates an aval providing access to the current content of the map.
     let toAVal (map : amap<'Key, 'Value>) = map.Content

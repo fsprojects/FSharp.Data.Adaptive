@@ -980,6 +980,17 @@ module AList =
     let ofReader (create: unit -> #IOpReader<IndexListDelta<'T>>) =
         AdaptiveIndexListImpl(fun () -> create() :> IOpReader<_>) :> alist<_>
 
+        
+    /// Creates an alist using the given compute function
+    let custom (f : AdaptiveToken -> IndexList<'a> -> IndexListDelta<'a>) : alist<'a> = 
+        ofReader (fun () -> 
+            { new AbstractReader<IndexList<'a>,IndexListDelta<'a>>(IndexList.trace) with
+                override x.Compute(t) = 
+                    f t x.State
+            }
+        )
+
+
     /// The empty alist.
     [<GeneralizableValue>]
     let empty<'T> : alist<'T> = 

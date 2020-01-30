@@ -4,6 +4,7 @@ open System
 open System.Threading
 open System.Collections
 open System.Collections.Generic
+open FSharp.Data.Adaptive
 [<Struct; CustomComparison; CustomEquality>]
 type internal ReversedCompare<'a when 'a : comparison>(value : 'a) =
     member x.Value = value

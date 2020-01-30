@@ -148,7 +148,11 @@ module ASet =
     /// Unions the sets.
     let union (a: aset<'T>) (b: aset<'T>) =
         AVal.map2 (HashSet.union) a.Content b.Content |> ofRef
-
+        
+    /// Intersects the sets.
+    let intersect (a: aset<'T>) (b: aset<'T>) =
+        AVal.map2 (HashSet.intersect) a.Content b.Content |> ofRef
+        
     /// Unions all the sets.
     let unionMany (sets: aset<aset<'T>>) =
         sets.Content |> AVal.map (fun sets ->

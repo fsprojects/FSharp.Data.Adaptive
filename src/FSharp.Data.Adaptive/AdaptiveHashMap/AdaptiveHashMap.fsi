@@ -56,6 +56,9 @@ module AMap =
     
     /// Creates an amap using the given reader-creator.
     val ofReader : create: (unit -> #IOpReader<HashMapDelta<'Key, 'Value>>) -> amap<'Key, 'Value>
+    
+    /// Creates an amap using the given compute function
+    val custom : compute : (AdaptiveToken -> HashMap<'Key, 'Value> -> HashMapDelta<'Key, 'Value>) -> amap<'Key, 'Value>
 
     /// Creates an aval providing access to the current content of the map.
     val toAVal : map:amap<'Key, 'Value> -> aval<HashMap<'Key,'Value>>

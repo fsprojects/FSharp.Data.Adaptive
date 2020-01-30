@@ -124,6 +124,47 @@ let startThread (run: unit -> unit) =
 
 [<EntryPoint>]
 let main argv =
+
+    let set1 = cset [1;2;3;4]
+    let set2 = cset [3;4;5;6]
+
+    let a = set1 |> ASet.map (fun v -> v % 2)
+    let b = set2 |> ASet.map (fun v -> v % 2)
+
+    let test = ASet.intersect a b
+    let r = test.GetReader()
+
+    let eval() =
+        let ops = r.GetChanges AdaptiveToken.Top
+        let state = r.State
+
+        let state = state |> Seq.map (sprintf "%A") |> String.concat "; " |> sprintf "{ %s }"
+        let a = a |> ASet.force |> Seq.map (sprintf "%A") |> String.concat "; " |> sprintf "{ %s }"
+        let b = b |> ASet.force |> Seq.map (sprintf "%A") |> String.concat "; " |> sprintf "{ %s }"
+
+
+        if ops.Count = 0 then
+            printfn "%s ^ %s = %s (nop)" a b state
+        else
+            let ops = ops |> Seq.map (sprintf "%A") |> String.concat "; " |> sprintf "{ %s }"
+            printfn "%s ^ %s = %s (%s)" a b state ops
+
+    eval()
+
+    transact (fun () -> set1.UnionWith [6])
+    eval()
+
+    transact (fun () -> set2.ExceptWith [6])
+    eval()
+
+    transact (fun () -> set2.ExceptWith [4])
+    eval()
+
+    transact (fun () -> set1.Clear())
+    eval()
+    Environment.Exit 0
+
+
     // which directory to watch
     let dir = 
         if argv.Length > 0 then argv.[0]

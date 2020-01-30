@@ -3,6 +3,7 @@
 open System
 open System.Threading
 open System.Collections.Generic
+open FSharp.Data.Adaptive
 
 [<AutoOpen>]
 module internal HeapExtensions =
@@ -141,8 +142,6 @@ module internal Failures =
 
 [<AutoOpen>]
 module internal AdaptiveIndexListHelpers = 
-    open System
-    open System.Collections.Generic
 
     let inline combineHash (a: int) (b: int) =
         uint32 a ^^^ uint32 b + 0x9e3779b9u + ((uint32 a) <<< 6) + ((uint32 a) >>> 2) |> int

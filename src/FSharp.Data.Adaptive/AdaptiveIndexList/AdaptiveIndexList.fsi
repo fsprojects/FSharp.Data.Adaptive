@@ -50,7 +50,10 @@ module AList =
     
     /// Creates an alist using the given reader-creator.
     val ofReader : create : (unit -> #IOpReader<IndexListDelta<'T>>) -> alist<'T>
-    
+
+    /// Creates an alist using the given compute function
+    val custom : compute : (AdaptiveToken -> IndexList<'T> -> IndexListDelta<'T>) -> alist<'T>
+
     /// Creates an alist using the given value generator
     val constant: value: (unit -> IndexList<'T>) -> alist<'T>
     
