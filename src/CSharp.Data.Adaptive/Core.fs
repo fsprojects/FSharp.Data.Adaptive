@@ -3,6 +3,7 @@
 open System
 open System.Runtime.CompilerServices
 open FSharp.Data.Adaptive
+open FSharp.Data.Traceable
 
 module private AdaptiveObjectExtensionHelpers =
     let inline addMarkingCallback (v : IAdaptiveObject) (action: unit -> unit) =
@@ -29,4 +30,11 @@ type Adaptive private() =
     static member Transact : IDisposable =
         AdaptiveObjectExtensionHelpers.useTransaction()
 
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member GetValueUntyped(this: IAdaptiveValue) =
+        this.GetValueUntyped(AdaptiveToken.Top)
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member GetChanges<'T>(this: IOpReader<'T>) =
+        this.GetChanges(AdaptiveToken.Top)
 

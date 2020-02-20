@@ -28,6 +28,14 @@ type AdaptiveHashMap private() =
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Empty<'K, 'V>() = AMap.empty<'K, 'V>
 
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Single<'K, 'V>(k : 'K, v : 'V) = AMap.single k v
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfArray<'K, 'V>(arr: ('K * 'V)[]) = AMap.ofArray arr
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfSeq<'K, 'V>(sq: seq<'K * 'V>) = AMap.ofSeq sq
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ToAdaptiveHashMap(this: seq<'K * 'V>) = AMap.ofSeq this
@@ -203,6 +211,10 @@ type AdaptiveHashMap private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ToAdaptiveIndexList(this: amap<Index, 'T>) =
         this |> AList.ofAMap
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member ToAdaptiveHashSet(this: amap<'K, 'V>) =
+        this |> AMap.toASet 
         
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member TryFind(this: amap<'K, 'V>, key: 'K) =

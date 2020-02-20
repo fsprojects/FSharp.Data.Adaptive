@@ -27,6 +27,15 @@ type AdaptiveIndexList private() =
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Empty<'T>() = AList.empty<'T>
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Single<'T>(item : 'T) = ASet.single item
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfArray<'T>(arr: 'T[]) = ASet.ofArray arr
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfSeq<'T>(sq: seq<'T>) = ASet.ofSeq sq
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ToAdaptiveIndexList(this: seq<'T>) = AList.ofSeq this
@@ -186,6 +195,17 @@ type AdaptiveIndexList private() =
     static member ReduceByAdaptive(this: alist<'T1>, reduction: AdaptiveReduction<'T2, 'S, 'V>, mapping : Func<'T1, aval<'T2>>) =
         this |> AList.reduceByA reduction (fun _ v -> mapping.Invoke v)
         
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Fold<'T1, 'T2>(this: alist<'T1>, add: Func<'T2, 'T1, 'T2>, zero: 'T2) =
+        let addFun = fun s -> fun a -> add.Invoke(s, a)
+        this |> AList.reduce (AdaptiveReduction.fold zero addFun)
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member FoldGroup<'T1, 'T2>(this: alist<'T1>, add: Func<'T2, 'T1, 'T2>, sub: Func<'T2, 'T1, 'T2>, zero: 'T2) =
+        let addFun = fun s -> fun a -> add.Invoke(s, a)
+        let subFun = fun s -> fun a -> sub.Invoke(s, a)
+        this |> AList.reduce (AdaptiveReduction.group zero addFun subFun)
+
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Indexed(this: alist<'T>) =
         this |> AList.indexed
