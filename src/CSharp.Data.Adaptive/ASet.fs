@@ -26,6 +26,11 @@ module private AdaptiveSetHelpers =
 type AdaptiveHashSet private() =
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Custom(compute : Func<AdaptiveToken, CountingHashSet<'T>, HashSetDelta<'T>>) =
+        ASet.custom (fun t s -> compute.Invoke(t,s))
+        
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Empty<'T>() = ASet.empty<'T>
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]

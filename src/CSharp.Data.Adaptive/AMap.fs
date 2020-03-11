@@ -26,6 +26,10 @@ module private AdaptiveMapHelpers =
 type AdaptiveHashMap private() =
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Custom(compute : Func<AdaptiveToken, HashMap<'K, 'V>, HashMapDelta<'K, 'V>>) =
+        AMap.custom (fun t s -> compute.Invoke(t,s))
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Empty<'K, 'V>() = AMap.empty<'K, 'V>
 
     

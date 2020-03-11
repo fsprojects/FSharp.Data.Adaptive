@@ -26,6 +26,10 @@ module private AdaptiveListHelpers =
 type AdaptiveIndexList private() =
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Custom(compute : Func<AdaptiveToken, IndexList<'T>, IndexListDelta<'T>>) =
+        AList.custom (fun t s -> compute.Invoke(t,s))
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Empty<'T>() = AList.empty<'T>
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
