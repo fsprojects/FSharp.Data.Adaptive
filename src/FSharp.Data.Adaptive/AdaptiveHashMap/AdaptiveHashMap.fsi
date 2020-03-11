@@ -110,6 +110,12 @@ module AMap =
     /// aval will be re-evaluated upon every change of the map.
     val tryFind : key:'K -> map:amap<'K, 'V> -> aval<option<'V>>
 
+    /// Adaptively looks up the given key in the map.
+    /// Note that this operation should not be used extensively since its resulting
+    /// aval will be re-evaluated upon every change of the map.
+    /// WARNING: causes KeyNotFoundException when the key is not present at evaluation-time
+    val find : key:'K -> map:amap<'K, 'V> -> aval<'V>
+
     /// Evaluates the given adaptive map and returns its current content.
     /// This should not be used inside the adaptive evaluation
     /// of other AdaptiveObjects since it does not track dependencies.

@@ -409,6 +409,40 @@ module Generators =
                         (fun () -> set.mchanges())
             }
 
+        let existsA<'a>() = 
+            gen {
+                let! t = Arb.generate<'a>
+                let! f = Arb.generate<'a> |> Gen.filter (fun v -> not (Unchecked.equals v t))
+                let! value = Arb.generate<list<VVal<bool>>>
+                let mapping = function
+                | true -> t
+                | false -> f
+                return 
+                    create 
+                        (Adaptive.CollectionExtensions.Seq.existsA (fun v -> v.real) value |> Adaptive.AVal.map mapping)
+                        (Reference.Seq.existsA (fun v -> v.ref) value |> Reference.AVal.map mapping)
+                        (sprintf "existsA (%d)" (List.length value))
+                        (fun () -> value |> List.collect (fun v -> v.changes()))
+
+            }
+
+        let forallA<'a>() = 
+            gen {
+                let! t = Arb.generate<'a>
+                let! f = Arb.generate<'a> |> Gen.filter (fun v -> not (Unchecked.equals v t))
+                let! value = Arb.generate<list<VVal<bool>>>
+                let mapping = function
+                | true -> t
+                | false -> f
+                return 
+                    create 
+                        (Adaptive.CollectionExtensions.Seq.forallA (fun v -> v.real) value |> Adaptive.AVal.map mapping)
+                        (Reference.Seq.forallA (fun v -> v.ref) value |> Reference.AVal.map mapping)
+                        (sprintf "forallA (%d)" (List.length value))
+                        (fun () -> value |> List.collect (fun v -> v.changes()))
+
+            }
+
     module Set =
         let mutable cid = 0
 
@@ -1561,11 +1595,16 @@ type AdaptiveGenerators() =
                                     5, Gen.constant "map3"
                                     5, Gen.constant "bind"
                                     5, Gen.constant "bind2"
+                                    5, Gen.constant "existsA"
+                                    5, Gen.constant "forallA"
                                     3, Gen.constant "ofASet"
                                     3, Gen.constant "ofAMap"
                                     
+                                    
                                 ]
                         match kind with
+                        | "forallA" -> return! Generators.Val.forallA<'a>()
+                        | "existsA" -> return! Generators.Val.existsA<'a>()
                         | "constant" -> return! Generators.Val.constant<'a>()
                         | "cval" -> return! Generators.Val.init<'a>()
                         | "ofASet" -> 

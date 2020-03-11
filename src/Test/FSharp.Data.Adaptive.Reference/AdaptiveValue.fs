@@ -78,3 +78,14 @@ module AVal =
                 mapping (force ref1) (force ref2) |> force
         }
     
+module Seq =
+    let existsA (predicate : 'T -> aval<bool>) (elements : seq<'T>) =
+        { new aval<bool> with
+            member x.GetValue(_) = elements |> Seq.exists (predicate >> AVal.force)
+        }
+
+    let forallA (predicate : 'T -> aval<bool>) (elements : seq<'T>) =
+        { new aval<bool> with
+            member x.GetValue(_) = elements |> Seq.forall (predicate >> AVal.force)
+        }
+

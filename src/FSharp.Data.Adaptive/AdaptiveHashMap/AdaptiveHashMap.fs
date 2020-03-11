@@ -1087,6 +1087,18 @@ module AMap =
     let tryFind (key: 'K) (map: amap<'K, 'V>) =
         map.Content |> AVal.map (HashMap.tryFind key)
 
+    
+    /// Adaptively looks up the given key in the map.
+    /// Note that this operation should not be used extensively since its resulting
+    /// aval will be re-evaluated upon every change of the map.
+    /// WARNING: causes KeyNotFoundException when the key is not present at evaluation-time
+    let find (key: 'K) (map: amap<'K, 'V>) =
+        map.Content |> AVal.map (fun m ->
+            match HashMap.tryFind key m with
+            | Some v -> v
+            | None -> raise <| System.Collections.Generic.KeyNotFoundException(sprintf "could not get key: %A" key)
+        )
+
     /// Evaluates the given adaptive map and returns its current content.
     /// This should not be used inside the adaptive evaluation
     /// of other AdaptiveObjects since it does not track dependencies.

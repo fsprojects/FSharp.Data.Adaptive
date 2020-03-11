@@ -260,3 +260,176 @@ module CollectionExtensions =
         let ofAMap (map: amap<Index, 'T>) = AMap.toAList map
 
 
+    module private BooleanOperators =
+        type AdaptiveOr(values : list<aval<bool>>) =
+            inherit AbstractVal<bool>()
+
+            let mutable witness : option<aval<bool>> = None
+
+            let findWitness (token : AdaptiveToken) =
+                let rec find (l : list<aval<bool>>) =
+                    match l with
+                    | [] -> None, []
+                    | a :: rest ->
+                        if a.GetValue token then Some a, rest
+                        else 
+                            let (h, t) = find rest
+                            h, a :: t
+                find values
+
+
+            override x.Compute(token : AdaptiveToken) =
+                match witness with
+                | Some w ->
+                    if w.GetValue token then
+                        true
+                    else
+                        let w, rest = findWitness token
+                        witness <- w
+                        match w with
+                        | Some _ -> 
+                            rest |> List.iter (fun r -> r.Outputs.Remove x |> ignore)
+                            true
+                        | None ->
+                            false
+                | None ->
+                    let w, rest = findWitness token
+                    witness <- w
+                    match w with
+                    | Some _ -> 
+                        rest |> List.iter (fun r -> r.Outputs.Remove x |> ignore)
+                        true
+                    | None ->
+                        false
+
+        type AdaptiveAnd(values : list<aval<bool>>) =
+            inherit AbstractVal<bool>()
+
+            let mutable witness : option<aval<bool>> = None
+
+            let findWitness (token : AdaptiveToken) =
+                let rec find (l : list<aval<bool>>) =
+                    match l with
+                    | [] -> None, []
+                    | a :: rest ->
+                        if not (a.GetValue token) then Some a, rest
+                        else 
+                            let (h, t) = find rest
+                            h, a :: t
+                find values
+
+
+            override x.Compute(token : AdaptiveToken) =
+                match witness with
+                | Some w ->
+                    if w.GetValue token then
+                        let w, rest = findWitness token
+                        witness <- w
+                        match w with
+                        | Some _ -> 
+                            rest |> List.iter (fun r -> r.Outputs.Remove x |> ignore)
+                            false
+                        | None ->
+                            true
+                    else
+                        false
+                | None ->
+                    let w, rest = findWitness token
+                    witness <- w
+                    match w with
+                    | Some _ -> 
+                        rest |> List.iter (fun r -> r.Outputs.Remove x |> ignore)
+                        false
+                    | None ->
+                        true
+
+
+    /// Adaptive operators for lists.
+    module List =
+        /// Adaptively checks whether one or more entries make the given predicate true.
+        let existsA (predicate : 'T -> aval<bool>) (elements : list<'T>) =
+            let constant, adaptive = elements |> List.map predicate |> List.partition (fun v -> v.IsConstant)
+
+            if constant |> List.exists AVal.force then
+                AVal.constant true
+            else
+                match adaptive with
+                | [] -> AVal.constant false
+                | _ -> BooleanOperators.AdaptiveOr adaptive :> aval<_>
+                
+        /// Adaptively checks whether all entries make the given predicate true.
+        let forallA (predicate : 'T -> aval<bool>) (elements : list<'T>) =
+            let constant, adaptive = elements |> List.map predicate |> List.partition (fun v -> v.IsConstant)
+
+            if constant |> List.exists (AVal.force >> not) then
+                AVal.constant false
+            else
+                match adaptive with
+                | [] -> AVal.constant true
+                | _ -> BooleanOperators.AdaptiveAnd adaptive :> aval<_>
+
+    /// Adaptive operators for seq.
+    module Seq =
+        /// Adaptively checks whether one or more entries make the given predicate true.
+        let existsA (predicate : 'T -> aval<bool>) (elements : seq<'T>) =
+            List.existsA predicate (Seq.toList elements)
+
+        /// Adaptively checks whether all entries make the given predicate true.
+        let forallA (predicate : 'T -> aval<bool>) (elements : seq<'T>) =
+            List.forallA predicate (Seq.toList elements)
+       
+    /// Adaptive operators for arrays.
+    module Array =
+        /// Adaptively checks whether one or more entries make the given predicate true.
+        let existsA (predicate : 'T -> aval<bool>) (elements : 'T[]) =
+            List.existsA predicate (Array.toList elements)
+
+        /// Adaptively checks whether all entries make the given predicate true.
+        let forallA (predicate : 'T -> aval<bool>) (elements : 'T[]) =
+            List.forallA predicate (Array.toList elements)
+            
+    /// Adaptive operators for HashSet.
+    module HashSet =
+        /// Adaptively checks whether one or more entries make the given predicate true.
+        let existsA (predicate : 'T -> aval<bool>) (elements : HashSet<'T>) =
+            List.existsA predicate (HashSet.toList elements)
+
+        /// Adaptively checks whether all entries make the given predicate true.
+        let forallA (predicate : 'T -> aval<bool>) (elements : HashSet<'T>) =
+            List.forallA predicate (HashSet.toList elements)
+            
+    /// Adaptive operators for HashMap.
+    module HashMap =
+        /// Adaptively checks whether one or more entries make the given predicate true.
+        let existsA (predicate : 'K -> 'V -> aval<bool>) (elements : HashMap<'K, 'V>) =
+            let predicate = OptimizedClosures.FSharpFunc<'K, 'V, aval<bool>>.Adapt predicate
+            List.existsA (fun struct(k,v) -> predicate.Invoke(k,v)) (elements.ToListV())
+
+        /// Adaptively checks whether all entries make the given predicate true.
+        let forallA (predicate : 'K -> 'V -> aval<bool>) (elements : HashMap<'K, 'V>) =
+            let predicate = OptimizedClosures.FSharpFunc<'K, 'V, aval<bool>>.Adapt predicate
+            List.forallA (fun struct(k,v) -> predicate.Invoke(k,v)) (elements.ToListV())
+            
+    /// Adaptive operators for Map.
+    module Map =
+        /// Adaptively checks whether one or more entries make the given predicate true.
+        let existsA (predicate : 'K -> 'V -> aval<bool>) (elements : Map<'K, 'V>) =
+            let predicate = OptimizedClosures.FSharpFunc<'K, 'V, aval<bool>>.Adapt predicate
+            List.existsA (fun(k,v) -> predicate.Invoke(k,v)) (Map.toList elements)
+
+        /// Adaptively checks whether all entries make the given predicate true.
+        let forallA (predicate : 'K -> 'V -> aval<bool>) (elements : Map<'K, 'V>) =
+            let predicate = OptimizedClosures.FSharpFunc<'K, 'V, aval<bool>>.Adapt predicate
+            List.forallA (fun(k,v) -> predicate.Invoke(k,v)) (Map.toList elements)
+
+    /// Adaptive operators for IndexList.
+    module IndexList =
+        /// Adaptively checks whether one or more entries make the given predicate true.
+        let existsA (predicate : 'T -> aval<bool>) (elements : IndexList<'T>) =
+            List.existsA predicate (IndexList.toList elements)
+
+        /// Adaptively checks whether all entries make the given predicate true.
+        let forallA (predicate : 'T -> aval<bool>) (elements : IndexList<'T>) =
+            List.forallA predicate (IndexList.toList elements)
+
+
