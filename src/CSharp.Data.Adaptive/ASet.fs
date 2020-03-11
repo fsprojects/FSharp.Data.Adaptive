@@ -32,7 +32,16 @@ type AdaptiveHashSet private() =
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Empty<'T>() = ASet.empty<'T>
-    
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Single<'T>(item : 'T) = ASet.single item
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfArray<'T>(arr: 'T[]) = ASet.ofArray arr
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfSeq<'T>(sq: seq<'T>) = ASet.ofSeq sq
+        
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ToAdaptiveHashSet(this: seq<'T>) = ASet.ofSeq this
 
@@ -195,6 +204,17 @@ type AdaptiveHashSet private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ReduceByAdaptive(this: aset<'T1>, reduction: AdaptiveReduction<'T2, 'S, 'V>, mapping : Func<'T1, aval<'T2>>) =
         this |> ASet.reduceByA reduction mapping.Invoke
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Fold<'T1, 'T2>(this: aset<'T1>, add: Func<'T2, 'T1, 'T2>, zero: 'T2) =
+        let addFun = fun s -> fun a -> add.Invoke(s, a)
+        this |> ASet.reduce (AdaptiveReduction.fold zero addFun)
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member FoldGroup<'T1, 'T2>(this: aset<'T1>, add: Func<'T2, 'T1, 'T2>, sub: Func<'T2, 'T1, 'T2>, zero: 'T2) =
+        let addFun = fun s -> fun a -> add.Invoke(s, a)
+        let subFun = fun s -> fun a -> sub.Invoke(s, a)
+        this |> ASet.reduce (AdaptiveReduction.group zero addFun subFun)
         
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member SortBy(this: aset<'T>, projection: Func<'T, 'C>) =
@@ -230,5 +250,14 @@ type AdaptiveHashSet private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ToAdaptiveHashMapIgnoreDuplicates(this: aset<'K * 'V>) =
         AMap.ofASetIgnoreDuplicates this
+
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member ToArray(this: aset<'T>) =
+        this |> ASet.force |> HashSet.toArray
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member ToSeq(this: aset<'T>) =
+        this |> ASet.force :> seq<'T>
 
 

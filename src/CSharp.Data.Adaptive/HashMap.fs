@@ -24,6 +24,9 @@ type HashMap private() =
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Empty<'K, 'V>() = HashMap.empty<'K, 'V>
 
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Single<'K, 'V>(k : 'K, v : 'V) = HashMap.single k v
+
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ToHashMap(this: seq<'K * 'V>) = HashMap.ofSeq this
 
