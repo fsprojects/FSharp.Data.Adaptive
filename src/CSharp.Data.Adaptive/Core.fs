@@ -4,6 +4,21 @@ open System
 open System.Runtime.CompilerServices
 open FSharp.Data.Adaptive
 
+
+/// C# friendly base-class exposing evaluation-utilities.
+[<AbstractClass>]
+type AbstractAdaptiveObject() =
+    inherit AdaptiveObject()
+    
+    member x.EvaluateAlways<'T>(token : AdaptiveToken, compute : Func<AdaptiveToken, 'T>) : 'T =
+        (x :> AdaptiveObject).EvaluateAlways token compute.Invoke
+        
+    member x.EvaluateIfNeeded<'T>(token : AdaptiveToken, def : 'T, compute : Func<AdaptiveToken, 'T>) : 'T =
+        (x :> AdaptiveObject).EvaluateIfNeeded token def compute.Invoke
+
+
+
+
 module private AdaptiveObjectExtensionHelpers =
     let inline addMarkingCallback (v : IAdaptiveObject) (action: unit -> unit) =
         v.AddMarkingCallback(action)
