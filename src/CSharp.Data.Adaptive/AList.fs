@@ -106,7 +106,13 @@ type AdaptiveIndexList private() =
     static member Collect(this: alist<'T1>, selector: Func<'T1, alist<'T2>>) = AList.collect selector.Invoke this
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Collect(this: alist<'T1>, selector: Func<'T1, seq<'T2>>) = AList.collect' selector.Invoke this
+    
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member SelectMany(this: alist<'T1>, selector: Func<'T1, alist<'T2>>) = AList.collect selector.Invoke this
+    
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member SelectMany(this: alist<'T1>, selector: Func<'T1, seq<'T2>>) = AList.collect' selector.Invoke this
 
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]

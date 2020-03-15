@@ -106,7 +106,13 @@ type AdaptiveHashSet private() =
     static member Collect(this: aset<'T1>, selector: Func<'T1, aset<'T2>>) = ASet.collect selector.Invoke this
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Collect(this: aset<'T1>, selector: Func<'T1, seq<'T2>>) = ASet.collect' selector.Invoke this
+    
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member SelectMany(this: aset<'T1>, selector: Func<'T1, aset<'T2>>) = ASet.collect selector.Invoke this
+    
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member SelectMany(this: aset<'T1>, selector: Func<'T1, seq<'T2>>) = ASet.collect' selector.Invoke this
 
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]

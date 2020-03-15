@@ -1153,6 +1153,11 @@ module AList =
     let collect (mapping: 'T1 -> alist<'T2>) (list : alist<'T1>) =
         // TODO: better implementation possible (caching?)
         collecti (fun _ v -> mapping v) list
+        
+    /// Adaptively applies the given mapping function to all elements and returns a new alist holding the concatenated results.
+    let collect' (mapping: 'T1 -> seq<'T2>) (list : alist<'T1>) =
+        // TODO: better implementation possible (caching?)
+        collecti (fun _ v -> mapping v |> ofSeq) list
 
     /// Adaptively ofReaders an alist with the source-indices.
     let indexed (list : alist<'T>) =
