@@ -238,7 +238,11 @@ type AdaptiveIndexList private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ToAdaptiveHashMap(this: alist<'T>) =
         this |> AList.toAMap
-        
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member GroupBy(this: alist<'T>, mapping: Func<'T, 'G>) =
+        this |> AList.groupBy mapping.Invoke
+
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Reverse(this: alist<'T>) =
         this |> AList.rev

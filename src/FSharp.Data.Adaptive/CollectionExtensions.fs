@@ -243,6 +243,12 @@ module CollectionExtensions =
             else
                 AList.ofReader (fun () -> ToListReader(set))
 
+        /// Groups the aset by the given mapping and returns an amap with potentially colliding entries in a HashSet<'T>.
+        let groupBy (mapping: 'T -> 'K) (set: aset<'T>) =
+            // TODO: better implementation.
+            set |> ASet.map (fun v -> mapping v, v) |> AMap.ofASet
+
+
     /// Functional operators for alist<_>
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module AList =
@@ -258,6 +264,16 @@ module CollectionExtensions =
 
         /// Creates an alist using the given amap<Index, 'T>.
         let ofAMap (map: amap<Index, 'T>) = AMap.toAList map
+        
+        /// Groups the alist by the given mapping and returns an amap with potentially colliding entries in a IndexList<'T>.
+        let groupBy (mapping: 'T -> 'K) (set: alist<'T>) =
+            // TODO: better implementation.
+            set 
+            |> AList.mapi (fun i v -> mapping v, (i, v)) 
+            |> toASet
+            |> AMap.ofASet
+            |> AMap.map (fun _ v -> IndexList.ofSeqIndexed v)
+         
 
 
     module private BooleanOperators =
