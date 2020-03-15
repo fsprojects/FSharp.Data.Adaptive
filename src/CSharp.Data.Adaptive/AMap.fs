@@ -121,6 +121,13 @@ type AdaptiveHashMap private() =
         AMap.bind selector.Invoke this
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Bind(a: aval<'T1>, b : aval<'T2>, selector: Func<'T1, 'T2, amap<'K, 'T3>>) = AMap.bind2 (fun a b -> selector.Invoke(a,b)) a b
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Bind(a: aval<'T1>, b : aval<'T2>, c : aval<'T3>, selector: Func<'T1, 'T2, 'T3, amap<'K, 'T4>>) = AMap.bind3 (fun a b c -> selector.Invoke(a,b,c)) a b c
+    
+    
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member MapAdaptive(this: amap<'K, 'T1>, selector : Func<'K, 'T1, aval<'T2>>) = 
         AMap.mapA (fun k v -> selector.Invoke(k,v)) this
     

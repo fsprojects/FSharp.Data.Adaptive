@@ -1061,6 +1061,20 @@ module ASet =
         else
             ofReader (fun () -> BindReader(value, mapping))
 
+    /// Adaptively maps over the given avals and returns the resulting set.
+    let bind2 (mapping : 'A -> 'B -> aset<'C>) (valueA : aval<'A>) (valueB : aval<'B>) =
+        // TODO: better implementation?
+        (valueA, valueB) 
+        ||> AVal.map2 (fun a b -> a,b)
+        |> bind (fun (a,b) -> mapping a b)
+
+    /// Adaptively maps over the given avals and returns the resulting set.
+    let bind3 (mapping : 'A -> 'B -> 'C -> aset<'D>) (valueA : aval<'A>) (valueB : aval<'B>) (valueC : aval<'C>) =
+        // TODO: better implementation?
+        (valueA, valueB, valueC) 
+        |||> AVal.map3 (fun a b c -> a,b,c)
+        |> bind (fun (a,b,c) -> mapping a b c)
+
     /// Adaptively flattens the set of adaptive avals.
     let flattenA (set : aset<aval<'A>>) =
         if set.IsConstant then

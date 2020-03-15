@@ -1187,6 +1187,20 @@ module AList =
             value |> AVal.force |> mapping
         else
             ofReader (fun () -> BindReader(value, mapping))
+            
+    /// Adaptively maps over the given avals and returns the resulting list.
+    let bind2 (mapping : 'A -> 'B -> alist<'C>) (valueA : aval<'A>) (valueB : aval<'B>) =
+        // TODO: better implementation?
+        (valueA, valueB) 
+        ||> AVal.map2 (fun a b -> a,b)
+        |> bind (fun (a,b) -> mapping a b)
+
+    /// Adaptively maps over the given avals and returns the resulting list.
+    let bind3 (mapping : 'A -> 'B -> 'C -> alist<'D>) (valueA : aval<'A>) (valueB : aval<'B>) (valueC : aval<'C>) =
+        // TODO: better implementation?
+        (valueA, valueB, valueC) 
+        |||> AVal.map3 (fun a b c -> a,b,c)
+        |> bind (fun (a,b,c) -> mapping a b c)
 
     /// Sorts the list using the keys given by projection.
     /// Note that the sorting is stable.

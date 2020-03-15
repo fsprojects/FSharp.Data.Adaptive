@@ -119,6 +119,12 @@ type AdaptiveHashSet private() =
     static member Bind(this: aval<'T1>, selector: Func<'T1, aset<'T2>>) = ASet.bind selector.Invoke this
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Bind(a: aval<'T1>, b : aval<'T2>, selector: Func<'T1, 'T2, aset<'T3>>) = ASet.bind2 (fun a b -> selector.Invoke(a,b)) a b
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Bind(a: aval<'T1>, b : aval<'T2>, c : aval<'T3>, selector: Func<'T1, 'T2, 'T3, aset<'T4>>) = ASet.bind3 (fun a b c -> selector.Invoke(a,b,c)) a b c
+    
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Flatten(this: aset<aval<'T>>) = ASet.flattenA this
     
     

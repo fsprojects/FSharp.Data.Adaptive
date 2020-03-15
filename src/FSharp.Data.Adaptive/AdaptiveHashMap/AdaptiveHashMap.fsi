@@ -101,6 +101,12 @@ module AMap =
 
     /// Adaptively maps over the given aval and returns the resulting map.
     val bind : mapping:('T -> amap<'Key,'Value>) -> value:aval<'T> -> amap<'Key,'Value>
+        
+    /// Adaptively maps over the given avals and returns the resulting map.
+    val bind2 : mapping : ('A -> 'B -> amap<'Key,'Value>) -> valueA : aval<'A> -> valueB : aval<'B> -> amap<'Key,'Value>
+
+    /// Adaptively maps over the given avals and returns the resulting map.
+    val bind3 : mapping : ('A -> 'B -> 'C -> amap<'Key,'Value>) -> valueA : aval<'A> -> valueB : aval<'B> -> valueC : aval<'C> -> amap<'Key,'Value>
 
     /// Creates an aset holding all key/value tuples from the map.
     val toASet : map:amap<'Key,'Value> -> aset<'Key * 'Value>

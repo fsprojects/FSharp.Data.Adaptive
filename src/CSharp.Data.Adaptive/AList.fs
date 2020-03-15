@@ -119,6 +119,12 @@ type AdaptiveIndexList private() =
     static member Bind(this: aval<'T1>, selector: Func<'T1, alist<'T2>>) = AList.bind selector.Invoke this
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Bind(a: aval<'T1>, b : aval<'T2>, selector: Func<'T1, 'T2, alist<'T3>>) = AList.bind2 (fun a b -> selector.Invoke(a,b)) a b
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Bind(a: aval<'T1>, b : aval<'T2>, c : aval<'T3>, selector: Func<'T1, 'T2, 'T3, alist<'T4>>) = AList.bind3 (fun a b c -> selector.Invoke(a,b,c)) a b c
+    
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member MapAdaptive(this: alist<'T1>, selector : Func<'T1, aval<'T2>>) = AList.mapA selector.Invoke this
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]

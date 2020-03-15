@@ -135,6 +135,12 @@ module AList =
 
     /// Adaptively maps over the given aval and returns the resulting list.
     val bind : mapping: ('T1 -> alist<'T2>) -> value: aval<'T1> -> alist<'T2>
+        
+    /// Adaptively maps over the given avals and returns the resulting list.
+    val bind2 : mapping : ('A -> 'B -> alist<'C>) -> valueA : aval<'A> -> valueB : aval<'B> -> alist<'C>
+
+    /// Adaptively maps over the given avals and returns the resulting list.
+    val bind3 : mapping : ('A -> 'B -> 'C -> alist<'D>) -> valueA : aval<'A> -> valueB : aval<'B> -> valueC : aval<'C> -> alist<'D>
 
     /// Sorts the list using the keys given by projection.
     /// Note that the sorting is stable.

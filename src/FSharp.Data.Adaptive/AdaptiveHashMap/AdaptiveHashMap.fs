@@ -1073,6 +1073,20 @@ module AMap =
             mapping (AVal.force value)
         else
             create (fun () -> BindReader(value, mapping))
+            
+    /// Adaptively maps over the given avals and returns the resulting map.
+    let bind2 (mapping : 'A -> 'B -> amap<'Key, 'Value>) (valueA : aval<'A>) (valueB : aval<'B>) =
+        // TODO: better implementation?
+        (valueA, valueB) 
+        ||> AVal.map2 (fun a b -> a,b)
+        |> bind (fun (a,b) -> mapping a b)
+
+    /// Adaptively maps over the given avals and returns the resulting map.
+    let bind3 (mapping : 'A -> 'B -> 'C -> amap<'Key, 'Value>) (valueA : aval<'A>) (valueB : aval<'B>) (valueC : aval<'C>) =
+        // TODO: better implementation?
+        (valueA, valueB, valueC) 
+        |||> AVal.map3 (fun a b c -> a,b,c)
+        |> bind (fun (a,b,c) -> mapping a b c)
 
     /// Creates an aset holding all key/value tuples from the map.
     let toASet (map : amap<'Key, 'Value>) = 

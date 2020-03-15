@@ -92,6 +92,12 @@ module ASet =
 
     /// Adaptively maps over the given aval and returns the resulting set.
     val bind : mapping : ('A -> aset<'B>) -> value : aval<'A> -> aset<'B>
+    
+    /// Adaptively maps over the given avals and returns the resulting set.
+    val bind2 : mapping : ('A -> 'B -> aset<'C>) -> valueA : aval<'A> -> valueB : aval<'B> -> aset<'C>
+
+    /// Adaptively maps over the given avals and returns the resulting set.
+    val bind3 : mapping : ('A -> 'B -> 'C -> aset<'D>) -> valueA : aval<'A> -> valueB : aval<'B> -> valueC : aval<'C> -> aset<'D>
 
     /// Adaptively flattens the set of adaptive refs.
     val flattenA : set : aset<aval<'A>> -> aset<'A>
