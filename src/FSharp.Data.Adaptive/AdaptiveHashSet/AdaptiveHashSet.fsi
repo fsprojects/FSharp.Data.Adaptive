@@ -84,6 +84,9 @@ module ASet =
     /// Adaptively maps over the given set and unions all resulting sets.
     val collect : mapping : ('A -> aset<'B>) -> set : aset<'A> -> aset<'B>
 
+    /// Adaptively maps over the given set and unions all resulting seqs.
+    val collect' : mapping : ('A -> seq<'B>) -> set : aset<'A> -> aset<'B>
+
     /// Creates an aset for the given aval.
     val ofAVal : value : aval<#seq<'A>> -> aset<'A>
 

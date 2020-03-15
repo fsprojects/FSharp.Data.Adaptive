@@ -370,6 +370,31 @@ module AdaptiveHashSetImplementation =
                 | _ -> unexpected()
             )
           
+
+    /// Reader for collect operations with inner constants.
+    type CollectSeqReader<'A, 'B>(input : aset<'A>, mapping : 'A -> seq<'B>) =
+        inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.empty)
+            
+        let cache = Cache (mapping >> HashSet.ofSeq)
+        let reader = input.GetReader()
+        
+        static member DeltaMapping (mapping : 'A -> seq<'B>) =    
+            let cache = Cache (mapping >> HashSet.ofSeq)
+            HashSetDelta.collect (fun d ->
+                match d with
+                | Add(1, v) -> HashSet.computeDelta HashSet.empty (cache.Invoke v)
+                | Rem(1, v) -> HashSet.computeDelta (cache.Revoke v) HashSet.empty
+                | _ -> unexpected()
+            )
+
+        override x.Compute(token) =
+            reader.GetChanges token |> HashSetDelta.collect (fun d ->
+                match d with
+                | Add(1, v) -> HashSet.computeDelta HashSet.empty (cache.Invoke v)
+                | Rem(1, v) -> HashSet.computeDelta (cache.Revoke v) HashSet.empty
+                | _ -> unexpected()
+            )
+          
     /// Reader for choose operations.
     type ChooseReader<'A, 'B>(input : aset<'A>, mapping : 'A -> option<'B>) =
         inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.empty)
@@ -1014,6 +1039,13 @@ module ASet =
                 ofReader (fun () -> UnionConstantReader all)
         else
             ofReader (fun () -> CollectReader(set, mapping))
+
+    /// Adaptively maps over the given set and unions all resulting seqs.
+    let collect' (mapping : 'A -> seq<'B>) (set : aset<'A>) =   
+        if set.IsConstant then
+            constant (fun () -> set |> force |> HashSet.collect (mapping >> HashSet.ofSeq))
+        else
+            ofReader (fun () -> CollectSeqReader(set, mapping))
 
     /// Creates an aset for the given aval.
     let ofAVal (value : aval<#seq<'T>>) =
