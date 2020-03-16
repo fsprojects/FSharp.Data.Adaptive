@@ -1,3 +1,9 @@
+### 0.0.18
+* loads of new combinators (custom/mapUse/etc.)
+* better C# interop thanks to @luithefirst
+* reintroduced `groupBy`
+* several conveniene combinators (bind2, bind3, etc.)
+
 ### 0.0.17
 * fixed shallowEquals for enums
 * added several shallowEquals tests
