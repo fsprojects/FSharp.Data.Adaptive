@@ -1,6 +1,7 @@
 namespace FSharp.Data.Adaptive
 
 open FSharp.Data.Traceable
+open System
 
 /// An adaptive reader for aset that allows to pull operations and exposes its current state.
 type IHashSetReader<'T> = IOpReader<CountingHashSet<'T>, HashSetDelta<'T>>
@@ -369,7 +370,52 @@ module AdaptiveHashSetImplementation =
                 | Rem(1, v) -> Rem(cache.Revoke v)
                 | _ -> unexpected()
             )
-          
+        
+
+    /// Reader for mapUse operations.
+    type MapUseReader<'A, 'B when 'B :> IDisposable>(input : aset<'A>, mapping : 'A -> 'B) =
+        inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.empty)
+            
+        let cache = Cache(mapping)
+        let mutable disposeDelta = HashSetDelta.empty
+        let mutable reader = input.GetReader()
+
+        member x.Dispose() =
+            lock x (fun () ->
+                cache.Clear(fun d -> 
+                    disposeDelta <- HashSetDelta.add (Rem d) disposeDelta
+                    (d :> IDisposable).Dispose()
+                )
+                reader <- Unchecked.defaultof<_>
+            )
+            match Transaction.Current with
+            | Some t -> t.Enqueue x
+            | None -> transact x.MarkOutdated
+
+        interface System.IDisposable with
+            member x.Dispose() = x.Dispose()
+
+        override x.Compute(token) =
+            if Unchecked.isNull reader then 
+                let d = disposeDelta
+                disposeDelta <- HashSetDelta.empty
+                d
+            else
+                reader.GetChanges token |> HashSetDelta.choose (fun d ->
+                    match d with
+                    | Add(1, v) -> 
+                        Add(cache.Invoke v) |> Some
+                    | Rem(1, v) -> 
+                        match cache.RevokeAndGetDeletedTotal v with
+                        | Some (del, v) -> 
+                            if del then (v :> IDisposable).Dispose()
+                            Rem v |> Some
+                        | None ->
+                            None
+                    | _ -> 
+                        unexpected()
+                )
+            
 
     /// Reader for collect operations with inner constants.
     type CollectSeqReader<'A, 'B>(input : aset<'A>, mapping : 'A -> seq<'B>) =
@@ -1107,6 +1153,30 @@ module ASet =
 
             ChooseAReader(set, mapping)
         )
+
+    
+    /// Adaptively maps over the given set and disposes all removed values while active.
+    /// Additionally the returned Disposable disposes all currently existing values and clears the resulting set.
+    let mapUse<'A, 'B when 'B :> IDisposable> (mapping : 'A -> 'B) (set : aset<'A>) : IDisposable * aset<'B> =
+        // NOTE that the resulting set can never be constant (due to disposal).
+        let reader = ref None
+        let set = 
+            ofReader (fun () ->
+                let r = new MapUseReader<'A, 'B>(set, mapping)
+                reader := Some r
+                r
+            )
+        let disp =
+            { new System.IDisposable with 
+                member x.Dispose() =
+                    match !reader with
+                    | Some r -> 
+                        r.Dispose()
+                        reader := None
+                    | None -> 
+                        ()
+            }
+        disp, set
 
     /// Evaluates the given adaptive set and returns its current content.
     /// This should not be used inside the adaptive evaluation

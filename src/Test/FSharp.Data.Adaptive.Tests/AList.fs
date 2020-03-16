@@ -113,6 +113,49 @@ let ``[AList] reference impl``() ({ lreal = real; lref = ref; lexpression = str;
     Gen.eval 15 (Random.newSeed()) run
   
 [<Test>]
+let ``[AList] mapUse``() =
+    let input = clist [1;2;3;4]
+    let refCount = ref 0
+
+    let newDisposable() =
+        System.Threading.Interlocked.Increment(&refCount.contents) |> ignore
+        { new System.IDisposable with
+            member x.Dispose() =
+                System.Threading.Interlocked.Decrement(&refCount.contents) |> ignore
+                
+        }
+
+    let disp, set = input |> AList.mapUse (fun v -> newDisposable())
+
+    !refCount |> should equal 0
+
+    let r = set.GetReader()
+    r.GetChanges(AdaptiveToken.Top) |> ignore
+    r.State.Count |> should equal 4
+    !refCount |> should equal 4
+
+    transact (fun () -> input.RemoveAt 0 |> ignore)
+    r.GetChanges(AdaptiveToken.Top) |> ignore
+    r.State.Count |> should equal 3
+    !refCount |> should equal 3
+    
+    transact (fun () -> input.Add 7 |> ignore)
+    r.GetChanges(AdaptiveToken.Top) |> ignore
+    r.State.Count |> should equal 4
+    !refCount |> should equal 4
+
+    disp.Dispose()
+    r.GetChanges(AdaptiveToken.Top) |> ignore
+    r.State.Count |> should equal 0
+    !refCount |> should equal 0
+    
+    // double free resistance
+    disp.Dispose()
+    r.GetChanges(AdaptiveToken.Top) |> ignore
+    r.State.Count |> should equal 0
+    !refCount |> should equal 0
+
+[<Test>]
 let ``[AList] mapA``() =
     let l = clist [1;2;3]
     let even = cval 1

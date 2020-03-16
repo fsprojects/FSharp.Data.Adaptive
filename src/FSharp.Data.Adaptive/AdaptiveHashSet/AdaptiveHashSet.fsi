@@ -1,5 +1,6 @@
 ﻿namespace FSharp.Data.Adaptive
 
+open System
 open FSharp.Data.Traceable
 
 /// An adaptive reader for aset that allows to pull operations and exposes its current state.
@@ -80,7 +81,6 @@ module ASet =
     /// Adaptively intersects the given sets
     val intersect : a : aset<'T> -> b : aset<'T> -> aset<'T>
 
-
     /// Adaptively maps over the given set and unions all resulting sets.
     val collect : mapping : ('A -> aset<'B>) -> set : aset<'A> -> aset<'B>
 
@@ -98,6 +98,10 @@ module ASet =
 
     /// Adaptively maps over the given avals and returns the resulting set.
     val bind3 : mapping : ('A -> 'B -> 'C -> aset<'D>) -> valueA : aval<'A> -> valueB : aval<'B> -> valueC : aval<'C> -> aset<'D>
+    
+    /// Adaptively maps over the given set and disposes all removed values while active.
+    /// Additionally the returned Disposable disposes all currently existing values and clears the resulting set.
+    val mapUse : mapping : ('A -> 'B) -> set : aset<'A> -> IDisposable * aset<'B> when 'B :> IDisposable
 
     /// Adaptively flattens the set of adaptive refs.
     val flattenA : set : aset<aval<'A>> -> aset<'A>

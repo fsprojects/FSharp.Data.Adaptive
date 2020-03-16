@@ -64,6 +64,11 @@ type AdaptiveHashSet private() =
     static member Map(this: aset<'T1>, selector: Func<'T1, 'T2>) = ASet.map selector.Invoke this
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member MapUse(this: aset<'T1>, selector: Func<'T1, 'T2>) = 
+        let (d, s) = ASet.mapUse selector.Invoke this
+        struct(d, s)
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Select(this: aset<'T1>, selector: Func<'T1, 'T2>) = ASet.map selector.Invoke this
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]

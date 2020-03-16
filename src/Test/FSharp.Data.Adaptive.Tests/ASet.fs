@@ -122,6 +122,49 @@ let ``[ASet] reference impl``() ({ sreal = real; sref = ref; sexpression = str; 
     Gen.eval 15 (Random.newSeed()) run
 
 [<Test>]
+let ``[ASet] mapUse``() =
+    let input = cset [1;2;3;4]
+    let refCount = ref 0
+
+    let newDisposable() =
+        System.Threading.Interlocked.Increment(&refCount.contents) |> ignore
+        { new System.IDisposable with
+            member x.Dispose() =
+                System.Threading.Interlocked.Decrement(&refCount.contents) |> ignore
+                
+        }
+
+    let disp, set = input |> ASet.mapUse (fun v -> newDisposable())
+
+    !refCount |> should equal 0
+
+    let r = set.GetReader()
+    r.GetChanges(AdaptiveToken.Top) |> ignore
+    r.State.Count |> should equal 4
+    !refCount |> should equal 4
+
+    transact (fun () -> input.Remove 1 |> ignore)
+    r.GetChanges(AdaptiveToken.Top) |> ignore
+    r.State.Count |> should equal 3
+    !refCount |> should equal 3
+    
+    transact (fun () -> input.Add 7 |> ignore)
+    r.GetChanges(AdaptiveToken.Top) |> ignore
+    r.State.Count |> should equal 4
+    !refCount |> should equal 4
+
+    disp.Dispose()
+    r.GetChanges(AdaptiveToken.Top) |> ignore
+    r.State.Count |> should equal 0
+    !refCount |> should equal 0
+    
+    // double free resistance
+    disp.Dispose()
+    r.GetChanges(AdaptiveToken.Top) |> ignore
+    r.State.Count |> should equal 0
+    !refCount |> should equal 0
+
+[<Test>]
 let ``[CSet] contains/isEmpty/count`` () =
     let set = cset(HashSet.ofList [1;2])
 

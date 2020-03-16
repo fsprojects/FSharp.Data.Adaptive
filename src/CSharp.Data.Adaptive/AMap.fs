@@ -76,6 +76,11 @@ type AdaptiveHashMap private() =
     static member Map(this: amap<'K, 'T1>, selector: Func<'K, 'T1, 'T2>) = AMap.map (fun k v -> selector.Invoke(k,v)) this
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member MapUse(this: amap<'K, 'T1>, selector: Func<'K, 'T1, 'T2>) = 
+        let (d, s) = AMap.mapUse (fun k v -> selector.Invoke(k,v)) this
+        struct(d, s)
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Select(this: amap<'K, 'T1>, selector: Func<'K, 'T1, 'T2>) = AMap.map (fun k v -> selector.Invoke(k,v)) this
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]

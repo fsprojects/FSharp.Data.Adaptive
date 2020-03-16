@@ -1,5 +1,6 @@
 ﻿namespace FSharp.Data.Adaptive
 
+open System
 open FSharp.Data.Traceable
 
 /// An adaptive reader for amap that allows to pull operations and exposes its current state.
@@ -107,6 +108,10 @@ module AMap =
 
     /// Adaptively maps over the given avals and returns the resulting map.
     val bind3 : mapping : ('A -> 'B -> 'C -> amap<'Key,'Value>) -> valueA : aval<'A> -> valueB : aval<'B> -> valueC : aval<'C> -> amap<'Key,'Value>
+
+    /// Adaptively maps over the given map and disposes all removed values while active.
+    /// Additionally the returned Disposable disposes all currently existing values and clears the resulting map.
+    val mapUse : mapping : ('K -> 'A -> 'B) -> map : amap<'K, 'A> -> IDisposable * amap<'K, 'B> when 'B :> IDisposable
 
     /// Creates an aset holding all key/value tuples from the map.
     val toASet : map:amap<'Key,'Value> -> aset<'Key * 'Value>

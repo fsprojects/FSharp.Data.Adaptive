@@ -63,6 +63,11 @@ type AdaptiveIndexList private() =
     static member Map(this: alist<'T1>, selector: Func<'T1, 'T2>) = AList.map selector.Invoke this
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member MapUse(this: alist<'T1>, selector: Func<'T1, 'T2>) = 
+        let (d, s) = AList.mapUse selector.Invoke this
+        struct(d, s)
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Select(this: alist<'T1>, selector: Func<'T1, 'T2>) = AList.map selector.Invoke this
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]

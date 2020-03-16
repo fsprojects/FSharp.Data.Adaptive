@@ -1,5 +1,6 @@
 namespace FSharp.Data.Adaptive
 
+open System
 open FSharp.Data.Traceable
 
 /// An adaptive reader for amap that allows to pull operations and exposes its current state.
@@ -405,6 +406,59 @@ module AdaptiveHashMapImplementation =
                         | None -> () // strange
                         Remove
             ) |> HashMapDelta
+
+
+    /// Reader for mapUse operations.
+    type MapUseReader<'K, 'A, 'B when 'B :> IDisposable>(input : amap<'K, 'A>, mapping : 'K -> 'A -> 'B) =
+        inherit AbstractReader<HashMapDelta<'K, 'B>>(HashMapDelta.empty)
+            
+        let mutable state : HashMap<'K, 'B> = HashMap.empty
+        let mutable disposeDelta = HashMapDelta.empty
+        let mutable reader = input.GetReader()
+
+        member x.Dispose() =
+            lock x (fun () ->
+                for struct (_, v) in state.ToSeqV() do v.Dispose()
+                disposeDelta <- HashMap.computeDelta state HashMap.empty
+                state <- HashMap.empty
+                reader <- Unchecked.defaultof<_>
+            )
+            match Transaction.Current with
+            | Some t -> t.Enqueue x
+            | None -> transact x.MarkOutdated
+
+        interface System.IDisposable with
+            member x.Dispose() = x.Dispose()
+
+        override x.Compute(token) =
+            if Unchecked.isNull reader then 
+                let d = disposeDelta
+                disposeDelta <- HashMapDelta.empty
+                d
+            else
+                let ops = reader.GetChanges token
+                ops.Store |> HashMap.map (fun k op ->
+                    match op with
+                    | Set v ->
+                        let r = mapping k v
+                        state <-
+                            state.AlterV(k, fun o ->
+                                match o with
+                                | ValueSome o -> o.Dispose(); ValueSome r
+                                | ValueNone -> ValueSome r
+                            )
+                        Set r
+                    | Remove -> 
+                        state <-
+                            state.AlterV(k, fun o ->
+                                match o with
+                                | ValueSome o -> o.Dispose(); ValueNone
+                                | ValueNone -> ValueNone
+                            )
+                        Remove
+
+                ) |> HashMapDelta
+        
 
     /// Reader for choose operations.
     type ChooseWithKeyReader<'Key, 'Value1, 'Value2>(input : amap<'Key, 'Value1>, mapping : 'Key -> 'Value1 -> option<'Value2>) =
@@ -1087,6 +1141,31 @@ module AMap =
         (valueA, valueB, valueC) 
         |||> AVal.map3 (fun a b c -> a,b,c)
         |> bind (fun (a,b,c) -> mapping a b c)
+
+        
+    /// Adaptively maps over the given map and disposes all removed values while active.
+    /// Additionally the returned Disposable disposes all currently existing values and clears the resulting map.
+    let mapUse<'K, 'A, 'B when 'B :> IDisposable> (mapping : 'K -> 'A -> 'B) (set : amap<'K, 'A>) : IDisposable * amap<'K, 'B> =
+        // NOTE that the resulting set can never be constant (due to disposal).
+        let reader = ref None
+        let set = 
+            ofReader (fun () ->
+                let r = new MapUseReader<'K, 'A, 'B>(set, mapping)
+                reader := Some r
+                r
+            )
+        let disp =
+            { new System.IDisposable with 
+                member x.Dispose() =
+                    match !reader with
+                    | Some r -> 
+                        r.Dispose()
+                        reader := None
+                    | None -> 
+                        ()
+            }
+        disp, set
+
 
     /// Creates an aset holding all key/value tuples from the map.
     let toASet (map : amap<'Key, 'Value>) = 

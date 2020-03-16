@@ -1,5 +1,6 @@
 namespace FSharp.Data.Adaptive
 
+open System
 open FSharp.Data.Traceable
 
 /// An adaptive reader for alist that allows to pull operations and exposes its current state.
@@ -387,6 +388,57 @@ module internal AdaptiveIndexListImplementation =
                 | Remove -> Remove
                 | Set v -> Set (mapping i v)
             )
+
+    /// Reader for mapUse operations.
+    type MapUseReader<'a, 'b when 'b :> System.IDisposable>(input : alist<'a>, mapping : Index -> 'a -> 'b) =
+        inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
+
+        let mutable state : MapExt<Index, 'b> = MapExt.empty
+        let mutable disposeDelta = IndexListDelta.empty
+        let mutable reader = input.GetReader()
+
+        member x.Dispose() =
+            lock x (fun () ->
+                for v in MapExt.values state do (v :> System.IDisposable).Dispose()
+                disposeDelta <- state |> MapExt.map (fun _ _ -> Remove) |> IndexListDelta.ofMap
+                state <- MapExt.empty
+                reader <- Unchecked.defaultof<_>
+            )
+            match Transaction.Current with
+            | Some t -> t.Enqueue x
+            | None -> transact x.MarkOutdated
+
+        interface System.IDisposable with
+            member x.Dispose() = x.Dispose()
+
+        override x.Compute(token) =
+            if Unchecked.isNull reader then 
+                let d = disposeDelta
+                disposeDelta <- IndexListDelta.empty
+                d
+            else
+                let ops = reader.GetChanges token
+                ops |> IndexListDelta.map (fun k op ->
+                    match op with
+                    | Set v ->
+                        let r = mapping k v
+                        state <-
+                            state.Alter(k, fun o ->
+                                match o with
+                                | Some o -> o.Dispose(); Some r
+                                | None -> Some r
+                            )
+                        Set r
+                    | Remove -> 
+                        state <-
+                            state.Alter(k, fun o ->
+                                match o with
+                                | Some o -> o.Dispose(); None
+                                | None -> None
+                            )
+                        Remove
+
+                )
 
     /// Reader for choose operations.
     type ChooseReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> option<'b>) =
@@ -1201,6 +1253,35 @@ module AList =
         (valueA, valueB, valueC) 
         |||> AVal.map3 (fun a b c -> a,b,c)
         |> bind (fun (a,b,c) -> mapping a b c)
+        
+    
+    /// Adaptively maps over the given list and disposes all removed values while active.
+    /// Additionally the returned Disposable disposes all currently existing values and clears the resulting list.
+    let mapUsei<'A, 'B when 'B :> IDisposable> (mapping : Index -> 'A -> 'B) (list : alist<'A>) : IDisposable * alist<'B> =
+        // NOTE that the resulting list can never be constant (due to disposal).
+        let reader = ref None
+        let set = 
+            ofReader (fun () ->
+                let r = new MapUseReader<'A, 'B>(list, mapping)
+                reader := Some r
+                r
+            )
+        let disp =
+            { new System.IDisposable with 
+                member x.Dispose() =
+                    match !reader with
+                    | Some r -> 
+                        r.Dispose()
+                        reader := None
+                    | None -> 
+                        ()
+            }
+        disp, set
+        
+    /// Adaptively maps over the given list and disposes all removed values while active.
+    /// Additionally the returned Disposable disposes all currently existing values and clears the resulting list.
+    let mapUse mapping list = 
+        mapUsei (fun _ v -> mapping v) list
 
     /// Sorts the list using the keys given by projection.
     /// Note that the sorting is stable.

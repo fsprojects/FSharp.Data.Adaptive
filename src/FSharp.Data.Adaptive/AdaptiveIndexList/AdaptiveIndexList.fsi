@@ -1,5 +1,6 @@
 ﻿namespace FSharp.Data.Adaptive
 
+open System
 open FSharp.Data.Traceable
 
 /// An adaptive reader for alist that allows to pull operations and exposes its current state.
@@ -141,6 +142,14 @@ module AList =
 
     /// Adaptively maps over the given avals and returns the resulting list.
     val bind3 : mapping : ('A -> 'B -> 'C -> alist<'D>) -> valueA : aval<'A> -> valueB : aval<'B> -> valueC : aval<'C> -> alist<'D>
+    
+    /// Adaptively maps over the given list and disposes all removed values while active.
+    /// Additionally the returned Disposable disposes all currently existing values and clears the resulting list.
+    val mapUsei : mapping : (Index -> 'A -> 'B) -> set : alist<'A> -> IDisposable * alist<'B> when 'B :> IDisposable
+    
+    /// Adaptively maps over the given list and disposes all removed values while active.
+    /// Additionally the returned Disposable disposes all currently existing values and clears the resulting list.
+    val mapUse : mapping : ('A -> 'B) -> set : alist<'A> -> IDisposable * alist<'B> when 'B :> IDisposable
 
     /// Sorts the list using the keys given by projection.
     /// Note that the sorting is stable.
