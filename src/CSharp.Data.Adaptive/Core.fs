@@ -35,6 +35,12 @@ module private AdaptiveObjectExtensionHelpers =
                 t.Dispose()
         }
 
+    let inline markOutdated (v : IAdaptiveObject) =
+        v.MarkOutdated()
+
+    let inline markOutdated' (v : IAdaptiveObject) (fin : unit -> unit) =
+        v.MarkOutdated(fin)
+
 [<AbstractClass; Sealed; Extension>]
 type Adaptive private() =
 
@@ -52,4 +58,12 @@ type Adaptive private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member GetChanges<'T>(this: IOpReader<'T>) =
         this.GetChanges(AdaptiveToken.Top)
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member MarkOutdated(this: IAdaptiveObject) =
+        AdaptiveObjectExtensionHelpers.markOutdated this
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member MarkOutdated(this: IAdaptiveObject, fin : Action) =
+        AdaptiveObjectExtensionHelpers.markOutdated' this fin.Invoke
 
