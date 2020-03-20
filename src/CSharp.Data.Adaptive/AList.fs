@@ -33,13 +33,13 @@ type AdaptiveIndexList private() =
     static member Empty<'T>() = AList.empty<'T>
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member Single<'T>(item : 'T) = ASet.single item
+    static member Single<'T>(item : 'T) = AList.single item
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member OfArray<'T>(arr: 'T[]) = ASet.ofArray arr
+    static member OfArray<'T>(arr: 'T[]) = AList.ofArray arr
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member OfSeq<'T>(sq: seq<'T>) = ASet.ofSeq sq
+    static member OfSeq<'T>(sq: seq<'T>) = AList.ofSeq sq
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ToAdaptiveIndexList(this: seq<'T>) = AList.ofSeq this
