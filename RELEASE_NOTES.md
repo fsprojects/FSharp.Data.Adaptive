@@ -1,3 +1,7 @@
+### 0.0.19
+* added ChangeableLazyVal
+* more C# interop (MarkOutdated, AList creators)
+
 ### 0.0.18
 * loads of new combinators (custom/mapUse/etc.)
 * better C# interop thanks to @luithefirst

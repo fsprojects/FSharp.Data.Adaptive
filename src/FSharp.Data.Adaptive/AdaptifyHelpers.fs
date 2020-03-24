@@ -105,3 +105,34 @@ type ChangeableModelList<'T, 'C, 'A>(list : IndexList<'T>, init : 'T -> 'C, upda
         member x.GetReader() = x.GetReader()
         member x.History = None
  
+type ChangeableLazyVal<'T>(compute : unit -> 'T) =
+    inherit AbstractVal<'T>()
+
+    let mutable compute = compute
+    let mutable lastValue : voption<'T> = ValueNone
+    
+    member x.Update(computation : unit -> 'T) =
+        let needsMarking = 
+            lock x (fun () ->
+                compute <- computation
+                match lastValue with
+                | ValueSome o ->
+                    if x.OutOfDate then
+                        // there was a value but no-one cared for it
+                        lastValue <- ValueNone
+                        false
+                    else
+                        // someone actually depends on the value
+                        let n = computation()
+                        lastValue <- ValueSome n
+                        not (ShallowEqualityComparer.ShallowEquals(o, n))
+                | ValueNone ->
+                    assert x.OutOfDate
+                    false
+            )
+        if needsMarking then x.MarkOutdated()
+
+    override x.Compute(_t : AdaptiveToken) =
+        let v = compute()
+        lastValue <- ValueSome v
+        v

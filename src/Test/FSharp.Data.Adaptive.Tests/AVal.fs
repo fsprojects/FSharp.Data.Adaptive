@@ -1,6 +1,7 @@
 ﻿module AVal
 
 open FSharp.Data.Adaptive
+open FSharp.Data.Traceable
 open NUnit.Framework
 open FsUnit
 open FsCheck
@@ -200,6 +201,37 @@ let ``[AVal] nop change evaluation`` () =
     d |> AVal.force |> should equal 0
     mapCounter |> should equal 0
 
+[<Test>]
+let ``[AVal] ChangeableLazyVal working``() =
+    let mutable computeCount = 0
+    let compute (v : int) () =
+        computeCount <- computeCount + 1
+        v
+    let sinceLast() =
+        let v = computeCount
+        computeCount <- 0
+        v
 
+        
+    let v = ChangeableLazyVal(compute 1)
+    let test = v |> AVal.map (fun v -> v + 2)
+
+    test |> AVal.force |> should equal 3
+    sinceLast() |> should equal 1
+
+    transact (fun () -> v.Update(compute 0))
+    sinceLast() |> should equal 1
+    
+    transact (fun () -> v.Update(compute 3))
+    sinceLast() |> should equal 0
+    
+    test |> AVal.force |> should equal 5
+    sinceLast() |> should equal 1
+
+    
+    transact (fun () -> v.Update(compute 3))
+    sinceLast() |> should equal 1
+    test.OutOfDate |> should be False
+    ()
 
 
