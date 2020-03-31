@@ -1,3 +1,6 @@
+### 0.0.20
+* added `AList.toASetIndexed`
+
 ### 0.0.19
 * added ChangeableLazyVal
 * more C# interop (MarkOutdated, AList creators)

@@ -314,7 +314,7 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
     member x.IndexOf(item : 'T) =
         x |> Seq.tryFindIndex (DefaultEquality.equals item) |> Option.defaultValue -1
 
-    /// Tries to find the position for the given Index or -1 if the Index does not exist. O(N)
+    /// Tries to find the position for the given Index or -1 if the Index does not exist. O(log N)
     member x.IndexOf(index : Index) =
         MapExt.tryIndexOf index content |> Option.defaultValue -1
         

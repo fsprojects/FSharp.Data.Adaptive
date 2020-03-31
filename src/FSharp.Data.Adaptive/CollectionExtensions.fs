@@ -96,6 +96,30 @@ module CollectionExtensions =
                 )
                 |> HashSetDelta.ofSeq
 
+        /// Reader for AList.toIndexedASet
+        type IndexedListSetReader<'T>(list: alist<'T>) =
+            inherit AbstractReader<HashSetDelta<Index * 'T>>(HashSetDelta.empty)
+            
+            let reader = list.GetReader()
+
+            override x.Compute(token: AdaptiveToken) =
+                let old = reader.State.Content
+                reader.GetChanges(token).Content |> Seq.collect (fun (KeyValue(i, op)) ->
+                    match op with
+                    | Remove -> 
+                        match MapExt.tryFind i old with
+                        | Some v -> Seq.singleton (Rem(i, v))
+                        | None -> Seq.empty
+                    | Set v ->
+                        match MapExt.tryFind i old with
+                        | Some ov ->
+                            if DefaultEquality.equals v ov then Seq.empty
+                            else [Add(i,v); Rem(i,ov)] :> seq<_>
+                        | None ->
+                            Seq.singleton (Add(i,v))
+                )
+                |> HashSetDelta.ofSeq
+
         /// Reader for AList.ofASet
         type ToListReader<'a>(input : aset<'a>) =
             inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
@@ -206,6 +230,16 @@ module CollectionExtensions =
             else
                 ASet.ofReader (fun () -> ListSetReader(list))
             
+        /// Creates an aset holding all index/elements pairs of the given list.
+        let ofAListIndexed (list: alist<'T>) =
+            if list.IsConstant then
+                list.Content
+                |> AVal.force
+                |> IndexList.toSeqIndexed
+                |> ASet.ofSeq
+            else
+                ASet.ofReader (fun () -> IndexedListSetReader(list))
+            
         /// Creates an amap with the keys from the set and the values given by mapping.
         let mapToAMap (mapping: 'Key -> 'Value) (set: aset<'Key>) = AMap.mapSet mapping set
 
@@ -255,7 +289,10 @@ module CollectionExtensions =
         
         /// Creates an aset holding all elements of the given list.
         let toASet (list: alist<'T>) = ASet.ofAList list
-        
+       
+        /// Creates an aset holding all index/elements pairs of the given list.
+        let toASetIndexed (list: alist<'T>) = ASet.ofAListIndexed list
+
         /// Creates an alist from the set with undefined element order.
         let ofASet (set: aset<'T>) = ASet.toAList set
 
