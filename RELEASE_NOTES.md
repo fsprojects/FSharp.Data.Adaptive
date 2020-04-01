@@ -1,3 +1,6 @@
+### 0.0.21
+* All callbacks are now GC roots avoiding strange behaviour when ignoring their Subscriptions.
+
 ### 0.0.20
 * added `AList.toASetIndexed`
 
