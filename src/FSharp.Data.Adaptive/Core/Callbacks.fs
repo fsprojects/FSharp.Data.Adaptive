@@ -3,6 +3,7 @@
 open System
 open System.Threading
 open System.Runtime.CompilerServices
+open System.Runtime.InteropServices
 
 
 /// Represents an object providing callbacks in the dependency-tree
@@ -48,7 +49,17 @@ type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, 
                 obj.Outputs.Add x |> ignore
                 
             cbs <- HashMap.add i cb cbs
-            { new IDisposable with member __.Dispose() = remove x i }
+
+            let mutable self = Unchecked.defaultof<GCHandle>
+            let result = 
+                { new IDisposable with 
+                    member __.Dispose() = 
+                        self.Free()
+                        remove x i 
+                }
+            self <- GCHandle.Alloc(result)
+            result
+
         )
     
     member x.Mark() =
