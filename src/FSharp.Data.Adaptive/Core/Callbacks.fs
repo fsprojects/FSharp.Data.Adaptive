@@ -50,15 +50,21 @@ type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, 
                 
             cbs <- HashMap.add i cb cbs
 
+            #if !FABLE_COMPILER
             let mutable self = Unchecked.defaultof<GCHandle>
             let result = 
                 { new IDisposable with 
                     member __.Dispose() = 
-                        self.Free()
+                        if self.IsAllocated then self.Free()
                         remove x i 
                 }
             self <- GCHandle.Alloc(result)
             result
+            #else
+            { new IDisposable with 
+                member __.Dispose() = remove x i 
+            }
+            #endif
 
         )
     
