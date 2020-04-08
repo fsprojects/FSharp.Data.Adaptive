@@ -8,6 +8,9 @@ module private AdaptiveValueHelpers =
 
     let inline addCallback (v : aval<'T>) (action: 'T -> unit) =
         v.AddCallback(action)
+        
+    let inline addWeakCallback (v : aval<'T>) (action: 'T -> unit) =
+        v.AddWeakCallback(action)
 
 type ConstantValue<'T>(value : 'T) =
     inherit ConstantObject()
@@ -88,3 +91,7 @@ type AdaptiveValue private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member AddCallback(value: aval<'T>, action: Action<'T>) =
         AdaptiveValueHelpers.addCallback value action.Invoke
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member AddWeakCallback(value: aval<'T>, action: Action<'T>) =
+        AdaptiveValueHelpers.addWeakCallback value action.Invoke

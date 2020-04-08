@@ -21,6 +21,9 @@ module private AdaptiveMapHelpers =
 
     let inline addCallback (v : amap<'K, 'V>) (action: HashMap<'K, 'V> -> HashMapDelta<'K, 'V> -> unit) =
         v.AddCallback(action)
+        
+    let inline addWeakCallback (v : amap<'K, 'V>) (action: HashMap<'K, 'V> -> HashMapDelta<'K, 'V> -> unit) =
+        v.AddWeakCallback(action)
 
 [<AbstractClass; Sealed; Extension>]
 type AdaptiveHashMap private() =
@@ -186,6 +189,10 @@ type AdaptiveHashMap private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member AddCallback(set: amap<'K, 'V>, action: Action<HashMap<'K, 'V>, HashMapDelta<'K, 'V>>) =
         AdaptiveMapHelpers.addCallback set (fun s d -> action.Invoke(s,d))
+        
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member AddWeakCallback(set: amap<'K, 'V>, action: Action<HashMap<'K, 'V>, HashMapDelta<'K, 'V>>) =
+        AdaptiveMapHelpers.addWeakCallback set (fun s d -> action.Invoke(s,d))
 
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]

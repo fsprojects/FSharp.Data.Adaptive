@@ -36,7 +36,7 @@ type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, 
 
     /// adds a callback to the object. the returned boolean indicates whether the callback
     /// should automatically re-subscribe after being fired.
-    member x.Subscribe(cb : unit -> bool) =
+    member x.Subscribe(weak : bool, cb : unit -> bool) =
         lock x (fun () ->
             let i = 
                 #if !FABLE_COMPILER
@@ -58,7 +58,8 @@ type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, 
                         if self.IsAllocated then self.Free()
                         remove x i 
                 }
-            self <- GCHandle.Alloc(result)
+            if not weak then
+                self <- GCHandle.Alloc(result)
             result
             #else
             { new IDisposable with 
@@ -119,21 +120,52 @@ module CallbackExtensions =
 
 
     type IAdaptiveObject with
+
+        /// Registers a callback with the given object that will be executed
+        /// whenever the object gets marked out-of-date.
+        /// Note that it does not trigger when the object is currently out-of-date.
+        /// Returns a disposable for removing the callback.
+        member internal x.AddMarkingCallback (weak : bool, callback: unit -> unit) =
+            let cbo = getMultiCallback x
+            cbo.Subscribe(weak, fun () -> callback(); true)
+            
         /// Registers a callback with the given object that will be executed
         /// whenever the object gets marked out-of-date.
         /// Note that it does not trigger when the object is currently out-of-date.
         /// Returns a disposable for removing the callback.
         member x.AddMarkingCallback (callback: unit -> unit) =
             let cbo = getMultiCallback x
-            cbo.Subscribe(fun () -> callback(); true)
+            cbo.Subscribe(false, fun () -> callback(); true)
             
+        /// Registers a callback with the given object that will be executed
+        /// whenever the object gets marked out-of-date.
+        /// Note that it does not trigger when the object is currently out-of-date.
+        /// Returns a disposable for removing the callback.
+        member x.AddWeakMarkingCallback (callback: unit -> unit) =
+            let cbo = getMultiCallback x
+            cbo.Subscribe(true, fun () -> callback(); true)
+
         /// Registers a callback with the given object that will be executed
         /// ONCE! when the next out-of-date marking visits the object.
         /// Note that it does not trigger when the object is currently out-of-date.
         /// Returns a disposable for removing the callback.
         member x.OnNextMarking (callback: unit -> unit) =
             let cbo = getMultiCallback x
-            cbo.Subscribe(fun () -> 
+            cbo.Subscribe(false, fun () -> 
+                try 
+                    callback()
+                    false
+                with :? LevelChangedException ->
+                    true
+            )
+
+        /// Registers a callback with the given object that will be executed
+        /// ONCE! when the next out-of-date marking visits the object.
+        /// Note that it does not trigger when the object is currently out-of-date.
+        /// Returns a disposable for removing the callback.
+        member x.OnWeakNextMarking (callback: unit -> unit) =
+            let cbo = getMultiCallback x
+            cbo.Subscribe(true, fun () -> 
                 try 
                     callback()
                     false

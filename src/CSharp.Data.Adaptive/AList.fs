@@ -22,6 +22,9 @@ module private AdaptiveListHelpers =
     let inline addCallback (v : alist<'T>) (action: IndexList<'T> -> IndexListDelta<'T> -> unit) =
         v.AddCallback(action)
     
+    let inline addWeakCallback (v : alist<'T>) (action: IndexList<'T> -> IndexListDelta<'T> -> unit) =
+        v.AddWeakCallback(action)
+
 [<AbstractClass; Sealed; Extension>]
 type AdaptiveIndexList private() =
 
@@ -179,6 +182,10 @@ type AdaptiveIndexList private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member AddCallback(set: alist<'T>, action: Action<IndexList<'T>, IndexListDelta<'T>>) =
         AdaptiveListHelpers.addCallback set (fun s d -> action.Invoke(s,d))
+        
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member AddWeakCallback(set: alist<'T>, action: Action<IndexList<'T>, IndexListDelta<'T>>) =
+        AdaptiveListHelpers.addWeakCallback set (fun s d -> action.Invoke(s,d))
 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Forall(this: alist<'T>, predicate: Func<'T, bool>) =

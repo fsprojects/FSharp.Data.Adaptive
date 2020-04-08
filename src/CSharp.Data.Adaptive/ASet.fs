@@ -21,6 +21,9 @@ module private AdaptiveSetHelpers =
 
     let inline addCallback (v : aset<'T>) (action: CountingHashSet<'T> -> HashSetDelta<'T> -> unit) =
         v.AddCallback(action)
+        
+    let inline addWeakCallback (v : aset<'T>) (action: CountingHashSet<'T> -> HashSetDelta<'T> -> unit) =
+        v.AddWeakCallback(action)
 
 [<AbstractClass; Sealed; Extension>]
 type AdaptiveHashSet private() =
@@ -185,6 +188,10 @@ type AdaptiveHashSet private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member AddCallback(set: aset<'T>, action: Action<CountingHashSet<'T>, HashSetDelta<'T>>) =
         AdaptiveSetHelpers.addCallback set (fun s d -> action.Invoke(s,d))
+        
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member AddWeakCallback(set: aset<'T>, action: Action<CountingHashSet<'T>, HashSetDelta<'T>>) =
+        AdaptiveSetHelpers.addWeakCallback set (fun s d -> action.Invoke(s,d))
 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Forall(this: aset<'T>, predicate: Func<'T, bool>) =
