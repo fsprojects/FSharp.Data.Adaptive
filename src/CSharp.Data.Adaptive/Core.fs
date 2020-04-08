@@ -23,6 +23,9 @@ type AbstractAdaptiveObject() =
 module private AdaptiveObjectExtensionHelpers =
     let inline addMarkingCallback (v : IAdaptiveObject) (action: unit -> unit) =
         v.AddMarkingCallback(action)
+        
+    let inline addWeakMarkingCallback (v : IAdaptiveObject) (action: unit -> unit) =
+        v.AddWeakMarkingCallback(action)
 
     let inline useTransaction() =
         let t = new Transaction()
@@ -47,6 +50,10 @@ type Adaptive private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member AddMarkingCallback(this: IAdaptiveObject, action: Action) =
         AdaptiveObjectExtensionHelpers.addMarkingCallback this action.Invoke
+        
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member AddWeakMarkingCallback(this: IAdaptiveObject, action: Action) =
+        AdaptiveObjectExtensionHelpers.addWeakMarkingCallback this action.Invoke
 
     static member Transact : IDisposable =
         AdaptiveObjectExtensionHelpers.useTransaction()

@@ -1,3 +1,6 @@
+### 0.0.23
+* added missing `AddWeakMarkingCallback` for C#
+
 ### 0.0.22
 * re-added weak callbacks
 
