@@ -2,6 +2,7 @@ namespace FSharp.Data.Adaptive
 
 open System
 open FSharp.Data.Traceable
+open FSharp.Data.Adaptive
 
 /// An adaptive reader for alist that allows to pull operations and exposes its current state.
 type IIndexListReader<'T> = 
