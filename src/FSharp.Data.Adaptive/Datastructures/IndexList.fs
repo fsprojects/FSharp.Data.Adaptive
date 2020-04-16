@@ -289,6 +289,51 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
     member x.Neighbours(index : Index) =
         MapExt.neighbours index content
 
+    /// Gets an unused index directly after the given one.
+    member x.NewIndexAfter (index : Index) =
+        let (l, s, r) = MapExt.neighbours index content
+        let l =
+            match s with
+            | Some (si, _) -> ValueSome si
+            | None -> match l with | Some (li, _) -> ValueSome li | _ -> ValueNone
+
+        match l with
+        | ValueSome li ->
+            match r with
+            | Some (ri, _) -> Index.between li ri
+            | None -> Index.after li
+        | ValueNone ->
+            match r with
+            | Some (ri, _) -> Index.before ri
+            | None -> Index.after Index.zero
+
+    /// Gets an unused index directly before the given one.
+    member x.NewIndexBefore (index : Index) =
+        let (l, s, r) = MapExt.neighbours index content
+        let r =
+            match s with
+            | Some (si, _) -> ValueSome si
+            | None -> match r with | Some (ri, _) -> ValueSome ri | _ -> ValueNone
+
+        match l with
+        | Some (li, _) ->
+            match r with
+            | ValueSome ri -> Index.between li ri
+            | ValueNone -> Index.after li
+        | None ->
+            match r with
+            | ValueSome ri -> Index.before ri
+            | ValueNone -> Index.after Index.zero
+
+    /// Gets the element directly after index in the list (if any).
+    member x.TryGetNext (index : Index) =
+        let (_,_,n) = MapExt.neighbours index content
+        n
+        
+    /// Gets the element directly before index in the list (if any).
+    member x.TryGetPrev (index : Index) =
+        let (p,_,_) = MapExt.neighbours index content
+        p
 
     override x.ToString() =
         let suffix =
@@ -405,6 +450,22 @@ module IndexList =
     /// Finds the optional neighbour elements in the list for the given index.
     let inline neighbours (index : Index) (list : IndexList<'T>) = 
         list.Neighbours(index)
+        
+    /// Gets an unused index directly after the given one.
+    let inline newIndexAfter (index : Index) (list : IndexList<'T>) = 
+        list.NewIndexAfter(index)
+
+    /// Gets an unused index directly after the given one.
+    let inline newIndexBefore (index : Index) (list : IndexList<'T>) = 
+        list.NewIndexBefore(index)
+        
+    /// Gets the element directly after index in the list (if any).
+    let inline tryGetNext (index : Index) (list : IndexList<'T>) = 
+        list.TryGetNext(index)
+
+    /// Gets the element directly before index in the list (if any).
+    let inline tryGetPrev (index : Index) (list : IndexList<'T>) = 
+        list.TryGetPrev(index)
 
     /// inserts an element directly after the given index.
     let inline insertAfter (index : Index) (value : 'T) (list : IndexList<'T>) = 
