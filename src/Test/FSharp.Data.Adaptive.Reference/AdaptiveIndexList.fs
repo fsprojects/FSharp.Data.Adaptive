@@ -122,3 +122,9 @@ module AList =
 
     let sortWith (compare: 'T -> 'T -> int) (list : alist<'T>) =
         list.Content |> AVal.map (IndexList.sortWith compare) |> ofRef
+
+    let pairwise (list : alist<'T>) =
+        list.Content |> AVal.map IndexList.pairwise |> ofRef
+
+    let pairwiseCyclic (list : alist<'T>) =
+        list.Content |> AVal.map IndexList.pairwiseCyclic |> ofRef

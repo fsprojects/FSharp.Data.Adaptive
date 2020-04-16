@@ -225,7 +225,7 @@ module internal MapExtImplementation =
                         None
 
 
-        let rec tryRemoveMin m = 
+        let rec tryRemoveMin cmp m = 
             match m with 
             | MapEmpty -> 
                 None
@@ -234,15 +234,15 @@ module internal MapExtImplementation =
                 Some (k2, v, MapEmpty)
 
             | MapNode(k2,v2,l,r,_,_) -> 
-                match tryRemoveMin l with
+                match tryRemoveMin cmp l with
                 | Some (k,v,rest) ->
                     match rest with
-                    | MapEmpty -> Some (k,v,r)
-                    | _ -> Some (k,v, rebalance rest k2 v2 r)
+                    | MapEmpty -> Some (k, v, add cmp k2 v2 r)
+                    | _ -> Some (k, v, rebalance rest k2 v2 r)
                 | None ->
                     Some(k2, v2, r)
 
-        let rec tryRemoveMax m = 
+        let rec tryRemoveMax cmp m = 
             match m with 
             | MapEmpty -> 
                 None
@@ -251,11 +251,11 @@ module internal MapExtImplementation =
                 Some (k2, v, MapEmpty)
 
             | MapNode(k2,v2,l,r,_,_) -> 
-                match tryRemoveMax r with
+                match tryRemoveMax cmp r with
                 | Some (k,v,rest) ->
                     match rest with
-                    | MapEmpty -> Some (k,v,l)
-                    | _ -> Some (k,v, rebalance l k2 v2 rest)
+                    | MapEmpty -> Some (k, v, add cmp k2 v2 l)
+                    | _ -> Some (k, v, rebalance l k2 v2 rest)
                 | None ->
                     Some(k2, v2, l)
 
@@ -1583,12 +1583,12 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
             | _ -> None
 
     member x.TryRemoveMin() = 
-        match MapTree.tryRemoveMin tree with
+        match MapTree.tryRemoveMin comparer tree with
         | Some (k,v,t) -> Some(k,v, MapExt(comparer, t))
         | None -> None
 
     member x.TryRemoveMax() = 
-        match MapTree.tryRemoveMax tree with
+        match MapTree.tryRemoveMax comparer tree with
         | Some (k,v,t) -> Some(k,v, MapExt(comparer, t))
         | None -> None
 
@@ -1628,6 +1628,9 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
         new MapExt<'Key,'Value>(comparer,r1), new MapExt<'Key,'Value>(comparer,r2)
 
     member m.Count = MapTree.size tree
+    
+    member x.TryMin = MapTree.tryMin tree
+    member x.TryMax = MapTree.tryMax tree
 
     member x.TryMinKey = MapTree.tryMin tree |> Option.map fst
     member x.TryMaxKey = MapTree.tryMax tree |> Option.map fst

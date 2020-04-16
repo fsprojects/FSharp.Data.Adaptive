@@ -1519,6 +1519,40 @@ module Generators =
                         getChanges
             }
     
+
+        let pairwise<'a>() =
+            gen {
+                let! list = Arb.generate<VList<'a>> |> Gen.scaleSize (fun v -> v - 1)
+                let fc, f = randomFunction2<'a, 'a, 'a>()
+
+                return 
+                    create 
+                        (Adaptive.AList.pairwise list.lreal |> Adaptive.AList.mapi (fun i (l,r) -> f l r))
+                        (Reference.AList.pairwise list.lref |> Reference.AList.mapi (fun i (l,r) -> f l r))
+                        (fun verbose ->
+                            let ma, a = list.lexpression verbose
+                            ma, sprintf "pairwise\r\n%s" (indent a)
+                        )
+                        list.lchanges
+            }
+            
+        let pairwiseCyclic<'a>() =
+            gen {
+                let! list = Arb.generate<VList<'a>> |> Gen.scaleSize (fun v -> v - 1)
+                let fc, f = randomFunction2<'a, 'a, 'a>()
+
+                return 
+                    create 
+                        (Adaptive.AList.pairwiseCyclic list.lreal |> Adaptive.AList.mapi (fun i (l,r) -> f l r))
+                        (Reference.AList.pairwiseCyclic list.lref |> Reference.AList.mapi (fun i (l,r) -> f l r))
+                        (fun verbose ->
+                            let ma, a = list.lexpression verbose
+                            ma, sprintf "pairwiseCyclic\r\n%s" (indent a)
+                        )
+                        list.lchanges
+            }
+
+
 [<Struct; CustomEquality; NoComparison>]
 type StupidHash(v : int) =
     member x.Value = v
@@ -1784,6 +1818,8 @@ type AdaptiveGenerators() =
                                     yield 3, Gen.constant "sortBy"
                                     yield 3, Gen.constant "sortWith"
                                     yield 3, Gen.constant "ofAVal"
+                                    yield 2, Gen.constant "pairwise"
+                                    yield 2, Gen.constant "pairwiseCyclic"
                                     if typeof<IComparable>.IsAssignableFrom typeof<'a> then
                                         yield 3, Gen.constant "setSortBy"
                                         yield 3, Gen.constant "setSortWith"
@@ -1799,6 +1835,10 @@ type AdaptiveGenerators() =
                             return! Generators.List.append<'a>()
                         | "ofAVal" ->
                             return! Generators.List.ofAVal<'a>()
+                        | "pairwise" ->
+                            return! Generators.List.pairwise<'a>()
+                        | "pairwiseCyclic" ->
+                            return! Generators.List.pairwiseCyclic<'a>()
                         | "sortBy" ->
                             return! Generators.List.sortBy<'a>()
                         | "sortWith" ->

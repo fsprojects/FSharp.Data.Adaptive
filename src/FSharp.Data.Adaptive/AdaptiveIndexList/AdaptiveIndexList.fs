@@ -1018,6 +1018,81 @@ module internal AdaptiveIndexListImplementation =
             let ops = IndexList.computeDelta last v
             last <- v
             ops
+    
+    /// Reader for pairwise operations
+    type PairwiseReader<'a>(input : alist<'a>, cyclic : bool) =
+        inherit AbstractReader<IndexList<'a * 'a>, IndexListDelta<'a * 'a>>(IndexList.trace)
+        
+        let reader = input.GetReader()
+
+        override x.Compute(token: AdaptiveToken) =
+            let o = reader.State
+            let ops = reader.GetChanges token
+            let s = reader.State
+
+            let inline neighbours (i : Index) =
+                let (l, _, r) = IndexList.neighbours i s
+
+                let r =
+                    match r with
+                    | None when cyclic -> s.Content.TryMin
+                    | _ -> r
+                    
+                let l =
+                    match l with
+                    | None when cyclic -> s.Content.TryMax
+                    | _ -> l
+
+                l, r
+
+            let mutable delta = IndexListDelta.empty
+            for i, op in IndexListDelta.toSeq ops do
+                match op with
+                | Remove ->
+                    match IndexList.tryGet i o with
+                    | Some _ov ->
+                        let (l, r) = neighbours i
+                        delta <- IndexListDelta.add i Remove delta
+                        match l with
+                        | Some (li, lv) ->
+                            match r with
+                            | Some (_ri, rv) ->
+                                delta <- IndexListDelta.add li (Set(lv, rv)) delta
+                            | None ->
+                                delta <- IndexListDelta.add li Remove delta
+                        | None ->
+                            ()
+                    | None ->
+                        ()
+                | Set v ->
+                    let (l, r) = neighbours i
+                    match IndexList.tryGet i o with
+                    | Some ov when CheapEquality.cheapEqual ov v ->
+                        ()
+                    | _ ->
+                        match r with
+                        | Some (_ri, rv) ->
+                            delta <- IndexListDelta.add i (Set(v, rv)) delta
+                        | None ->
+                            ()
+                    
+                        match l with
+                        | Some(li, lv) ->
+                            delta <- IndexListDelta.add li (Set(lv, v)) delta
+                        | None ->
+                            ()
+               
+            //let ref = 
+            //    if cyclic then IndexList.pairwiseCyclic s
+            //    else IndexList.pairwise s
+            //let t, _ = IndexList.applyDelta x.State delta
+
+            //if not (Unchecked.equals ref t) then
+            //    printfn "%A %A" ref t
+            
+            
+            delta
+
 
     /// Gets the current content of the alist as IndexList.
     let inline force (list : alist<'T>) = 
@@ -1334,6 +1409,22 @@ module AList =
         let inline cmp a b = compare b a
         sortWith cmp list
         
+    /// Returns a list containing all elements tupled with their successor.
+    let pairwise (list: alist<'T>) =
+        if list.IsConstant then
+            constant (fun () -> force list |> IndexList.pairwise)
+        else
+            ofReader (fun () -> PairwiseReader(list, false))
+        
+    /// Returns a list of each element tupled with its successor and the last element tupled with the first.
+    let pairwiseCyclic (list: alist<'T>) =
+        if list.IsConstant then
+            constant (fun () -> force list |> IndexList.pairwiseCyclic)
+        else
+            ofReader (fun () -> PairwiseReader(list, true))
+        
+
+
     /// Adaptively reverses the list
     let rev (list: alist<'T>) =
         // TODO: more efficient implementation possible?

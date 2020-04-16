@@ -335,6 +335,53 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
         let (p,_,_) = MapExt.neighbours index content
         p
 
+    /// Returns a list of each element tupled with its successor. 
+    member x.Pairwise() =
+        match MapExt.tryRemoveMin content with
+        | Some (i0, v0, rest) ->
+            let mutable res = MapExt.empty
+            let mutable rest = rest
+            let mutable lastIndex = l
+            let mutable i0 = i0
+            let mutable v0 = v0
+            while not (MapExt.isEmpty rest) do
+                match MapExt.tryRemoveMin rest with
+                | Some (i1, v1, r) ->
+                    res <- MapExt.add i0 (v0, v1) res
+                    lastIndex <- i0
+                    i0 <- i1
+                    v0 <- v1
+                    rest <- r
+                | None ->
+                    ()
+
+            IndexList(l, lastIndex, res)
+        | None ->
+            IndexList.Empty
+            
+    /// Returns a list of each element tupled with its successor and the last element tupled with the first.
+    member x.PairwiseCyclic() =
+        match MapExt.tryRemoveMin content with
+        | Some (i0, initial, rest) ->
+            let mutable res = MapExt.empty
+            let mutable rest = rest
+            let mutable i0 = i0
+            let mutable v0 = initial
+            while not (MapExt.isEmpty rest) do
+                match MapExt.tryRemoveMin rest with
+                | Some (i1, v1, r) ->
+                    res <- MapExt.add i0 (v0, v1) res
+                    i0 <- i1
+                    v0 <- v1
+                    rest <- r
+                | None ->
+                    ()
+
+            res <- MapExt.add i0 (v0, initial) res
+            IndexList(l, i0, res)
+        | None ->
+            IndexList.Empty
+    
     override x.ToString() =
         let suffix =
             if x.Count > 5 then "; ..."
@@ -660,6 +707,15 @@ module IndexList =
     let tryPickBack (mapping : Index -> 'T1 -> option<'T2>) (list : IndexList<'T1>) = 
         list.Content |> MapExt.tryPickBack mapping
     
+    
+    /// Returns a list of each element tupled with its successor.
+    let inline pairwise (l : IndexList<'T>) =
+        l.Pairwise()
+
+    /// Returns a list of each element tupled with its successor and the last element tupled with the first.
+    let inline pairwiseCyclic (l : IndexList<'T>) =
+        l.PairwiseCyclic()
+
     /// concats the given lists.
     let append (l : IndexList<'T>) (r : IndexList<'T>) =
         if l.Count = 0 then r
@@ -711,6 +767,15 @@ module IndexList =
 
     /// all elements from the list with their respective Index.
     let toArrayIndexed (list: IndexList<'T>) = list.Content |> MapExt.toArray
+
+    /// all elements from the list with their respective Index in reveresed order.
+    let toSeqIndexedBack (list: IndexList<'T>) = list.Content |> MapExt.toSeqBack
+
+    /// all elements from the list with their respective Index in reveresed order.
+    let toListIndexedBack (list: IndexList<'T>) = list.Content |> MapExt.toSeqBack |> Seq.toList
+    
+    /// all elements from the list with their respective Index in reveresed order.
+    let toArrayIndexedBack (list: IndexList<'T>) = list.Content |> MapExt.toSeqBack |> Seq.toArray
 
     /// creates a new IndexList containing all the given elements at their respective Index.
     let ofSeqIndexed (elements: seq<Index * 'T>) = MapExt.ofSeq elements |> ofMap
