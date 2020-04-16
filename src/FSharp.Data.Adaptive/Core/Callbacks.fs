@@ -6,17 +6,51 @@ open System.Runtime.CompilerServices
 open System.Runtime.InteropServices
 
 
+type private CallbackDisposable(remove : unit -> unit, makeGCRoot : bool, callback : unit -> bool) as this =
+    let mutable isDisposed = false
+    let mutable callback = callback
+    let mutable remove = remove
+    #if !FABLE_COMPILER
+    let mutable gc = if makeGCRoot then GCHandle.Alloc(this) else Unchecked.defaultof<GCHandle>
+    #endif
+
+    member x.Dispose() =
+        if not isDisposed then
+            isDisposed <- true
+            remove()
+            remove <- id
+            callback <- fun () -> false
+            #if !FABLE_COMPILER
+            if gc.IsAllocated then 
+                gc.Free()
+                gc <- Unchecked.defaultof<GCHandle>
+            #endif
+
+    interface IDisposable with
+        member x.Dispose() = x.Dispose()
+
 /// Represents an object providing callbacks in the dependency-tree
 type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, MultiCallbackObject>, obj: IAdaptiveObject) = 
-    static let mutable id = 0
+    let mutable id = 0
+
     static let emptyOutputs = EmptyOutputSet() :> IWeakOutputSet
     let mutable level = obj.Level + 1
-    let mutable cbs : HashMap<int, unit -> bool> = HashMap.empty
+    
+    let cbs : ref<HashMap<int, WeakReference<unit -> bool>>> = ref HashMap.empty
     let mutable obj = obj
     let mutable weak = null
 
+    let newId() =
+        #if FABLE_COMPILER
+        let i = id + 1
+        id <- i
+        i
+        #else
+        Interlocked.Increment(&id)
+        #endif
+
     let check (x : MultiCallbackObject) =
-        if cbs.Count = 0 && not (isNull (obj :> obj)) then
+        if cbs.Value.Count = 0 && not (isNull (obj :> obj)) then
             obj.Outputs.Remove x |> ignore
             if lock table (fun () -> table.Remove obj) then
                 level <- 0
@@ -30,7 +64,7 @@ type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, 
 
     let remove (x : MultiCallbackObject) (id : int) =
         lock x (fun () ->
-            cbs <- HashMap.remove id cbs
+            cbs := HashMap.remove id !cbs
             check x |> ignore
         )
 
@@ -38,39 +72,35 @@ type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, 
     /// should automatically re-subscribe after being fired.
     member x.Subscribe(weak : bool, cb : unit -> bool) =
         lock x (fun () ->
-            let i = 
-                #if !FABLE_COMPILER
-                Interlocked.Increment(&id)
-                #else
-                let a = id + 1 in id <- a; a
-                #endif
 
-            if cbs.Count = 0 then
+            if cbs.Value.Count = 0 then
                 obj.Outputs.Add x |> ignore
                 
-            cbs <- HashMap.add i cb cbs
+            let id = newId()
+            let weakCallback = WeakReference<_>(cb)
+            cbs := HashMap.add id weakCallback !cbs
 
             #if !FABLE_COMPILER
-            let mutable self = Unchecked.defaultof<GCHandle>
-            let result = 
-                { new IDisposable with 
-                    member __.Dispose() = 
-                        if self.IsAllocated then self.Free()
-                        remove x i 
-                }
-            if not weak then
-                self <- GCHandle.Alloc(result)
-            result
+            let remove() = remove x id
+            new CallbackDisposable(remove, not weak, cb) :> IDisposable
             #else
             { new IDisposable with 
-                member __.Dispose() = remove x i 
+                member __.Dispose() = remove x id
             }
             #endif
 
         )
     
     member x.Mark() =
-        cbs <- cbs |> HashMap.filter (fun _ cb -> try cb() with _ -> true)
+        cbs := 
+            !cbs |> HashMap.filter (fun _ cb -> 
+                try 
+                    match cb.TryGetTarget() with
+                    | (true, cb) -> cb()
+                    | _ -> false
+                with _ ->
+                    false
+            )
         if check x then
             obj.Outputs.Add x |> ignore
 

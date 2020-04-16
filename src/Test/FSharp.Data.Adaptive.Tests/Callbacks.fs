@@ -114,6 +114,47 @@ let ``[AddCallback] surviving GC``() =
     transact (fun () -> set.Clear())
     set.Value |> should not' (equal !ref)
 
+[<Test>]
+let ``[AddWeakCallback] not surviving GC``() =
+    
+    let subscribe (set : aset<int>) =
+        let r = ref HashSet.empty
+        let d =
+            set.AddWeakCallback(fun state delta ->
+                let s, _ = CountingHashSet.applyDelta state delta
+                r := CountingHashSet.toHashSet s
+            )
+        let w = WeakReference<_>(d)
+
+        r, w
+
+    let input = cset []
+    let set = ASet.map id input
+
+    use __ = set.AddWeakCallback(fun _ _ -> ())
+    use __ = set.AddCallback(fun _ _ -> ())
+
+    let ref, disp = subscribe set
+    let initial = input.Value
+    initial |> should equal !ref
+    GC.Collect()
+    GC.WaitForFullGCComplete() |> ignore
+    GC.WaitForPendingFinalizers()
+
+    transact (fun () -> input.UnionWith [1;2;3])
+    initial |> should equal !ref
+
+    
+    transact (fun () -> input.UnionWith [4;5])
+    initial |> should equal !ref
+
+    match disp.TryGetTarget() with
+    | (true, d) -> d.Dispose()
+    | _ -> ()
+    
+    
+    transact (fun () -> input.Clear())
+    initial |> should equal !ref
 
 
 
