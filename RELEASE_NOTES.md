@@ -1,3 +1,8 @@
+### 0.0.24
+* weak callbacks are now correctly GC'ed individually
+* some new IndexList combinators
+* Fable compatibility
+
 ### 0.0.23
 * added missing `AddWeakMarkingCallback` for C#
 
