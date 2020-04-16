@@ -123,11 +123,11 @@ module internal CheapEquality =
     open System.Runtime.CompilerServices
 
     #if FABLE_COMPILER
-    let cheapHash (a : 'T) = ShallowEqualityComparer<'T>.ShallowHashCode a
-    let cheapEqual (a : 'T) (b : 'T) = ShallowEqualityComparer<'T>.ShallowEquals(a, b)
+    let cheapHash (a : 'T) = ShallowEqualityComparer<'T>.Instance.GetHashCode a
+    let cheapEqual (a : 'T) (b : 'T) = ShallowEqualityComparer<'T>.Instance.Equals(a, b)
     #else
-    let cheapHash (a : 'T) = ShallowEqualityComparer<'T>.ShallowHashCode a
-    let cheapEqual (a : 'T) (b : 'T) = ShallowEqualityComparer<'T>.ShallowEquals(a, b)
+    let cheapHash (a : 'T) = ShallowEqualityComparer<'T>.Instance.GetHashCode a
+    let cheapEqual (a : 'T) (b : 'T) = ShallowEqualityComparer<'T>.Instance.Equals(a, b)
     #endif 
 
 module internal Unchecked =

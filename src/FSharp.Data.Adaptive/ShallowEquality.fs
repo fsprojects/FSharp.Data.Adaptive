@@ -13,16 +13,23 @@ module private ShallowEqualityHelpers =
     let inline hash (a : 'a) = (a :> obj).GetHashCode()
 
 type ShallowEqualityComparer<'a> private() =
-    static let instance = ShallowEqualityComparer<'a>() :> System.Collections.Generic.IEqualityComparer<'a>
+    static let mutable instance = 
+        { new System.Collections.Generic.IEqualityComparer<'a> with
+            member x.GetHashCode v = ShallowEqualityHelpers.hash v
+            member x.Equals(a,b) = ShallowEqualityHelpers.equals a b
+        }
 
     static member Instance = instance
+    
+    static member Set(newInstance : System.Collections.Generic.IEqualityComparer<'a>) =
+        instance <- newInstance
 
-    static member ShallowHashCode v = ShallowEqualityHelpers.hash v
-    static member ShallowEquals(a,b) = ShallowEqualityHelpers.equals a b
+    static member ShallowHashCode v = instance.GetHashCode v
+    static member ShallowEquals(a,b) = instance.Equals(a,b)
 
     interface System.Collections.Generic.IEqualityComparer<'a> with
-        member x.GetHashCode v = ShallowEqualityHelpers.hash v
-        member x.Equals(a,b) = ShallowEqualityHelpers.equals a b
+        member x.GetHashCode v = instance.GetHashCode v
+        member x.Equals(a,b) = instance.Equals(a,b)
 
 #else
 open System.Reflection.Emit
@@ -172,15 +179,22 @@ type ShallowEqualityComparer<'a> private() =
         else
             fun (a : 'a) (b : 'a) -> System.Object.ReferenceEquals(a :> obj, b :> obj)
             
-    static let instance = ShallowEqualityComparer<'a>() :> System.Collections.Generic.IEqualityComparer<'a>
+    static let mutable instance = 
+        { new System.Collections.Generic.IEqualityComparer<'a> with
+            member x.GetHashCode v = getHashCode v
+            member x.Equals(a,b) = equals a b
+        }
 
     static member Instance = instance
 
-    static member ShallowHashCode v = getHashCode v
-    static member ShallowEquals(a,b) = equals a b
+    static member Set(newInstance : System.Collections.Generic.IEqualityComparer<'a>) =
+        instance <- newInstance
+
+    static member ShallowHashCode v = instance.GetHashCode v
+    static member ShallowEquals(a,b) = instance.Equals(a,b)
 
     interface System.Collections.Generic.IEqualityComparer<'a> with
-        member x.GetHashCode v = getHashCode v
-        member x.Equals(a,b) = equals a b
+        member x.GetHashCode v = instance.GetHashCode v
+        member x.Equals(a,b) = instance.Equals(a,b)
 
 #endif

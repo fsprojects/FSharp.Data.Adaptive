@@ -1,3 +1,6 @@
+### 0.0.25
+* allowing overrides for ShallowEquality via `ShallowEquality<'T>.Set(...)`
+
 ### 0.0.24
 * weak callbacks are now correctly GC'ed individually
 * some new IndexList combinators
