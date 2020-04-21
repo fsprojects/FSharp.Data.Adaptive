@@ -176,9 +176,6 @@ module AVal =
                 cache <- ValueSome(struct (i, b))
                 b
 
-        interface IAdaptiveValue<'T2> with
-            member x.GetValue t = x.GetValue t
-
     /// Aval for mapping 2 values in 'parallel'
     type Map2Val<'T1, 'T2, 'T3>(mapping: 'T1 -> 'T2 -> 'T3, a: aval<'T1>, b: aval<'T2>) =
         inherit AbstractVal<'T3>()
