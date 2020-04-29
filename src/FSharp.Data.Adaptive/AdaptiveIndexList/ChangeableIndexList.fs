@@ -138,7 +138,7 @@ type ChangeableIndexList<'T>(initial: IndexList<'T>) =
             let index =
                 match l with
                 | Some (l,_) -> Index.between l s
-                | None -> Index.after index
+                | None -> Index.before index
             history.Perform (IndexListDelta.single index (Set element)) |> ignore
             index
 
