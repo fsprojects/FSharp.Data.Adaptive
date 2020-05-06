@@ -191,6 +191,26 @@ type ChangeableIndexList<'T>(initial: IndexList<'T>) =
     /// Tries to get the element at the given position.
     member x.TryAt(index : int) =
         IndexList.tryAt index history.State
+        
+    /// Returns a new (currently unused) index directly after the given one.
+    member x.NewIndexAfter(index : Index) =
+        history.State.NewIndexAfter index
+        
+    /// Returns a new (currently unused) index directly before the given one.
+    member x.NewIndexBefore(index : Index) =
+        history.State.NewIndexBefore index
+        
+    /// Gets the neigbour elements and self (if existing) and returns (previous, self, next) as a triple.
+    member x.Neighbours(index : Index) =
+        IndexList.neighbours index history.State
+        
+    /// Tries to get the (index, value) for element directly after the given ref.
+    member x.TryGetNext(index : Index) =
+        IndexList.tryGetNext index history.State
+        
+    /// Tries to get the (index, value) for element directly before the given ref.
+    member x.TryGetPrev(index : Index) =
+        IndexList.tryGetPrev index history.State
 
 
     /// The smallest index contained in the list (or Index.zero if empty)

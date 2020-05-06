@@ -6,6 +6,7 @@ open FSharp.Data.Traceable
 [<Sealed>]
 type ChangeableHashMap<'Key,'Value> =
     interface IAdaptiveHashMap<'Key,'Value>
+    interface System.Collections.Generic.IEnumerable<'Key * 'Value>
 
     /// Creates a new empty cmap.
     new : unit -> ChangeableHashMap<'Key,'Value>

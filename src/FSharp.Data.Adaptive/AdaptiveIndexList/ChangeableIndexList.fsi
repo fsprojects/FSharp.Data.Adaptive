@@ -38,6 +38,21 @@ type ChangeableIndexList<'T> =
     /// Prepends an element to the list and returns its Index.
     member Prepend : element: 'T -> Index
 
+    /// Returns a new (currently unused) index directly after the given one.
+    member NewIndexAfter : ref : Index -> Index
+
+    /// Returns a new (currently unused) index directly before the given one.
+    member NewIndexBefore : ref : Index -> Index
+    
+    /// Gets the neigbour elements and self (if existing) and returns (previous, self, next) as a triple.
+    member Neighbours : ref : Index -> option<Index * 'T> * option<Index * 'T> * option<Index * 'T>
+
+    /// Tries to get the (index, value) for element directly after the given ref.
+    member TryGetNext : ref : Index -> option<Index * 'T>
+
+    /// Tries to get the (index, value) for element directly before the given ref.
+    member TryGetPrev : ref : Index -> option<Index * 'T>
+
     /// Inserts an element at the given position in the list and returns its Index.
     /// Note that the position can be equal to the count of the list.
     member InsertAt : index: int * element: 'T -> Index

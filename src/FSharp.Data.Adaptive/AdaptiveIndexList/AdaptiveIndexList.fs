@@ -126,7 +126,7 @@ module internal Reductions =
                             reader.State |> IndexList.mapi (fun k a ->
                                 match IndexList.tryGet k state with
                                 | Some (oa, b) -> 
-                                    if Unchecked.equals a oa then a, b
+                                    if DefaultEquality.equals a oa then a, b
                                     else a, mapping k a
                                 | None ->
                                     let b = mapping k a
@@ -141,7 +141,7 @@ module internal Reductions =
                             match op with
                             | Set a ->
                                 match IndexList.tryGet index state with
-                                | Some (oa, _) when Unchecked.equals oa a -> 
+                                | Some (oa, _) when DefaultEquality.equals oa a -> 
                                     ()
                                 | _ -> 
                                     match IndexList.tryGet index state with
@@ -271,7 +271,7 @@ module internal Reductions =
                         let newState =  
                             reader.State |> IndexList.mapi (fun k a ->
                                 match IndexList.tryGet k state with
-                                | Some(oa, m,_) when Unchecked.equals oa a ->
+                                | Some(oa, m,_) when DefaultEquality.equals oa a ->
                                     let v = m.GetValue t
                                     targets <- MultiSetMap.add m k targets
                                     (a, m, v)
@@ -1138,7 +1138,7 @@ module internal AdaptiveIndexListImplementation =
             //    else IndexList.pairwise s
             //let t, _ = IndexList.applyDelta x.State delta
 
-            //if not (Unchecked.equals ref t) then
+            //if not (DefaultEquality.equals ref t) then
             //    printfn "%A %A" ref t
             
             

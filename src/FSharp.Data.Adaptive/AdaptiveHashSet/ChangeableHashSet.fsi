@@ -4,6 +4,7 @@
 [<Sealed>]
 type ChangeableHashSet<'T> =
     interface IAdaptiveHashSet<'T>
+    interface System.Collections.Generic.ICollection<'T>
 
     /// The number of entries currently in the set.
     member Count: int
@@ -34,6 +35,9 @@ type ChangeableHashSet<'T> =
 
     /// Removes all the given elements from the set.
     member ExceptWith: other: seq<'T> -> unit
+
+    /// Removes all elements from the set that are not also contained in other.
+    member IntersectWith: other: seq<'T> -> unit
 
     /// Creates an adaptive reader for the set.
     member GetReader: unit -> IHashSetReader<'T>

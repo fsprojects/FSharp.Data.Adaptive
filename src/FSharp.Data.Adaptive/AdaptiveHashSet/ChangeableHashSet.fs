@@ -63,6 +63,20 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
     member x.ExceptWith (other : seq<'T>) =
         let ops = other |> Seq.map (fun v -> v, -1) |> HashMap.ofSeq |> HashSetDelta
         history.Perform ops |> ignore
+        
+    /// Removes all elements from the set that are not also contained in other.
+    member x.IntersectWith (other : seq<'T>) =
+        let otherSet = HashSet.ofSeq other
+
+        let apply (_value : 'T) (inOther : bool) (myRefCnt : int) =
+            if not inOther && myRefCnt > 0 then
+                struct(false, ValueSome -myRefCnt)
+            else
+                struct(false, ValueNone)
+
+        let _, opsMap = HashSet.ApplyDelta(otherSet, history.State.ToHashMap(), apply)
+        let ops = HashSetDelta.ofHashMap opsMap
+        history.Perform ops |> ignore
 
     /// Creates an adaptive reader for the set.
     member x.GetReader() : IHashSetReader<'T> =
@@ -74,6 +88,25 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
         member x.Content = content
         member x.History = Some history
         
+    interface System.Collections.IEnumerable with
+        member x.GetEnumerator() = (x.Value :> System.Collections.IEnumerable).GetEnumerator()
+        
+    interface System.Collections.Generic.IEnumerable<'T> with
+        member x.GetEnumerator() = (x.Value :> seq<_>).GetEnumerator()
+        
+    interface System.Collections.Generic.ICollection<'T> with
+        member x.IsReadOnly = false
+        member x.Count = x.Count
+        member x.Contains value = x.Contains value
+        member x.Clear() = x.Clear()
+        member x.Add value = x.Add value |> ignore
+        member x.Remove value = x.Remove value
+        member x.CopyTo(array: 'T[], idx : int) =
+            let mutable idx = idx
+            for e in x.Value do 
+                array.[idx] <- e
+                idx <- idx + 1
+    
     override x.ToString() =
         let suffix =
             if x.Count > 5 then "; ..."

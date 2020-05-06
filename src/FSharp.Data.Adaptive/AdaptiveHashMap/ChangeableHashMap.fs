@@ -107,8 +107,11 @@ type ChangeableHashMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
     #endif
 
 
-    //interface System.Collections.IEnumerable with
-    //    member x.GetEnumerator() = (history.State :> System.Collections.IEnumerable).GetEnumerator()
+    interface System.Collections.IEnumerable with
+        member x.GetEnumerator() = (history.State :> System.Collections.IEnumerable).GetEnumerator()
+        
+    interface System.Collections.Generic.IEnumerable<'Key * 'Value> with
+        member x.GetEnumerator() = (history.State :> seq<_>).GetEnumerator()
 
     interface IAdaptiveHashMap<'Key, 'Value> with
         member x.IsConstant = false

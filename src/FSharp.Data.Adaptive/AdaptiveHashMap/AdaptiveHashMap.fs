@@ -126,7 +126,7 @@ module internal MapReductions =
                             reader.State |> HashMap.map (fun k a ->
                                 match HashMap.tryFindV k state with
                                 | ValueSome (oa, b) -> 
-                                    if Unchecked.equals a oa then a, b
+                                    if DefaultEquality.equals a oa then a, b
                                     else a, mapping k a
                                 | ValueNone ->
                                     let b = mapping k a
@@ -141,7 +141,7 @@ module internal MapReductions =
                             match op with
                             | Set a ->
                                 match HashMap.tryFind index state with
-                                | Some (oa, _) when Unchecked.equals oa a ->
+                                | Some (oa, _) when DefaultEquality.equals oa a ->
                                     ()
                                 | _ -> 
                                     match HashMap.tryFind index state with
@@ -271,7 +271,7 @@ module internal MapReductions =
                         let newState =  
                             reader.State |> HashMap.map (fun k a ->
                                 match HashMap.tryFindV k state with
-                                | ValueSome(oa, m,_) when Unchecked.equals oa a ->
+                                | ValueSome(oa, m,_) when DefaultEquality.equals oa a ->
                                     let v = m.GetValue t
                                     targets <- MultiSetMap.add m k targets
                                     (a, m, v)

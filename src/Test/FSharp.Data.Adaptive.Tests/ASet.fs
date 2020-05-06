@@ -192,6 +192,16 @@ let ``[CSet] contains/isEmpty/count`` () =
     set.Contains 1 |> should be False
     set.Contains 2 |> should be False
 
+[<Test>]
+let ``[CSet] intersectWith`` () =
+    let s = cset [1;2;3;4]
+
+    transact (fun () ->
+        s.IntersectWith [2;3;5]
+    )
+    
+    s.Value |> should equal (HashSet.OfList [2;3])
+
 
 [<Test>]
 let ``[ASet] reduce group``() =
