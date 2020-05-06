@@ -4,6 +4,7 @@ open System
 open System.Runtime.CompilerServices
 open FSharp.Data.Adaptive
 
+[<CompiledName("FSharpHashMapBuilder")>]
 type HashMapBuilder<'Key, 'Value>() =
     let mutable array : struct('Key * 'Value)[] = Array.zeroCreate 8
     let mutable cnt = 0
@@ -16,10 +17,11 @@ type HashMapBuilder<'Key, 'Value>() =
     interface System.Collections.IEnumerable with
         member x.GetEnumerator() = (Seq.take cnt array).GetEnumerator() :> _
 
+    [<CompiledName("ToFSharpHashMap")>]
     member x.ToHashMap() =
         HashMap<'Key, 'Value>.OfArrayRangeV(array, 0, cnt)
    
-[<AbstractClass; Sealed; Extension>]
+[<AbstractClass; Sealed; Extension; CompiledName("FSharpHashMap")>]
 type HashMap private() =
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Empty<'K, 'V>() = HashMap.empty<'K, 'V>
@@ -27,22 +29,22 @@ type HashMap private() =
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Single<'K, 'V>(k : 'K, v : 'V) = HashMap.single k v
 
-    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining); CompiledName("ToFSharpHashMap")>]
     static member ToHashMap(this: seq<'K * 'V>) = HashMap.ofSeq this
 
-    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining); CompiledName("ToFSharpHashMap")>]
     static member ToHashMap(this: list<'K * 'V>) = HashMap.ofList this
 
-    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining); CompiledName("ToFSharpHashMap")>]
     static member ToHashMap(this: ('K * 'V)[]) = HashMap.ofArray this
 
-    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining); CompiledName("ToFSharpHashMap")>]
     static member ToHashMap(this: seq<struct ('K * 'V)>) = HashMap.OfSeqV this
 
-    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining); CompiledName("ToFSharpHashMap")>]
     static member ToHashMap(this: list<struct ('K * 'V)>) = HashMap.OfSeqV this
 
-    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining); CompiledName("ToFSharpHashMap")>]
     static member ToHashMap(this: struct('K * 'V)[]) = HashMap.OfSeqV this
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]

@@ -6,7 +6,7 @@ open FSharp.Data.Adaptive
 
 /// Represents the difference of two HashMaps.
 [<Struct; CustomEquality; NoComparison>]
-[<StructuredFormatDisplay("{AsString}")>]
+[<StructuredFormatDisplay("{AsString}"); CompiledName("FSharpHashMapDelta")>]
 type HashMapDelta<'K, [<EqualityConditionalOn>] 'V>(store : HashMap<'K, ElementOperation<'V>>) =
     static let empty = HashMapDelta<'K, 'V>(HashMap.empty)
 
@@ -58,6 +58,7 @@ type HashMapDelta<'K, [<EqualityConditionalOn>] 'V>(store : HashMap<'K, ElementO
 
 
 /// Functional operators for HashMapDelta.
+[<CompiledName("FSharpHashMapDeltaModule")>]
 module HashMapDelta =
     /// The empty map delta.
     [<GeneralizableValue>]
