@@ -3955,17 +3955,19 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         member x.GetEnumerator() = new HashMapEnumerator<_,_>(root) :> _
         
         
-    new(elements : HashMap<'K, 'V>) = 
-        HashMap<'K, 'V>(elements.Comparer, elements.Root)
         
     new(elements : seq<'K * 'V>) = 
         let o = HashMap.OfSeq elements
         HashMap<'K, 'V>(o.Comparer, o.Root)
 
+    new(elements : HashMap<'K, 'V>) = 
+        HashMap<'K, 'V>(elements.Comparer, elements.Root)
+
     new(elements : array<'K * 'V>) = 
         let o = HashMap.OfArray elements
         HashMap<'K, 'V>(o.Comparer, o.Root)  
         
+    #if !FABLE_COMPILER
     new(elements : seq<struct ('K * 'V)>) = 
         let o = HashMap.OfSeqV elements
         HashMap<'K, 'V>(o.Comparer, o.Root)
@@ -3973,6 +3975,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
     new(elements : array<struct ('K * 'V)>) = 
         let o = HashMap.OfArrayV elements
         HashMap<'K, 'V>(o.Comparer, o.Root)
+    #endif
 
 and internal HashMapEnumerator<'K, 'V>(root: HashMapNode<'K, 'V>) =
     let mutable stack = [root]
