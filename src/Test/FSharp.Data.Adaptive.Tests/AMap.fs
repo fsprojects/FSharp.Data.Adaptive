@@ -153,3 +153,401 @@ let ``[AMap] mapUse``() =
     r.GetChanges(AdaptiveToken.Top) |> ignore
     r.State.Count |> should equal 0
     !refCount |> should equal 0
+
+
+
+
+[<Test>]
+let ``[AMap] reduce group``() =
+    let set = cmap [1,1;2,2;3,3]
+
+    let reduction = AdaptiveReduction.sum()
+    let res = AMap.reduce reduction set
+
+    res |> AVal.force |> should equal 6
+
+    transact (fun () -> set.Add(4, 4) |> ignore)
+    res |> AVal.force |> should equal 10
+
+    transact (fun () -> set.Remove 1 |> ignore)
+    res |> AVal.force |> should equal 9
+    
+    transact (fun () -> set.[2] <- 3)
+    res |> AVal.force |> should equal 10
+
+    transact (fun () -> set.Clear())
+    res |> AVal.force |> should equal 0
+    
+[<Test>]
+let ``[AMap] reduce half group``() =
+    let list = cmap [1,1;2,2;3,3]
+
+    let reduction = AdaptiveReduction.product()
+    let res = AMap.reduce reduction list
+
+    res |> AVal.force |> should equal 6
+
+    transact (fun () -> list.Add(4,4) |> ignore)
+    res |> AVal.force |> should equal 24
+
+    transact (fun () -> list.Remove 1 |> ignore)
+    res |> AVal.force |> should equal 24
+
+    transact (fun () -> list.Clear())
+    res |> AVal.force |> should equal 1
+    
+    transact (fun () -> list.Add(0,0) |> ignore)
+    res |> AVal.force |> should equal 0
+    
+    transact (fun () -> list.Add(10,10) |> ignore)
+    res |> AVal.force |> should equal 0
+    
+    transact (fun () -> list.Add(2,2) |> ignore)
+    res |> AVal.force |> should equal 0
+    
+    transact (fun () -> list.Remove 0 |> ignore)
+    res |> AVal.force |> should equal 20
+
+    transact (fun () -> list.[10] <- 20)
+    res |> AVal.force |> should equal 40
+
+
+    
+[<Test>]
+let ``[AMap] reduce empty after lots of operations``() =
+    let s = cmap<float, float>()
+    let r = AMap.reduce (AdaptiveReduction.sum()) s
+    let rand = System.Random()
+    transact (fun () ->
+        for i in 1 .. 10000 do
+            let v = rand.NextDouble()
+            s.Add(v,v) |> ignore
+    )
+    r |> AVal.force |> ignore
+    
+    transact s.Clear
+    r |> AVal.force |> should equal 0.0
+
+    transact (fun () ->
+        for i in 1 .. 10000 do
+            let v = rand.NextDouble()
+            s.Add(v,v) |> ignore
+    )
+
+    let (k,v) = s.Value |> Seq.item (rand.Next(s.Count))
+    transact (fun () -> s.Value <- HashMap.single k v)
+    
+    r |> AVal.force |> should equal v
+
+
+
+[<Test>]
+let ``[AMap] reduce fold``() =
+    let list = cmap [1,1;2,2;3,3]
+
+    let reduction = AdaptiveReduction.fold 0 (+)
+    let res = AMap.reduce reduction list
+
+    res |> AVal.force |> should equal 6
+
+    transact (fun () -> list.Add(4,4) |> ignore)
+    res |> AVal.force |> should equal 10
+
+    transact (fun () -> list.Remove 1 |> ignore)
+    res |> AVal.force |> should equal 9
+    
+    transact (fun () -> list.[4] <- 5)
+    res |> AVal.force |> should equal 10
+
+    transact (fun () -> list.Clear())
+    res |> AVal.force |> should equal 0
+
+
+[<Test>]
+let ``[AMap] reduceBy group``() =
+    let list = cmap [1,1;2,2;3,3]
+
+    let reduction = AdaptiveReduction.sum()
+    let res = AMap.reduceBy reduction (fun _ -> float) list
+
+    res |> AVal.force |> should equal 6.0
+
+    transact (fun () -> list.Add(4, 4) |> ignore)
+    res |> AVal.force |> should equal 10.0
+
+    transact (fun () -> list.Remove 1 |> ignore)
+    res |> AVal.force |> should equal 9.0
+
+    transact (fun () -> list.[2] <- 3)
+    res |> AVal.force |> should equal 10.0
+
+    transact (fun () -> list.Clear())
+    res |> AVal.force |> should equal 0.0
+    
+[<Test>]
+let ``[AMap] reduceBy half group``() =
+    let list = cmap [1,1;2,2;3,3]
+
+    let reduction = AdaptiveReduction.product()
+    let res = AMap.reduceBy reduction (fun _ -> float) list
+
+    res |> AVal.force |> should equal 6.0
+
+    transact (fun () -> list.Add(4,4) |> ignore)
+    res |> AVal.force |> should equal 24.0
+
+    transact (fun () -> list.Remove 1 |> ignore)
+    res |> AVal.force |> should equal 24.0
+
+    transact (fun () -> list.Clear())
+    res |> AVal.force |> should equal 1.0
+    
+    transact (fun () -> list.Add(0,0) |> ignore)
+    res |> AVal.force |> should equal 0.0
+    
+    transact (fun () -> list.Add(10,10) |> ignore)
+    res |> AVal.force |> should equal 0.0
+    
+    transact (fun () -> list.Add(2,2) |> ignore)
+    res |> AVal.force |> should equal 0.0
+    
+    transact (fun () -> list.Remove 0 |> ignore)
+    res |> AVal.force |> should equal 20.0
+
+    transact (fun () -> list.[2] <- 4)
+    res |> AVal.force |> should equal 40.0
+
+[<Test>]
+let ``[AMap] reduceBy fold``() =
+    let list = cmap [1,1;2,2;3,3]
+
+    let reduction = AdaptiveReduction.fold 0.0 (+)
+    let res = AMap.reduceBy reduction (fun _ -> float) list
+
+    res |> AVal.force |> should equal 6.0
+
+    transact (fun () -> list.Add(4,4) |> ignore)
+    res |> AVal.force |> should equal 10.0
+
+    transact (fun () -> list.Remove 1 |> ignore)
+    res |> AVal.force |> should equal 9.0
+
+    transact (fun () -> list.[4] <- 5)
+    res |> AVal.force |> should equal 10.0
+
+    transact (fun () -> list.Clear())
+    res |> AVal.force |> should equal 0.0
+
+    
+[<Test>]
+let ``[AMap] reduceByA group``() =
+    let list = cmap [1,1;2,2;3,3]
+    
+    let even = cval 1
+    let odd = cval 0
+
+    let mapping _ v =
+        if v % 2 = 0 then even :> aval<_>
+        else odd :> aval<_>
+
+    let reduction = AdaptiveReduction.sum()
+    let res = AMap.reduceByA reduction mapping list
+    
+    // (1,0) (2,1) (3,0) = 1
+    res |> AVal.force |> should equal 1
+
+    // (1,0) (2,2) (3,0) = 2
+    transact (fun () -> even.Value <- 2)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) = 1
+    transact (fun () -> even.Value <- 1)
+    res |> AVal.force |> should equal 1
+
+    // (1,3) (2,1) (3,3) = 7
+    transact (fun () -> odd.Value <- 3)
+    res |> AVal.force |> should equal 7
+
+    // (1,1) (2,0) (3,1) = 2
+    transact (fun () -> odd.Value <- 1; even.Value <- 0)
+    res |> AVal.force |> should equal 2
+    
+    // (1,1) (2,0) (3,1) (4,0) = 2
+    transact (fun () -> list.Add(4,4) |> ignore)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) = 2
+    transact (fun () -> odd.Value <- 0; even.Value <- 1)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) (5,0) = 2
+    transact (fun () -> list.Add(5,5) |> ignore)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) (5,0) (6,1) = 3
+    transact (fun () -> list.Add(6,6) |> ignore)
+    res |> AVal.force |> should equal 3
+
+    
+    // (2,1) (4,1) (6,1) = 3
+    transact (fun () -> 
+        list.Remove 5 |> ignore
+        list.Remove 3 |> ignore
+        list.Remove 1 |> ignore
+        odd.Value <- 1
+        
+    )
+    res |> AVal.force |> should equal 3
+    
+    // (1,1) (3,1) (5,1) = 3
+    transact (fun () -> list.Value <- HashMap.ofList [1,1;3,3;5,5])
+    res |> AVal.force |> should equal 3
+    
+    // (2,0) (3,1) (5,1) = 3
+    transact (fun () -> even.Value <- 0; list.[1] <- 2)
+    res |> AVal.force |> should equal 2
+     
+[<Test>]
+let ``[AMap] reduceByA half group``() =
+    let list = cmap [1,1;2,2;3,3]
+    
+    let even = cval 1
+    let odd = cval 0
+
+    let mapping _ v =
+        if v % 2 = 0 then even :> aval<_>
+        else odd :> aval<_>
+
+    let mutable fails = 0
+    let reduction = 
+        { AdaptiveReduction.sum() with
+            sub = fun s v -> 
+                if s % 2 = 0 then ValueSome (s - v)
+                else fails <- fails + 1; ValueNone
+        }
+
+    let res = AMap.reduceByA reduction mapping list
+    
+    // (1,0) (2,1) (3,0) = 1
+    res |> AVal.force |> should equal 1
+
+    // (1,0) (2,2) (3,0) = 2
+    transact (fun () -> even.Value <- 2)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) = 1
+    transact (fun () -> even.Value <- 1)
+    res |> AVal.force |> should equal 1
+
+    // (1,3) (2,1) (3,3) = 7
+    transact (fun () -> odd.Value <- 3)
+    res |> AVal.force |> should equal 7
+
+    // (1,1) (2,0) (3,1) = 2
+    transact (fun () -> odd.Value <- 1; even.Value <- 0)
+    res |> AVal.force |> should equal 2
+    
+    // (1,1) (2,0) (3,1) (4,0) = 2
+    transact (fun () -> list.Add(4,4) |> ignore)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) = 2
+    transact (fun () -> odd.Value <- 0; even.Value <- 1)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) (5,0) = 2
+    transact (fun () -> list.Add(5,5) |> ignore)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) (5,0) (6,1) = 3
+    transact (fun () -> list.Add(6, 6) |> ignore)
+    res |> AVal.force |> should equal 3
+
+    
+    // (2,1) (4,1) (6,1) = 3
+    transact (fun () -> 
+        list.Remove 1 |> ignore
+        list.Remove 3 |> ignore
+        list.Remove 5 |> ignore
+        odd.Value <- 1
+    )
+    res |> AVal.force |> should equal 3
+    
+    // (1,1) (3,1) (5,1) = 3
+    transact (fun () -> list.Value <- HashMap.ofList [1,1;3,3;5,5])
+    res |> AVal.force |> should equal 3
+   
+    // (2,0) (3,1) (5,1) = 3
+    transact (fun () -> even.Value <- 0; list.[1] <- 2)
+    res |> AVal.force |> should equal 2
+
+    fails |> should be (greaterThan 0)
+     
+[<Test>]
+let ``[AMap] reduceByA fold``() =
+    let list = cmap [1,1;2,2;3,3]
+    
+    let even = cval 1
+    let odd = cval 0
+
+    let mapping _ v =
+        if v % 2 = 0 then even :> aval<_>
+        else odd :> aval<_>
+
+    let reduction = AdaptiveReduction.fold 0 (+)
+
+    let res = AMap.reduceByA reduction mapping list
+    
+    // (1,0) (2,1) (3,0) = 1
+    res |> AVal.force |> should equal 1
+
+    // (1,0) (2,2) (3,0) = 2
+    transact (fun () -> even.Value <- 2)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) = 1
+    transact (fun () -> even.Value <- 1)
+    res |> AVal.force |> should equal 1
+
+    // (1,3) (2,1) (3,3) = 7
+    transact (fun () -> odd.Value <- 3)
+    res |> AVal.force |> should equal 7
+
+    // (1,1) (2,0) (3,1) = 2
+    transact (fun () -> odd.Value <- 1; even.Value <- 0)
+    res |> AVal.force |> should equal 2
+    
+    // (1,1) (2,0) (3,1) (4,0) = 2
+    transact (fun () -> list.Add(4,4) |> ignore)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) = 2
+    transact (fun () -> odd.Value <- 0; even.Value <- 1)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) (5,0) = 2
+    transact (fun () -> list.Add(5,5) |> ignore)
+    res |> AVal.force |> should equal 2
+    
+    // (1,0) (2,1) (3,0) (4,1) (5,0) (6,1) = 3
+    transact (fun () -> list.Add(6,6) |> ignore)
+    res |> AVal.force |> should equal 3
+
+    
+    // (2,1) (4,1) (6,1) = 3
+    transact (fun () -> 
+        list.Remove 1 |> ignore
+        list.Remove 3 |> ignore
+        list.Remove 5 |> ignore
+        odd.Value <- 1
+    )
+    res |> AVal.force |> should equal 3
+    
+    // (1,1) (3,1) (5,1) = 3
+    transact (fun () -> list.Value <- HashMap.ofList [1,1;3,3;5,5])
+    res |> AVal.force |> should equal 3
+
+    
+    // (2,0) (3,1) (5,1) = 3
+    transact (fun () -> even.Value <- 0; list.[1] <- 2)
+    res |> AVal.force |> should equal 2

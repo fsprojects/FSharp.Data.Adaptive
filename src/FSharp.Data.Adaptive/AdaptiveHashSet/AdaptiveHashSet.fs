@@ -55,21 +55,25 @@ module SetReductions =
             x.EvaluateAlways token (fun token ->
                 if x.OutOfDate then
                     let ops = reader.GetChanges token
-                    let mutable working = true
-                    use e = (ops :> seq<_>).GetEnumerator()
-                    while working && e.MoveNext() do
-                        let op = e.Current
-                        match op with
-                        | Add(_, a) ->
-                            sum <- reduction.add sum a
 
-                        | Rem(_, old) ->
-                            match reduction.sub sum old with
-                            | ValueSome s -> sum <- s
-                            | ValueNone -> working <- false
+                    if reader.State.Count <= 2 || reader.State.Count <= ops.Count then
+                        sum <- reader.State |> CountingHashSet.fold reduction.add reduction.seed
+                    else
+                        let mutable working = true
+                        use e = (ops :> seq<_>).GetEnumerator()
+                        while working && e.MoveNext() do
+                            let op = e.Current
+                            match op with
+                            | Add(_, a) ->
+                                sum <- reduction.add sum a
 
-                    if not working then
-                        sum <- reader.State |> Seq.fold reduction.add reduction.seed
+                            | Rem(_, old) ->
+                                match reduction.sub sum old with
+                                | ValueSome s -> sum <- s
+                                | ValueNone -> working <- false
+
+                        if not working then
+                            sum <- reader.State |> CountingHashSet.fold reduction.add reduction.seed
 
                     result <- reduction.view sum
 
@@ -113,33 +117,48 @@ module SetReductions =
             x.EvaluateAlways token (fun token ->
                 if x.OutOfDate then
                     let ops = reader.GetChanges token
-                    for op in ops do
-                        match op with
-                        | Add(_, a) ->
-                            match HashMap.tryFind a state with
-                            | Some old -> sum <- sub sum old
-                            | None -> ()
 
-                            let b = mapping a
+                    if reader.State.Count <= 2 || reader.State.Count <= ops.Count then
+                        let newState =
+                            reader.State.Store |> HashMap.map (fun a _ ->
+                                match state.TryFindV a with
+                                | ValueSome b -> b
+                                | ValueNone -> mapping a
+                            )
 
-                            sum <- add sum b
-                            state <- HashMap.add a b state
-
-                        | Rem(_, a) ->
-                            match HashMap.tryRemove a state with
-                            | Some(old, rest) ->
-                                state <- rest
-                                sum <- sub sum old
-                            | None ->
-                                ()
-
-                    match sum with
-                    | ValueSome s ->
-                        result <- reduction.view s
-                    | ValueNone ->
-                        let s = state |> HashMap.fold (fun s _ v -> reduction.add s v) reduction.seed
+                        let s = newState |> HashMap.fold (fun s _ v -> reduction.add s v) reduction.seed
+                        state <- newState
                         sum <- ValueSome s
                         result <- reduction.view s
+
+                    else
+                        for op in ops do
+                            match op with
+                            | Add(_, a) ->
+                                match HashMap.tryFind a state with
+                                | Some old -> sum <- sub sum old
+                                | None -> ()
+
+                                let b = mapping a
+
+                                sum <- add sum b
+                                state <- HashMap.add a b state
+
+                            | Rem(_, a) ->
+                                match HashMap.tryRemove a state with
+                                | Some(old, rest) ->
+                                    state <- rest
+                                    sum <- sub sum old
+                                | None ->
+                                    ()
+
+                        match sum with
+                        | ValueSome s ->
+                            result <- reduction.view s
+                        | ValueNone ->
+                            let s = state |> HashMap.fold (fun s _ v -> reduction.add s v) reduction.seed
+                            sum <- ValueSome s
+                            result <- reduction.view s
 
                 result
             )
@@ -233,43 +252,70 @@ module SetReductions =
             x.EvaluateAlways t (fun t ->
                 if x.OutOfDate then
                     let ops = reader.GetChanges t
-                    let mutable dirty = consumeDirty()
-                    for op in ops do
-                        dirty <- HashMap.remove op.Value dirty
-                        match op with
-                        | Add(_, v) ->
-                            removeIndex x v
 
-                            let r = mapping v
-                            let n = r.GetValue(t)
-                            targets <- MultiSetMap.add r v targets
-                            state <- HashMap.add v (r, n) state
-                            sum <- add sum n
+                    if state.Count <= 2 || state.Count <= ops.Count then
+                        dirty <- HashMap.empty
+                        targets |> HashMap.iter (fun m _ ->
+                            m.Outputs.Remove x |> ignore
+                        )
+                        targets <- HashMap.empty
 
-                        | Rem(_, v) ->
-                            removeIndex x v
-
-
-                    for (i, r) in dirty do
-                        let n = r.GetValue(t)
-                        state <-
-                            state |> HashMap.alter i (fun old ->
-                                match old with
-                                | Some (ro, o) -> 
-                                    assert(ro = r)
-                                    sum <- add (sub sum o) n
-                                | None -> 
-                                    sum <- add sum n
-                                Some (r, n)
+                        let newState =  
+                            reader.State.Store |> HashMap.map (fun k _ ->
+                                match HashMap.tryFindV k state with
+                                | ValueSome(m,_) ->
+                                    let v = m.GetValue t
+                                    targets <- MultiSetMap.add m k targets
+                                    (m, v)
+                                | _ ->
+                                    let m = mapping k
+                                    let v = m.GetValue t
+                                    targets <- MultiSetMap.add m k targets
+                                    (m, v)
                             )
-
-                    match sum with
-                    | ValueNone ->
+                        state <- newState
                         let s = state |> HashMap.fold (fun s _ (_,v) -> reduction.add s v) reduction.seed
                         sum <- ValueSome s
                         res <- reduction.view s
-                    | ValueSome s ->
-                        res <- reduction.view s
+                    else
+
+                        let mutable dirty = consumeDirty()
+                        for op in ops do
+                            dirty <- HashMap.remove op.Value dirty
+                            match op with
+                            | Add(_, v) ->
+                                removeIndex x v
+
+                                let r = mapping v
+                                let n = r.GetValue(t)
+                                targets <- MultiSetMap.add r v targets
+                                state <- HashMap.add v (r, n) state
+                                sum <- add sum n
+
+                            | Rem(_, v) ->
+                                removeIndex x v
+
+
+                        for (i, r) in dirty do
+                            let n = r.GetValue(t)
+                            state <-
+                                state |> HashMap.alter i (fun old ->
+                                    match old with
+                                    | Some (ro, o) -> 
+                                        assert(ro = r)
+                                        sum <- add (sub sum o) n
+                                    | None -> 
+                                        sum <- add sum n
+                                    Some (r, n)
+                                )
+
+                        match sum with
+                        | ValueNone ->
+                            let s = state |> HashMap.fold (fun s _ (_,v) -> reduction.add s v) reduction.seed
+                            sum <- ValueSome s
+                            res <- reduction.view s
+                        | ValueSome s ->
+                            res <- reduction.view s
 
                 res
             )

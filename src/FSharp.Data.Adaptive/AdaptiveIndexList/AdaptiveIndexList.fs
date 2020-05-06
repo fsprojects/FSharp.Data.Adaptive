@@ -43,38 +43,43 @@ module internal Reductions =
             x.EvaluateAlways token (fun token ->
                 if x.OutOfDate then
                     let ops = reader.GetChanges token
-                    let mutable working = true
-                    use e = (IndexListDelta.toSeq ops).GetEnumerator()
-                    while working && e.MoveNext() do
-                        let index, op = e.Current
-                        match op with
-                        | Set a ->
-                            match IndexList.tryGet index state with
-                            | Some old ->
-                                match reduction.sub sum old with
-                                | ValueSome s -> sum <- s
-                                | ValueNone -> working <- false
-                            | None ->
-                                ()
-
-                            sum <- reduction.add sum a
-                            state <- IndexList.set index a state
-
-                        | Remove ->
-                            match IndexList.tryRemove index state with
-                            | Some(old, rest) ->
-                                state <- rest
-                                match reduction.sub sum old with
-                                | ValueSome s -> sum <- s
-                                | ValueNone -> working <- false
-                            | None ->
-                                ()
-
-                    if not working then
+                    if reader.State.Count <= 2 || reader.State.Count <= ops.Count then
                         state <- reader.State
                         sum <- state |> Seq.fold reduction.add reduction.seed
+                        result <- reduction.view sum
+                    else
+                        let mutable working = true
+                        use e = (IndexListDelta.toSeq ops).GetEnumerator()
+                        while working && e.MoveNext() do
+                            let index, op = e.Current
+                            match op with
+                            | Set a ->
+                                match IndexList.tryGet index state with
+                                | Some old ->
+                                    match reduction.sub sum old with
+                                    | ValueSome s -> sum <- s
+                                    | ValueNone -> working <- false
+                                | None ->
+                                    ()
 
-                    result <- reduction.view sum
+                                sum <- reduction.add sum a
+                                state <- IndexList.set index a state
+
+                            | Remove ->
+                                match IndexList.tryRemove index state with
+                                | Some(old, rest) ->
+                                    state <- rest
+                                    match reduction.sub sum old with
+                                    | ValueSome s -> sum <- s
+                                    | ValueNone -> working <- false
+                                | None ->
+                                    ()
+
+                        if not working then
+                            state <- reader.State
+                            sum <- state |> Seq.fold reduction.add reduction.seed
+
+                        result <- reduction.view sum
 
                 result
             )
@@ -100,7 +105,7 @@ module internal Reductions =
         let mutable sum = ValueSome reduction.seed
 
         let mutable result = Unchecked.defaultof<'v>
-        let mutable state = IndexList.empty<'b>
+        let mutable state = IndexList.empty<'a * 'b>
 
         let add (s : ValueOption<'s>) (v : 'b) =
             match s with
@@ -116,33 +121,53 @@ module internal Reductions =
             x.EvaluateAlways token (fun token ->
                 if x.OutOfDate then
                     let ops = reader.GetChanges token
-                    for (index, op) in IndexListDelta.toSeq ops do
-                        match op with
-                        | Set a ->
-                            match IndexList.tryGet index state with
-                            | Some old -> sum <- sub sum old
-                            | None -> ()
-
-                            let b = mapping index a
-
-                            sum <- add sum b
-                            state <- IndexList.set index b state
-
-                        | Remove ->
-                            match IndexList.tryRemove index state with
-                            | Some(old, rest) ->
-                                state <- rest
-                                sum <- sub sum old
-                            | None ->
-                                ()
-
-                    match sum with
-                    | ValueSome s ->
-                        result <- reduction.view s
-                    | ValueNone ->
-                        let s = state |> Seq.fold reduction.add reduction.seed
+                    if reader.State.Count <= 2 || reader.State.Count <= ops.Count then
+                        let newState = 
+                            reader.State |> IndexList.mapi (fun k a ->
+                                match IndexList.tryGet k state with
+                                | Some (oa, b) -> 
+                                    if Unchecked.equals a oa then a, b
+                                    else a, mapping k a
+                                | None ->
+                                    let b = mapping k a
+                                    a, b
+                            )
+                        state <- newState
+                        let s = state |> Seq.fold (fun s (_,v) -> reduction.add s v) reduction.seed
                         sum <- ValueSome s
                         result <- reduction.view s
+                    else
+                        for (index, op) in IndexListDelta.toSeq ops do
+                            match op with
+                            | Set a ->
+                                match IndexList.tryGet index state with
+                                | Some (oa, _) when Unchecked.equals oa a -> 
+                                    ()
+                                | _ -> 
+                                    match IndexList.tryGet index state with
+                                    | Some(_,old) -> sum <- sub sum old
+                                    | None -> ()
+
+                                    let b = mapping index a
+
+                                    sum <- add sum b
+                                    state <- IndexList.set index (a,b) state
+
+                            | Remove ->
+                                match IndexList.tryRemove index state with
+                                | Some((_,old), rest) ->
+                                    state <- rest
+                                    sum <- sub sum old
+                                | None ->
+                                    ()
+
+                        match sum with
+                        | ValueSome s ->
+                            result <- reduction.view s
+                        | ValueNone ->
+                            let s = state |> Seq.fold (fun s (_,b) -> reduction.add s b) reduction.seed
+                            sum <- ValueSome s
+                            result <- reduction.view s
 
                 result
             )
@@ -173,7 +198,7 @@ module internal Reductions =
 
 
         let mutable targets = MultiSetMap.empty<aval<'b>, Index>
-        let mutable state = HashMap.empty<Index, aval<'b> * 'b>
+        let mutable state = IndexList.empty<'a * aval<'b> * 'b>
 
         let mutable dirty : IndexList<aval<'b>> = IndexList.empty
         let mutable sum = ValueSome reduction.seed
@@ -204,8 +229,8 @@ module internal Reductions =
             #endif
 
         let removeIndex (x : AdaptiveReduceByValue<_,_,_,_>) (i : Index) =
-            match HashMap.tryRemove i state with
-            | Some ((ov, o), newState) ->
+            match IndexList.tryRemove i state with
+            | Some ((_oa, ov, o), newState) ->
                 state <- newState
                 sum <- sub sum o    
                 let rem, newTargets = MultiSetMap.remove ov i targets
@@ -236,43 +261,69 @@ module internal Reductions =
             x.EvaluateAlways t (fun t ->
                 if x.OutOfDate then
                     let ops = reader.GetChanges t
-                    let mutable dirty = consumeDirty()
-                    for (i, op) in IndexListDelta.toSeq ops do
-                        dirty <- IndexList.remove i dirty
-                        match op with
-                        | Set v ->
-                            removeIndex x i
+                    if state.Count <= 2 || state.Count <= ops.Count then
+                        dirty <- IndexList.empty
+                        targets |> HashMap.iter (fun m _ ->
+                            m.Outputs.Remove x |> ignore
+                        )
+                        targets <- HashMap.empty
 
-                            let r = mapping i v
-                            let n = r.GetValue(t)
-                            targets <- MultiSetMap.add r i targets
-                            state <- HashMap.add i (r, n) state
-                            sum <- add sum n
-
-                        | Remove ->
-                            removeIndex x i
-
-
-                    for (i, r) in IndexList.toSeqIndexed dirty do
-                        let n = r.GetValue(t)
-                        state <-
-                            state |> HashMap.alter i (fun old ->
-                                match old with
-                                | Some (ro, o) -> 
-                                    assert(ro = r)
-                                    sum <- add (sub sum o) n
-                                | None -> 
-                                    sum <- add sum n
-                                Some (r, n)
+                        let newState =  
+                            reader.State |> IndexList.mapi (fun k a ->
+                                match IndexList.tryGet k state with
+                                | Some(oa, m,_) when Unchecked.equals oa a ->
+                                    let v = m.GetValue t
+                                    targets <- MultiSetMap.add m k targets
+                                    (a, m, v)
+                                | _ ->
+                                    let m = mapping k a
+                                    let v = m.GetValue t
+                                    targets <- MultiSetMap.add m k targets
+                                    (a, m, v)
                             )
-
-                    match sum with
-                    | ValueNone ->
-                        let s = state |> HashMap.fold (fun s _ (_,v) -> reduction.add s v) reduction.seed
+                        state <- newState
+                        let s = state |> Seq.fold (fun s (_,_,v) -> reduction.add s v) reduction.seed
                         sum <- ValueSome s
                         res <- reduction.view s
-                    | ValueSome s ->
-                        res <- reduction.view s
+                    else
+                        let mutable dirty = consumeDirty()
+                        for (i, op) in IndexListDelta.toSeq ops do
+                            dirty <- IndexList.remove i dirty
+                            match op with
+                            | Set v ->
+                                removeIndex x i
+
+                                let r = mapping i v
+                                let n = r.GetValue(t)
+                                targets <- MultiSetMap.add r i targets
+                                state <- IndexList.set i (v, r, n) state
+                                sum <- add sum n
+
+                            | Remove ->
+                                removeIndex x i
+
+
+                        for (i, r) in IndexList.toSeqIndexed dirty do
+                            let n = r.GetValue(t)
+                            state <-
+                                state |> IndexList.alter i (fun old ->
+                                    match old with
+                                    | Some (oa, ro, o) -> 
+                                        assert(ro = r)
+                                        sum <- add (sub sum o) n
+                                        Some (oa, r, n)
+                                    | None -> 
+                                        sum <- add sum n
+                                        None
+                                )
+
+                        match sum with
+                        | ValueNone ->
+                            let s = state |> Seq.fold (fun s (_,_,v) -> reduction.add s v) reduction.seed
+                            sum <- ValueSome s
+                            res <- reduction.view s
+                        | ValueSome s ->
+                            res <- reduction.view s
 
                 res
             )

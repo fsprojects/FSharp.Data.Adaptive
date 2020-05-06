@@ -251,6 +251,34 @@ let ``[AList] chooseA``() =
     transact (fun () -> l.RemoveAt 1 |> ignore; even.Value <- Some 1; odd.Value <- Some 123)
     check [1;1]
 
+
+
+[<Test>]
+let ``[AList] reduce empty after lots of operations``() =
+    let s = clist<float>()
+    let r = AList.sum s
+    let rand = System.Random()
+    transact (fun () ->
+        for i in 1 .. 10000 do
+            s.Add(rand.NextDouble()) |> ignore
+    )
+    r |> AVal.force |> ignore
+    
+    transact s.Clear
+    r |> AVal.force |> should equal 0.0
+
+    transact (fun () ->
+        for i in 1 .. 10000 do
+            s.Add(rand.NextDouble()) |> ignore
+    )
+
+    let element = s.Value |> Seq.item (rand.Next(s.Count))
+    transact (fun () -> s.Value <- IndexList.single element)
+    
+    r |> AVal.force |> should equal element
+
+
+
 [<Test>]
 let ``[AList] reduce group``() =
     let list = clist [1;2;3]

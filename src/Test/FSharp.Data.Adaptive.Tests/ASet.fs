@@ -241,6 +241,33 @@ let ``[ASet] reduce half group``() =
     transact (fun () -> list.Remove 0 |> ignore)
     res |> AVal.force |> should equal 20
 
+    
+[<Test>]
+let ``[ASet] reduce empty after lots of operations``() =
+    let s = cset<float>()
+    let r = ASet.sum s
+    let rand = System.Random()
+    transact (fun () ->
+        for i in 1 .. 10000 do
+            s.Add(rand.NextDouble()) |> ignore
+    )
+    r |> AVal.force |> ignore
+    
+    transact s.Clear
+    r |> AVal.force |> should equal 0.0
+
+    transact (fun () ->
+        for i in 1 .. 10000 do
+            s.Add(rand.NextDouble()) |> ignore
+    )
+
+    let element = s.Value |> Seq.item (rand.Next(s.Count))
+    transact (fun () -> s.Value <- HashSet.single element)
+    
+    r |> AVal.force |> should equal element
+
+
+
 [<Test>]
 let ``[ASet] reduce fold``() =
     let list = cset [1;2;3]
