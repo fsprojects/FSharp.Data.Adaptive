@@ -891,6 +891,57 @@ module AdaptiveHashMapImplementation =
 
 
             deltas
+            
+    /// Reader for toASetValues.
+    type ToValueASetReader<'Key, 'Value>(input : amap<'Key, 'Value>) =
+        inherit AbstractReader<HashSetDelta<'Value>>(HashSetDelta.empty)
+
+        let reader = input.GetReader()
+
+        static member DeltaMapping =
+            fun (oldState : HashMap<'Key, 'Value>) (ops : HashMapDelta<'Key, 'Value>) ->
+                let mutable deltas = HashSetDelta.empty
+                for (k,op) in ops do
+                    match op with
+                    | Set v ->
+                        match HashMap.tryFind k oldState with
+                        | None -> ()
+                        | Some oldValue ->
+                            deltas <- HashSetDelta.add (Rem(oldValue)) deltas
+                        deltas <- HashSetDelta.add (Add(v)) deltas
+                
+                    | Remove ->
+                        // NOTE: As it is not clear at what point the toASet computation has been evaluated last, it is 
+                        //       a valid case that something is removed that is not present in the current local state.
+                        match HashMap.tryFind k oldState with
+                        | None -> ()
+                        | Some ov ->
+                            deltas <- HashSetDelta.add (Rem (ov)) deltas
+                
+                
+                deltas
+
+        override x.Compute(token) =
+            let oldState = reader.State
+            let ops = reader.GetChanges token
+            let mutable deltas = HashSetDelta.empty
+            for (k,op) in ops do
+                match op with
+                | Set v ->
+                    match HashMap.tryFind k oldState with
+                    | None -> ()
+                    | Some oldValue ->
+                        deltas <- HashSetDelta.add (Rem(oldValue)) deltas
+                    deltas <- HashSetDelta.add (Add(v)) deltas
+                
+                | Remove ->
+                    // NOTE: As it is not clear at what point the toASet computation has been evaluated last, it is 
+                    //       a valid case that something is removed that is not present in the current local state.
+                    match HashMap.tryFind k oldState with
+                    | None -> ()
+                    | Some ov ->
+                        deltas <- HashSetDelta.add (Rem (ov)) deltas
+            deltas
 
     /// Reader for mapSet.
     type MapSetReader<'Key, 'Value>(set : aset<'Key>, mapping : 'Key -> 'Value) =
@@ -1224,6 +1275,13 @@ module AMap =
             ASet.delay (fun () -> map |> force |> HashMap.toSeq |> HashSet.ofSeq)
         else
             ASet.ofReader (fun () -> ToASetReader(map))
+
+    /// Creates an aset holding all distinct values from the map.
+    let toASetValues (map : amap<'Key, 'Value>) = 
+        if map.IsConstant then
+            ASet.delay (fun () -> map |> force |> HashMap.toSeq |> Seq.map snd |> HashSet.ofSeq)
+        else
+            ASet.ofReader (fun () -> ToValueASetReader(map))
 
     /// Adaptively looks up the given key in the map.
     /// Note that this operation should not be used extensively since its resulting

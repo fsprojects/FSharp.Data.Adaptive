@@ -115,6 +115,10 @@ module AMap =
 
     /// Creates an aset holding all key/value tuples from the map.
     val toASet : map:amap<'Key,'Value> -> aset<'Key * 'Value>
+    
+    /// Creates an aset holding all distinct values from the map.
+    val toASetValues : map:amap<'Key,'Value> -> aset<'Value>
+    
 
     /// Adaptively looks up the given key in the map.
     /// Note that this operation should not be used extensively since its resulting

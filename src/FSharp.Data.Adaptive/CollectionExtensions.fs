@@ -172,10 +172,11 @@ module CollectionExtensions =
         /// Gets the keys of the given map as aset<_>.
         let keys (map: amap<'Key, 'Value>) =
             if map.IsConstant then
-                map.Content 
-                |> AVal.force
-                |> HashMap.keys
-                |> ASet.ofHashSet
+                ASet.delay (fun () ->
+                    map.Content 
+                    |> AVal.force
+                    |> HashMap.keys
+                )
             else
                 ASet.ofReader (fun () -> MapKeysReader(map))
 
@@ -220,6 +221,9 @@ module CollectionExtensions =
 
         /// Creates an aset holding all key/value tuples from the map.
         let ofAMap (map: amap<'Key, 'Value>) = AMap.toASet map
+        
+        /// Creates an aset holding all distinct values from the map.
+        let ofAMapValues (map: amap<'Key, 'Value>) = AMap.toASetValues map
 
         /// Creates an aset holding all elements of the given list.
         let ofAList (list: alist<'T>) =
@@ -396,6 +400,12 @@ module CollectionExtensions =
                     | None ->
                         true
 
+    module AVal =
+        let logicalAnd (l : #seq<aval<bool>>) =
+            Seq.toList l |> BooleanOperators.AdaptiveAnd :> aval<_>
+
+        let logicalOr (l : #seq<aval<bool>>) =
+            Seq.toList l |> BooleanOperators.AdaptiveOr :> aval<_>
 
     /// Adaptive operators for lists.
     module List =
