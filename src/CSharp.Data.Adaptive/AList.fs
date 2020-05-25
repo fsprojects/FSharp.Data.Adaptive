@@ -235,6 +235,12 @@ type AdaptiveIndexList private() =
         this |> AList.reduce (AdaptiveReduction.group zero addFun subFun)
 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member FoldHalfGroup<'T1, 'T2>(this: alist<'T1>, add: Func<'T2, 'T1, 'T2>, sub: Func<'T2, 'T1, ValueOption<'T2>>, zero: 'T2) =
+        let addFun = fun s -> fun a -> add.Invoke(s, a)
+        let subFun = fun s -> fun a -> sub.Invoke(s, a)
+        this |> AList.reduce (AdaptiveReduction.halfGroup zero addFun subFun)
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Indexed(this: alist<'T>) =
         this |> AList.indexed
 

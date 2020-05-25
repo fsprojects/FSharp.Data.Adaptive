@@ -239,6 +239,12 @@ type AdaptiveHashSet private() =
         let addFun = fun s -> fun a -> add.Invoke(s, a)
         let subFun = fun s -> fun a -> sub.Invoke(s, a)
         this |> ASet.reduce (AdaptiveReduction.group zero addFun subFun)
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member FoldHalfGroup<'T1, 'T2>(this: aset<'T1>, add: Func<'T2, 'T1, 'T2>, sub: Func<'T2, 'T1, ValueOption<'T2>>, zero: 'T2) =
+        let addFun = fun s -> fun a -> add.Invoke(s, a)
+        let subFun = fun s -> fun a -> sub.Invoke(s, a)
+        this |> ASet.reduce (AdaptiveReduction.halfGroup zero addFun subFun)
         
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member SortBy(this: aset<'T>, projection: Func<'T, 'C>) =
