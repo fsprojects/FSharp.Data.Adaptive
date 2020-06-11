@@ -1,3 +1,6 @@
+### 0.0.26
+* attempted fix for Xamarin.IOS problems
+
 ### 0.0.25
 * allowing overrides for ShallowEquality via `ShallowEquality<'T>.Set(...)`
 
