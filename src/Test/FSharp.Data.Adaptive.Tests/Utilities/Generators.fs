@@ -29,20 +29,24 @@ module Helpers =
     open System.Reflection.Emit
 
     let private invoker (mi : MethodInfo) =
-        let dargs = [|typeof<obj>|]
-        let m = DynamicMethod("invoker", MethodAttributes.Static ||| MethodAttributes.Public, CallingConventions.Standard, typeof<obj>, dargs, typeof<obj>, true)
+        if DynamicMethod.IsSupported then
+            let dargs = [|typeof<obj>|]
+            let m = DynamicMethod("invoker", MethodAttributes.Static ||| MethodAttributes.Public, CallingConventions.Standard, typeof<obj>, dargs, typeof<obj>, true)
 
-        let il = m.GetILGenerator()
-        il.Emit(OpCodes.Ldarg, 0)
-        il.EmitCall(OpCodes.Callvirt, mi, null)
-        if mi.ReturnType.IsValueType then il.Emit(OpCodes.Box, mi.ReturnType)
-        il.Emit(OpCodes.Ret)
+            let il = m.GetILGenerator()
+            il.Emit(OpCodes.Ldarg, 0)
+            il.EmitCall(OpCodes.Callvirt, mi, null)
+            if mi.ReturnType.IsValueType then il.Emit(OpCodes.Box, mi.ReturnType)
+            il.Emit(OpCodes.Ret)
 
-        let invoke = 
-            m.CreateDelegate(typeof<Func<obj, obj>>)
-            |> unbox<Func<obj, obj>>
+            let invoke = 
+                m.CreateDelegate(typeof<Func<obj, obj>>)
+                |> unbox<Func<obj, obj>>
 
-        invoke.Invoke
+            invoke.Invoke
+        else
+            fun (o : obj) -> mi.Invoke(o, [||])
+            
 
     let private getMethod1 =
         let cache = System.Collections.Concurrent.ConcurrentDictionary<Type * Type, obj -> obj>()

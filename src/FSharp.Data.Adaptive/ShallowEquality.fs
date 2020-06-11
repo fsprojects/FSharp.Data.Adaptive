@@ -40,6 +40,36 @@ open System.Runtime.CompilerServices
 type private ShallowEqDelegate<'a> = delegate of 'a * 'a -> bool
 type private ShallowHashDelegate<'a> = delegate of 'a -> int
 
+[<AutoOpen>]
+module ``DynamicMethod Extensions`` =
+    let private canEmit =
+        try 
+            let meth = 
+                DynamicMethod(
+                    "testEmitMethod", 
+                    MethodAttributes.Static ||| MethodAttributes.Public,
+                    CallingConventions.Standard,
+                    typeof<int>,
+                    [| typeof<int> |],
+                    typeof<obj>,
+                    true
+                )
+            let il = meth.GetILGenerator()
+            il.Emit(OpCodes.Ldarg_0)
+            il.Emit(OpCodes.Ldc_I4, 10)
+            il.Emit(OpCodes.Mul)
+            il.Emit(OpCodes.Ret)
+
+            let f = meth.CreateDelegate(typeof<System.Func<int, int>>) |> unbox<System.Func<int, int>>
+
+            f.Invoke(1) = 10
+        with _ ->
+            false
+
+    type DynamicMethod with
+        static member IsSupported = canEmit
+
+
 [<AbstractClass; Sealed>]
 type private HashCodeHelpers private() =
 
@@ -79,51 +109,55 @@ type ShallowEqualityComparer<'a> private() =
         if isUnmanaged then
             Unchecked.hash
         elif typ.IsValueType then
-            let fields =
-                typ.GetFields(BindingFlags.Instance ||| BindingFlags.NonPublic ||| BindingFlags.Public)
+            if DynamicMethod.IsSupported then
+                let fields =
+                    typ.GetFields(BindingFlags.Instance ||| BindingFlags.NonPublic ||| BindingFlags.Public)
                 
-            let meth = 
-                DynamicMethod(
-                    "shallowHash", 
-                    MethodAttributes.Static ||| MethodAttributes.Public,
-                    CallingConventions.Standard,
-                    typeof<int>,
-                    [| typeof<'a> |],
-                    typeof<'a>,
-                    true
-                )
-
-
-            let il = meth.GetILGenerator()
-            let l = il.DeclareLocal(typeof<int>)
-
-            // l <- 0
-            il.Emit(OpCodes.Ldc_I4_0)
-            il.Emit(OpCodes.Stloc, l)
-
-            for f in fields do
-                let self = self.MakeGenericType [| f.FieldType |]
-                let hash = 
-                    self.GetMethod(
-                        "ShallowHashCode", 
-                        BindingFlags.Static ||| BindingFlags.NonPublic ||| BindingFlags.Public, 
-                        System.Type.DefaultBinder, 
-                        [| f.FieldType |], 
-                        null
+                let meth = 
+                    DynamicMethod(
+                        "shallowHash", 
+                        MethodAttributes.Static ||| MethodAttributes.Public,
+                        CallingConventions.Standard,
+                        typeof<int>,
+                        [| typeof<'a> |],
+                        typeof<'a>,
+                        true
                     )
 
-                il.Emit(OpCodes.Ldarg_0)
-                il.Emit(OpCodes.Ldfld, f)
-                il.EmitCall(OpCodes.Call, hash, null)
-                il.Emit(OpCodes.Ldloc, l)
-                il.EmitCall(OpCodes.Call, HashCodeHelpers.CombineMethod, null)
-                il.Emit(OpCodes.Stloc, l)
-                    
-            il.Emit(OpCodes.Ldloc, l)
-            il.Emit(OpCodes.Ret)
 
-            let del = meth.CreateDelegate(typeof<ShallowHashDelegate<'a>>) |> unbox<ShallowHashDelegate<'a>>
-            del.Invoke
+                let il = meth.GetILGenerator()
+                let l = il.DeclareLocal(typeof<int>)
+
+                // l <- 0
+                il.Emit(OpCodes.Ldc_I4_0)
+                il.Emit(OpCodes.Stloc, l)
+
+                for f in fields do
+                    let self = self.MakeGenericType [| f.FieldType |]
+                    let hash = 
+                        self.GetMethod(
+                            "ShallowHashCode", 
+                            BindingFlags.Static ||| BindingFlags.NonPublic ||| BindingFlags.Public, 
+                            System.Type.DefaultBinder, 
+                            [| f.FieldType |], 
+                            null
+                        )
+
+                    il.Emit(OpCodes.Ldarg_0)
+                    il.Emit(OpCodes.Ldfld, f)
+                    il.EmitCall(OpCodes.Call, hash, null)
+                    il.Emit(OpCodes.Ldloc, l)
+                    il.EmitCall(OpCodes.Call, HashCodeHelpers.CombineMethod, null)
+                    il.Emit(OpCodes.Stloc, l)
+                    
+                il.Emit(OpCodes.Ldloc, l)
+                il.Emit(OpCodes.Ret)
+
+                let del = meth.CreateDelegate(typeof<ShallowHashDelegate<'a>>) |> unbox<ShallowHashDelegate<'a>>
+                del.Invoke
+            else
+                // TODO: any better way??
+                fun (v : 'a) -> 0
         else
             fun (v : 'a) -> RuntimeHelpers.GetHashCode(v :> obj)
 
@@ -131,51 +165,55 @@ type ShallowEqualityComparer<'a> private() =
         if isUnmanaged then
             Unchecked.equals
         elif typ.IsValueType then
-            let fields =
-                typ.GetFields(BindingFlags.Instance ||| BindingFlags.NonPublic ||| BindingFlags.Public)
+            if DynamicMethod.IsSupported then
+                let fields =
+                    typ.GetFields(BindingFlags.Instance ||| BindingFlags.NonPublic ||| BindingFlags.Public)
 
-            let meth = 
-                DynamicMethod(
-                    "shallowEquals", 
-                    MethodAttributes.Static ||| MethodAttributes.Public,
-                    CallingConventions.Standard,
-                    typeof<bool>,
-                    [| typeof<'a>; typeof<'a> |],
-                    typeof<'a>,
-                    true
-                )
-
-            let il = meth.GetILGenerator()
-            let falseLabel = il.DefineLabel()
-
-            for f in fields do
-                let self = self.MakeGenericType [| f.FieldType |]
-                let eq = 
-                    self.GetMethod(
-                        "ShallowEquals", 
-                        BindingFlags.Static ||| BindingFlags.NonPublic ||| BindingFlags.Public, 
-                        System.Type.DefaultBinder, 
-                        [| f.FieldType; f.FieldType |], 
-                        null
+                let meth = 
+                    DynamicMethod(
+                        "shallowEquals", 
+                        MethodAttributes.Static ||| MethodAttributes.Public,
+                        CallingConventions.Standard,
+                        typeof<bool>,
+                        [| typeof<'a>; typeof<'a> |],
+                        typeof<'a>,
+                        true
                     )
 
-                il.Emit(OpCodes.Ldarg_0)
-                il.Emit(OpCodes.Ldfld, f)
+                let il = meth.GetILGenerator()
+                let falseLabel = il.DefineLabel()
+
+                for f in fields do
+                    let self = self.MakeGenericType [| f.FieldType |]
+                    let eq = 
+                        self.GetMethod(
+                            "ShallowEquals", 
+                            BindingFlags.Static ||| BindingFlags.NonPublic ||| BindingFlags.Public, 
+                            System.Type.DefaultBinder, 
+                            [| f.FieldType; f.FieldType |], 
+                            null
+                        )
+
+                    il.Emit(OpCodes.Ldarg_0)
+                    il.Emit(OpCodes.Ldfld, f)
                     
-                il.Emit(OpCodes.Ldarg_1)
-                il.Emit(OpCodes.Ldfld, f)
+                    il.Emit(OpCodes.Ldarg_1)
+                    il.Emit(OpCodes.Ldfld, f)
 
-                il.EmitCall(OpCodes.Call, eq, null)
-                il.Emit(OpCodes.Brfalse, falseLabel)
+                    il.EmitCall(OpCodes.Call, eq, null)
+                    il.Emit(OpCodes.Brfalse, falseLabel)
 
-            il.Emit(OpCodes.Ldc_I4_1)
-            il.Emit(OpCodes.Ret)
-            il.MarkLabel(falseLabel)
-            il.Emit(OpCodes.Ldc_I4_0)
-            il.Emit(OpCodes.Ret)
+                il.Emit(OpCodes.Ldc_I4_1)
+                il.Emit(OpCodes.Ret)
+                il.MarkLabel(falseLabel)
+                il.Emit(OpCodes.Ldc_I4_0)
+                il.Emit(OpCodes.Ret)
 
-            let del = meth.CreateDelegate(typeof<ShallowEqDelegate<'a>>) |> unbox<ShallowEqDelegate<'a>>
-            fun (a : 'a) (b : 'a) -> del.Invoke(a, b)
+                let del = meth.CreateDelegate(typeof<ShallowEqDelegate<'a>>) |> unbox<ShallowEqDelegate<'a>>
+                fun (a : 'a) (b : 'a) -> del.Invoke(a, b)
+            else
+                /// TODO: better way?
+                fun (a : 'a) (b : 'a) -> false
         else
             fun (a : 'a) (b : 'a) -> System.Object.ReferenceEquals(a :> obj, b :> obj)
             
