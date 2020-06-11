@@ -4,7 +4,7 @@ open System
 open System.Runtime.CompilerServices
 open FSharp.Data.Adaptive
 
-[<CompiledName("FSharpHashSetBuilder")>]
+[<CompiledName("FSharpHashSetBuilder`1")>]
 type HashSetBuilder<'T>() =
     let mutable array : 'T[] = Array.zeroCreate 8
     let mutable cnt = 0

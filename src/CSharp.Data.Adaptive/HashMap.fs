@@ -4,7 +4,7 @@ open System
 open System.Runtime.CompilerServices
 open FSharp.Data.Adaptive
 
-[<CompiledName("FSharpHashMapBuilder")>]
+[<CompiledName("FSharpHashMapBuilder`2")>]
 type HashMapBuilder<'Key, 'Value>() =
     let mutable array : struct('Key * 'Value)[] = Array.zeroCreate 8
     let mutable cnt = 0

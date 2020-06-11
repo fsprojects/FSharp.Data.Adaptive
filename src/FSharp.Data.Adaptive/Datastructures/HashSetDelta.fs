@@ -9,7 +9,7 @@ open FSharp.Data.Adaptive
 /// Internally uses reference counts to represent deltas and provides 
 /// convenient combine functions.
 [<Struct; CustomEquality; NoComparison>]
-[<StructuredFormatDisplay("{AsString}"); CompiledName("FSharpHashSetDelta")>]
+[<StructuredFormatDisplay("{AsString}"); CompiledName("FSharpHashSetDelta`1")>]
 type HashSetDelta<'T>(store: HashMap<'T, int>) =
 
     /// The empty set.
