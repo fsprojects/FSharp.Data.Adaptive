@@ -4,6 +4,7 @@ open System
 open System.Runtime.CompilerServices
 open FSharp.Data.Adaptive
 
+[<CompiledName("FSharpHashSetBuilder`1")>]
 type HashSetBuilder<'T>() =
     let mutable array : 'T[] = Array.zeroCreate 8
     let mutable cnt = 0
@@ -16,10 +17,11 @@ type HashSetBuilder<'T>() =
     interface System.Collections.IEnumerable with
         member x.GetEnumerator() = (Seq.take cnt array).GetEnumerator() :> _
 
+    [<CompiledName("ToFSharpHashSet")>]
     member x.ToHashSet() =
         HashSet<'T>.OfArrayRange(array, 0, cnt)
 
-[<AbstractClass; Sealed; Extension>]
+[<AbstractClass; Sealed; Extension; CompiledName("FSharpHashSet")>]
 type HashSet private() =
     
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -32,13 +34,13 @@ type HashSet private() =
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Single<'T>(value: 'T) = HashSet.single value
     
-    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining); CompiledName("ToFSharpHashSet")>]
     static member ToHashSet(elements: seq<'T>) = HashSet.ofSeq elements
     
-    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining); CompiledName("ToFSharpHashSet")>]
     static member ToHashSet(elements: list<'T>) = HashSet.ofList elements
     
-    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining); CompiledName("ToFSharpHashSet")>]
     static member ToHashSet(elements: 'T[]) = HashSet.ofArray elements
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -111,7 +113,7 @@ type HashSet private() =
         let (a,b) = HashSet.applyDelta set delta
         struct(a,b)
      
-[<AbstractClass; Sealed; Extension>]
+[<AbstractClass; Sealed; Extension; CompiledName("FSharpHashSetDelta")>]
 type HashSetDelta private() =
     
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -124,13 +126,13 @@ type HashSetDelta private() =
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Single<'T>(value: SetOperation<'T>) = HashSetDelta.single value
     
-    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining); CompiledName("ToFSharpHashSetDelta")>]
     static member ToHashSetDelta(elements: seq<SetOperation<'T>>) = HashSetDelta.ofSeq elements
     
-    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining); CompiledName("ToFSharpHashSetDelta")>]
     static member ToHashSetDelta(elements: list<SetOperation<'T>>) = HashSetDelta.ofList elements
     
-    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining); CompiledName("ToFSharpHashSetDelta")>]
     static member ToHashSetDelta(elements: SetOperation<'T>[]) = HashSetDelta.ofArray elements
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]

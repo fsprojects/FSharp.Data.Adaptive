@@ -3357,7 +3357,7 @@ module internal HashMapImplementation =
 
 
 
-[<Struct; CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}")>]
+[<Struct; CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}"); CompiledName("FSharpHashSet`1")>]
 type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
     
     static member Empty = HashSet<'T>(DefaultEqualityComparer<'T>.Instance, HashSetEmpty.Instance)
@@ -3365,6 +3365,7 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
     member x.Count = root.Count
     member x.IsEmpty = root.IsEmpty
 
+    member internal x.Comparer = cmp
     member internal x.Root = root
     
     member private x.AsString = x.ToString()
@@ -3584,6 +3585,18 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
     interface System.Collections.Generic.IEnumerable<'T> with 
         member x.GetEnumerator() = new HashSetEnumerator<_>(root) :> _
 
+    new(elements : seq<'T>) = 
+        let o = HashSet.OfSeq elements
+        HashSet<'T>(o.Comparer, o.Root)
+        
+    new(elements : HashSet<'T>) = 
+        HashSet<'T>(elements.Comparer, elements.Root)
+        
+    new(elements : 'T[]) = 
+        let o = HashSet.OfArray elements
+        HashSet<'T>(o.Comparer, o.Root)
+        
+
 and internal HashSetEnumerator<'T>(root: HashSetNode<'T>) =
     let mutable stack = [root]
     let mutable linked: HashSetLinked<'T> = null
@@ -3636,7 +3649,7 @@ and internal HashSetEnumerator<'T>(root: HashSetNode<'T>) =
         member x.Current = x.Current
 
 
-[<Struct; CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}")>]
+[<Struct; CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}"); CompiledName("FSharpHashMap`2")>]
 type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'K>, root: HashMapNode<'K, 'V>) =
 
     static member Empty = HashMap<'K, 'V>(DefaultEqualityComparer<'K>.Instance, HashMapEmpty.Instance)
@@ -3644,6 +3657,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
     member x.Count = root.Count
     member x.IsEmpty = root.IsEmpty
 
+    member internal x.Comparer = cmp
     member internal x.Root : HashMapNode<'K, 'V> = root
     
     member x.Item
@@ -3939,6 +3953,29 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         
     interface System.Collections.Generic.IEnumerable<'K * 'V> with 
         member x.GetEnumerator() = new HashMapEnumerator<_,_>(root) :> _
+        
+        
+        
+    new(elements : seq<'K * 'V>) = 
+        let o = HashMap.OfSeq elements
+        HashMap<'K, 'V>(o.Comparer, o.Root)
+
+    new(elements : HashMap<'K, 'V>) = 
+        HashMap<'K, 'V>(elements.Comparer, elements.Root)
+
+    new(elements : array<'K * 'V>) = 
+        let o = HashMap.OfArray elements
+        HashMap<'K, 'V>(o.Comparer, o.Root)  
+        
+    #if !FABLE_COMPILER
+    new(elements : seq<struct ('K * 'V)>) = 
+        let o = HashMap.OfSeqV elements
+        HashMap<'K, 'V>(o.Comparer, o.Root)
+
+    new(elements : array<struct ('K * 'V)>) = 
+        let o = HashMap.OfArrayV elements
+        HashMap<'K, 'V>(o.Comparer, o.Root)
+    #endif
 
 and internal HashMapEnumerator<'K, 'V>(root: HashMapNode<'K, 'V>) =
     let mutable stack = [root]
@@ -4042,7 +4079,9 @@ and internal HashMapStructEnumerator<'K, 'V>(root: HashMapNode<'K, 'V>) =
         member x.Dispose() = x.Dispose()
         member x.Current = x.Current
 
+
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+[<RequireQualifiedAccess>]
 module HashSet =
 
     /// The empty set.
@@ -4200,6 +4239,7 @@ module HashSet =
         HashSet<'T>.ApplyDelta(l, r, apply)
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+[<RequireQualifiedAccess>]
 module HashMap =
 
     /// The empty map.
