@@ -1,3 +1,6 @@
+### 1.0.0
+* stable release
+
 ### 0.0.26
 * attempted fix for Xamarin.IOS problems
 
