@@ -136,7 +136,7 @@ Target.create "Clean" (fun _ ->
 
 Target.create "Compile" (fun _ ->
     let options (o : DotNet.BuildOptions) =
-        let v = sprintf "%d.%d.%d.%s" notes.SemVer.Major notes.SemVer.Minor notes.SemVer.Patch (string notes.SemVer.Build)
+        let v = sprintf "%d.%d.0.0" notes.SemVer.Major notes.SemVer.Minor 
         { o with 
             Configuration = DotNet.BuildConfiguration.Release
             
@@ -151,6 +151,7 @@ Target.create "Compile" (fun _ ->
                             "AssemblyFileVersion", v
                             "ProductVersion", v
                             "InformationalVersion", v
+                            "PackageVersion", notes.SemVer.AsString
                         ] 
                 }
         }
