@@ -59,15 +59,15 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '94', 94)" onmouseover="showTip(event, '94', 94)">
+          <code onmouseout="hideTip(event, '207', 207)" onmouseover="showTip(event, '207', 207)">
             x.AddMarkingCallback(callback)
           </code>
-          <div class="tip" id="94">
+          <div class="tip" id="207">
             <strong>Signature:</strong> (callback:(unit -&gt; unit)) -&gt; (type)<br />
                                   </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Core/Callbacks.fs#L109-109" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Core/Callbacks.fs#L166-166" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -83,15 +83,39 @@ Returns a disposable for removing the callback.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '95', 95)" onmouseover="showTip(event, '95', 95)">
-            x.OnNextMarking(callback)
+          <code onmouseout="hideTip(event, '208', 208)" onmouseover="showTip(event, '208', 208)">
+            x.AddWeakMarkingCallback(callback)
           </code>
-          <div class="tip" id="95">
+          <div class="tip" id="208">
             <strong>Signature:</strong> (callback:(unit -&gt; unit)) -&gt; (type)<br />
                                   </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Core/Callbacks.fs#L117-117" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Core/Callbacks.fs#L174-174" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Registers a callback with the given object that will be executed
+whenever the object gets marked out-of-date.
+Note that it does not trigger when the object is currently out-of-date.
+Returns a disposable for removing the callback.</p>
+
+
+              <p>CompiledName: <code>IAdaptiveObject.AddWeakMarkingCallback</code></p>
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '209', 209)" onmouseover="showTip(event, '209', 209)">
+            x.OnNextMarking(callback)
+          </code>
+          <div class="tip" id="209">
+            <strong>Signature:</strong> (callback:(unit -&gt; unit)) -&gt; (type)<br />
+                                  </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Core/Callbacks.fs#L182-182" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -102,6 +126,30 @@ Returns a disposable for removing the callback.</p>
 
 
               <p>CompiledName: <code>IAdaptiveObject.OnNextMarking</code></p>
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '210', 210)" onmouseover="showTip(event, '210', 210)">
+            x.OnWeakNextMarking(callback)
+          </code>
+          <div class="tip" id="210">
+            <strong>Signature:</strong> (callback:(unit -&gt; unit)) -&gt; (type)<br />
+                                  </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Core/Callbacks.fs#L196-196" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Registers a callback with the given object that will be executed
+ONCE! when the next out-of-date marking visits the object.
+Note that it does not trigger when the object is currently out-of-date.
+Returns a disposable for removing the callback.</p>
+
+
+              <p>CompiledName: <code>IAdaptiveObject.OnWeakNextMarking</code></p>
         </td>
       </tr>
     </tbody>

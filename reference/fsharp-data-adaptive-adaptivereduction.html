@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>AdaptiveReduction - FSharp.Data.Adaptive</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="description" content=""/>
+    <meta name="author" content="Georg Haaser, Don Syme"/>
+
+    <script src="https://code.jquery.com/jquery-1.8.0.js"></script>
+    <script src="https://code.jquery.com/ui/1.8.23/jquery-ui.js"></script>
+    <script src="https://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
+    <link href="https://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet"/>
+
+    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/style.css" />
+    <script type="text/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/tips.js"></script>
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="https://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="container">
+      <div class="masthead">
+        <ul class="nav nav-pills pull-right">
+          <li><a href="http://github.com/fsprojects/FSharp.Data.Adaptive">github page</a></li>
+        </ul>
+        <h3 class="muted"><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/index.html">FSharp.Data.Adaptive</a></h3>
+      </div>
+      <hr />
+      <div class="row">
+        <div class="span9" id="main">
+          
+
+
+
+<h1>AdaptiveReduction</h1>
+<p>
+  <span>Namespace: FSharp.Data.Adaptive</span><br />
+  </p>
+<div class="xmldoc">
+<p>Functional operators for AdaptiveReduction.</p>
+
+</div>
+
+<!-- Render nested types and modules, if there are any -->
+
+  <h3>Functions and values</h3>
+  <table class="table table-bordered member-list">
+    <thead>
+      <tr><td>Function or value</td><td>Description</td></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '192', 192)" onmouseover="showTip(event, '192', 192)">
+            average()
+          </code>
+          <div class="tip" id="192">
+            <strong>Signature:</strong> unit -&gt; AdaptiveReduction&lt;^a,(int * ^s),^s&gt;<br />
+                          <strong>Type parameters:</strong> ^a, ^s                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveValue/AdaptiveReduction.fs#L167-167" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>A reduction returning the average of all elements.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '193', 193)" onmouseover="showTip(event, '193', 193)">
+            count
+          </code>
+          <div class="tip" id="193">
+            <strong>Signature:</strong> AdaptiveReduction&lt;&#39;a,int,int&gt;<br />
+                          <strong>Type parameters:</strong> 'a                        <span>
+            <strong>Attributes:</strong><br />
+[&lt;GeneralizableValue&gt;]<br />
+          </span>
+          </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveValue/AdaptiveReduction.fs#L61-61" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>A simple reduction counting all elements.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '194', 194)" onmouseover="showTip(event, '194', 194)">
+            countNegative
+          </code>
+          <div class="tip" id="194">
+            <strong>Signature:</strong> AdaptiveReduction&lt;bool,int,int&gt;<br />
+                                  </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveValue/AdaptiveReduction.fs#L105-105" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>A simple reduction counting all elements that are false.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '195', 195)" onmouseover="showTip(event, '195', 195)">
+            countPositive
+          </code>
+          <div class="tip" id="195">
+            <strong>Signature:</strong> AdaptiveReduction&lt;bool,int,int&gt;<br />
+                                  </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveValue/AdaptiveReduction.fs#L94-94" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>A simple reduction counting all elements that are true.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '196', 196)" onmouseover="showTip(event, '196', 196)">
+            fold zero add
+          </code>
+          <div class="tip" id="196">
+            <strong>Signature:</strong> zero:&#39;s -&gt; add:(&#39;s -&gt; &#39;a -&gt; &#39;s) -&gt; AdaptiveReduction&lt;&#39;a,&#39;s,&#39;s&gt;<br />
+                          <strong>Type parameters:</strong> 's, 'a                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveValue/AdaptiveReduction.fs#L85-85" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates a new AdaptiveReduction using the given <em>classical</em> fold function.
+Note the these <em>classical</em> folds are inefficient in presence of adaptivity and
+should be replaced by <em>group-like</em> constructs whenever possible.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '197', 197)" onmouseover="showTip(event, '197', 197)">
+            group zero add sub
+          </code>
+          <div class="tip" id="197">
+            <strong>Signature:</strong> zero:&#39;s -&gt; add:(&#39;s -&gt; &#39;a -&gt; &#39;s) -&gt; sub:(&#39;s -&gt; &#39;a -&gt; &#39;s) -&gt; AdaptiveReduction&lt;&#39;a,&#39;s,&#39;s&gt;<br />
+                          <strong>Type parameters:</strong> 's, 'a                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveValue/AdaptiveReduction.fs#L69-69" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates a new AdaptiveReduction using the given (group-like) functions.
+Note that the functions need to fulfill the following laws (and maybe more)
+<em> <code>sub (add x a) a = x</code> (inverse)
+</em> <code>add (sub x a) a = x</code> (inverse)
+* <code>add (add x a) b = add (add x b) a</code> (commutativity)</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '198', 198)" onmouseover="showTip(event, '198', 198)">
+            halfGroup zero add sub
+          </code>
+          <div class="tip" id="198">
+            <strong>Signature:</strong> zero:&#39;s -&gt; add:(&#39;s -&gt; &#39;a -&gt; &#39;s) -&gt; sub:(&#39;s -&gt; &#39;a -&gt; ValueOption&lt;&#39;s&gt;) -&gt; AdaptiveReduction&lt;&#39;a,&#39;s,&#39;s&gt;<br />
+                          <strong>Type parameters:</strong> 's, 'a                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveValue/AdaptiveReduction.fs#L77-77" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates a new AdaptiveReduction using the given (partial-group-like) functions.
+Note that the functions need to fulfill the following laws when sub claims success (and maybe more)
+<em> <code>sub (add x a) a = x</code> (inverse)
+</em> <code>add (sub x a) a = x</code> (inverse)
+* <code>add (add x a) b = add (add x b) a</code> (commutativity)</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '199', 199)" onmouseover="showTip(event, '199', 199)">
+            mapIn mapping reduction
+          </code>
+          <div class="tip" id="199">
+            <strong>Signature:</strong> mapping:(&#39;a -&gt; &#39;b) -&gt; reduction:AdaptiveReduction&lt;&#39;b,&#39;s,&#39;v&gt; -&gt; AdaptiveReduction&lt;&#39;a,&#39;s,&#39;v&gt;<br />
+                          <strong>Type parameters:</strong> 'a, 'b, 's, 'v                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveValue/AdaptiveReduction.fs#L44-44" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Applies a mapping function on the input side of the given AdaptiveReduction.
+Note that the supplied mapping function is assumed to be very cheap.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '200', 200)" onmouseover="showTip(event, '200', 200)">
+            mapOut mapping reduction
+          </code>
+          <div class="tip" id="200">
+            <strong>Signature:</strong> mapping:(&#39;v -&gt; &#39;w) -&gt; reduction:AdaptiveReduction&lt;&#39;a,&#39;s,&#39;v&gt; -&gt; AdaptiveReduction&lt;&#39;a,&#39;s,&#39;w&gt;<br />
+                          <strong>Type parameters:</strong> 'v, 'w, 'a, 's                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveValue/AdaptiveReduction.fs#L52-52" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Applies a mapping function on the output side of the given AdaptiveReduction.
+Note that the supplied mapping function is assumed to be very cheap.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '201', 201)" onmouseover="showTip(event, '201', 201)">
+            par left right
+          </code>
+          <div class="tip" id="201">
+            <strong>Signature:</strong> left:AdaptiveReduction&lt;&#39;a,&#39;s,&#39;v&gt; -&gt; right:AdaptiveReduction&lt;&#39;a,&#39;t,&#39;w&gt; -&gt; AdaptiveReduction&lt;&#39;a,(&#39;s * &#39;t),(&#39;v * &#39;w)&gt;<br />
+                          <strong>Type parameters:</strong> 'a, 's, 'v, 't, 'w                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveValue/AdaptiveReduction.fs#L14-14" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates a new AdaptiveReduction that simultaniously (parallel) applies two
+reductions by tupling the state- and result-type.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '202', 202)" onmouseover="showTip(event, '202', 202)">
+            product()
+          </code>
+          <div class="tip" id="202">
+            <strong>Signature:</strong> unit -&gt; AdaptiveReduction&lt;^a,^s,^s&gt;<br />
+                          <strong>Type parameters:</strong> ^a, ^s                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveValue/AdaptiveReduction.fs#L175-175" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>A reduction returning the product of all elements.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '203', 203)" onmouseover="showTip(event, '203', 203)">
+            structpar left right
+          </code>
+          <div class="tip" id="203">
+            <strong>Signature:</strong> left:AdaptiveReduction&lt;&#39;a,&#39;s,&#39;v&gt; -&gt; right:AdaptiveReduction&lt;&#39;a,&#39;t,&#39;w&gt; -&gt; AdaptiveReduction&lt;&#39;a,(&#39;s * &#39;t),(&#39;v * &#39;w)&gt;<br />
+                          <strong>Type parameters:</strong> 'a, 's, 'v, 't, 'w                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveValue/AdaptiveReduction.fs#L29-29" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates a new AdaptiveReduction that simultaniously (parallel) applies two
+reductions by (struct) tupling the state- and result-type.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '204', 204)" onmouseover="showTip(event, '204', 204)">
+            sum()
+          </code>
+          <div class="tip" id="204">
+            <strong>Signature:</strong> unit -&gt; AdaptiveReduction&lt;^a,^s,^s&gt;<br />
+                          <strong>Type parameters:</strong> ^a, ^s                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveValue/AdaptiveReduction.fs#L159-159" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>A reduction returning the sum of all elements.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '205', 205)" onmouseover="showTip(event, '205', 205)">
+            tryMax
+          </code>
+          <div class="tip" id="205">
+            <strong>Signature:</strong> AdaptiveReduction&lt;&#39;a,&#39;a voption,&#39;a voption&gt;<br />
+                          <strong>Type parameters:</strong> 'a                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveValue/AdaptiveReduction.fs#L137-137" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>A reduction getting the largest element (if any)</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '206', 206)" onmouseover="showTip(event, '206', 206)">
+            tryMin
+          </code>
+          <div class="tip" id="206">
+            <strong>Signature:</strong> AdaptiveReduction&lt;&#39;a,&#39;a voption,&#39;a voption&gt;<br />
+                          <strong>Type parameters:</strong> 'a                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveValue/AdaptiveReduction.fs#L116-116" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>A reduction getting the smallest element (if any)</p>
+
+
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+        </div>
+        <div class="span3">
+          <a target="_blank" href="https://fsprojects.github.io/FSharp.Data.Adaptive">
+      <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/img/logo.png" alt="F# Project" style="width:150px;margin:10px" /> 
+      </a>
+          <ul class="nav nav-list" id="menu" style="margin-top: 20px;">
+            <li class="nav-header">FSharp.Data.Adaptive</li>
+            <li><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/index.html">Home page</a></li>
+            <li class="divider"></li>
+            <li><a href="http://www.nuget.org/packages/FSharp.Data.Adaptive">Get Library via NuGet</a></li>
+            <li><a href="http://github.com/fsprojects/FSharp.Data.Adaptive">Source Code on GitHub</a></li>
+            <li><a href="http://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a></li>
+            <li><a href="http://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
+
+            <li class="nav-header">Documentation</li>
+            <li><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/index.html">API Reference</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <a href="http://github.com/fsprojects/FSharp.Data.Adaptive"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub"/></a>
+  </body>
+  </html>

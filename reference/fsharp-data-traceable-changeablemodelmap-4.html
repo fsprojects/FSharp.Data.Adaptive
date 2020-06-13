@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8"/>
-    <title>AdaptiveHashSet<'T> - FSharp.Data.Adaptive</title>
+    <title>ChangeableModelMap<'K, 'V, 'C, 'A> - FSharp.Data.Adaptive</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="description" content=""/>
     <meta name="author" content="Georg Haaser, Don Syme"/>
@@ -34,20 +34,40 @@
 
 
 
-<h1>AdaptiveHashSet<'T></h1>
+<h1>ChangeableModelMap<'K, 'V, 'C, 'A></h1>
 <p>
 
-    <span>Namespace: FSharp.Data.Adaptive</span><br />
-            <span>
-            Attributes: <br />
-[&lt;Interface&gt;]<br />
-            
-        </span>
-</p>
+    <span>Namespace: FSharp.Data.Traceable</span><br />
+    </p>
 <div class="xmldoc">
-<p>Adaptive set datastructure.</p>
-
 </div>
+  <h3>Constructors</h3>
+  <table class="table table-bordered member-list">
+    <thead>
+      <tr><td>Constructor</td><td>Description</td></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '761', 761)" onmouseover="showTip(event, '761', 761)">
+            new(map, init, update, view)
+          </code>
+          <div class="tip" id="761">
+            <strong>Signature:</strong> (map:HashMap&lt;&#39;K,&#39;V&gt; * init:(&#39;V -&gt; &#39;C) * update:(&#39;C -&gt; &#39;V -&gt; &#39;C) * view:(&#39;C -&gt; &#39;A)) -&gt; ChangeableModelMap&lt;&#39;K,&#39;V,&#39;C,&#39;A&gt;<br />
+                                  </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptifyHelpers.fs#L6-6" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          
+              <p>CompiledName: <code>.ctor</code></p>
+        </td>
+      </tr>
+    </tbody>
+  </table>
   <h3>Instance members</h3>
   <table class="table table-bordered member-list">
     <thead>
@@ -57,66 +77,56 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '437', 437)" onmouseover="showTip(event, '437', 437)">
-            x.Content
+          <code onmouseout="hideTip(event, '762', 762)" onmouseover="showTip(event, '762', 762)">
+            x.Current
           </code>
-          <div class="tip" id="437">
-            <strong>Signature:</strong> aval&lt;HashSet&lt;&#39;T&gt;&gt;<br />
-              <strong>Modifiers:</strong> abstract<br />
+          <div class="tip" id="762">
+            <strong>Signature:</strong> aval&lt;HashMap&lt;&#39;K,&#39;V&gt;&gt;<br />
                                   </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/AdaptiveHashSet.fs#L14-14" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptifyHelpers.fs#L15-15" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>The current content of the set as aval.</p>
-
-
-              <p>CompiledName: <code>get_Content</code></p>
+          
+              <p>CompiledName: <code>get_Current</code></p>
         </td>
       </tr>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '438', 438)" onmouseover="showTip(event, '438', 438)">
+          <code onmouseout="hideTip(event, '763', 763)" onmouseover="showTip(event, '763', 763)">
             x.GetReader()
           </code>
-          <div class="tip" id="438">
-            <strong>Signature:</strong> unit -&gt; IHashSetReader&lt;&#39;T&gt;<br />
-              <strong>Modifiers:</strong> abstract<br />
+          <div class="tip" id="763">
+            <strong>Signature:</strong> unit -&gt; IOpReader&lt;HashMap&lt;&#39;K,&#39;A&gt;,HashMapDelta&lt;&#39;K,&#39;A&gt;&gt;<br />
                                   </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/AdaptiveHashSet.fs#L17-17" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptifyHelpers.fs#L44-44" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>Gets a new reader to the set.</p>
-
-
+          
         </td>
       </tr>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '439', 439)" onmouseover="showTip(event, '439', 439)">
-            x.IsConstant
+          <code onmouseout="hideTip(event, '764', 764)" onmouseover="showTip(event, '764', 764)">
+            x.Update(value)
           </code>
-          <div class="tip" id="439">
-            <strong>Signature:</strong> bool<br />
-              <strong>Modifiers:</strong> abstract<br />
+          <div class="tip" id="764">
+            <strong>Signature:</strong> value:HashMap&lt;&#39;K,&#39;V&gt; -&gt; unit<br />
                                   </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/AdaptiveHashSet.fs#L11-11" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptifyHelpers.fs#L17-17" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>Is the set constant?</p>
-
-
-              <p>CompiledName: <code>get_IsConstant</code></p>
+          
         </td>
       </tr>
     </tbody>

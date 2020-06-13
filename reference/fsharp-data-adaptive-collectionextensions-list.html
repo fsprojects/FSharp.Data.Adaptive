@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8"/>
-    <title>Transaction - FSharp.Data.Adaptive</title>
+    <title>List - FSharp.Data.Adaptive</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="description" content=""/>
     <meta name="author" content="Georg Haaser, Don Syme"/>
@@ -34,17 +34,13 @@
 
 
 
-<h1>Transaction</h1>
+<h1>List</h1>
 <p>
   <span>Namespace: FSharp.Data.Adaptive</span><br />
-        <span>
-          Attributes:<br />
-[&lt;AutoOpen&gt;]<br />
-          
-      </span>
-</p>
+  <span>Parent Module: <a href="fsharp-data-adaptive-collectionextensions.html">CollectionExtensions</a></span>
+  </p>
 <div class="xmldoc">
-<p>Module for transaction related functions. (e.g. transact)</p>
+<p>Adaptive operators for lists.</p>
 
 </div>
 
@@ -59,103 +55,41 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '322', 322)" onmouseover="showTip(event, '322', 322)">
-            getCurrentTransaction()
+          <code onmouseout="hideTip(event, '240', 240)" onmouseover="showTip(event, '240', 240)">
+            existsA predicate elements
           </code>
-          <div class="tip" id="322">
-            <strong>Signature:</strong> unit -&gt; Transaction option<br />
-                                  </div>
-        </td>
-        <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Core/Transaction.fs#L215-215" class="github-link">
-              <img src="../content/img/github.png" class="normal" />
-              <img src="../content/img/github-blue.png" class="hover" />
-            </a>
-          <p>Returns the currently running transaction or (if none)
-the current transaction for the calling thread</p>
-
-
-        </td>
-      </tr>
-      <tr>
-        <td class="member-name">
-
-          <code onmouseout="hideTip(event, '323', 323)" onmouseover="showTip(event, '323', 323)">
-            transact(action)
-          </code>
-          <div class="tip" id="323">
-            <strong>Signature:</strong> action:(unit -&gt; &#39;T) -&gt; &#39;T<br />
+          <div class="tip" id="240">
+            <strong>Signature:</strong> predicate:(&#39;T -&gt; aval&lt;bool&gt;) -&gt; elements:&#39;T list -&gt; aval&lt;bool&gt;<br />
                           <strong>Type parameters:</strong> 'T                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Core/Transaction.fs#L233-233" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/CollectionExtensions.fs#L413-413" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>Executes a function "inside" a newly created
-transaction and commits the transaction</p>
+          <p>Adaptively checks whether one or more entries make the given predicate true.</p>
 
 
-        </td>
-      </tr>
-    </tbody>
-  </table>
-  <h3>Type extensions</h3>
-  <table class="table table-bordered member-list">
-    <thead>
-      <tr><td>Type extension</td><td>Description</td></tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td class="member-name">
-
-          <code onmouseout="hideTip(event, '324', 324)" onmouseover="showTip(event, '324', 324)">
-            x.MarkOutdated()
-          </code>
-          <div class="tip" id="324">
-            <strong>Signature:</strong> unit -&gt; unit<br />
-                                  </div>
-        </td>
-        <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Core/Transaction.fs#L249-249" class="github-link">
-              <img src="../content/img/github.png" class="normal" />
-              <img src="../content/img/github-blue.png" class="hover" />
-            </a>
-          <p>Utility for marking adaptive object as outOfDate.
-Note that this function will actually enqueue the
-object to the current transaction and will fail if
-no current transaction can be found.
-However objects which are already outOfDate might
-also be "marked" when not having a current transaction.</p>
-
-
-              <p>CompiledName: <code>IAdaptiveObject.MarkOutdated</code></p>
         </td>
       </tr>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '325', 325)" onmouseover="showTip(event, '325', 325)">
-            x.MarkOutdated(fin)
+          <code onmouseout="hideTip(event, '241', 241)" onmouseover="showTip(event, '241', 241)">
+            forallA predicate elements
           </code>
-          <div class="tip" id="325">
-            <strong>Signature:</strong> (fin:(unit -&gt; unit)) -&gt; unit<br />
-                                  </div>
+          <div class="tip" id="241">
+            <strong>Signature:</strong> predicate:(&#39;T -&gt; aval&lt;bool&gt;) -&gt; elements:&#39;T list -&gt; aval&lt;bool&gt;<br />
+                          <strong>Type parameters:</strong> 'T                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Core/Transaction.fs#L265-265" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/CollectionExtensions.fs#L424-424" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>Utility for marking adaptive object as outOfDate.
-Note that this function will actually enqueue the
-object to the current transaction and will fail if
-no current transaction can be found.
-However objects which are already outOfDate might
-Also be "marked" when not having a current transaction.</p>
+          <p>Adaptively checks whether all entries make the given predicate true.</p>
 
 
-              <p>CompiledName: <code>IAdaptiveObject.MarkOutdated</code></p>
         </td>
       </tr>
     </tbody>

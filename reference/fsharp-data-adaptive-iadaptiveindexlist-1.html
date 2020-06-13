@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8"/>
-    <title>AdaptiveHashMap<'Key, 'Value> - FSharp.Data.Adaptive</title>
+    <title>IAdaptiveIndexList<'T> - FSharp.Data.Adaptive</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="description" content=""/>
     <meta name="author" content="Georg Haaser, Don Syme"/>
@@ -34,7 +34,7 @@
 
 
 
-<h1>AdaptiveHashMap<'Key, 'Value></h1>
+<h1>IAdaptiveIndexList<'T></h1>
 <p>
 
     <span>Namespace: FSharp.Data.Adaptive</span><br />
@@ -45,7 +45,7 @@
         </span>
 </p>
 <div class="xmldoc">
-<p>Adaptive map datastructure.</p>
+<p>Adaptive list datastructure.</p>
 
 </div>
   <h3>Instance members</h3>
@@ -57,20 +57,20 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '434', 434)" onmouseover="showTip(event, '434', 434)">
+          <code onmouseout="hideTip(event, '696', 696)" onmouseover="showTip(event, '696', 696)">
             x.Content
           </code>
-          <div class="tip" id="434">
-            <strong>Signature:</strong> aval&lt;HashMap&lt;&#39;Key,&#39;Value&gt;&gt;<br />
+          <div class="tip" id="696">
+            <strong>Signature:</strong> aval&lt;IndexList&lt;&#39;T&gt;&gt;<br />
               <strong>Modifiers:</strong> abstract<br />
                                   </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L14-14" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L18-18" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>the current content of the map as aval.</p>
+          <p>The current content of the list as aval.</p>
 
 
               <p>CompiledName: <code>get_Content</code></p>
@@ -79,20 +79,20 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '435', 435)" onmouseover="showTip(event, '435', 435)">
+          <code onmouseout="hideTip(event, '697', 697)" onmouseover="showTip(event, '697', 697)">
             x.GetReader()
           </code>
-          <div class="tip" id="435">
-            <strong>Signature:</strong> unit -&gt; IHashMapReader&lt;&#39;Key,&#39;Value&gt;<br />
+          <div class="tip" id="697">
+            <strong>Signature:</strong> unit -&gt; IIndexListReader&lt;&#39;T&gt;<br />
               <strong>Modifiers:</strong> abstract<br />
                                   </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L17-17" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L21-21" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>gets a new reader to the map.</p>
+          <p>Gets a new reader to the list.</p>
 
 
         </td>
@@ -100,20 +100,42 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '436', 436)" onmouseover="showTip(event, '436', 436)">
+          <code onmouseout="hideTip(event, '698', 698)" onmouseover="showTip(event, '698', 698)">
+            x.History
+          </code>
+          <div class="tip" id="698">
+            <strong>Signature:</strong> History&lt;IndexList&lt;&#39;T&gt;,IndexListDelta&lt;&#39;T&gt;&gt; option<br />
+              <strong>Modifiers:</strong> abstract<br />
+                                  </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L24-24" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Gets the underlying History instance for the alist (if any)</p>
+
+
+              <p>CompiledName: <code>get_History</code></p>
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '699', 699)" onmouseover="showTip(event, '699', 699)">
             x.IsConstant
           </code>
-          <div class="tip" id="436">
+          <div class="tip" id="699">
             <strong>Signature:</strong> bool<br />
               <strong>Modifiers:</strong> abstract<br />
                                   </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L11-11" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L15-15" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>is the map constant?</p>
+          <p>Is the list constant?</p>
 
 
               <p>CompiledName: <code>get_IsConstant</code></p>

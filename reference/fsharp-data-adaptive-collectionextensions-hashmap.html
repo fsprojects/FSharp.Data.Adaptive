@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8"/>
-    <title>cmap<'Key, 'Value> - FSharp.Data.Adaptive</title>
+    <title>HashMap - FSharp.Data.Adaptive</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="description" content=""/>
     <meta name="author" content="Georg Haaser, Don Syme"/>
@@ -34,103 +34,62 @@
 
 
 
-<h1>cmap<'Key, 'Value></h1>
+<h1>HashMap</h1>
 <p>
-
-    <span>Namespace: FSharp.Data.Adaptive</span><br />
-    </p>
+  <span>Namespace: FSharp.Data.Adaptive</span><br />
+  <span>Parent Module: <a href="fsharp-data-adaptive-collectionextensions.html">CollectionExtensions</a></span>
+  </p>
 <div class="xmldoc">
-<p>Changeable adaptive map that allows mutation by user-code and implements amap.</p>
+<p>Adaptive operators for HashMap.</p>
 
 </div>
-  <h3>Instance members</h3>
+
+<!-- Render nested types and modules, if there are any -->
+
+  <h3>Functions and values</h3>
   <table class="table table-bordered member-list">
     <thead>
-      <tr><td>Instance member</td><td>Description</td></tr>
+      <tr><td>Function or value</td><td>Description</td></tr>
     </thead>
     <tbody>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '538', 538)" onmouseover="showTip(event, '538', 538)">
-            x.Count
+          <code onmouseout="hideTip(event, '234', 234)" onmouseover="showTip(event, '234', 234)">
+            existsA predicate elements
           </code>
-          <div class="tip" id="538">
-            <strong>Signature:</strong> int<br />
-                                  </div>
+          <div class="tip" id="234">
+            <strong>Signature:</strong> predicate:(&#39;K -&gt; &#39;V -&gt; aval&lt;bool&gt;) -&gt; elements:HashMap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;bool&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/ChangeableHashMap.fs#L14-14" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/CollectionExtensions.fs#L467-467" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>The number of entries currently in the map.</p>
+          <p>Adaptively checks whether one or more entries make the given predicate true.</p>
 
 
-              <p>CompiledName: <code>get_Count</code></p>
         </td>
       </tr>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '539', 539)" onmouseover="showTip(event, '539', 539)">
-            x.IsEmpty
+          <code onmouseout="hideTip(event, '235', 235)" onmouseover="showTip(event, '235', 235)">
+            forallA predicate elements
           </code>
-          <div class="tip" id="539">
-            <strong>Signature:</strong> bool<br />
-                                  </div>
+          <div class="tip" id="235">
+            <strong>Signature:</strong> predicate:(&#39;K -&gt; &#39;V -&gt; aval&lt;bool&gt;) -&gt; elements:HashMap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;bool&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/ChangeableHashMap.fs#L18-18" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/CollectionExtensions.fs#L472-472" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>Is the map currently empty?</p>
+          <p>Adaptively checks whether all entries make the given predicate true.</p>
 
 
-              <p>CompiledName: <code>get_IsEmpty</code></p>
-        </td>
-      </tr>
-      <tr>
-        <td class="member-name">
-
-          <code onmouseout="hideTip(event, '540', 540)" onmouseover="showTip(event, '540', 540)">
-            [()]
-          </code>
-          <div class="tip" id="540">
-            <strong>Signature:</strong> unit -&gt; &#39;Key<br />
-                                  </div>
-        </td>
-        <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/ChangeableHashMap.fs#L54-54" class="github-link">
-              <img src="../content/img/github.png" class="normal" />
-              <img src="../content/img/github-blue.png" class="hover" />
-            </a>
-          <p>Gets or sets the value associated to key.</p>
-
-
-              <p>CompiledName: <code>get_Item</code></p>
-        </td>
-      </tr>
-      <tr>
-        <td class="member-name">
-
-          <code onmouseout="hideTip(event, '541', 541)" onmouseover="showTip(event, '541', 541)">
-            x.Value()
-          </code>
-          <div class="tip" id="541">
-            <strong>Signature:</strong> unit -&gt; unit<br />
-                                  </div>
-        </td>
-        <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/ChangeableHashMap.fs#L37-37" class="github-link">
-              <img src="../content/img/github.png" class="normal" />
-              <img src="../content/img/github-blue.png" class="hover" />
-            </a>
-          <p>Gets or sets the current state as HashMap.</p>
-
-
-              <p>CompiledName: <code>get_Value</code></p>
         </td>
       </tr>
     </tbody>

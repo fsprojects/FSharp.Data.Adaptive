@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8"/>
-    <title>AdaptiveValue<'T> - FSharp.Data.Adaptive</title>
+    <title>IAdaptiveHashSet<'T> - FSharp.Data.Adaptive</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="description" content=""/>
     <meta name="author" content="Georg Haaser, Don Syme"/>
@@ -34,7 +34,7 @@
 
 
 
-<h1>AdaptiveValue<'T></h1>
+<h1>IAdaptiveHashSet<'T></h1>
 <p>
 
     <span>Namespace: FSharp.Data.Adaptive</span><br />
@@ -45,9 +45,7 @@
         </span>
 </p>
 <div class="xmldoc">
-<p>Represents a dependency-aware value that may change as changes are fed into the system.
-An AdaptiveValue cannot be changed directly but gets updated by the dependency graph.
-For changeable inputs see cval<'T></p>
+<p>Adaptive set datastructure.</p>
 
 </div>
   <h3>Instance members</h3>
@@ -59,23 +57,88 @@ For changeable inputs see cval<'T></p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '443', 443)" onmouseover="showTip(event, '443', 443)">
-            x.GetValue(token)
+          <code onmouseout="hideTip(event, '692', 692)" onmouseover="showTip(event, '692', 692)">
+            x.Content
           </code>
-          <div class="tip" id="443">
-            <strong>Signature:</strong> token:AdaptiveToken -&gt; &#39;T<br />
+          <div class="tip" id="692">
+            <strong>Signature:</strong> aval&lt;HashSet&lt;&#39;T&gt;&gt;<br />
               <strong>Modifiers:</strong> abstract<br />
                                   </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveValue/AdaptiveValue.fs#L12-12" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/AdaptiveHashSet.fs#L15-15" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>Evaluates the AdaptiveValue<'T> using the given token and returns the current value.
-Dependencies will be tracked automatically when the token is correctly passed to all inner evaluation-calls.</p>
+          <p>The current content of the set as aval.</p>
 
 
+              <p>CompiledName: <code>get_Content</code></p>
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '693', 693)" onmouseover="showTip(event, '693', 693)">
+            x.GetReader()
+          </code>
+          <div class="tip" id="693">
+            <strong>Signature:</strong> unit -&gt; IHashSetReader&lt;&#39;T&gt;<br />
+              <strong>Modifiers:</strong> abstract<br />
+                                  </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/AdaptiveHashSet.fs#L18-18" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Gets a new reader to the set.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '694', 694)" onmouseover="showTip(event, '694', 694)">
+            x.History
+          </code>
+          <div class="tip" id="694">
+            <strong>Signature:</strong> History&lt;CountingHashSet&lt;&#39;T&gt;,HashSetDelta&lt;&#39;T&gt;&gt; option<br />
+              <strong>Modifiers:</strong> abstract<br />
+                                  </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/AdaptiveHashSet.fs#L21-21" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Gets the underlying History instance for the aset (if any)</p>
+
+
+              <p>CompiledName: <code>get_History</code></p>
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '695', 695)" onmouseover="showTip(event, '695', 695)">
+            x.IsConstant
+          </code>
+          <div class="tip" id="695">
+            <strong>Signature:</strong> bool<br />
+              <strong>Modifiers:</strong> abstract<br />
+                                  </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/AdaptiveHashSet.fs#L12-12" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Is the set constant?</p>
+
+
+              <p>CompiledName: <code>get_IsConstant</code></p>
         </td>
       </tr>
     </tbody>

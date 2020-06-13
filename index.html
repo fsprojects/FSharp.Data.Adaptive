@@ -368,7 +368,7 @@ Here's an example illustrating our system's behaviour in such a circumstance:</p
 <div class="tip" id="fs8">val adaptiveTimeToFloor : height:aval&lt;float&gt; -&gt; gravity:aval&lt;float&gt; -&gt; aval&lt;float&gt;</div>
 <div class="tip" id="fs9">val height : aval&lt;float&gt;</div>
 <div class="tip" id="fs10">val gravity : aval&lt;float&gt;</div>
-<div class="tip" id="fs11">module AVal<br /><br />from FSharp.Data.Adaptive</div>
+<div class="tip" id="fs11">Multiple items<br />module AVal<br /><br />from FSharp.Data.Adaptive.CollectionExtensions<br /><br />--------------------<br />module AVal<br /><br />from FSharp.Data.Adaptive</div>
 <div class="tip" id="fs12">val map2 : mapping:(&#39;T1 -&gt; &#39;T2 -&gt; &#39;T3) -&gt; value1:aval&lt;&#39;T1&gt; -&gt; value2:aval&lt;&#39;T2&gt; -&gt; aval&lt;&#39;T3&gt;</div>
 <div class="tip" id="fs13">val h : float</div>
 <div class="tip" id="fs14">val g : float</div>
@@ -383,7 +383,7 @@ Here's an example illustrating our system's behaviour in such a circumstance:</p
 <div class="tip" id="fs23">val map : mapping:(&#39;T1 -&gt; &#39;T2) -&gt; set:aval&lt;Set&lt;&#39;T1&gt;&gt; -&gt; aval&lt;Set&lt;&#39;T2&gt;&gt; (requires comparison and comparison)</div>
 <div class="tip" id="fs24">val mapping : (&#39;T1 -&gt; &#39;T2) (requires comparison and comparison)</div>
 <div class="tip" id="fs25">val set : aval&lt;Set&lt;&#39;T1&gt;&gt; (requires comparison)</div>
-<div class="tip" id="fs26">Multiple items<br />val aval : AValBuilder<br /><br />--------------------<br />type aval&lt;&#39;T&gt; = AdaptiveValue&lt;&#39;T&gt;</div>
+<div class="tip" id="fs26">Multiple items<br />val aval : AValBuilder<br /><br />--------------------<br />type aval&lt;&#39;T&gt; = IAdaptiveValue&lt;&#39;T&gt;</div>
 <div class="tip" id="fs27">Multiple items<br />union case ElementOperation.Set: &#39;T -&gt; ElementOperation&lt;&#39;T&gt;<br /><br />--------------------<br />module Set<br /><br />from Microsoft.FSharp.Collections<br /><br />--------------------<br />type Set&lt;&#39;T (requires comparison)&gt; =<br />&#160;&#160;interface IReadOnlyCollection&lt;&#39;T&gt;<br />&#160;&#160;interface IComparable<br />&#160;&#160;interface IEnumerable<br />&#160;&#160;interface IEnumerable&lt;&#39;T&gt;<br />&#160;&#160;interface ICollection&lt;&#39;T&gt;<br />&#160;&#160;new : elements:seq&lt;&#39;T&gt; -&gt; Set&lt;&#39;T&gt;<br />&#160;&#160;member Add : value:&#39;T -&gt; Set&lt;&#39;T&gt;<br />&#160;&#160;member Contains : value:&#39;T -&gt; bool<br />&#160;&#160;override Equals : obj -&gt; bool<br />&#160;&#160;member IsProperSubsetOf : otherSet:Set&lt;&#39;T&gt; -&gt; bool<br />&#160;&#160;...<br /><br />--------------------<br />new : elements:seq&lt;&#39;T&gt; -&gt; Set&lt;&#39;T&gt;</div>
 <div class="tip" id="fs28">val map : mapping:(&#39;T1 -&gt; &#39;T2) -&gt; value:aval&lt;&#39;T1&gt; -&gt; aval&lt;&#39;T2&gt;</div>
 <div class="tip" id="fs29">val map : mapping:(&#39;T -&gt; &#39;U) -&gt; set:Set&lt;&#39;T&gt; -&gt; Set&lt;&#39;U&gt; (requires comparison and comparison)</div>
@@ -394,7 +394,7 @@ Here's an example illustrating our system's behaviour in such a circumstance:</p
 <div class="tip" id="fs34">val map : mapping:(&#39;A -&gt; &#39;B) -&gt; set:aset&lt;&#39;A&gt; -&gt; aset&lt;&#39;B&gt;</div>
 <div class="tip" id="fs35">val v : int</div>
 <div class="tip" id="fs36">val printf : format:Printf.TextWriterFormat&lt;&#39;T&gt; -&gt; &#39;T</div>
-<div class="tip" id="fs37">property AdaptiveHashSet.Content: aval&lt;HashSet&lt;int&gt;&gt;</div>
+<div class="tip" id="fs37">property IAdaptiveHashSet.Content: aval&lt;HashSet&lt;int&gt;&gt;</div>
 <div class="tip" id="fs38">member ChangeableHashSet.Add : value:&#39;T -&gt; bool</div>
 <div class="tip" id="fs39">member ChangeableHashSet.Remove : value:&#39;T -&gt; bool</div>
 <div class="tip" id="fs40">val calcHeight : t:float -&gt; h0:float -&gt; g:float -&gt; float</div>

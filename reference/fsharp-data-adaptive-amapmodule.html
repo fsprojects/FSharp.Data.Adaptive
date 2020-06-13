@@ -59,15 +59,55 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '32', 32)" onmouseover="showTip(event, '32', 32)">
+          <code onmouseout="hideTip(event, '74', 74)" onmouseover="showTip(event, '74', 74)">
+            averageBy mapping list
+          </code>
+          <div class="tip" id="74">
+            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;V -&gt; ^T) -&gt; list:amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;^S&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V, ^T, ^S                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1357-1357" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively computes the average of all values returned by mapping for the map.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '75', 75)" onmouseover="showTip(event, '75', 75)">
+            averageByA mapping list
+          </code>
+          <div class="tip" id="75">
+            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;V -&gt; aval&lt;^T&gt;) -&gt; list:amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;^S&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V, ^T, ^S                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1360-1360" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively computes the average of all values returned by mapping for the map.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '76', 76)" onmouseover="showTip(event, '76', 76)">
             bind mapping value
           </code>
-          <div class="tip" id="32">
+          <div class="tip" id="76">
             <strong>Signature:</strong> mapping:(&#39;T -&gt; amap&lt;&#39;Key,&#39;Value&gt;) -&gt; value:aval&lt;&#39;T&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
                           <strong>Type parameters:</strong> 'T, 'Key, 'Value                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L507-507" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1227-1227" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -79,15 +119,55 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '33', 33)" onmouseover="showTip(event, '33', 33)">
+          <code onmouseout="hideTip(event, '77', 77)" onmouseover="showTip(event, '77', 77)">
+            bind2 mapping valueA valueB
+          </code>
+          <div class="tip" id="77">
+            <strong>Signature:</strong> mapping:(&#39;A -&gt; &#39;B -&gt; amap&lt;&#39;Key,&#39;Value&gt;) -&gt; valueA:aval&lt;&#39;A&gt; -&gt; valueB:aval&lt;&#39;B&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'A, 'B, 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1234-1234" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively maps over the given avals and returns the resulting map.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '78', 78)" onmouseover="showTip(event, '78', 78)">
+            bind3 mapping valueA valueB valueC
+          </code>
+          <div class="tip" id="78">
+            <strong>Signature:</strong> mapping:(&#39;A -&gt; &#39;B -&gt; &#39;C -&gt; amap&lt;&#39;Key,&#39;Value&gt;) -&gt; valueA:aval&lt;&#39;A&gt; -&gt; valueB:aval&lt;&#39;B&gt; -&gt; valueC:aval&lt;&#39;C&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'A, 'B, 'C, 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1241-1241" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively maps over the given avals and returns the resulting map.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '79', 79)" onmouseover="showTip(event, '79', 79)">
             choose mapping map
           </code>
-          <div class="tip" id="33">
+          <div class="tip" id="79">
             <strong>Signature:</strong> mapping:(&#39;Key -&gt; &#39;Value1 -&gt; &#39;Value2 option) -&gt; map:amap&lt;&#39;Key,&#39;Value1&gt; -&gt; amap&lt;&#39;Key,&#39;Value2&gt;<br />
                           <strong>Type parameters:</strong> 'Key, 'Value1, 'Value2                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L470-470" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1147-1147" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -99,15 +179,15 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '34', 34)" onmouseover="showTip(event, '34', 34)">
+          <code onmouseout="hideTip(event, '80', 80)" onmouseover="showTip(event, '80', 80)">
             choose&#39; mapping map
           </code>
-          <div class="tip" id="34">
+          <div class="tip" id="80">
             <strong>Signature:</strong> mapping:(&#39;Value1 -&gt; &#39;Value2 option) -&gt; map:amap&lt;&#39;Key,&#39;Value1&gt; -&gt; amap&lt;&#39;Key,&#39;Value2&gt;<br />
                           <strong>Type parameters:</strong> 'Value1, 'Value2, 'Key                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L477-477" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1160-1160" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -119,15 +199,115 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '35', 35)" onmouseover="showTip(event, '35', 35)">
+          <code onmouseout="hideTip(event, '81', 81)" onmouseover="showTip(event, '81', 81)">
+            chooseA mapping map
+          </code>
+          <div class="tip" id="81">
+            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;V -&gt; aval&lt;&#39;T option&gt;) -&gt; map:amap&lt;&#39;K,&#39;V&gt; -&gt; amap&lt;&#39;K,&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V, 'T                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1194-1194" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively chooses all elements returned by mapping.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '82', 82)" onmouseover="showTip(event, '82', 82)">
+            count(arg1)
+          </code>
+          <div class="tip" id="82">
+            <strong>Signature:</strong> amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;int&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1314-1314" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively gets the number of elements in the map.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '83', 83)" onmouseover="showTip(event, '83', 83)">
+            countBy predicate list
+          </code>
+          <div class="tip" id="83">
+            <strong>Signature:</strong> predicate:(&#39;K -&gt; &#39;V -&gt; bool) -&gt; list:amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;int&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1363-1363" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively counts all elements fulfilling the predicate</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '84', 84)" onmouseover="showTip(event, '84', 84)">
+            countByA predicate list
+          </code>
+          <div class="tip" id="84">
+            <strong>Signature:</strong> predicate:(&#39;K -&gt; &#39;V -&gt; aval&lt;bool&gt;) -&gt; list:amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;int&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1366-1366" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively counts all elements fulfilling the predicate</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '85', 85)" onmouseover="showTip(event, '85', 85)">
+            custom(compute)
+          </code>
+          <div class="tip" id="85">
+            <strong>Signature:</strong> compute:(AdaptiveToken -&gt; HashMap&lt;&#39;Key,&#39;Value&gt; -&gt; HashMapDelta&lt;&#39;Key,&#39;Value&gt;) -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1093-1093" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an amap using the given compute function</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '86', 86)" onmouseover="showTip(event, '86', 86)">
             empty
           </code>
-          <div class="tip" id="35">
+          <div class="tip" id="86">
             <strong>Signature:</strong> amap&lt;&#39;Key,&#39;Value&gt;<br />
                           <strong>Type parameters:</strong> 'Key, 'Value                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L381-381" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1027-1027" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -139,15 +319,55 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '36', 36)" onmouseover="showTip(event, '36', 36)">
+          <code onmouseout="hideTip(event, '87', 87)" onmouseover="showTip(event, '87', 87)">
+            exists predicate list
+          </code>
+          <div class="tip" id="87">
+            <strong>Signature:</strong> predicate:(&#39;K -&gt; &#39;V -&gt; bool) -&gt; list:amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;bool&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1339-1339" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively checks whether the predicate holds for at least one entry.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '88', 88)" onmouseover="showTip(event, '88', 88)">
+            existsA predicate list
+          </code>
+          <div class="tip" id="88">
+            <strong>Signature:</strong> predicate:(&#39;K -&gt; &#39;V -&gt; aval&lt;bool&gt;) -&gt; list:amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;bool&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1347-1347" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively checks whether the predicate holds for at least one entry.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '89', 89)" onmouseover="showTip(event, '89', 89)">
             filter predicate map
           </code>
-          <div class="tip" id="36">
+          <div class="tip" id="89">
             <strong>Signature:</strong> predicate:(&#39;Key -&gt; &#39;Value -&gt; bool) -&gt; map:amap&lt;&#39;Key,&#39;Value&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
                           <strong>Type parameters:</strong> 'Key, 'Value                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L484-484" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1173-1173" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -159,15 +379,15 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '37', 37)" onmouseover="showTip(event, '37', 37)">
+          <code onmouseout="hideTip(event, '90', 90)" onmouseover="showTip(event, '90', 90)">
             filter&#39; predicate map
           </code>
-          <div class="tip" id="37">
+          <div class="tip" id="90">
             <strong>Signature:</strong> predicate:(&#39;Value -&gt; bool) -&gt; map:amap&lt;&#39;Key,&#39;Value&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
                           <strong>Type parameters:</strong> 'Value, 'Key                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L488-488" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1177-1177" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -179,15 +399,58 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '38', 38)" onmouseover="showTip(event, '38', 38)">
+          <code onmouseout="hideTip(event, '91', 91)" onmouseover="showTip(event, '91', 91)">
+            filterA predicate map
+          </code>
+          <div class="tip" id="91">
+            <strong>Signature:</strong> predicate:(&#39;K -&gt; &#39;V -&gt; aval&lt;bool&gt;) -&gt; map:amap&lt;&#39;K,&#39;V&gt; -&gt; amap&lt;&#39;K,&#39;V&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1206-1206" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively filters the list using the given predicate.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '92', 92)" onmouseover="showTip(event, '92', 92)">
+            find key map
+          </code>
+          <div class="tip" id="92">
+            <strong>Signature:</strong> key:&#39;K -&gt; map:amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;&#39;V&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1297-1297" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively looks up the given key in the map.
+Note that this operation should not be used extensively since its resulting
+aval will be re-evaluated upon every change of the map.
+WARNING: causes KeyNotFoundException when the key is not present at evaluation-time</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '93', 93)" onmouseover="showTip(event, '93', 93)">
             fold add zero set
           </code>
-          <div class="tip" id="38">
+          <div class="tip" id="93">
             <strong>Signature:</strong> add:(&#39;S -&gt; &#39;K -&gt; &#39;V -&gt; &#39;S) -&gt; zero:&#39;S -&gt; set:amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;&#39;S&gt;<br />
                           <strong>Type parameters:</strong> 'S, 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L586-586" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1390-1390" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -200,15 +463,15 @@ Note that the order of elements given to add is undefined.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '39', 39)" onmouseover="showTip(event, '39', 39)">
+          <code onmouseout="hideTip(event, '94', 94)" onmouseover="showTip(event, '94', 94)">
             foldGroup add subtract zero set
           </code>
-          <div class="tip" id="39">
+          <div class="tip" id="94">
             <strong>Signature:</strong> add:(&#39;S -&gt; &#39;K -&gt; &#39;V -&gt; &#39;S) -&gt; subtract:(&#39;S -&gt; &#39;K -&gt; &#39;V -&gt; &#39;S) -&gt; zero:&#39;S -&gt; set:amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;&#39;S&gt;<br />
                           <strong>Type parameters:</strong> 'S, 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L581-581" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1383-1383" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -221,15 +484,15 @@ Note that the order of elements given to add/subtract is undefined.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '40', 40)" onmouseover="showTip(event, '40', 40)">
+          <code onmouseout="hideTip(event, '95', 95)" onmouseover="showTip(event, '95', 95)">
             foldHalfGroup add trySubtract zero set
           </code>
-          <div class="tip" id="40">
+          <div class="tip" id="95">
             <strong>Signature:</strong> add:(&#39;S -&gt; &#39;K -&gt; &#39;V -&gt; &#39;S) -&gt; trySubtract:(&#39;S -&gt; &#39;K -&gt; &#39;V -&gt; &#39;S option) -&gt; zero:&#39;S -&gt; set:amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;&#39;S&gt;<br />
                           <strong>Type parameters:</strong> 'S, 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L530-530" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1372-1372" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -243,15 +506,97 @@ Also note that the order of elements given to add/trySubtract is undefined.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '41', 41)" onmouseover="showTip(event, '41', 41)">
+          <code onmouseout="hideTip(event, '96', 96)" onmouseover="showTip(event, '96', 96)">
+            forall predicate list
+          </code>
+          <div class="tip" id="96">
+            <strong>Signature:</strong> predicate:(&#39;K -&gt; &#39;V -&gt; bool) -&gt; list:amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;bool&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1335-1335" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively checks whether the predicate holds for all entries.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '97', 97)" onmouseover="showTip(event, '97', 97)">
+            forallA predicate list
+          </code>
+          <div class="tip" id="97">
+            <strong>Signature:</strong> predicate:(&#39;K -&gt; &#39;V -&gt; aval&lt;bool&gt;) -&gt; list:amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;bool&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1343-1343" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively checks whether the predicate holds for all entries.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '98', 98)" onmouseover="showTip(event, '98', 98)">
+            force(arg1)
+          </code>
+          <div class="tip" id="98">
+            <strong>Signature:</strong> amap&lt;&#39;K,&#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;V&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1307-1307" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Evaluates the given adaptive map and returns its current content.
+This should not be used inside the adaptive evaluation
+of other AdaptiveObjects since it does not track dependencies.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '99', 99)" onmouseover="showTip(event, '99', 99)">
+            isEmpty(arg1)
+          </code>
+          <div class="tip" id="99">
+            <strong>Signature:</strong> amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;bool&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1310-1310" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively tests if the map is empty.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '100', 100)" onmouseover="showTip(event, '100', 100)">
             map mapping map
           </code>
-          <div class="tip" id="41">
+          <div class="tip" id="100">
             <strong>Signature:</strong> mapping:(&#39;Key -&gt; &#39;Value1 -&gt; &#39;Value2) -&gt; map:amap&lt;&#39;Key,&#39;Value1&gt; -&gt; amap&lt;&#39;Key,&#39;Value2&gt;<br />
                           <strong>Type parameters:</strong> 'Key, 'Value1, 'Value2                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L445-445" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1105-1105" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -263,15 +608,15 @@ Also note that the order of elements given to add/trySubtract is undefined.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '42', 42)" onmouseover="showTip(event, '42', 42)">
+          <code onmouseout="hideTip(event, '101', 101)" onmouseover="showTip(event, '101', 101)">
             map&#39; mapping map
           </code>
-          <div class="tip" id="42">
+          <div class="tip" id="101">
             <strong>Signature:</strong> mapping:(&#39;Value1 -&gt; &#39;Value2) -&gt; map:amap&lt;&#39;Key,&#39;Value1&gt; -&gt; amap&lt;&#39;Key,&#39;Value2&gt;<br />
                           <strong>Type parameters:</strong> 'Value1, 'Value2, 'Key                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L463-463" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1134-1134" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -283,15 +628,35 @@ Also note that the order of elements given to add/trySubtract is undefined.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '43', 43)" onmouseover="showTip(event, '43', 43)">
+          <code onmouseout="hideTip(event, '102', 102)" onmouseover="showTip(event, '102', 102)">
+            mapA mapping map
+          </code>
+          <div class="tip" id="102">
+            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;V -&gt; aval&lt;&#39;T&gt;) -&gt; map:amap&lt;&#39;K,&#39;V&gt; -&gt; amap&lt;&#39;K,&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V, 'T                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1182-1182" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively applies the given mapping function to all elements and returns a new amap containing the results.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '103', 103)" onmouseover="showTip(event, '103', 103)">
             mapSet mapping set
           </code>
-          <div class="tip" id="43">
+          <div class="tip" id="103">
             <strong>Signature:</strong> mapping:(&#39;Key -&gt; &#39;Value) -&gt; set:aset&lt;&#39;Key&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
                           <strong>Type parameters:</strong> 'Key, 'Value                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L452-452" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1118-1118" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -303,15 +668,36 @@ Also note that the order of elements given to add/trySubtract is undefined.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '44', 44)" onmouseover="showTip(event, '44', 44)">
+          <code onmouseout="hideTip(event, '104', 104)" onmouseover="showTip(event, '104', 104)">
+            mapUse mapping map
+          </code>
+          <div class="tip" id="104">
+            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;A -&gt; &#39;B) -&gt; map:amap&lt;&#39;K,&#39;A&gt; -&gt; (type) * amap&lt;&#39;K,&#39;B&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'A, 'B                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1250-1250" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively maps over the given map and disposes all removed values while active.
+Additionally the returned Disposable disposes all currently existing values and clears the resulting map.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '105', 105)" onmouseover="showTip(event, '105', 105)">
             ofArray(elements)
           </code>
-          <div class="tip" id="44">
+          <div class="tip" id="105">
             <strong>Signature:</strong> elements:(&#39;Key * &#39;Value) array -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
                           <strong>Type parameters:</strong> 'Key, 'Value                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L396-396" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1042-1042" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -323,15 +709,15 @@ Also note that the order of elements given to add/trySubtract is undefined.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '45', 45)" onmouseover="showTip(event, '45', 45)">
+          <code onmouseout="hideTip(event, '106', 106)" onmouseover="showTip(event, '106', 106)">
             ofASet(elements)
           </code>
-          <div class="tip" id="45">
+          <div class="tip" id="106">
             <strong>Signature:</strong> elements:aset&lt;&#39;Key * &#39;Value&gt; -&gt; amap&lt;&#39;Key,HashSet&lt;&#39;Value&gt;&gt;<br />
                           <strong>Type parameters:</strong> 'Key, 'Value                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L424-424" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1070-1070" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -343,15 +729,15 @@ Also note that the order of elements given to add/trySubtract is undefined.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '46', 46)" onmouseover="showTip(event, '46', 46)">
+          <code onmouseout="hideTip(event, '107', 107)" onmouseover="showTip(event, '107', 107)">
             ofASetIgnoreDuplicates(elements)
           </code>
-          <div class="tip" id="46">
+          <div class="tip" id="107">
             <strong>Signature:</strong> elements:aset&lt;&#39;Key * &#39;Value&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
                           <strong>Type parameters:</strong> 'Key, 'Value                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L411-411" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1057-1057" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -363,15 +749,15 @@ Also note that the order of elements given to add/trySubtract is undefined.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '47', 47)" onmouseover="showTip(event, '47', 47)">
+          <code onmouseout="hideTip(event, '108', 108)" onmouseover="showTip(event, '108', 108)">
             ofAVal(value)
           </code>
-          <div class="tip" id="47">
+          <div class="tip" id="108">
             <strong>Signature:</strong> value:aval&lt;&#39;a&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
                           <strong>Type parameters:</strong> 'a, 'Key, 'Value                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L404-404" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1050-1050" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -383,15 +769,15 @@ Also note that the order of elements given to add/trySubtract is undefined.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '48', 48)" onmouseover="showTip(event, '48', 48)">
+          <code onmouseout="hideTip(event, '109', 109)" onmouseover="showTip(event, '109', 109)">
             ofHashMap(elements)
           </code>
-          <div class="tip" id="48">
+          <div class="tip" id="109">
             <strong>Signature:</strong> elements:HashMap&lt;&#39;Key,&#39;Value&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
                           <strong>Type parameters:</strong> 'Key, 'Value                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L400-400" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1046-1046" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -403,15 +789,15 @@ Also note that the order of elements given to add/trySubtract is undefined.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '49', 49)" onmouseover="showTip(event, '49', 49)">
+          <code onmouseout="hideTip(event, '110', 110)" onmouseover="showTip(event, '110', 110)">
             ofList(elements)
           </code>
-          <div class="tip" id="49">
+          <div class="tip" id="110">
             <strong>Signature:</strong> elements:(&#39;Key * &#39;Value) list -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
                           <strong>Type parameters:</strong> 'Key, 'Value                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L392-392" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1038-1038" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -423,15 +809,35 @@ Also note that the order of elements given to add/trySubtract is undefined.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '50', 50)" onmouseover="showTip(event, '50', 50)">
+          <code onmouseout="hideTip(event, '111', 111)" onmouseover="showTip(event, '111', 111)">
+            ofReader(create)
+          </code>
+          <div class="tip" id="111">
+            <strong>Signature:</strong> create:(unit -&gt; &#39;?96753) -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> '?96753, 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1088-1088" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an amap using the given reader-creator.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '112', 112)" onmouseover="showTip(event, '112', 112)">
             ofSeq(elements)
           </code>
-          <div class="tip" id="50">
+          <div class="tip" id="112">
             <strong>Signature:</strong> elements:seq&lt;&#39;Key * &#39;Value&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
                           <strong>Type parameters:</strong> 'Key, 'Value                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L388-388" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1034-1034" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -443,15 +849,80 @@ Also note that the order of elements given to add/trySubtract is undefined.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '51', 51)" onmouseover="showTip(event, '51', 51)">
+          <code onmouseout="hideTip(event, '113', 113)" onmouseover="showTip(event, '113', 113)">
+            reduce reduction map
+          </code>
+          <div class="tip" id="113">
+            <strong>Signature:</strong> reduction:AdaptiveReduction&lt;&#39;V,&#39;State,&#39;Value&gt; -&gt; map:amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'V, 'State, 'Value, 'K                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1320-1320" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Reduces the map using the given <a href="fsharp-data-adaptive-adaptivereduction.html" title="AdaptiveReduction"><code>AdaptiveReduction</code></a> and returns
+the resulting adaptive value.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '114', 114)" onmouseover="showTip(event, '114', 114)">
+            reduceBy reduction mapping map
+          </code>
+          <div class="tip" id="114">
+            <strong>Signature:</strong> reduction:AdaptiveReduction&lt;&#39;T2,&#39;State,&#39;Value&gt; -&gt; mapping:(&#39;K -&gt; &#39;T1 -&gt; &#39;T2) -&gt; map:amap&lt;&#39;K,&#39;T1&gt; -&gt; aval&lt;&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'T2, 'State, 'Value, 'K, 'T1                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1326-1326" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Applies the mapping function to all elements of the map and reduces the results
+using the given <a href="fsharp-data-adaptive-adaptivereduction.html" title="AdaptiveReduction"><code>AdaptiveReduction</code></a>.
+Returns the resulting adaptive value.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '115', 115)" onmouseover="showTip(event, '115', 115)">
+            reduceByA reduction mapping map
+          </code>
+          <div class="tip" id="115">
+            <strong>Signature:</strong> reduction:AdaptiveReduction&lt;&#39;T2,&#39;State,&#39;Value&gt; -&gt; mapping:(&#39;K -&gt; &#39;T1 -&gt; aval&lt;&#39;T2&gt;) -&gt; map:amap&lt;&#39;K,&#39;T1&gt; -&gt; aval&lt;&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'T2, 'State, 'Value, 'K, 'T1                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1332-1332" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Applies the mapping function to all elements of the map and reduces the results
+using the given <a href="fsharp-data-adaptive-adaptivereduction.html" title="AdaptiveReduction"><code>AdaptiveReduction</code></a>.
+Returns the resulting adaptive value.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '116', 116)" onmouseover="showTip(event, '116', 116)">
             single key value
           </code>
-          <div class="tip" id="51">
+          <div class="tip" id="116">
             <strong>Signature:</strong> key:&#39;Key -&gt; value:&#39;Value -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
                           <strong>Type parameters:</strong> 'Key, 'Value                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L384-384" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1030-1030" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -463,15 +934,55 @@ Also note that the order of elements given to add/trySubtract is undefined.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '52', 52)" onmouseover="showTip(event, '52', 52)">
+          <code onmouseout="hideTip(event, '117', 117)" onmouseover="showTip(event, '117', 117)">
+            sumBy mapping list
+          </code>
+          <div class="tip" id="117">
+            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;V -&gt; ^T) -&gt; list:amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;^S&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V, ^T, ^S                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1351-1351" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively computes the sum of all values returned by mapping for the map.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '118', 118)" onmouseover="showTip(event, '118', 118)">
+            sumByA mapping list
+          </code>
+          <div class="tip" id="118">
+            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;V -&gt; aval&lt;^T&gt;) -&gt; list:amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;^S&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V, ^T, ^S                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1354-1354" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Adaptively computes the sum of all values returned by mapping for the map.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '119', 119)" onmouseover="showTip(event, '119', 119)">
             toASet(map)
           </code>
-          <div class="tip" id="52">
+          <div class="tip" id="119">
             <strong>Signature:</strong> map:amap&lt;&#39;Key,&#39;Value&gt; -&gt; aset&lt;&#39;Key * &#39;Value&gt;<br />
                           <strong>Type parameters:</strong> 'Key, 'Value                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L514-514" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1273-1273" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -483,15 +994,35 @@ Also note that the order of elements given to add/trySubtract is undefined.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '53', 53)" onmouseover="showTip(event, '53', 53)">
+          <code onmouseout="hideTip(event, '120', 120)" onmouseover="showTip(event, '120', 120)">
+            toASetValues(map)
+          </code>
+          <div class="tip" id="120">
+            <strong>Signature:</strong> map:amap&lt;&#39;Key,&#39;Value&gt; -&gt; aset&lt;&#39;Value&gt;<br />
+                          <strong>Type parameters:</strong> 'Key, 'Value                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1280-1280" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates an aset holding all distinct values from the map.</p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '121', 121)" onmouseover="showTip(event, '121', 121)">
             toAVal(map)
           </code>
-          <div class="tip" id="53">
+          <div class="tip" id="121">
             <strong>Signature:</strong> map:amap&lt;&#39;Key,&#39;Value&gt; -&gt; aval&lt;HashMap&lt;&#39;Key,&#39;Value&gt;&gt;<br />
                           <strong>Type parameters:</strong> 'Key, 'Value                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L442-442" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1102-1102" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -503,15 +1034,15 @@ Also note that the order of elements given to add/trySubtract is undefined.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '54', 54)" onmouseover="showTip(event, '54', 54)">
+          <code onmouseout="hideTip(event, '122', 122)" onmouseover="showTip(event, '122', 122)">
             tryFind key map
           </code>
-          <div class="tip" id="54">
+          <div class="tip" id="122">
             <strong>Signature:</strong> key:&#39;K -&gt; map:amap&lt;&#39;K,&#39;V&gt; -&gt; aval&lt;&#39;V option&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L523-523" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1289-1289" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -525,15 +1056,15 @@ aval will be re-evaluated upon every change of the map.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '55', 55)" onmouseover="showTip(event, '55', 55)">
+          <code onmouseout="hideTip(event, '123', 123)" onmouseover="showTip(event, '123', 123)">
             union a b
           </code>
-          <div class="tip" id="55">
+          <div class="tip" id="123">
             <strong>Signature:</strong> a:amap&lt;&#39;Key,&#39;Value&gt; -&gt; b:amap&lt;&#39;Key,&#39;Value&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
                           <strong>Type parameters:</strong> 'Key, 'Value                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L503-503" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1223-1223" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -545,15 +1076,15 @@ aval will be re-evaluated upon every change of the map.</p>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '56', 56)" onmouseover="showTip(event, '56', 56)">
+          <code onmouseout="hideTip(event, '124', 124)" onmouseover="showTip(event, '124', 124)">
             unionWith resolve a b
           </code>
-          <div class="tip" id="56">
+          <div class="tip" id="124">
             <strong>Signature:</strong> resolve:(&#39;Key -&gt; &#39;Value -&gt; &#39;Value -&gt; &#39;Value) -&gt; a:amap&lt;&#39;Key,&#39;Value&gt; -&gt; b:amap&lt;&#39;Key,&#39;Value&gt; -&gt; amap&lt;&#39;Key,&#39;Value&gt;<br />
                           <strong>Type parameters:</strong> 'Key, 'Value                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L492-492" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashMap/AdaptiveHashMap.fs#L1212-1212" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>

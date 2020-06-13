@@ -44,42 +44,11 @@
     <tbody>
         <tr>
           <td class="type-name">
-            <a href="fsharp-data-adaptive-adaptivehashmap-2.html">AdaptiveHashMap<'Key, 'Value></a>
+            <a href="fsharp-data-adaptive-adaptivereduction-3.html">AdaptiveReduction<'a, 's, 'v></a>
           </td>
           <td class="xmldoc">
-          <p>Adaptive map datastructure.</p>
-
-
-          </td>
-        </tr>
-        <tr>
-          <td class="type-name">
-            <a href="fsharp-data-adaptive-adaptivehashset-1.html">AdaptiveHashSet<'T></a>
-          </td>
-          <td class="xmldoc">
-          <p>Adaptive set datastructure.</p>
-
-
-          </td>
-        </tr>
-        <tr>
-          <td class="type-name">
-            <a href="fsharp-data-adaptive-adaptiveindexlist-1.html">AdaptiveIndexList<'T></a>
-          </td>
-          <td class="xmldoc">
-          <p>Adaptive list datastructure.</p>
-
-
-          </td>
-        </tr>
-        <tr>
-          <td class="type-name">
-            <a href="fsharp-data-adaptive-adaptivevalue-1.html">AdaptiveValue<'T></a>
-          </td>
-          <td class="xmldoc">
-          <p>Represents a dependency-aware value that may change as changes are fed into the system.
-An AdaptiveValue cannot be changed directly but gets updated by the dependency graph.
-For changeable inputs see cval<'T></p>
+          <p>AdaptiveReduction holds operators for reducing collections adaptively.
+Its main purpose is to simplify reductions on ASet/AMap/AList.</p>
 
 
           </td>
@@ -100,16 +69,6 @@ For changeable inputs see cval<'T></p>
           </td>
           <td class="xmldoc">
           <p>Changeable adaptive list that allows mutation by user-code and implements alist.</p>
-
-
-          </td>
-        </tr>
-        <tr>
-          <td class="type-name">
-            <a href="fsharp-data-adaptive-changeablemap-2.html">ChangeableMap<'Key, 'Value></a>
-          </td>
-          <td class="xmldoc">
-          <p>Changeable adaptive map that allows mutation by user-code and implements amap.</p>
 
 
           </td>
@@ -143,6 +102,48 @@ The main goal of this implementation is to save memory when IAdaptiveObjects are
           <td class="xmldoc">
           <p>Reprensents a element operation (Set/Remove) without its key.
 Typically datastructures will hold (key * ElementOperation) tuples.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-iadaptivehashmap-2.html">IAdaptiveHashMap<'Key, 'Value></a>
+          </td>
+          <td class="xmldoc">
+          <p>Adaptive map datastructure.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-iadaptivehashset-1.html">IAdaptiveHashSet<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>Adaptive set datastructure.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-iadaptiveindexlist-1.html">IAdaptiveIndexList<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>Adaptive list datastructure.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-adaptive-iadaptivevalue-1.html">IAdaptiveValue<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>Represents a dependency-aware value that may change as changes are fed into the system.
+An AdaptiveValue cannot be changed directly but gets updated by the dependency graph.
+For changeable inputs see cval<'T></p>
 
 
           </td>
@@ -221,7 +222,8 @@ time in the Transaction.</p>
             <a href="fsharp-data-adaptive-transaction.html">Transaction</a>
           </td>
           <td class="xmldoc">
-          <p>Holds a set of adaptive objects which have been changed and shall
+          <p>The new level for the top-level object.
+Holds a set of adaptive objects which have been changed and shall
 therefore be marked as outOfDate. Committing the transaction propagates
 these changes into the dependency-graph, takes care of the correct
 execution-order and acquires appropriate locks for all objects affected.</p>
@@ -275,16 +277,6 @@ execution-order and acquires appropriate locks for all objects affected.</p>
           </td>
           <td class="xmldoc">
           <p>Changeable adaptive list that allows mutation by user-code and implements alist.</p>
-
-
-          </td>
-        </tr>
-        <tr>
-          <td class="type-name">
-            <a href="fsharp-data-adaptive-cmap-2.html">cmap<'Key, 'Value></a>
-          </td>
-          <td class="xmldoc">
-          <p>Changeable adaptive map that allows mutation by user-code and implements amap.</p>
 
 
           </td>
@@ -359,6 +351,24 @@ Used in dependency-aware computations.</p>
         </tr>
         <tr>
           <td class="module-name">
+            <a href="fsharp-data-adaptive-adadptiveobjectextensions.html">AdadptiveObjectExtensions</a>
+          </td>
+          <td class="xmldoc">
+          
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
+            <a href="fsharp-data-adaptive-adaptivereduction.html">AdaptiveReduction</a>
+          </td>
+          <td class="xmldoc">
+          <p>Functional operators for AdaptiveReduction.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
             <a href="fsharp-data-adaptive-callbackextensions.html">CallbackExtensions</a>
           </td>
           <td class="xmldoc">
@@ -389,6 +399,14 @@ Used in dependency-aware computations.</p>
         </tr>
         <tr>
           <td class="module-name">
+            <a href="fsharp-data-adaptive-defaultequality.html">DefaultEquality</a>
+          </td>
+          <td class="xmldoc">
+          
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
             <a href="fsharp-data-adaptive-differentiationextensions.html">DifferentiationExtensions</a>
           </td>
           <td class="xmldoc">
@@ -399,12 +417,20 @@ Used in dependency-aware computations.</p>
         </tr>
         <tr>
           <td class="module-name">
+            <a href="fsharp-data-adaptive-evaluationcallbackextensions.html">EvaluationCallbackExtensions</a>
+          </td>
+          <td class="xmldoc">
+          <p>Callback Extensions for adaptive datatypes.</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="module-name">
             <a href="fsharp-data-adaptive-hashmapmodule.html">HashMap</a>
           </td>
           <td class="xmldoc">
-          <p>Functional programming operators related to the HashMap<_,_> type.</p>
-
-
+          
           </td>
         </tr>
         <tr>
@@ -422,9 +448,7 @@ Used in dependency-aware computations.</p>
             <a href="fsharp-data-adaptive-hashsetmodule.html">HashSet</a>
           </td>
           <td class="xmldoc">
-          <p>Functional programming operators related to the HashSet<_> type.</p>
-
-
+          
           </td>
         </tr>
         <tr>
@@ -488,16 +512,6 @@ supported operations are: Index.zero, Index.after(index), Index.before(index), I
 
           </td>
         </tr>
-        <tr>
-          <td class="module-name">
-            <a href="fsharp-data-adaptive-transactionmodule.html">Transaction</a>
-          </td>
-          <td class="xmldoc">
-          <p>Module for transaction related functions. (e.g. transact)</p>
-
-
-          </td>
-        </tr>
     </tbody>
   </table>
 
@@ -527,6 +541,40 @@ supported operations are: Index.zero, Index.after(index), Index.before(index), I
           <p>Abstract base class for implementing IOpReader<_,_></p>
 
 
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-traceable-abstractval-1.html">AbstractVal<'T></a>
+          </td>
+          <td class="xmldoc">
+          <p>Base class for standard avals</p>
+
+
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-traceable-changeablelazyval-1.html">ChangeableLazyVal<'T></a>
+          </td>
+          <td class="xmldoc">
+          
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-traceable-changeablemodellist-3.html">ChangeableModelList<'T, 'C, 'A></a>
+          </td>
+          <td class="xmldoc">
+          
+          </td>
+        </tr>
+        <tr>
+          <td class="type-name">
+            <a href="fsharp-data-traceable-changeablemodelmap-4.html">ChangeableModelMap<'K, 'V, 'C, 'A></a>
+          </td>
+          <td class="xmldoc">
+          
           </td>
         </tr>
         <tr>

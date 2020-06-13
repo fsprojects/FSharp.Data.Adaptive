@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8"/>
-    <title>AdaptiveIndexList<'T> - FSharp.Data.Adaptive</title>
+    <title>IndexList - FSharp.Data.Adaptive</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="description" content=""/>
     <meta name="author" content="Georg Haaser, Don Syme"/>
@@ -34,65 +34,40 @@
 
 
 
-<h1>AdaptiveIndexList<'T></h1>
+<h1>IndexList</h1>
 <p>
-
-    <span>Namespace: FSharp.Data.Adaptive</span><br />
-            <span>
-            Attributes: <br />
-[&lt;Interface&gt;]<br />
-            
-        </span>
-</p>
+  <span>Namespace: FSharp.Data.Adaptive</span><br />
+  <span>Parent Module: <a href="fsharp-data-adaptive-collectionextensions.html">CollectionExtensions</a></span>
+  </p>
 <div class="xmldoc">
-<p>Adaptive list datastructure.</p>
+<p>Adaptive operators for IndexList.</p>
 
 </div>
-  <h3>Instance members</h3>
+
+<!-- Render nested types and modules, if there are any -->
+
+  <h3>Functions and values</h3>
   <table class="table table-bordered member-list">
     <thead>
-      <tr><td>Instance member</td><td>Description</td></tr>
+      <tr><td>Function or value</td><td>Description</td></tr>
     </thead>
     <tbody>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '440', 440)" onmouseover="showTip(event, '440', 440)">
-            x.Content
+          <code onmouseout="hideTip(event, '238', 238)" onmouseover="showTip(event, '238', 238)">
+            existsA predicate elements
           </code>
-          <div class="tip" id="440">
-            <strong>Signature:</strong> aval&lt;IndexList&lt;&#39;T&gt;&gt;<br />
-              <strong>Modifiers:</strong> abstract<br />
-                                  </div>
+          <div class="tip" id="238">
+            <strong>Signature:</strong> predicate:(&#39;T -&gt; aval&lt;bool&gt;) -&gt; elements:IndexList&lt;&#39;T&gt; -&gt; aval&lt;bool&gt;<br />
+                          <strong>Type parameters:</strong> 'T                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L16-16" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/CollectionExtensions.fs#L491-491" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>The current content of the list as aval.</p>
-
-
-              <p>CompiledName: <code>get_Content</code></p>
-        </td>
-      </tr>
-      <tr>
-        <td class="member-name">
-
-          <code onmouseout="hideTip(event, '441', 441)" onmouseover="showTip(event, '441', 441)">
-            x.GetReader()
-          </code>
-          <div class="tip" id="441">
-            <strong>Signature:</strong> unit -&gt; IIndexListReader&lt;&#39;T&gt;<br />
-              <strong>Modifiers:</strong> abstract<br />
-                                  </div>
-        </td>
-        <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L19-19" class="github-link">
-              <img src="../content/img/github.png" class="normal" />
-              <img src="../content/img/github-blue.png" class="hover" />
-            </a>
-          <p>Gets a new reader to the list.</p>
+          <p>Adaptively checks whether one or more entries make the given predicate true.</p>
 
 
         </td>
@@ -100,23 +75,21 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '442', 442)" onmouseover="showTip(event, '442', 442)">
-            x.IsConstant
+          <code onmouseout="hideTip(event, '239', 239)" onmouseover="showTip(event, '239', 239)">
+            forallA predicate elements
           </code>
-          <div class="tip" id="442">
-            <strong>Signature:</strong> bool<br />
-              <strong>Modifiers:</strong> abstract<br />
-                                  </div>
+          <div class="tip" id="239">
+            <strong>Signature:</strong> predicate:(&#39;T -&gt; aval&lt;bool&gt;) -&gt; elements:IndexList&lt;&#39;T&gt; -&gt; aval&lt;bool&gt;<br />
+                          <strong>Type parameters:</strong> 'T                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveIndexList/AdaptiveIndexList.fs#L13-13" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/CollectionExtensions.fs#L495-495" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>Is the list constant?</p>
+          <p>Adaptively checks whether all entries make the given predicate true.</p>
 
 
-              <p>CompiledName: <code>get_IsConstant</code></p>
         </td>
       </tr>
     </tbody>

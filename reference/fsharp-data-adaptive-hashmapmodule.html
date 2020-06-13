@@ -40,12 +40,11 @@
         <span>
           Attributes:<br />
 [&lt;CompilationRepresentation(4)&gt;]<br />
+[&lt;RequireQualifiedAccess&gt;]<br />
           
       </span>
 </p>
 <div class="xmldoc">
-<p>Functional programming operators related to the HashMap<_,_> type.</p>
-
 </div>
 
 <!-- Render nested types and modules, if there are any -->
@@ -59,15 +58,15 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '117', 117)" onmouseover="showTip(event, '117', 117)">
-            add key value map
+          <code onmouseout="hideTip(event, '273', 273)" onmouseover="showTip(event, '273', 273)">
+            HashMap.add key value map
           </code>
-          <div class="tip" id="117">
+          <div class="tip" id="273">
             <strong>Signature:</strong> key:&#39;K -&gt; value:&#39;V -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;V&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L928-928" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4306-4306" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -79,15 +78,15 @@
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '118', 118)" onmouseover="showTip(event, '118', 118)">
-            alter key mapping map
+          <code onmouseout="hideTip(event, '274', 274)" onmouseover="showTip(event, '274', 274)">
+            HashMap.alter key update map
           </code>
-          <div class="tip" id="118">
-            <strong>Signature:</strong> key:&#39;K -&gt; mapping:(&#39;V option -&gt; &#39;V option) -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;V&gt;<br />
+          <div class="tip" id="274">
+            <strong>Signature:</strong> key:&#39;K -&gt; update:(&#39;V option -&gt; &#39;V option) -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;V&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L939-939" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4348-4348" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -102,15 +101,15 @@ A new value (or None for deleting the entry).
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '119', 119)" onmouseover="showTip(event, '119', 119)">
-            choose mapping map
+          <code onmouseout="hideTip(event, '275', 275)" onmouseover="showTip(event, '275', 275)">
+            HashMap.choose mapping map
           </code>
-          <div class="tip" id="119">
-            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;V -&gt; &#39;V2 option) -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;V2&gt;<br />
-                          <strong>Type parameters:</strong> 'K, 'V, 'V2                      </div>
+          <div class="tip" id="275">
+            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;V -&gt; &#39;T option) -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V, 'T                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L972-972" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4365-4365" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -123,22 +122,56 @@ A new value (or None for deleting the entry).
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '120', 120)" onmouseover="showTip(event, '120', 120)">
-            choose2 mapping l r
+          <code onmouseout="hideTip(event, '276', 276)" onmouseover="showTip(event, '276', 276)">
+            HashMap.choose2 mapping l r
           </code>
-          <div class="tip" id="120">
-            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;V1 option -&gt; &#39;V2 option -&gt; &#39;V3 option) -&gt; l:HashMap&lt;&#39;K,&#39;V1&gt; -&gt; r:HashMap&lt;&#39;K,&#39;V2&gt; -&gt; HashMap&lt;&#39;K,&#39;V3&gt;<br />
-                          <strong>Type parameters:</strong> 'K, 'V1, 'V2, 'V3                      </div>
+          <div class="tip" id="276">
+            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;T1 option -&gt; &#39;T2 option -&gt; &#39;R option) -&gt; l:HashMap&lt;&#39;K,&#39;T1&gt; -&gt; r:HashMap&lt;&#39;K,&#39;T2&gt; -&gt; HashMap&lt;&#39;K,&#39;R&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'T1, 'T2, 'R                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L1012-1012" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4408-4408" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>Creates a new map by applying the mapping function to all entries.
-The respective option-arguments are some whenever the left/right map has an entry for the current key.
-Note that one of the options will always be some.
-<code>O(N + M)</code></p>
+          
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '277', 277)" onmouseover="showTip(event, '277', 277)">
+            HashMap.choose2V mapping l r
+          </code>
+          <div class="tip" id="277">
+            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;T1 voption -&gt; &#39;T2 voption -&gt; &#39;R voption) -&gt; l:HashMap&lt;&#39;K,&#39;T1&gt; -&gt; r:HashMap&lt;&#39;K,&#39;T2&gt; -&gt; HashMap&lt;&#39;K,&#39;R&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'T1, 'T2, 'R                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4405-4405" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '278', 278)" onmouseover="showTip(event, '278', 278)">
+            HashMap.chooseV mapping map
+          </code>
+          <div class="tip" id="278">
+            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;V -&gt; &#39;T voption) -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V, 'T                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4370-4370" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Creates a new map (with the same keys) by applying the given function to all entries.
+<code>O(N)</code></p>
 
 
         </td>
@@ -146,15 +179,15 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '121', 121)" onmouseover="showTip(event, '121', 121)">
-            containsKey key map
+          <code onmouseout="hideTip(event, '279', 279)" onmouseover="showTip(event, '279', 279)">
+            HashMap.containsKey key map
           </code>
-          <div class="tip" id="121">
+          <div class="tip" id="279">
             <strong>Signature:</strong> key:&#39;K -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; bool<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L1026-1026" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4341-4341" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -166,15 +199,15 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '122', 122)" onmouseover="showTip(event, '122', 122)">
-            count(map)
+          <code onmouseout="hideTip(event, '280', 280)" onmouseover="showTip(event, '280', 280)">
+            HashMap.count(map)
           </code>
-          <div class="tip" id="122">
+          <div class="tip" id="280">
             <strong>Signature:</strong> map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; int<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L1034-1034" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4250-4250" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -186,10 +219,10 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '123', 123)" onmouseover="showTip(event, '123', 123)">
-            empty
+          <code onmouseout="hideTip(event, '281', 281)" onmouseover="showTip(event, '281', 281)">
+            HashMap.empty
           </code>
-          <div class="tip" id="123">
+          <div class="tip" id="281">
             <strong>Signature:</strong> HashMap&lt;&#39;K,&#39;V&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                        <span>
             <strong>Attributes:</strong><br />
@@ -198,7 +231,7 @@ Note that one of the options will always be some.
           </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L875-875" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4247-4247" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -210,15 +243,33 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '124', 124)" onmouseover="showTip(event, '124', 124)">
-            exists predicate map
+          <code onmouseout="hideTip(event, '282', 282)" onmouseover="showTip(event, '282', 282)">
+            HashMap.equals a b
           </code>
-          <div class="tip" id="124">
+          <div class="tip" id="282">
+            <strong>Signature:</strong> a:HashMap&lt;&#39;K,&#39;V&gt; -&gt; b:HashMap&lt;&#39;K,&#39;V&gt; -&gt; bool<br />
+                          <strong>Type parameters:</strong> 'K, 'V                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4255-4255" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '283', 283)" onmouseover="showTip(event, '283', 283)">
+            HashMap.exists predicate map
+          </code>
+          <div class="tip" id="283">
             <strong>Signature:</strong> predicate:(&#39;K -&gt; &#39;V -&gt; bool) -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; bool<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L993-993" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4391-4391" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -231,15 +282,15 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '125', 125)" onmouseover="showTip(event, '125', 125)">
-            filter predicate map
+          <code onmouseout="hideTip(event, '284', 284)" onmouseover="showTip(event, '284', 284)">
+            HashMap.filter predicate map
           </code>
-          <div class="tip" id="125">
+          <div class="tip" id="284">
             <strong>Signature:</strong> predicate:(&#39;K -&gt; &#39;V -&gt; bool) -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;V&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L977-977" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4375-4375" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -252,15 +303,15 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '126', 126)" onmouseover="showTip(event, '126', 126)">
-            find key map
+          <code onmouseout="hideTip(event, '285', 285)" onmouseover="showTip(event, '285', 285)">
+            HashMap.find key map
           </code>
-          <div class="tip" id="126">
+          <div class="tip" id="285">
             <strong>Signature:</strong> key:&#39;K -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; &#39;V<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L1022-1022" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4335-4335" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -273,15 +324,15 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '127', 127)" onmouseover="showTip(event, '127', 127)">
-            fold folder seed map
+          <code onmouseout="hideTip(event, '286', 286)" onmouseover="showTip(event, '286', 286)">
+            HashMap.fold folder seed map
           </code>
-          <div class="tip" id="127">
+          <div class="tip" id="286">
             <strong>Signature:</strong> folder:(&#39;State -&gt; &#39;K -&gt; &#39;V -&gt; &#39;State) -&gt; seed:&#39;State -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; &#39;State<br />
                           <strong>Type parameters:</strong> 'State, 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L988-988" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4386-4386" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -295,15 +346,15 @@ Note that the order for elements is undefined.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '128', 128)" onmouseover="showTip(event, '128', 128)">
-            forall predicate map
+          <code onmouseout="hideTip(event, '287', 287)" onmouseover="showTip(event, '287', 287)">
+            HashMap.forall predicate map
           </code>
-          <div class="tip" id="128">
+          <div class="tip" id="287">
             <strong>Signature:</strong> predicate:(&#39;K -&gt; &#39;V -&gt; bool) -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; bool<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L998-998" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4396-4396" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -316,15 +367,15 @@ Note that the order for elements is undefined.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '129', 129)" onmouseover="showTip(event, '129', 129)">
-            isEmpty(map)
+          <code onmouseout="hideTip(event, '288', 288)" onmouseover="showTip(event, '288', 288)">
+            HashMap.isEmpty(map)
           </code>
-          <div class="tip" id="129">
+          <div class="tip" id="288">
             <strong>Signature:</strong> map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; bool<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L1037-1037" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4253-4253" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -336,15 +387,15 @@ Note that the order for elements is undefined.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '130', 130)" onmouseover="showTip(event, '130', 130)">
-            iter iter map
+          <code onmouseout="hideTip(event, '289', 289)" onmouseover="showTip(event, '289', 289)">
+            HashMap.iter iter map
           </code>
-          <div class="tip" id="130">
+          <div class="tip" id="289">
             <strong>Signature:</strong> iter:(&#39;K -&gt; &#39;V -&gt; unit) -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; unit<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L982-982" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4380-4380" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -357,36 +408,33 @@ Note that the order for elements is undefined.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '131', 131)" onmouseover="showTip(event, '131', 131)">
-            keys(map)
+          <code onmouseout="hideTip(event, '290', 290)" onmouseover="showTip(event, '290', 290)">
+            HashMap.keys(map)
           </code>
-          <div class="tip" id="131">
+          <div class="tip" id="290">
             <strong>Signature:</strong> map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; HashSet&lt;&#39;K&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L1031-1031" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4258-4258" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>Creates a HashSet holding all keys from the map.
-<code>O(N)</code></p>
-
-
+          
         </td>
       </tr>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '132', 132)" onmouseover="showTip(event, '132', 132)">
-            map mapping map
+          <code onmouseout="hideTip(event, '291', 291)" onmouseover="showTip(event, '291', 291)">
+            HashMap.map mapping map
           </code>
-          <div class="tip" id="132">
-            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;V -&gt; &#39;V2) -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;V2&gt;<br />
-                          <strong>Type parameters:</strong> 'K, 'V, 'V2                      </div>
+          <div class="tip" id="291">
+            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;V -&gt; &#39;T) -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;T&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'V, 'T                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L967-967" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4360-4360" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -399,38 +447,51 @@ Note that the order for elements is undefined.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '133', 133)" onmouseover="showTip(event, '133', 133)">
-            map2 mapping l r
+          <code onmouseout="hideTip(event, '292', 292)" onmouseover="showTip(event, '292', 292)">
+            HashMap.map2 mapping l r
           </code>
-          <div class="tip" id="133">
-            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;V option -&gt; &#39;V2 option -&gt; &#39;V3) -&gt; l:HashMap&lt;&#39;K,&#39;V&gt; -&gt; r:HashMap&lt;&#39;K,&#39;V2&gt; -&gt; HashMap&lt;&#39;K,&#39;V3&gt;<br />
-                          <strong>Type parameters:</strong> 'K, 'V, 'V2, 'V3                      </div>
+          <div class="tip" id="292">
+            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;T1 option -&gt; &#39;T2 option -&gt; &#39;R) -&gt; l:HashMap&lt;&#39;K,&#39;T1&gt; -&gt; r:HashMap&lt;&#39;K,&#39;T2&gt; -&gt; HashMap&lt;&#39;K,&#39;R&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'T1, 'T2, 'R                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L1005-1005" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4424-4424" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>Creates a new map by applying the mapping function to all entries.
-The respective option-arguments are some whenever the left/right map has an entry for the current key.
-Note that one of the options will always be some.
-<code>O(N + M)</code></p>
-
-
+          
         </td>
       </tr>
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '134', 134)" onmouseover="showTip(event, '134', 134)">
-            ofArray(arr)
+          <code onmouseout="hideTip(event, '293', 293)" onmouseover="showTip(event, '293', 293)">
+            HashMap.map2V mapping l r
           </code>
-          <div class="tip" id="134">
+          <div class="tip" id="293">
+            <strong>Signature:</strong> mapping:(&#39;K -&gt; &#39;T1 voption -&gt; &#39;T2 voption -&gt; &#39;R) -&gt; l:HashMap&lt;&#39;K,&#39;T1&gt; -&gt; r:HashMap&lt;&#39;K,&#39;T2&gt; -&gt; HashMap&lt;&#39;K,&#39;R&gt;<br />
+                          <strong>Type parameters:</strong> 'K, 'T1, 'T2, 'R                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4420-4420" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '294', 294)" onmouseover="showTip(event, '294', 294)">
+            HashMap.ofArray(arr)
+          </code>
+          <div class="tip" id="294">
             <strong>Signature:</strong> arr:(&#39;K * &#39;V) array -&gt; HashMap&lt;&#39;K,&#39;V&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L899-899" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4282-4282" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -443,15 +504,15 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '135', 135)" onmouseover="showTip(event, '135', 135)">
-            ofList(list)
+          <code onmouseout="hideTip(event, '295', 295)" onmouseover="showTip(event, '295', 295)">
+            HashMap.ofList(list)
           </code>
-          <div class="tip" id="135">
+          <div class="tip" id="295">
             <strong>Signature:</strong> list:(&#39;K * &#39;V) list -&gt; HashMap&lt;&#39;K,&#39;V&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L894-894" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4277-4277" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -464,15 +525,15 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '136', 136)" onmouseover="showTip(event, '136', 136)">
-            ofMap(map)
+          <code onmouseout="hideTip(event, '296', 296)" onmouseover="showTip(event, '296', 296)">
+            HashMap.ofMap(map)
           </code>
-          <div class="tip" id="136">
+          <div class="tip" id="296">
             <strong>Signature:</strong> map:Map&lt;&#39;K,&#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;V&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L889-889" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4272-4272" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -485,15 +546,15 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '137', 137)" onmouseover="showTip(event, '137', 137)">
-            ofSeq(seq)
+          <code onmouseout="hideTip(event, '297', 297)" onmouseover="showTip(event, '297', 297)">
+            HashMap.ofSeq(seq)
           </code>
-          <div class="tip" id="137">
+          <div class="tip" id="297">
             <strong>Signature:</strong> seq:seq&lt;&#39;K * &#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;V&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L884-884" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4267-4267" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -506,15 +567,15 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '138', 138)" onmouseover="showTip(event, '138', 138)">
-            remove key map
+          <code onmouseout="hideTip(event, '298', 298)" onmouseover="showTip(event, '298', 298)">
+            HashMap.remove key map
           </code>
-          <div class="tip" id="138">
+          <div class="tip" id="298">
             <strong>Signature:</strong> key:&#39;K -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;V&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L932-932" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4310-4310" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -526,15 +587,15 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '139', 139)" onmouseover="showTip(event, '139', 139)">
-            single k v
+          <code onmouseout="hideTip(event, '299', 299)" onmouseover="showTip(event, '299', 299)">
+            HashMap.single key value
           </code>
-          <div class="tip" id="139">
-            <strong>Signature:</strong> k:&#39;K -&gt; v:&#39;V -&gt; HashMap&lt;&#39;K,&#39;V&gt;<br />
+          <div class="tip" id="299">
+            <strong>Signature:</strong> key:&#39;K -&gt; value:&#39;V -&gt; HashMap&lt;&#39;K,&#39;V&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L879-879" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4262-4262" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -547,19 +608,19 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '140', 140)" onmouseover="showTip(event, '140', 140)">
-            toArray(map)
+          <code onmouseout="hideTip(event, '300', 300)" onmouseover="showTip(event, '300', 300)">
+            HashMap.toArray(map)
           </code>
-          <div class="tip" id="140">
+          <div class="tip" id="300">
             <strong>Signature:</strong> map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; (&#39;K * &#39;V) []<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L915-915" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4297-4297" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>Creates a list holding all tuples contained in the map.
+          <p>Creates an array holding all tuples contained in the map.
 <code>O(N)</code></p>
 
 
@@ -568,15 +629,15 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '141', 141)" onmouseover="showTip(event, '141', 141)">
-            toList(map)
+          <code onmouseout="hideTip(event, '301', 301)" onmouseover="showTip(event, '301', 301)">
+            HashMap.toList(map)
           </code>
-          <div class="tip" id="141">
+          <div class="tip" id="301">
             <strong>Signature:</strong> map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; (&#39;K * &#39;V) list<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L910-910" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4292-4292" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -589,15 +650,15 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '142', 142)" onmouseover="showTip(event, '142', 142)">
-            toMap(map)
+          <code onmouseout="hideTip(event, '302', 302)" onmouseover="showTip(event, '302', 302)">
+            HashMap.toMap(map)
           </code>
-          <div class="tip" id="142">
+          <div class="tip" id="302">
             <strong>Signature:</strong> map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; Map&lt;&#39;K,&#39;V&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L920-920" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4302-4302" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -610,15 +671,15 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '143', 143)" onmouseover="showTip(event, '143', 143)">
-            toSeq(map)
+          <code onmouseout="hideTip(event, '303', 303)" onmouseover="showTip(event, '303', 303)">
+            HashMap.toSeq(map)
           </code>
-          <div class="tip" id="143">
+          <div class="tip" id="303">
             <strong>Signature:</strong> map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; seq&lt;&#39;K * &#39;V&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L905-905" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4287-4287" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -631,15 +692,15 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '144', 144)" onmouseover="showTip(event, '144', 144)">
-            tryFind key map
+          <code onmouseout="hideTip(event, '304', 304)" onmouseover="showTip(event, '304', 304)">
+            HashMap.tryFind key map
           </code>
-          <div class="tip" id="144">
+          <div class="tip" id="304">
             <strong>Signature:</strong> key:&#39;K -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; &#39;V option<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L1017-1017" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4325-4325" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -652,15 +713,36 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '145', 145)" onmouseover="showTip(event, '145', 145)">
-            tryRemove key map
+          <code onmouseout="hideTip(event, '305', 305)" onmouseover="showTip(event, '305', 305)">
+            HashMap.tryFindV key map
           </code>
-          <div class="tip" id="145">
+          <div class="tip" id="305">
+            <strong>Signature:</strong> key:&#39;K -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; &#39;V voption<br />
+                          <strong>Type parameters:</strong> 'K, 'V                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4330-4330" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Tries to find the value for the given key.
+<code>O(log N)</code></p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '306', 306)" onmouseover="showTip(event, '306', 306)">
+            HashMap.tryRemove key map
+          </code>
+          <div class="tip" id="306">
             <strong>Signature:</strong> key:&#39;K -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; (&#39;V * HashMap&lt;&#39;K,&#39;V&gt;) option<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L961-961" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4315-4315" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -673,15 +755,36 @@ Note that one of the options will always be some.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '146', 146)" onmouseover="showTip(event, '146', 146)">
-            union l r
+          <code onmouseout="hideTip(event, '307', 307)" onmouseover="showTip(event, '307', 307)">
+            HashMap.tryRemoveV key map
           </code>
-          <div class="tip" id="146">
+          <div class="tip" id="307">
+            <strong>Signature:</strong> key:&#39;K -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; (&#39;V * HashMap&lt;&#39;K,&#39;V&gt;) voption<br />
+                          <strong>Type parameters:</strong> 'K, 'V                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4320-4320" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          <p>Tries to remove the entry for the given key from the map and returns its value and the rest of the map.
+<code>O(log N)</code></p>
+
+
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '308', 308)" onmouseover="showTip(event, '308', 308)">
+            HashMap.union l r
+          </code>
+          <div class="tip" id="308">
             <strong>Signature:</strong> l:HashMap&lt;&#39;K,&#39;V&gt; -&gt; r:HashMap&lt;&#39;K,&#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;V&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L956-956" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4437-4437" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
@@ -695,20 +798,38 @@ Colliding entries are taken from r.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '147', 147)" onmouseover="showTip(event, '147', 147)">
-            unionWith resolve l r
+          <code onmouseout="hideTip(event, '309', 309)" onmouseover="showTip(event, '309', 309)">
+            HashMap.unionMany(xs)
           </code>
-          <div class="tip" id="147">
+          <div class="tip" id="309">
+            <strong>Signature:</strong> xs:seq&lt;HashSet&lt;&#39;a&gt;&gt; -&gt; HashSet&lt;&#39;a&gt;<br />
+                          <strong>Type parameters:</strong> 'a                      </div>
+        </td>
+        <td class="xmldoc">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4440-4440" class="github-link">
+              <img src="../content/img/github.png" class="normal" />
+              <img src="../content/img/github-blue.png" class="hover" />
+            </a>
+          
+        </td>
+      </tr>
+      <tr>
+        <td class="member-name">
+
+          <code onmouseout="hideTip(event, '310', 310)" onmouseover="showTip(event, '310', 310)">
+            HashMap.unionWith resolve l r
+          </code>
+          <div class="tip" id="310">
             <strong>Signature:</strong> resolve:(&#39;K -&gt; &#39;V -&gt; &#39;V -&gt; &#39;V) -&gt; l:HashMap&lt;&#39;K,&#39;V&gt; -&gt; r:HashMap&lt;&#39;K,&#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;V&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L950-950" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4402-4402" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
           <p>Creates a new map containing all elements from l and r.
-The resolve functions is used to resolve conflicts.
+The resolve function is used to resolve conflicts.
 <code>O(N + M)</code></p>
 
 
@@ -717,19 +838,21 @@ The resolve functions is used to resolve conflicts.
       <tr>
         <td class="member-name">
 
-          <code onmouseout="hideTip(event, '148', 148)" onmouseover="showTip(event, '148', 148)">
-            update key mapping map
+          <code onmouseout="hideTip(event, '311', 311)" onmouseover="showTip(event, '311', 311)">
+            HashMap.update key update map
           </code>
-          <div class="tip" id="148">
-            <strong>Signature:</strong> key:&#39;K -&gt; mapping:(&#39;V option -&gt; &#39;V) -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;V&gt;<br />
+          <div class="tip" id="311">
+            <strong>Signature:</strong> key:&#39;K -&gt; update:(&#39;V option -&gt; &#39;V) -&gt; map:HashMap&lt;&#39;K,&#39;V&gt; -&gt; HashMap&lt;&#39;K,&#39;V&gt;<br />
                           <strong>Type parameters:</strong> 'K, 'V                      </div>
         </td>
         <td class="xmldoc">
-                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashMap.fs#L944-944" class="github-link">
+                      <a href="http://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L4355-4355" class="github-link">
               <img src="../content/img/github.png" class="normal" />
               <img src="../content/img/github-blue.png" class="hover" />
             </a>
-          <p>Adds or updates the entry for the given key based on the optional current value.
+          <p>Adds, deletes or updates the entry for the given key.
+The update functions gets the optional old value and may optionally return
+A new value (or None for deleting the entry).
 <code>O(log N)</code></p>
 
 
