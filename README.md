@@ -88,6 +88,7 @@ about things like bugs, feature requests, use cases or your own implementations 
 
 * in-depth tutorial: https://fsprojects.github.io/FSharp.Data.Adaptive
 * [TodoMVC](https://aardvarkians.com/demo/TodoMVC/) implemented in [Fable.Elmish.Adaptive](https://github.com/krauthaufen/Fable.Elmish.Adaptive)
+* [Adaptify.](https://github.com/krauthaufen/Adaptify) Automatic generation of adaptive equivalents from regular immutable FSharp data types.
 * [Lightning talk slides and 10 line demo script by @dsyme](https://github.com/dsyme/fsharp-presentations/tree/master/2019-09-27-openfsharp)
 * [Nuget Package](https://www.nuget.org/packages/FSharp.Data.Adaptive/)
 
