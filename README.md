@@ -5,7 +5,7 @@
 [![CI - Fable](https://github.com/fsprojects/FSharp.Data.Adaptive/workflows/CI%20-%20Fable/badge.svg?branch=master)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions?query=workflow%3A%22CI+-+Fable%22)
 # FSharp.Data.Adaptive
 
-FSharp.Data.Adaptive provides a clean API for handling changeable ("adaptive") data while sticking to *functional* priciples. It allows programmers to treat adaptive values just like immutable data while still maintaining efficient updates. Many adaptive data structures and operators are provided.
+FSharp.Data.Adaptive provides a clean API for handling changeable ("adaptive") data while sticking to *functional* principles. It allows programmers to treat adaptive values just like immutable data while still maintaining efficient updates. Many adaptive data structures and operators are provided.
 
 # Purpose
 
