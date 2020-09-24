@@ -61,11 +61,21 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
     member x.TryGet (i : Index) =
         MapExt.tryFind i content
         
+    /// Gets the entry associated to the given index (if any).
+    member x.TryGetV (i : Index) =
+        MapExt.tryFindV i content
+        
     /// Gets the entry at the given index (if any).
     member x.TryGet (i : int) =
-        match MapExt.tryItem i content with
-            | Some (_,v) -> Some v
-            | None -> None
+        match MapExt.tryItemV i content with
+        | ValueSome (_,v) -> Some v
+        | ValueNone -> None
+        
+    /// Gets the entry at the given index (if any).
+    member x.TryGetV (i : int) =
+        match MapExt.tryItemV i content with
+        | ValueSome (_,v) -> ValueSome v
+        | ValueNone -> ValueNone
 
     /// Gets the entry associated to the given index or fails if not existing.
     member x.Item
@@ -79,7 +89,7 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
     member x.Add(element : 'T) =
         if content.Count = 0 then
             let t = Index.after Index.zero
-            IndexList(t, t, MapExt.ofList [t, element])
+            IndexList(t, t, MapExt.singleton t element)
         else
             let t = Index.after h
             IndexList(l, t, MapExt.add t element content)
@@ -96,7 +106,7 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
     /// Adds or updates the element associated to index.
     member x.Set(index : Index, value : 'T) =
         if content.Count = 0 then
-            IndexList(index, index, MapExt.ofList [index, value])
+            IndexList(index, index, MapExt.singleton index value)
 
         elif index < l then
             IndexList(index, h, MapExt.add index value content)
@@ -112,18 +122,18 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
         if index < 0 || index >= content.Count then
             x
         else
-            match MapExt.tryItem index content with
-                | Some (id,_) -> x.Set(id, value)
-                | None -> x
+            match MapExt.tryItemV index content with
+            | ValueSome (id,_) -> x.Set(id, value)
+            | ValueNone -> x
 
     /// Updates the element at the given position or returns the unmodified list if the index was out of bounds.
     member x.Update(index : int, update : 'T -> 'T) =
-        match MapExt.tryItem index content with
-            | Some (id,v) -> 
-                let newContent = MapExt.add id (update v) content
-                IndexList(l, h, newContent)
-            | None -> 
-                x
+        match MapExt.tryItemV index content with
+        | ValueSome (id,v) -> 
+            let newContent = MapExt.add id (update v) content
+            IndexList(l, h, newContent)
+        | ValueNone -> 
+            x
 
     /// Inserts the element at the given position or returns the unmodified list if the index is not in [0..count].
     /// Note that InsertAt works with index = count.
@@ -131,56 +141,66 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
         if index < 0 || index > content.Count then
             x
         else
-            let l, s, r = MapExt.neighboursAt index content
+            let struct(l, s, r) = MapExt.neighboursAtV index content
 
             let r = 
                 match s with
-                    | Some s -> Some s
-                    | None -> r
+                | ValueSome s -> ValueSome s
+                | ValueNone -> r
 
             let index = 
-                match l, r with
-                    | Some (before,_), Some (after,_) -> Index.between before after
-                    | None,            Some (after,_) -> Index.before after
-                    | Some (before,_), None           -> Index.after before
-                    | None,            None           -> Index.after Index.zero
+                match struct(l, r) with
+                | ValueSome (struct(before,_)), ValueSome (struct(after,_)) -> Index.between before after
+                | ValueNone,                    ValueSome (struct(after,_)) -> Index.before after
+                | ValueSome (struct(before,_)), ValueNone                   -> Index.after before
+                | ValueNone,                    ValueNone                   -> Index.after Index.zero
             x.Set(index, value)
 
     /// Inserts the element directly before the given index.
     member x.InsertBefore(index : Index, value : 'T) =
-        let l, s, _r = MapExt.neighbours index content
+        let struct(l, s, _r) = MapExt.neighboursV index content
         match s with
-            | None ->
-                x.Set(index, value)
-            | Some (s, _) ->
-                let index = 
-                    match l with
-                    | Some (l,_) -> Index.between l s
-                    | None -> Index.before index
-                x.Set(index, value)
+        | ValueNone ->
+            x.Set(index, value)
+        | ValueSome (s, _) ->
+            let index = 
+                match l with
+                | ValueSome (l,_) -> Index.between l s
+                | ValueNone -> Index.before index
+            x.Set(index, value)
                 
     /// Inserts the element directly after the given index.
     member x.InsertAfter(index : Index, value : 'T) =
-        let _l, s, r = MapExt.neighbours index content
+        let struct(_l, s, r) = MapExt.neighboursV index content
         match s with
-            | None ->
+            | ValueNone ->
                 x.Set(index, value)
-            | Some (s, _) ->
+            | ValueSome (s, _) ->
                 let index =
                     match r with
-                        | Some (r,_) -> Index.between s r
-                        | None -> Index.after index
+                    | ValueSome (r,_) -> Index.between s r
+                    | ValueNone -> Index.after index
                 x.Set(index, value)
 
     /// Gets the index for the given position or None if the index is out of bounds.
     member x.TryGetIndex(index : int) =
-        match MapExt.tryItem index content with
-            | Some (id,_) -> Some id
-            | None -> None
+        match MapExt.tryItemV index content with
+        | ValueSome (id,_) -> Some id
+        | ValueNone -> None
+        
+    /// Gets the index for the given position or None if the index is out of bounds.
+    member x.TryGetIndexV(index : int) =
+        match MapExt.tryItemV index content with
+        | ValueSome (struct(id,_)) -> ValueSome id
+        | ValueNone -> ValueNone
 
     /// Gets the position for the given index or None if the index is not contained in the list.
     member x.TryGetPosition(index : Index) =
         MapExt.tryGetIndex index content
+        
+    /// Gets the position for the given index or None if the index is not contained in the list.
+    member x.TryGetPositionV(index : Index) =
+        MapExt.tryGetIndexV index content
 
     /// Removes the entry associated to the given index.
     member x.Remove(index : Index) =
@@ -192,9 +212,9 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
         
     /// Removes the entry at the given position (if any).
     member x.RemoveAt(index : int) =
-        match MapExt.tryItem index content with
-            | Some (id, _) -> x.Remove id
-            | _ -> x
+        match MapExt.tryItemV index content with
+        | ValueSome (struct(id, _)) -> x.Remove id
+        | _ -> x
 
     /// Applies the mapping function to all elements of the list and returns a new list containing the results.
     member x.Map<'T2>(mapping : Index -> 'T -> 'T2) : IndexList<'T2> =
@@ -206,6 +226,7 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
         if res.IsEmpty then 
             IndexList.Empty
         else
+            // TODO: min/max could be maintained during mapping
             IndexList(MapExt.min res, MapExt.max res, res)
 
     /// Filters the list using the given predicate.
@@ -214,43 +235,69 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
         if res.IsEmpty then 
             IndexList.Empty
         else
+            // TODO: min/max could be maintained during mapping
             IndexList(MapExt.min res, MapExt.max res, res)
 
     /// Tries to find the smallest index for the given element.
     member x.TryFind(element : 'T) : option<Index> =
-        match content |> MapExt.toSeq |> Seq.tryFind (fun (k,v) -> DefaultEquality.equals v element) with
-        | Some (k, v) -> Some k
-        | _ -> None
+        let e = (content :> seq<_>).GetEnumerator()
 
+        let mutable key = None
+        while Option.isNone key && e.MoveNext() do
+            if DefaultEquality.equals e.Current.Value element then
+                key <- Some e.Current.Key
+
+        key
+
+    /// Tries to find the smallest index for the given element.
+    member x.TryFindV(element : 'T) : voption<Index> =
+        let e = (content :> seq<_>).GetEnumerator()
+
+        let mutable key = ValueNone
+        while ValueOption.isNone key && e.MoveNext() do
+            if DefaultEquality.equals e.Current.Value element then
+                key <- ValueSome e.Current.Key
+
+        key
+        
     /// Removes the first occurrence of the given element (if any).
     member x.Remove(item : 'T) : IndexList<'T> =
-        match x.TryFind(item) with
-        | Some index -> x.Remove(index)
-        | None -> x
+        match x.TryFindV(item) with
+        | ValueSome index -> x.Remove(index)
+        | ValueNone -> x
           
     /// Returns all entres from the list in back-to-front order.
     member x.AsSeqBackward =
-        content |> MapExt.toSeqBack |> Seq.map snd
+        content |> MapExt.toSeqBackV |> Seq.map (fun struct(_, v) -> v)
         
     /// Returns all entres from the list in back-to-front order.
     member x.AsListBackward =
-        x.AsSeqBackward |> Seq.toList
+        let mutable res = []
+        for (KeyValue(_k, v)) in content do
+            res <- v :: res
+        res
         
     /// Returns all entres from the list in back-to-front order.
     member x.AsArrayBackward =
-        x.AsSeqBackward |> Seq.toArray
+        let mutable i = content.Count
+        let res = Array.zeroCreate i
+        for (KeyValue(_k, v)) in content do
+            i <- i - 1
+            res.[i] <- v
+
+        res
         
     /// Returns all entres from the list.
     member x.AsSeq =
-        content |> MapExt.toSeq |> Seq.map snd
+        content |> MapExt.toValueSeq
         
     /// Returns all entres from the list.
     member x.AsList =
-        content |> MapExt.toList |> List.map snd
+        content |> MapExt.toValueList
         
     /// Returns all entres from the list.
     member x.AsArray =
-        content |> MapExt.toArray |> Array.map snd
+        content |> MapExt.toValueArray
         
     /// Conservatively determines whether the two IndexLists are equal.
     /// `O(1)`
@@ -278,108 +325,230 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
 
     /// Removes the entry associated to the given index, returns the (optional) value and the list without the specific element.
     member x.TryRemove(index : Index) =
-        match MapExt.tryRemove index content with
-        | Some (value, rest) ->
+        match MapExt.tryRemoveV index content with
+        | ValueSome (value, rest) ->
             if rest.IsEmpty then Some (value, IndexList.Empty)
             else Some (value, IndexList(MapExt.min rest, MapExt.max rest, rest))
-        | None ->
+        | ValueNone ->
             None
+
+    /// Removes the entry associated to the given index, returns the (optional) value and the list without the specific element.
+    member x.TryRemoveV(index : Index) =
+        match MapExt.tryRemoveV index content with
+        | ValueSome struct (value, rest) ->
+            if rest.IsEmpty then ValueSome struct (value, IndexList.Empty)
+            else ValueSome struct (value, IndexList(MapExt.min rest, MapExt.max rest, rest))
+        | ValueNone ->
+            ValueNone
+
+    /// Tries to deconstruct the list. returns its head and tail if successful and None otherwise.
+    member x.TryDeconstruct() =
+        match MapExt.tryRemoveMinV content with
+        | ValueSome(struct(i0, v0, next, rest)) ->
+            let restList = 
+                match next with
+                | ValueNone -> IndexList.Empty
+                | ValueSome next -> IndexList(next, h, rest)
+            Some ((i0, v0), restList)
+        | ValueNone ->
+            None
+        
+    /// deconstructs the list. returns its head and tail if successful and fails otherwise.
+    member x.Deconstruct() =
+        match x.TryDeconstruct() with
+        | Some v -> v
+        | None -> failwith "cannot deconstruct empty IndexList"
+        
+    /// Tries to deconstruct the list. returns its head and tail if successful and None otherwise.
+    member x.TryDeconstructV() =
+        match MapExt.tryRemoveMinV content with
+        | ValueSome(struct(i0, v0, next, rest)) ->
+            let restList = 
+                match next with
+                | ValueNone -> IndexList.Empty
+                | ValueSome next -> IndexList(next, h, rest)
+            ValueSome (struct(struct(i0, v0), restList))
+        | ValueNone ->
+            ValueNone
+        
+    /// deconstructs the list. returns its head and tail if successful and fails otherwise.
+    member x.DeconstructV() =
+        match x.TryDeconstructV() with
+        | ValueSome v -> v
+        | ValueNone -> failwith "cannot deconstruct empty IndexList"
+        
+    /// Removes the entry associated to the given index, returns the value and the list without the specific element or fails
+    /// if the given index was not found in the list.
+    member x.RemoveAndGetV(index : Index) =
+        match MapExt.tryRemoveV index content with
+        | ValueSome (struct(value, rest)) ->
+            if rest.IsEmpty then struct (value, IndexList.Empty)
+            else struct (value, IndexList(MapExt.min rest, MapExt.max rest, rest))
+        | ValueNone ->
+            failwithf "[IndexList] cannot get and remove element at index %A" index
+        
 
     /// Finds the optional neighbour elements in the list for the given index.
     member x.Neighbours(index : Index) =
         MapExt.neighbours index content
+        
+    /// Finds the optional neighbour elements in the list for the given index.
+    member x.NeighboursV(index : Index) =
+        MapExt.neighboursV index content
 
     /// Gets an unused index directly after the given one.
     member x.NewIndexAfter (index : Index) =
-        let (l, s, r) = MapExt.neighbours index content
+        let struct(l, s, r) = MapExt.neighboursV index content
         let l =
             match s with
-            | Some (si, _) -> ValueSome si
-            | None -> match l with | Some (li, _) -> ValueSome li | _ -> ValueNone
+            | ValueSome (si, _) -> ValueSome si
+            | ValueNone -> match l with | ValueSome (li, _) -> ValueSome li | _ -> ValueNone
 
         match l with
         | ValueSome li ->
             match r with
-            | Some (ri, _) -> Index.between li ri
-            | None -> Index.after li
+            | ValueSome (ri, _) -> Index.between li ri
+            | ValueNone -> Index.after li
         | ValueNone ->
             match r with
-            | Some (ri, _) -> Index.before ri
-            | None -> Index.after Index.zero
+            | ValueSome (ri, _) -> Index.before ri
+            | ValueNone -> Index.after Index.zero
 
     /// Gets an unused index directly before the given one.
     member x.NewIndexBefore (index : Index) =
-        let (l, s, r) = MapExt.neighbours index content
+        let struct(l, s, r) = MapExt.neighboursV index content
         let r =
             match s with
-            | Some (si, _) -> ValueSome si
-            | None -> match r with | Some (ri, _) -> ValueSome ri | _ -> ValueNone
+            | ValueSome (si, _) -> ValueSome si
+            | ValueNone -> match r with | ValueSome (ri, _) -> ValueSome ri | _ -> ValueNone
 
         match l with
-        | Some (li, _) ->
+        | ValueSome (li, _) ->
             match r with
             | ValueSome ri -> Index.between li ri
             | ValueNone -> Index.after li
-        | None ->
+        | ValueNone ->
             match r with
             | ValueSome ri -> Index.before ri
             | ValueNone -> Index.after Index.zero
 
     /// Gets the element directly after index in the list (if any).
     member x.TryGetNext (index : Index) =
-        let (_,_,n) = MapExt.neighbours index content
+        let struct(_,_,n) = MapExt.neighboursV index content
+        match n with
+        | ValueSome (struct(k,v)) -> Some(k,v)
+        | ValueNone -> None
+        
+    /// Gets the element directly after index in the list (if any).
+    member x.TryGetNextV (index : Index) =
+        let struct(_,_,n) = MapExt.neighboursV index content
         n
         
     /// Gets the element directly before index in the list (if any).
     member x.TryGetPrev (index : Index) =
-        let (p,_,_) = MapExt.neighbours index content
+        let struct(p,_,_) = MapExt.neighboursV index content
+        match p with
+        | ValueSome(struct(k,v)) -> Some(k,v)
+        | ValueNone -> None
+        
+
+    /// Gets the element directly before index in the list (if any).
+    member x.TryGetPrevV (index : Index) =
+        let struct(p,_,_) = MapExt.neighboursV index content
         p
 
     /// Returns a list of each element tupled with its successor. 
     member x.Pairwise() =
-        match MapExt.tryRemoveMin content with
-        | Some (i0, v0, rest) ->
+        match MapExt.tryRemoveMinV content with
+        | ValueSome (struct(i0, v0, _, rest)) ->
             let mutable res = MapExt.empty
             let mutable rest = rest
             let mutable lastIndex = l
             let mutable i0 = i0
             let mutable v0 = v0
             while not (MapExt.isEmpty rest) do
-                match MapExt.tryRemoveMin rest with
-                | Some (i1, v1, r) ->
+                match MapExt.tryRemoveMinV rest with
+                | ValueSome (i1, v1, _, r) ->
                     res <- MapExt.add i0 (v0, v1) res
                     lastIndex <- i0
                     i0 <- i1
                     v0 <- v1
                     rest <- r
-                | None ->
+                | ValueNone ->
                     ()
 
             IndexList(l, lastIndex, res)
-        | None ->
+        | ValueNone ->
             IndexList.Empty
-            
+           
+    /// Returns a list of each element tupled with its successor. 
+    member x.PairwiseV() =
+        match MapExt.tryRemoveMinV content with
+        | ValueSome (struct(i0, v0, _, rest)) ->
+            let mutable res = MapExt.empty
+            let mutable rest = rest
+            let mutable lastIndex = l
+            let mutable i0 = i0
+            let mutable v0 = v0
+            while not (MapExt.isEmpty rest) do
+                match MapExt.tryRemoveMinV rest with
+                | ValueSome (i1, v1, _, r) ->
+                    res <- MapExt.add i0 (struct(v0, v1)) res
+                    lastIndex <- i0
+                    i0 <- i1
+                    v0 <- v1
+                    rest <- r
+                | ValueNone ->
+                    ()
+
+            IndexList(l, lastIndex, res)
+        | ValueNone ->
+            IndexList.Empty
+             
     /// Returns a list of each element tupled with its successor and the last element tupled with the first.
     member x.PairwiseCyclic() =
-        match MapExt.tryRemoveMin content with
-        | Some (i0, initial, rest) ->
+        match MapExt.tryRemoveMinV content with
+        | ValueSome (struct(i0, initial, _, rest)) ->
             let mutable res = MapExt.empty
             let mutable rest = rest
             let mutable i0 = i0
             let mutable v0 = initial
             while not (MapExt.isEmpty rest) do
-                match MapExt.tryRemoveMin rest with
-                | Some (i1, v1, r) ->
+                match MapExt.tryRemoveMinV rest with
+                | ValueSome (i1, v1, _, r) ->
                     res <- MapExt.add i0 (v0, v1) res
                     i0 <- i1
                     v0 <- v1
                     rest <- r
-                | None ->
+                | ValueNone ->
                     ()
 
             res <- MapExt.add i0 (v0, initial) res
             IndexList(l, i0, res)
-        | None ->
+        | ValueNone ->
+            IndexList.Empty
+      
+    /// Returns a list of each element tupled with its successor and the last element tupled with the first.
+    member x.PairwiseCyclicV() =
+        match MapExt.tryRemoveMinV content with
+        | ValueSome (struct(i0, initial, _, rest)) ->
+            let mutable res = MapExt.empty
+            let mutable rest = rest
+            let mutable i0 = i0
+            let mutable v0 = initial
+            while not (MapExt.isEmpty rest) do
+                match MapExt.tryRemoveMinV rest with
+                | ValueSome (i1, v1, _, r) ->
+                    res <- MapExt.add i0 struct(v0, v1) res
+                    i0 <- i1
+                    v0 <- v1
+                    rest <- r
+                | ValueNone ->
+                    ()
+
+            res <- MapExt.add i0 (v0, initial) res
+            IndexList(l, i0, res)
+        | ValueNone ->
             IndexList.Empty
     
     override x.ToString() =
@@ -530,6 +699,7 @@ module IndexList =
     /// the update functions gets the optional old value and may optionally return
     /// a new value (or None for deleting the entry).
     let alter (index : Index) (mapping : option<'T> -> option<'T>) (l : IndexList<'T>) =
+        // TODO: maintain min/max here
         MapExt.alter index mapping l.Content |> ofMap
 
     /// updates the element at the given index (if any).
@@ -538,19 +708,24 @@ module IndexList =
 
     /// splits the list at the given index and returns both (possibly empty) halves and (optional) splitting element.
     let split (index : Index) (list : IndexList<'T>) =
-        let (l,s,r) = list.Content.Split(index)
+        let struct(l, lmax, s, rmin, r) = list.Content.SplitV(index)
 
-        match MapExt.isEmpty l, MapExt.isEmpty r with
-        | true, true -> empty, s, empty
-        | true, false -> 
-            let rmin = r.TryMinKey |> Option.defaultValue Index.zero
+        let s =
+            match s with
+            | ValueSome v -> Some v
+            | ValueNone -> None
+
+        match struct(lmax, rmin) with
+        | struct(ValueNone, ValueNone) -> 
+            empty, s, empty
+
+        | struct(ValueNone, ValueSome rmin) -> 
             empty, s, IndexList<'T>(rmin, list.MaxIndex, r)
-        | false, true ->
-            let lmax = l.TryMaxKey |> Option.defaultValue Index.zero
+
+        | struct(ValueSome lmax, ValueNone) ->
             IndexList<'T>(list.MinIndex, lmax, l), s, empty
-        | false, false ->
-            let lmax = l.TryMaxKey |> Option.defaultValue Index.zero
-            let rmin = r.TryMinKey |> Option.defaultValue Index.zero
+
+        | struct(ValueSome lmax, ValueSome rmin) ->
             IndexList<'T>(list.MinIndex, lmax, l), s, IndexList<'T>(rmin, list.MaxIndex, r)
 
     /// updates or creates the element at the given index.
