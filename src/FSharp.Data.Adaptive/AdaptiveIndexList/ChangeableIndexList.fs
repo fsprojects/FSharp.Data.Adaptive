@@ -60,6 +60,11 @@ type ChangeableIndexList<'T>(initial: IndexList<'T>) =
             let delta = IndexList.computeDelta history.State other
             history.PerformUnsafe(other, delta) |> ignore
 
+    /// Performs the given Operations on the List.
+    member x.Perform(operations : IndexListDelta<'T>) =
+        if not (IndexListDelta.isEmpty operations) then
+            history.Perform operations |> ignore
+
     /// Appends an element to the list and returns its Index.
     member x.Append (element: 'T) =
         let index = 

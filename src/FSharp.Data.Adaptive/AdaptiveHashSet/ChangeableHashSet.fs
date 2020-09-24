@@ -40,6 +40,11 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
             let delta = HashSet.computeDelta nonCountingSet newSet
             history.Perform(delta) |> ignore
 
+    /// Performs the given Operations on the Set.
+    member x.Perform(operations : HashSetDelta<'T>) =   
+        if not (HashSetDelta.isEmpty operations) then
+            history.Perform(operations) |> ignore
+
     /// Adds a value and returns whether the element was new.
     member x.Add(value : 'T) =
         history.Perform (HashSetDelta.single (Add value))

@@ -21,6 +21,9 @@ type ChangeableHashSet<'T> =
     /// Sets the current state as HashSet.
     member UpdateTo: HashSet<'T> -> unit
 
+    /// Performs the given Operations on the Set.
+    member Perform: operations : HashSetDelta<'T> -> unit
+
     /// Adds a value and returns whether the element was new.
     member Add: value: 'T -> bool
 

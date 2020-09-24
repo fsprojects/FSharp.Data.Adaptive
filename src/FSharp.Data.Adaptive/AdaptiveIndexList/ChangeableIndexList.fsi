@@ -22,6 +22,9 @@ type ChangeableIndexList<'T> =
     
     /// Sets the current state as List.
     member UpdateTo : target : IndexList<'T> -> unit
+    
+    /// Performs the given Operations on the List.
+    member Perform: IndexListDelta<'T> -> unit
 
     /// Gets or sets an element in the list at the given index.
     member Item : index: int -> 'T with get, set

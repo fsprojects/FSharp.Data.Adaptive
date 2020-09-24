@@ -60,6 +60,9 @@ type ChangeableHashMap<'Key,'Value> =
     /// Sets the current state as HashMap.
     member UpdateTo : target : HashMap<'Key, 'Value> -> unit
 
+    /// Performs the given Operations on the Map.
+    member Perform: operations : HashMapDelta<'Key, 'Value> -> unit
+
     //interface System.Collections.IEnumerable
 
 /// Changeable adaptive map that allows mutation by user-code and implements amap.

@@ -73,8 +73,11 @@ type ChangeableHashMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
             let delta = HashMap.computeDelta history.State other
             history.PerformUnsafe(other, delta) |> ignore
 
+    /// Performs the given Operations on the Map.
+    member x.Perform(operations : HashMapDelta<'Key, 'Value>) = 
+        if not (HashMapDelta.isEmpty operations) then
+            history.Perform operations |> ignore
         
-
     /// Removes the entry for the given key and returns whether the element was deleted.
     member x.Remove(key : 'Key) =
         history.Perform (HashMap.single key Remove |> HashMapDelta)
