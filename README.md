@@ -91,7 +91,7 @@ about things like bugs, feature requests, use cases or your own implementations 
 * [Adaptify.](https://github.com/krauthaufen/Adaptify) Automatically generates adaptive equivalents of regular immutable FSharp data types.
 * [Lightning talk slides and 10 line demo script by @dsyme](https://github.com/dsyme/fsharp-presentations/tree/master/2019-09-27-openfsharp)
 * [Nuget Package](https://www.nuget.org/packages/FSharp.Data.Adaptive/)
-
+* [Functional Data that Adapts to Change by @dsyme at NDC Oslo 2020](https://www.youtube.com/watch?v=us4dp7Ksly0)
 # History
 
 The project started back in 2013 at the [VRVis Research Center](https://www.vrvis.at) and was mainly developed for the [Aardvark.Platform](https://aardvarkians.com). Over time it became more and more apparent that adaptive data has the potential to benefit many different applications, so we decided to move it to this standalone library (outside the Aardvark world). If you're interested in the development history, the last stable aardvark-implementation (and most of its history) can be found in [Aardvark.Base.Incremental](https://github.com/aardvark-platform/aardvark.base/tree/v4/src/Aardvark.Base.Incremental). 
