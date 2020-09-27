@@ -254,7 +254,7 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
         let e = (content :> seq<_>).GetEnumerator()
 
         let mutable key = ValueNone
-        while ValueOption.isNone key && e.MoveNext() do
+        while key.IsNone && e.MoveNext() do
             if DefaultEquality.equals e.Current.Value element then
                 key <- ValueSome e.Current.Key
 

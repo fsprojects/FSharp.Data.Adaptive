@@ -99,6 +99,42 @@ type ConditionalWeakTable<'K, 'V when 'K : not struct and 'V : not struct>() =
     member x.Remove(key : 'K) =
         m.delete key
 
+namespace Microsoft.FSharp.Core
+
+
+[<AutoOpen>]
+module ValueOptionExtensions =
+    type ValueOption<'a> with
+        member inline x.IsSome = 
+            match x with
+            | ValueSome _ -> true
+            | ValueNone -> false  
+            
+        member inline x.IsNone = 
+            match x with
+            | ValueSome _ -> false
+            | ValueNone -> true  
+            
+
+
+module ValueOption =
+    [<CompiledName("Map")>]
+    let inline map (mapping : 'a -> 'b) (option : ValueOption<'a>) =
+        match option with
+        | ValueSome a -> ValueSome (mapping a)
+        | ValueNone -> ValueNone
+        
+    [<CompiledName("IsSome")>]
+    let inline isSome (o : ValueOption<'a>) =
+        match o with
+        | ValueSome _ -> true
+        | ValueNone -> false
+
+    [<CompiledName("IsNone")>]
+    let inline isNone (o : ValueOption<'a>) =
+        match o with
+        | ValueSome _ -> false
+        | ValueNone -> true
 
 
 #endif

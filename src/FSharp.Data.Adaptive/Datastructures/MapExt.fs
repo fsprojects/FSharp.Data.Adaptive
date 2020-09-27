@@ -1602,57 +1602,57 @@ module internal MapExtImplementation =
                 | MapNode(k,v,l,r,_,_) -> loop l (struct(k,v)::loop r acc)
             loop m []
 
-        let rec private copyTo (array : array<'k * 'v>) (index : byref<int>) m =
+        let rec private copyTo (array : array<'k * 'v>) (index : ref<int>) m =
             match m with
             | MapEmpty -> 
                 ()
             | MapOne(k,v) -> 
-                array.[index] <- (k, v)
-                index <- index + 1
+                array.[!index] <- (k, v)
+                index := !index + 1
             | MapNode(k, v, l, r, _, _) ->
-                copyTo array &index l
-                array.[index] <- (k, v)
-                index <- index + 1
-                copyTo array &index r
+                copyTo array index l
+                array.[!index] <- (k, v)
+                index := !index + 1
+                copyTo array index r
 
-        let rec private copyToV (array : array<struct('k * 'v)>) (index : byref<int>) m =
+        let rec private copyToV (array : array<struct('k * 'v)>) (index : ref<int>) m =
             match m with
             | MapEmpty -> 
                 ()
             | MapOne(k,v) -> 
-                array.[index] <- struct(k, v)
-                index <- index + 1
+                array.[!index] <- struct(k, v)
+                index := !index + 1
             | MapNode(k, v, l, r, _, _) ->
-                copyToV array &index l
-                array.[index] <- struct(k, v)
-                index <- index + 1
-                copyToV array &index r
+                copyToV array index l
+                array.[!index] <- struct(k, v)
+                index := !index + 1
+                copyToV array index r
 
-        let rec private copyValuesTo (array : array<'v>) (index : byref<int>) m =
+        let rec private copyValuesTo (array : array<'v>) (index : ref<int>) m =
             match m with
             | MapEmpty -> 
                 ()
             | MapOne(k,v) -> 
-                array.[index] <- v
-                index <- index + 1
+                array.[!index] <- v
+                index := !index + 1
             | MapNode(k, v, l, r, _, _) ->
-                copyValuesTo array &index l
-                array.[index] <- v
-                index <- index + 1
-                copyValuesTo array &index r
+                copyValuesTo array index l
+                array.[!index] <- v
+                index := !index + 1
+                copyValuesTo array index r
 
         let toArrayV m =
             let cnt = size m
             let arr = Array.zeroCreate cnt
-            let mutable index = 0 
-            copyToV arr &index m
+            let index = ref 0 
+            copyToV arr index m
             arr
 
         let toArray m =
             let cnt = size m
             let arr = Array.zeroCreate cnt
-            let mutable index = 0 
-            copyTo arr &index m
+            let index = ref 0 
+            copyTo arr index m
             arr
             
 
@@ -1667,8 +1667,8 @@ module internal MapExtImplementation =
         let valueArray m =
             let cnt = size m
             let arr = Array.zeroCreate cnt
-            let mutable index = 0 
-            copyValuesTo arr &index m
+            let index = ref 0 
+            copyValuesTo arr index m
             arr
             
 
