@@ -13,6 +13,7 @@
     <OutputPath>..\..\..\bin\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Benchmarks\Enumerator.fs" />
     <Compile Include="Benchmarks\BenchUtils.fs" />
     <Compile Include="Benchmarks\Map.fs" />
     <Compile Include="Benchmarks\Collect.fs" />
