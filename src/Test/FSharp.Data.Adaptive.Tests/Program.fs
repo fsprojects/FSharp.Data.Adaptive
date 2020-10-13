@@ -1,6 +1,7 @@
 ﻿module Program
 
 open BenchmarkDotNet.Running
+open FSharp.Data.Adaptive
 
 module Profile =
     open FSharp.Data.Adaptive
@@ -57,6 +58,17 @@ module Profile =
 
 [<EntryPoint>]
 let main _args =
+
+    let l = [ 1 .. 1000 ]
+    let a = IndexList.ofList l
+
+    let mutable result = []
+    for e in a do
+        result <- e :: result
+
+    if result <> List.rev l then
+        failwith "bad enumerator"
+
     //Profile.run()
     //BenchmarkRunner.Run<Benchmarks.TransactBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.MapBenchmark>() |> ignore

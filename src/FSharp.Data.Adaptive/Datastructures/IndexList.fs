@@ -35,7 +35,7 @@ type internal ReversedCompare<'a when 'a : comparison>(value : 'a) =
 /// A persitent array-like structure that allows lookup/insertion/deletion of entries in O(log N).
 /// Note that datastructure uses Index instead of int as index type which allows for these efficient implementations.
 /// However the datastructure also has accessors that allow getting/setting/deleting entries via an int-index in O(log N).
-[<Struct; StructuralEquality; NoComparison>]
+[<Sealed>]
 [<StructuredFormatDisplay("{AsString}")>]
 type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, content : MapExt<Index, 'T>) =
     
@@ -58,6 +58,14 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
 
     /// Internal for getting the underlying store.
     member internal x.Content = content
+
+    override x.GetHashCode() =
+        Unchecked.hash content
+
+    override x.Equals o =   
+        match o with
+        | :? IndexList<'T> as o -> Unchecked.equals content o.Content
+        | _ -> false
 
     /// Gets the entry associated to the given index (if any).
     member x.TryGet (i : Index) =
@@ -570,8 +578,7 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
     
     /// Copies the list to the given array (starting at index)
     member x.CopyTo(dst : 'T[], dstIndex : int) = 
-        let mutable i = dstIndex
-        content |> MapExt.iter (fun k v -> dst.[i] <- v; i <- i + 1)
+        MapExtImplementation.MapTree.copyValuesToArray content.Tree dst dstIndex
 
     /// Tries to find the position for the given entry or -1 if the entry does not exist. O(N)
     member x.IndexOf(item : 'T) =
@@ -606,65 +613,155 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
     interface IEnumerable<'T> with
         member x.GetEnumerator() = new IndexListEnumerator<'T>(content.Tree) :> _
 
+
+
 /// Enumerator for IndexList.
-and public IndexListEnumerator<'T> internal (m : MapExtImplementation.MapTree<Index, 'T>) =
+and [<Sealed>] IndexListEnumerator<'T> internal (m : MapExtImplementation.MapTree<Index, 'T>) =
     
-    let mutable stack = [m]
+    let mutable e0 = m
+    let mutable e1 = MapExtImplementation.MapTree<Index, 'T>.MapEmpty
+    let mutable e2 = MapExtImplementation.MapTree<Index, 'T>.MapEmpty
+    let mutable e3 = MapExtImplementation.MapTree<Index, 'T>.MapEmpty
+    //let mutable e4 = MapExtImplementation.MapTree<Index, 'T>.MapEmpty
+    //let mutable e5 = MapExtImplementation.MapTree<Index, 'T>.MapEmpty
+    //let mutable e6 = MapExtImplementation.MapTree<Index, 'T>.MapEmpty
+    //let mutable e7 = MapExtImplementation.MapTree<Index, 'T>.MapEmpty
+
+    let mutable stack = []
+    let mutable cnt = 1
 
     let mutable current = Unchecked.defaultof<'T>
     
-    member x.MoveNext() = 
-        match stack with
-            | [] ->
+    
+
+    let rec move (n : MapExtImplementation.MapTree<Index, 'T>) =
+        let inline push (n : MapExtImplementation.MapTree<Index, 'T>) =
+            match n with
+            | MapExtImplementation.MapEmpty -> ()
+            | _ -> 
+                match cnt with
+                | 0 -> e0 <- n
+                | 1 -> e1 <- n
+                | 2 -> e2 <- n
+                | 3 -> e3 <- n
+                //| 4 -> e4 <- n
+                //| 5 -> e5 <- n
+                //| 6 -> e6 <- n
+                //| 7 -> e7 <- n
+                | _ -> stack <- n :: stack
+                    
+                cnt <- cnt + 1
+
+        let inline pop() =
+            let id = cnt
+            cnt <- cnt - 1
+            match id with
+            | 0 -> failwith "bad"
+            | 1 -> e0
+            | 2 -> e1
+            | 3 -> e2
+            | 4 -> e3
+            //| 5 -> e4
+            //| 6 -> e5
+            //| 7 -> e6
+            //| 8 -> e7
+            | _ -> 
+                match stack with
+                | h :: t -> 
+                    stack <- t
+                    h
+                | _ ->
+                    failwith "bad"
+
+
+
+        match n with
+        | MapExtImplementation.MapEmpty ->
+            if cnt = 0 then
                 false
-            | h :: rest ->
-                match h with
-                | MapExtImplementation.MapEmpty ->
-                    stack <- rest
-                    x.MoveNext()
+            else
+                let h = pop()
+                move h
 
-                | MapExtImplementation.MapOne(_,value) ->
-                    stack <- rest
-                    current <- value
-                    true
+        | MapExtImplementation.MapOne(_,value) ->
+            current <- value
+            true
 
-                | MapExtImplementation.MapNode(k,v,l,r,_,_)  ->
-                    match l with
-                    | MapExtImplementation.MapEmpty ->
-                        match r with
-                        | MapExtImplementation.MapEmpty ->
-                            stack <- rest
-                        | r ->
-                            stack <- r :: rest
+        | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
+            match l with
+            | MapExtImplementation.MapEmpty ->
+                push r
+                current <- v
+                true
+            | MapExtImplementation.MapOne(lk, lv) ->
+                current <- lv
+                push r
+                push (MapExtImplementation.MapOne(k, v))
+                true
+            | l ->
+                push r
+                push (MapExtImplementation.MapOne(k, v))
+                move l
 
-                        current <- v
-                        true
-                    | _ ->
-                        match r with
-                        | MapExtImplementation.MapEmpty ->
-                            stack <- l :: MapExtImplementation.MapOne(k, v) :: rest
-                            x.MoveNext()
-                        | _ ->
-                            stack <- l :: MapExtImplementation.MapOne(k, v) :: r :: rest
-                            x.MoveNext()
 
+    member x.MoveNext() = 
+        let inline pop() =
+            let id = cnt
+            cnt <- cnt - 1
+            match id with
+            | 0 -> failwith "bad"
+            | 1 -> e0
+            | 2 -> e1
+            | 3 -> e2
+            | 4 -> e3
+            //| 5 -> e4
+            //| 6 -> e5
+            //| 7 -> e6
+            //| 8 -> e7
+            | _ -> 
+                match stack with
+                | h :: t -> 
+                    stack <- t
+                    h
+                | _ ->
+                    failwith "bad"
+
+
+        if cnt = 0 then
+            false
+        else
+            let h = pop()
+            move h
+    
     member x.Current 
         with get() = current
                 
-    member x.Dispose() = ()
+    member x.Dispose() = 
+        stack <- Unchecked.defaultof<_>
+        current <- Unchecked.defaultof<_>
+        
+    member x.Reset() =
+        e0 <- m
+        e1 <- MapExtImplementation.MapTree<Index, 'T>.MapEmpty
+        e2 <- MapExtImplementation.MapTree<Index, 'T>.MapEmpty
+        e3 <- MapExtImplementation.MapTree<Index, 'T>.MapEmpty
+        //e4 <- MapExtImplementation.MapTree<Index, 'T>.MapEmpty
+        //e5 <- MapExtImplementation.MapTree<Index, 'T>.MapEmpty
+        //e6 <- MapExtImplementation.MapTree<Index, 'T>.MapEmpty
+        //e7 <- MapExtImplementation.MapTree<Index, 'T>.MapEmpty
+        stack <- []
+        cnt <- 1
+        current <- Unchecked.defaultof<_>
 
     interface System.Collections.IEnumerator with
-        member x.Current = current :> obj
+        member x.Current = x.Current :> obj
         member x.MoveNext() = x.MoveNext()
-        member x.Reset() =
-            stack <- [m]
-            current <- Unchecked.defaultof<_>
+        member x.Reset() = x.Reset()
                     
     interface IEnumerator<'T> with
-        member x.Current = current
-        member x.Dispose() =
-            stack <- []
-            current <- Unchecked.defaultof<_>
+        member x.Current = x.Current
+        member x.Dispose() = x.Dispose()
+
 
 /// Functional operators for IndexList.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -1057,7 +1154,7 @@ module IndexList =
             IndexList.Empty
         
     /// applies the mapping function to all elements and concats the resulting lists.
-    let collect (mapping : 'T1 -> IndexList<'T2>) (l : IndexList<'T1>) = 
+    let inline collect (mapping : 'T1 -> IndexList<'T2>) (l : IndexList<'T1>) = 
         collecti (fun _ v -> mapping v) l
 
     /// applies the mapping function to all elements in the list.
@@ -1133,12 +1230,15 @@ module IndexList =
         Array.sortInPlaceWith cmp arr
         ofArray (Array.map snd arr)
 
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     let fold (f : 'S -> 'T -> 'S) (seed : 'S) (l : IndexList<'T>) : 'S =
-        l.Content |> MapExt.fold (fun s _ v -> f s v) seed
-
+        l.Content |> MapExt.foldValue f seed
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     let iter (f : 'T -> unit) (l : IndexList<'T>) =
-        l.Content |> MapExt.iter (fun _ v -> f(v))
-
+        l.Content |> MapExt.iterValue f
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     let iteri (f : Index -> 'T -> unit) (l : IndexList<'T>) =
-        l.Content |> MapExt.iter (fun k v -> f k v)
+        l.Content |> MapExt.iter f
         

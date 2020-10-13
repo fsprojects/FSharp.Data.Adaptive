@@ -10,6 +10,7 @@ open System.Collections.Generic
 open System.Diagnostics
 open Microsoft.FSharp.Core
 open Microsoft.FSharp.Core.LanguagePrimitives.IntrinsicOperators
+open System.Runtime.CompilerServices
 
 module internal MapExtImplementation = 
     [<CompilationRepresentation(CompilationRepresentationFlags.UseNullAsTrueValue)>]
@@ -304,28 +305,41 @@ module internal MapExtImplementation =
                     Some(k2, v2, l)
 
 
+        let rec tryMinVAux acc m =
+            match m with
+            | MapEmpty -> acc
+            | MapOne(k,v) -> ValueSome (struct(k,v))
+            | MapNode(k,v,l,_,_,_) -> tryMinVAux (ValueSome (struct(k,v))) l
+
+        let inline tryMinV m = tryMinVAux ValueNone m
         
-        let rec tryMinKeyV n =
-            match n with
-            | MapEmpty ->
-                ValueNone
-            | MapOne(k,_) ->
-                ValueSome k
-            | MapNode(k, _, l, _, _, _) ->
-                match tryMinKeyV l with
-                | ValueSome m -> ValueSome m
-                | ValueNone -> ValueSome k
-                
-        let rec tryMaxKeyV n =
-            match n with
-            | MapEmpty ->
-                ValueNone
-            | MapOne(k,_) ->
-                ValueSome k
-            | MapNode(k, _, _, r, _, _) ->
-                match tryMaxKeyV r with
-                | ValueSome m -> ValueSome m
-                | ValueNone -> ValueSome k
+        let rec tryMaxVAux acc m =
+            match m with
+            | MapEmpty -> acc
+            | MapOne(k,v) -> ValueSome (struct(k,v))
+            | MapNode(k,v,_,r,_,_) -> tryMaxVAux (ValueSome (struct(k,v))) r
+
+        let inline tryMaxV m = tryMaxVAux ValueNone m
+
+    
+        
+        let rec tryMinKeyVAux acc m =
+            match m with
+            | MapEmpty -> acc
+            | MapOne(k,_) -> ValueSome k
+            | MapNode(k,_,l,_,_,_) -> tryMinKeyVAux (ValueSome k) l
+
+        let inline tryMinKeyV m = tryMinKeyVAux ValueNone m
+        
+        let rec tryMaxKeyVAux acc m =
+            match m with
+            | MapEmpty -> acc
+            | MapOne(k,_) -> ValueSome k
+            | MapNode(k,_,_,r,_,_) -> tryMaxKeyVAux (ValueSome k) r
+
+        let inline tryMaxKeyV m = tryMaxKeyVAux ValueNone m
+
+    
 
         let rec tryRemoveMinV cmp next m = 
             match m with 
@@ -472,6 +486,153 @@ module internal MapExtImplementation =
                     let ll, res, lr = split comparer k l
                     ll, res, join lr k2 v2 r
 
+        let inline private createTwo k0 v0 k1 v1 =
+            match v0 with
+            | ValueSome v0 ->
+                match v1 with
+                | ValueSome v1 ->
+                    MapNode(k0, v0, MapEmpty, MapOne(k1, v1), 2, 2)
+                | ValueNone ->
+                    MapOne(k0, v0)
+            | ValueNone ->
+                match v1 with
+                | ValueSome v1 ->
+                    MapOne(k1, v1)
+                | ValueNone ->
+                    MapEmpty
+
+                    
+        let rec withMaxExclusive (comparer: IComparer<'Key>) (key : 'Key) (m : MapTree<'Key, 'Value>) =
+            match m with
+            | MapEmpty -> 
+                struct(MapEmpty, ValueNone)
+
+            | MapOne(k,v) ->
+                let c = comparer.Compare(k, key)
+                if c < 0 then struct(m, ValueNone)
+                else struct(MapEmpty, ValueSome(struct(k, v)))
+
+            | MapNode(k, v, l, r, _, _) ->
+                let c = comparer.Compare(k, key)
+                if c >= 0 then
+                    let struct(rest, n) = withMaxExclusive comparer key l
+                    match n with
+                    | ValueNone -> struct(rest, ValueSome(struct(k, v)))
+                    | ValueSome t -> struct(rest, ValueSome t)
+                else
+                    let struct(r1, n) = withMaxExclusive comparer key r
+                    struct(rebalance l k v r1, n)
+
+        let rec withMinExclusive (comparer: IComparer<'Key>) (key : 'Key) (m : MapTree<'Key, 'Value>) =
+            match m with
+            | MapEmpty -> 
+                struct(ValueNone, MapEmpty)
+            | MapOne(k, v) ->
+                let c = comparer.Compare(k, key)
+                if c > 0 then struct(ValueNone, m)
+                else struct(ValueSome(struct(k, v)), MapEmpty)
+            | MapNode(k, v, l, r, _, _) ->
+                let c = comparer.Compare(k, key)
+                if c <= 0 then
+                    let struct(ln, l1) = withMinExclusive comparer key r
+                    match ln with
+                    | ValueSome t -> ValueSome t, l1
+                    | ValueNone -> ValueSome(struct(k,v)), l1
+                else
+                    let struct(ln, l1) = withMinExclusive comparer key l
+                    struct(ln, rebalance l1 k v r)
+               
+        let rec replaceRange 
+            (comparer: IComparer<'Key>) 
+            (replacement : OptimizedClosures.FSharpFunc<voption<struct('Key * 'Value)>, voption<'Value>, bool, voption<'Value>, voption<struct('Key * 'Value)>, struct(voption<'Value> * voption<'Value>)>) 
+            (k0 : 'Key) (k1 : 'Key) 
+            (m : MapTree<'Key, 'Value>) =
+            match m with
+            | MapEmpty -> 
+                let struct(v0, v1) = replacement.Invoke(ValueNone, ValueNone, false, ValueNone, ValueNone)
+                createTwo k0 v0 k1 v1
+
+            | MapOne(k,v) ->
+                let c = comparer.Compare(k, k0)
+
+                if c < 0 then
+                    let struct(v0, v1) = replacement.Invoke(ValueSome(struct(k,v)), ValueNone, false, ValueNone, ValueNone)
+                    createTwo k0 v0 k1 v1
+                    |> add comparer k v
+
+                elif c = 0 then
+                    let struct(v0, v1) = replacement.Invoke(ValueNone, ValueSome v, false, ValueNone, ValueNone)
+                    createTwo k0 v0 k1 v1
+
+                else
+                    let c = comparer.Compare(k, k1)
+                    if c > 0 then
+                        let struct(v0, v1) = replacement.Invoke(ValueNone, ValueNone, false, ValueNone, ValueSome(struct(k,v)))
+                        createTwo k0 v0 k1 v1
+                        |> add comparer k v
+
+                    elif c = 0 then 
+                        let struct(v0, v1) = replacement.Invoke(ValueNone, ValueNone, false, ValueSome(v), ValueNone)
+                        createTwo k0 v0 k1 v1
+
+                    else
+                        let struct(v0, v1) = replacement.Invoke(ValueNone, ValueNone, true, ValueNone, ValueNone)
+                        createTwo k0 v0 k1 v1
+                        
+            | MapNode(k,v,l,r,_,_) ->
+                let c0 = comparer.Compare(k, k0)
+                let c1 = comparer.Compare(k, k1)
+                if c0 < 0 then
+                    rebalance l k v (replaceRange comparer replacement k0 k1 r)
+
+                elif c1 > 0 then
+                    rebalance (replaceRange comparer replacement k0 k1 l) k v r
+
+                //elif c0 = 0 then
+                //    let struct (inner, r1) = withMinExclusive comparer k1 r
+
+                //    let kv1 =
+                //        match inner with
+                //        | ValueSome (kk, vv) when comparer.Compare(kk, k1) = 0 -> ValueSome vv
+                //        | _ -> ValueNone
+
+                //    let struct(v0, v1) = replacement.Invoke(tryMaxV l, ValueSome v, false, kv1, tryMinV r1)
+
+                //    failwith ""
+                else
+                    let struct (l1, lv) = withMaxExclusive comparer k0 l
+                    let struct (rv, r1) = withMinExclusive comparer k1 r
+                    
+                    let lv1 =
+                        match lv with
+                        | ValueSome (kk, vv) when comparer.Compare(kk, k0) = 0 -> ValueSome vv
+                        | _ -> 
+                            if c0 = 0 then ValueSome v
+                            else ValueNone
+                        
+                    let rv1 =
+                        match rv with
+                        | ValueSome (kk, vv) when comparer.Compare(kk, k1) = 0 -> ValueSome vv
+                        | _ -> 
+                            if c1 = 0 then ValueSome v
+                            else ValueNone
+                        
+                    let struct(v0, v1) = replacement.Invoke(tryMaxV l1, lv1, true, rv1, tryMinV r1)
+
+                    match v0 with
+                    | ValueNone ->
+                        match v1 with
+                        | ValueNone ->
+                            merge l1 r1
+                        | ValueSome v1 ->
+                            rebalance l1 k1 v1 r1
+                    | ValueSome v0 ->
+                        match v1 with
+                        | ValueNone ->
+                            rebalance l1 k0 v0 r1
+                        | ValueSome v1 ->
+                            rebalance l1 k0 v0 (add comparer k1 v1 r1)
+                            
 
         let rec tryMinAux acc m =
             match m with
@@ -481,14 +642,7 @@ module internal MapExtImplementation =
 
         let rec tryMin m = tryMinAux None m
     
-        let rec tryMinVAux acc m =
-            match m with
-            | MapEmpty -> acc
-            | MapOne(k,v) -> ValueSome (struct(k,v))
-            | MapNode(k,v,l,_,_,_) -> tryMinVAux (ValueSome (struct(k,v))) l
 
-        let rec tryMinV m = tryMinVAux ValueNone m
-    
         let rec tryMaxAux acc m =
             match m with
             | MapEmpty -> acc
@@ -496,15 +650,6 @@ module internal MapExtImplementation =
             | MapNode(k,v,_,r,_,_) -> tryMaxAux (Some (k,v)) r
 
         let rec tryMax m = tryMaxAux None m
-        
-        let rec tryMaxVAux acc m =
-            match m with
-            | MapEmpty -> acc
-            | MapOne(k,v) -> ValueSome (struct(k,v))
-            | MapNode(k,v,_,r,_,_) -> tryMaxVAux (ValueSome (struct(k,v))) r
-
-        let rec tryMaxV m = tryMaxVAux ValueNone m
-
         let rec splitV (comparer: IComparer<'Value>) k m =
             match m with
             | MapEmpty -> 
@@ -708,6 +853,12 @@ module internal MapExtImplementation =
             | MapNode(k2,v2,l,r,_,_) -> iterOpt f l; f.Invoke(k2, v2); iterOpt f r
 
         let iter f m = iterOpt (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
+        
+        let rec iterValue (f: 'v -> unit) m =
+            match m with 
+            | MapEmpty -> ()
+            | MapOne(k2,v2) -> f v2
+            | MapNode(k2,v2,l,r,_,_) -> iterValue f l; f v2; iterValue f r
 
         let rec tryPickOpt (f:OptimizedClosures.FSharpFunc<_,_,_>) m =
             match m with 
@@ -1563,7 +1714,18 @@ module internal MapExtImplementation =
                 foldOpt f x r
 
         let fold f x m = foldOpt (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(f)) x m
+        
+        let rec foldValueOpt (f:OptimizedClosures.FSharpFunc<_,_,_>) x m  = 
+            match m with 
+            | MapEmpty -> x
+            | MapOne(_,v) -> f.Invoke(x,v)
+            | MapNode(_,v,l,r,_,_) -> 
+                let x = foldValueOpt f x l
+                let x = f.Invoke(x,v)
+                foldValueOpt f x r
 
+        let foldValue f x m = foldValueOpt (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) x m
+        
         let foldSectionOpt (comparer: IComparer<'Value>) lo hi (f:OptimizedClosures.FSharpFunc<_,_,_,_>) m x =
             let rec foldFromTo (f:OptimizedClosures.FSharpFunc<_,_,_,_>) m x = 
                 match m with 
@@ -1699,6 +1861,10 @@ module internal MapExtImplementation =
         let copyToArray s (arr: _[]) i =
             let j = ref i 
             s |> iter (fun x y -> arr.[!j] <- KeyValuePair(x,y); j := !j + 1)
+            
+        let copyValuesToArray s (arr: _[]) i =
+            let j = ref i 
+            s |> iter (fun x y -> arr.[!j] <- y; j := !j + 1)
 
 
         /// Imperative left-to-right iterators.
@@ -1898,7 +2064,10 @@ module internal MapExtImplementation =
                 member x.Current = current
 
 
+
+
 open MapExtImplementation
+open System.Runtime.CompilerServices
 
 
 [<System.Diagnostics.DebuggerTypeProxy(typedefof<MapDebugView<_,_>>)>]
@@ -1964,6 +2133,8 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
     member m.FoldSection (lo:'Key) (hi:'Key) f (acc:'z) = MapTree.foldSection comparer lo hi f tree acc 
 
     member m.Iterate f = MapTree.iter f tree
+    
+    member m.IterateValue f = MapTree.iterValue f tree
 
     member m.MapRange f  = new MapExt<'Key,'T2>(comparer,MapTree.map f tree)
 
@@ -2057,6 +2228,11 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
     member x.Split (k) =
         let l, self, r = MapTree.split comparer k tree
         MapExt<'Key, 'Value>(comparer, l), self, MapExt<'Key, 'Value>(comparer, r)
+        
+    member x.ReplaceRange (k0, k1, replacement) =
+        let repl = OptimizedClosures.FSharpFunc<_,_,_,_,_,_>.Adapt replacement
+        let res = MapTree.replaceRange comparer repl k0 k1 tree
+        MapExt<'Key, 'Value>(comparer, res)
         
     member x.SplitV (k) =
         let struct(l, lmax, self, rmin, r) = MapTree.splitV comparer k tree
@@ -2154,11 +2330,13 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
     member x.GetForwardEnumeratorV() = new MapTree.ValueMapTreeEnumerator<'Key, 'Value>(tree) :> IEnumerator<_> 
     member x.GetBackwardEnumeratorV() = new MapTree.ValueMapTreeBackwardEnumerator<'Key, 'Value>(tree) :> IEnumerator<_> 
 
+    member x.GetEnumerator() = new MapExtEnumerator<_,_>(tree)
+
     interface IEnumerable<KeyValuePair<'Key, 'Value>> with
-        member __.GetEnumerator() = MapTree.mkIEnumerator tree
+        member x.GetEnumerator() = x.GetEnumerator() :> _
 
     interface System.Collections.IEnumerable with
-        member __.GetEnumerator() = (MapTree.mkIEnumerator tree :> System.Collections.IEnumerator)
+        member x.GetEnumerator() = x.GetEnumerator() :> _
 
     //interface IDictionary<'Key, 'Value> with 
     //    member m.Item 
@@ -2202,6 +2380,156 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
         "map [" + content + suffix + "]"
 
     member private x.AsString = x.ToString()
+
+and [<Sealed>] internal MapExtEnumerator<'k, 'v when 'k : comparison>(m : MapTree<'k, 'v>) =
+    
+    let mutable e0 = m
+    let mutable e1 = MapExtImplementation.MapTree<'k, 'v>.MapEmpty
+    let mutable e2 = MapExtImplementation.MapTree<'k, 'v>.MapEmpty
+    let mutable e3 = MapExtImplementation.MapTree<'k, 'v>.MapEmpty
+    let mutable e4 = MapExtImplementation.MapTree<'k, 'v>.MapEmpty
+    let mutable e5 = MapExtImplementation.MapTree<'k, 'v>.MapEmpty
+    let mutable e6 = MapExtImplementation.MapTree<'k, 'v>.MapEmpty
+    let mutable e7 = MapExtImplementation.MapTree<'k, 'v>.MapEmpty
+
+    let mutable stack = []
+    let mutable cnt = 1
+
+    let mutable current = Unchecked.defaultof<KeyValuePair<'k, 'v>>
+            
+    
+
+    let rec move (n : MapExtImplementation.MapTree<'k, 'v>) =
+        let inline push (n : MapExtImplementation.MapTree<'k, 'v>) =
+            match n with
+            | MapExtImplementation.MapEmpty -> ()
+            | _ -> 
+                match cnt with
+                | 0 -> e0 <- n
+                | 1 -> e1 <- n
+                | 2 -> e2 <- n
+                | 3 -> e3 <- n
+                | 4 -> e4 <- n
+                | 5 -> e5 <- n
+                | 6 -> e6 <- n
+                | 7 -> e7 <- n
+                | _ -> stack <- n :: stack
+                    
+                cnt <- cnt + 1
+
+        let inline pop() =
+            let id = cnt
+            cnt <- cnt - 1
+            match id with
+            | 0 -> failwith "bad"
+            | 1 -> e0
+            | 2 -> e1
+            | 3 -> e2
+            | 4 -> e3
+            | 5 -> e4
+            | 6 -> e5
+            | 7 -> e6
+            | 8 -> e7
+            | _ -> 
+                match stack with
+                | h :: t -> 
+                    stack <- t
+                    h
+                | _ ->
+                    failwith "bad"
+
+
+
+        match n with
+        | MapExtImplementation.MapEmpty ->
+            if cnt = 0 then
+                false
+            else
+                let h = pop()
+                move h
+
+        | MapExtImplementation.MapOne(key,value) ->
+            current <- KeyValuePair(key, value)
+            true
+
+        | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
+            match l with
+            | MapExtImplementation.MapEmpty ->
+                push r
+                current <- KeyValuePair(k, v)
+                true
+            | MapExtImplementation.MapOne(lk, lv) ->
+                current <- KeyValuePair(lk, lv)
+                push r
+                push (MapExtImplementation.MapOne(k, v))
+                true
+            | l ->
+                push r
+                push (MapExtImplementation.MapOne(k, v))
+                move l
+
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.MoveNext() = 
+        let inline pop() =
+            let id = cnt
+            cnt <- cnt - 1
+            match id with
+            | 0 -> failwith "bad"
+            | 1 -> e0
+            | 2 -> e1
+            | 3 -> e2
+            | 4 -> e3
+            | 5 -> e4
+            | 6 -> e5
+            | 7 -> e6
+            | 8 -> e7
+            | _ -> 
+                match stack with
+                | h :: t -> 
+                    stack <- t
+                    h
+                | _ ->
+                    failwith "bad"
+
+
+        if cnt = 0 then
+            false
+        else
+            let h = pop()
+            move h
+    
+    
+    member x.Current 
+        with [<MethodImpl(MethodImplOptions.AggressiveInlining)>] get() = current
+              
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.Dispose() = 
+        stack <- Unchecked.defaultof<_>
+        current <- Unchecked.defaultof<_>
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.Reset() =
+        e0 <- m
+        e1 <- MapExtImplementation.MapTree<'k, 'v>.MapEmpty
+        e2 <- MapExtImplementation.MapTree<'k, 'v>.MapEmpty
+        e3 <- MapExtImplementation.MapTree<'k, 'v>.MapEmpty
+        e4 <- MapExtImplementation.MapTree<'k, 'v>.MapEmpty
+        e5 <- MapExtImplementation.MapTree<'k, 'v>.MapEmpty
+        e6 <- MapExtImplementation.MapTree<'k, 'v>.MapEmpty
+        e7 <- MapExtImplementation.MapTree<'k, 'v>.MapEmpty
+        stack <- []
+        cnt <- 1
+        current <- Unchecked.defaultof<_>
+
+    interface System.Collections.IEnumerator with
+        member x.Current = x.Current :> obj
+        member x.MoveNext() = x.MoveNext()
+        member x.Reset() = x.Reset()
+                    
+    interface IEnumerator<KeyValuePair<'k, 'v>> with
+        member x.Current = x.Current
+        member x.Dispose() = x.Dispose()
 
 and 
     [<Sealed>]
@@ -2262,6 +2590,9 @@ module internal MapExt =
 
     [<CompiledName("Iterate")>]
     let iter f (m:MapExt<_,_>) = m.Iterate(f)
+    
+    [<CompiledName("IterateValue")>]
+    let iterValue f (m:MapExt<_,_>) = m.IterateValue(f)
 
     [<CompiledName("TryPick")>]
     let tryPick f (m:MapExt<_,_>) = m.TryPick(f)
@@ -2292,6 +2623,9 @@ module internal MapExt =
 
     [<CompiledName("Fold")>]
     let fold<'Key,'T,'State when 'Key : comparison> f (z:'State) (m:MapExt<'Key,'T>) = MapTree.fold f z m.Tree
+    
+    [<CompiledName("FoldValue")>]
+    let foldValue<'Key,'T,'State when 'Key : comparison> f (z:'State) (m:MapExt<'Key,'T>) = MapTree.foldValue f z m.Tree
 
     [<CompiledName("FoldBack")>]
     let foldBack<'Key,'T,'State  when 'Key : comparison> f (m:MapExt<'Key,'T>) (z:'State) =  MapTree.foldBack  f m.Tree z

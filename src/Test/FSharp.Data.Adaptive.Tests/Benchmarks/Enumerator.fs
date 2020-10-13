@@ -4,47 +4,7 @@ open FSharp.Data.Adaptive
 
 open BenchmarkDotNet.Attributes
 open System.Runtime.CompilerServices
-
-[<Struct>]
-type RangeEnumerator =
-    struct
-        val mutable private arr : int[] 
-        val mutable private current : int 
-
-        member x.MoveNext() = 
-            x.current <- x.current + 1
-            x.current < x.arr.Length
-
-        
-        member x.Current 
-            with get() = x.arr.[x.current]
-
-            
-        member x.Dispose() = ()
-        interface System.Collections.IEnumerator with
-            member x.MoveNext() = 
-                x.current <- x.current + 1
-                x.current < x.arr.Length
-            member x.Reset() =
-                x.current <- -1
-            member x.Current = x.arr.[x.current] :> obj
-
-        interface System.Collections.Generic.IEnumerator<int> with
-            member x.Current = x.arr.[x.current]
-            member x.Dispose() = ()
-    
-        new(arr) = { arr = arr; current = -1 }
-    end
-
-type RangeEnumerable(arr : int[]) =
-    
-    member x.GetEnumerator() = new RangeEnumerator(arr)
-
-    interface System.Collections.IEnumerable with
-        member x.GetEnumerator() = new RangeEnumerator(arr) :> _
-        
-    interface System.Collections.Generic.IEnumerable<int> with
-        member x.GetEnumerator() = new RangeEnumerator(arr) :> _
+open BenchmarkDotNet.Jobs
 
 (*
 BenchmarkDotNet=v0.12.0, OS=Windows 10.0.19041
@@ -71,69 +31,205 @@ Intel Core i7-4790K CPU 4.00GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
 | IndexListToArrayEnumerator |  87.279 ns | 2.6711 ns |  7.7067 ns | 0.0210 |     - |     - |      88 B |
 *)
 
-[<PlainExporter; MemoryDiagnoser>]
+
+(*
+|        Method |       Mean |     Error |    StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------- |-----------:|----------:|----------:|-------:|------:|------:|----------:|
+|         Array |   2.880 ns | 0.0109 ns | 0.0102 ns |      - |     - |     - |         - |
+|          List |   5.215 ns | 0.0137 ns | 0.0114 ns |      - |     - |     - |         - |
+|       ListSeq |  90.615 ns | 1.1644 ns | 1.0892 ns | 0.0085 |     - |     - |      40 B |
+|     IndexList | 147.915 ns | 2.1070 ns | 1.9709 ns | 0.0560 |     - |     - |     264 B |
+|        MapExt | 203.700 ns | 4.0301 ns | 3.7698 ns | 0.0594 |     - |     - |     280 B |
+|       HashSet | 197.202 ns | 0.5956 ns | 0.5280 ns | 0.1392 |     - |     - |     656 B |
+|  IndexListSeq | 181.010 ns | 0.5090 ns | 0.4513 ns | 0.0560 |     - |     - |     264 B |
+| IndexListIter |  74.670 ns | 0.2800 ns | 0.2482 ns | 0.0101 |     - |     - |      48 B |
+| IndexListFold |  69.336 ns | 0.1507 ns | 0.1336 ns | 0.0050 |     - |     - |      24 B |
+*)
+
+type ArrayEnumerator2<'a> =
+    struct
+        val mutable public Index : int
+        val mutable public Arr : 'a[]
+
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member x.MoveNext() =
+            x.Index <- x.Index + 1
+            x.Index < x.Arr.Length
+
+        member x.Current 
+            with [<MethodImpl(MethodImplOptions.AggressiveInlining)>] get() = x.Arr.[x.Index]
+    
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member x.Reset() =
+            x.Index <- -1
+
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member x.Dispose() =
+            x.Index <- -1
+
+        interface System.Collections.IEnumerator with
+            member x.Current = x.Current :> obj
+            member x.MoveNext() = x.MoveNext()
+            member x.Reset() = x.Reset()
+                    
+        interface System.Collections.Generic.IEnumerator<'a> with
+            member x.Current = x.Current
+            member x.Dispose() = x.Dispose()
+
+        new(arr : 'a[]) = { Arr = arr; Index = -1 }
+
+    end
+[<Sealed>]
+type ArrayEnumerator<'a>(arr : 'a[]) =
+    let mutable index = -1
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.MoveNext() =
+        index <- index + 1
+        index < arr.Length
+
+    member x.Current 
+        with [<MethodImpl(MethodImplOptions.AggressiveInlining)>] get() = arr.[index]
+    
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.Reset() =
+        index <- -1
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.Dispose() =
+        index <- -1
+
+    interface System.Collections.IEnumerator with
+        member x.Current = x.Current :> obj
+        member x.MoveNext() = x.MoveNext()
+        member x.Reset() = x.Reset()
+                    
+    interface System.Collections.Generic.IEnumerator<'a> with
+        member x.Current = x.Current
+        member x.Dispose() = x.Dispose()
+
+type ArrayEnumerable<'a>(arr : 'a[]) =
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.GetEnumerator() = new ArrayEnumerator<'a>(arr)
+
+    interface System.Collections.IEnumerable with
+        member x.GetEnumerator() = x.GetEnumerator() :> _
+        
+    interface System.Collections.Generic.IEnumerable<'a> with
+        member x.GetEnumerator() = x.GetEnumerator() :> _
+
+type ArrayEnumerable2<'a>(arr : 'a[]) =
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.GetEnumerator() = new ArrayEnumerator2<'a>(arr)
+
+    interface System.Collections.IEnumerable with
+        member x.GetEnumerator() = x.GetEnumerator() :> _
+        
+    interface System.Collections.Generic.IEnumerable<'a> with
+        member x.GetEnumerator() = x.GetEnumerator() :> _
+
+[<PlainExporter; MemoryDiagnoser; SimpleJob(RuntimeMoniker.NetCoreApp31)>]
 type EnumeratorBenchmark() =
 
-    [<Literal>]
-    let COUNT = 10
+    let count = 10
     
-    let arr = [| 1..COUNT |]
-    let list = [1..COUNT]
-    let seq = [| 1..COUNT |] :> seq<_>
-    let indexlist = IndexList.ofList  [1..COUNT]
-    let r = RangeEnumerable([| 1..COUNT |])
+    let mutable arr = [| 1..count |]
+    let mutable list = Array.toList arr
+    let mutable listseq = list :> seq<_>
+    let mutable arrseq = arr :> seq<_>
+    let mutable indexlist = IndexList.ofArray arr
+    let mutable indexlistSeq = indexlist :> seq<_>
+    let mutable hashset = HashSet.ofArray arr
+    let mutable arrEnum = ArrayEnumerable(arr)
+    let mutable arrEnumStruct = ArrayEnumerable2(arr)
     
+    [<DefaultValue; Params(10)>] //, 20, 30, 50, 100, 500)>]
+    val mutable public Size : int
+    
+    [<GlobalSetup>]
+    member x.Setup() =
+        arr <- [| 1 .. x.Size |]
+        list <- Array.toList arr
+        arrseq <- arr :> seq<_>
+        listseq <- list :> seq<_>
+        indexlist <- IndexList.ofArray arr
+        indexlistSeq <- indexlist :> seq<_>
+        hashset <- HashSet.ofArray arr
+        arrEnum <- ArrayEnumerable(arr)
+        arrEnumStruct <- ArrayEnumerable2(arr)
+
+
     /// Baseline with cache coherent collection
     [<Benchmark>]
-    member x.ArraySum() =
-        Array.sum arr
-
-    /// Baseline with node based collection
-    [<Benchmark>]
-    member x.ListSum() =
-        List.sum list
-    
-    /// Inlining of typed struct enumerator
-    [<Benchmark>]
-    member x.RangeEnumerator() =
+    member x.Array() =   
         let mutable sum = 0
-        for a in r do
-            sum <- sum + a
-        sum
-     
-    /// Inlining of typed struct enumerator
-    [<Benchmark>]
-    member x.RangeEnumeratorStatic() =
-        use mutable r = new RangeEnumerator(arr)
-        let mutable sum = 0
-        while r.MoveNext() do
-            sum <- sum + r.Current
-        sum
-            
-    [<Benchmark>]
-    member x.ListEnumerator() =
-        let mutable sum = 0
-        for a in list do
+        for a in arr do
             sum <- sum + a
         sum
         
     [<Benchmark>]
-    member x.ListSeqEnumerator() =
+    member x.ArraySeq() =   
         let mutable sum = 0
-        for a in seq do
+        for a in arrseq do
             sum <- sum + a
         sum
 
     [<Benchmark>]
-    member x.IndexListEnumerator() =
+    member x.ArrayEnumerable() =   
+        let mutable sum = 0
+        for a in arrEnum do
+            sum <- sum + a
+        sum
+        
+    [<Benchmark>]
+    member x.ArrayEnumerableStruct() =   
+        let mutable sum = 0
+        for a in arrEnumStruct do
+            sum <- sum + a
+        sum
+
+    /// Baseline with node based collection
+    [<Benchmark>]
+    member x.List() =
+        let mutable sum = 0
+        for a in list do
+            sum <- sum + a
+        sum
+ 
+    [<Benchmark>]
+    member x.ListSeq() =
+        let mutable sum = 0
+        for a in listseq do
+            sum <- sum + a
+        sum
+
+    [<Benchmark>]
+    member x.IndexList() =
         let mutable sum = 0
         for a in indexlist do
             sum <- sum + a
         sum
+        
+    [<Benchmark>]
+    member x.MapExt() =
+        let mutable sum = 0
+        for a in indexlist.Content do
+            sum <- sum + a.Value
+        sum
 
     [<Benchmark>]
-    member x.IndexListFold() =
-        indexlist |> IndexList.fold (fun a b -> a + b) 0
+    member x.HashSet() =
+        let mutable sum = 0
+        for a in hashset do
+            sum <- sum + a
+        sum
+
+    [<Benchmark>]
+    member x.IndexListSeq() =
+        let mutable sum = 0
+        for a in indexlistSeq do
+            sum <- sum + a
+        sum
 
     [<Benchmark>]
     member x.IndexListIter() =
@@ -142,17 +238,6 @@ type EnumeratorBenchmark() =
         sum
 
     [<Benchmark>]
-    member x.MapExtIter() =
-        let mutable sum = 0
-        indexlist.Content |> MapExt.iter (fun k v -> sum <- sum + v)
-        sum
-
-    [<Benchmark>]
-    member x.MapExtFold() =
-        indexlist.Content |> MapExt.fold (fun a _ b -> a + b) 0 
-
-    [<Benchmark>]
-    member x.IndexListToArrayEnumerator() =
-        let temp = indexlist.AsArray
-        Array.sum temp
+    member x.IndexListFold() =
+        indexlist |> IndexList.fold (+) 0
 

@@ -3579,6 +3579,8 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         let result = HashSetNode.intersect cmp l.Root r.Root
         HashSet(cmp, result)
  
+    member x.GetEnumerator() = new HashSetEnumerator<_>(root)
+
     interface System.Collections.IEnumerable with 
         member x.GetEnumerator() = new HashSetEnumerator<_>(root) :> _
         
@@ -3597,11 +3599,12 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         HashSet<'T>(o.Comparer, o.Root)
         
 
-and internal HashSetEnumerator<'T>(root: HashSetNode<'T>) =
+and [<Sealed>] HashSetEnumerator<'T> internal(root: HashSetNode<'T>) =
     let mutable stack = [root]
     let mutable linked: HashSetLinked<'T> = null
     let mutable current = Unchecked.defaultof<'T>
 
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.MoveNext() =
         if isNull linked then
             match stack with
@@ -3626,14 +3629,17 @@ and internal HashSetEnumerator<'T>(root: HashSetNode<'T>) =
             current <- linked.Value
             linked <- linked.Next
             true
-    
-    member x.Current = current
 
+    member x.Current
+        with [<MethodImpl(MethodImplOptions.AggressiveInlining)>] get() = current
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Reset() =
         stack <- [root]
         linked <- null
         current <- Unchecked.defaultof<_>
 
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Dispose() =
         stack <- []
         linked <- null
@@ -3947,6 +3953,8 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         let cmp = DefaultEqualityComparer<'K>.Instance
         let result = HashMapNode.choose2 cmp resolve l.Root r.Root
         HashMap(cmp, result)
+        
+    member x.GetEnumerator() = new HashMapEnumerator<_,_>(root)
 
     interface System.Collections.IEnumerable with 
         member x.GetEnumerator() = new HashMapEnumerator<_,_>(root) :> _
@@ -3977,11 +3985,12 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         HashMap<'K, 'V>(o.Comparer, o.Root)
     #endif
 
-and internal HashMapEnumerator<'K, 'V>(root: HashMapNode<'K, 'V>) =
+and [<Sealed>] HashMapEnumerator<'K, 'V> internal(root: HashMapNode<'K, 'V>) =
     let mutable stack = [root]
     let mutable linked: HashMapLinked<'K, 'V> = null
     let mutable current = Unchecked.defaultof<'K * 'V>
 
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.MoveNext() =
         if isNull linked then
             match stack with
@@ -4007,13 +4016,16 @@ and internal HashMapEnumerator<'K, 'V>(root: HashMapNode<'K, 'V>) =
             linked <- linked.Next
             true
     
-    member x.Current = current
+    member x.Current 
+        with [<MethodImpl(MethodImplOptions.AggressiveInlining)>] get () = current
 
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Reset() =
         stack <- [root]
         linked <- null
         current <- Unchecked.defaultof<_>
 
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Dispose() =
         stack <- []
         linked <- null
