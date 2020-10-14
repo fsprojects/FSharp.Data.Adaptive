@@ -546,47 +546,48 @@ module internal MapExtImplementation =
             (comparer: IComparer<'Key>) 
             (replacement : OptimizedClosures.FSharpFunc<voption<struct('Key * 'Value)>, voption<'Value>, bool, voption<'Value>, voption<struct('Key * 'Value)>, struct(voption<'Value> * voption<'Value>)>) 
             (k0 : 'Key) (k1 : 'Key) 
+            (l : voption<struct('Key * 'Value)>) (r : voption<struct('Key * 'Value)>)
             (m : MapTree<'Key, 'Value>) =
             match m with
             | MapEmpty -> 
-                let struct(v0, v1) = replacement.Invoke(ValueNone, ValueNone, false, ValueNone, ValueNone)
+                let struct(v0, v1) = replacement.Invoke(l, ValueNone, false, ValueNone, r)
                 createTwo k0 v0 k1 v1
 
             | MapOne(k,v) ->
                 let c = comparer.Compare(k, k0)
 
                 if c < 0 then
-                    let struct(v0, v1) = replacement.Invoke(ValueSome(struct(k,v)), ValueNone, false, ValueNone, ValueNone)
+                    let struct(v0, v1) = replacement.Invoke(ValueSome(struct(k,v)), ValueNone, false, ValueNone, r)
                     createTwo k0 v0 k1 v1
                     |> add comparer k v
 
                 elif c = 0 then
-                    let struct(v0, v1) = replacement.Invoke(ValueNone, ValueSome v, false, ValueNone, ValueNone)
+                    let struct(v0, v1) = replacement.Invoke(l, ValueSome v, false, ValueNone, r)
                     createTwo k0 v0 k1 v1
 
                 else
                     let c = comparer.Compare(k, k1)
                     if c > 0 then
-                        let struct(v0, v1) = replacement.Invoke(ValueNone, ValueNone, false, ValueNone, ValueSome(struct(k,v)))
+                        let struct(v0, v1) = replacement.Invoke(l, ValueNone, false, ValueNone, ValueSome(struct(k,v)))
                         createTwo k0 v0 k1 v1
                         |> add comparer k v
 
                     elif c = 0 then 
-                        let struct(v0, v1) = replacement.Invoke(ValueNone, ValueNone, false, ValueSome(v), ValueNone)
+                        let struct(v0, v1) = replacement.Invoke(l, ValueNone, false, ValueSome(v), r)
                         createTwo k0 v0 k1 v1
 
                     else
-                        let struct(v0, v1) = replacement.Invoke(ValueNone, ValueNone, true, ValueNone, ValueNone)
+                        let struct(v0, v1) = replacement.Invoke(l, ValueNone, true, ValueNone, r)
                         createTwo k0 v0 k1 v1
                         
-            | MapNode(k,v,l,r,_,_) ->
+            | MapNode(k,v,lc,rc,_,_) ->
                 let c0 = comparer.Compare(k, k0)
                 let c1 = comparer.Compare(k, k1)
                 if c0 < 0 then
-                    rebalance l k v (replaceRange comparer replacement k0 k1 r)
+                    rebalance lc k v (replaceRange comparer replacement k0 k1 (ValueSome(struct(k, v))) r rc)
 
                 elif c1 > 0 then
-                    rebalance (replaceRange comparer replacement k0 k1 l) k v r
+                    rebalance (replaceRange comparer replacement k0 k1 l (ValueSome(struct(k, v))) lc) k v rc
 
                 //elif c0 = 0 then
                 //    let struct (inner, r1) = withMinExclusive comparer k1 r
@@ -600,8 +601,8 @@ module internal MapExtImplementation =
 
                 //    failwith ""
                 else
-                    let struct (l1, lv) = withMaxExclusive comparer k0 l
-                    let struct (rv, r1) = withMinExclusive comparer k1 r
+                    let struct (l1, lv) = withMaxExclusive comparer k0 lc
+                    let struct (rv, r1) = withMinExclusive comparer k1 rc
                     
                     let lv1 =
                         match lv with
@@ -617,7 +618,17 @@ module internal MapExtImplementation =
                             if c1 = 0 then ValueSome v
                             else ValueNone
                         
-                    let struct(v0, v1) = replacement.Invoke(tryMaxV l1, lv1, true, rv1, tryMinV r1)
+                    let ln =
+                        match tryMaxV l1 with
+                        | ValueSome m -> ValueSome m
+                        | ValueNone -> l
+                        
+                    let rn =
+                        match tryMinV r1 with
+                        | ValueSome m -> ValueSome m
+                        | ValueNone -> r
+
+                    let struct(v0, v1) = replacement.Invoke(ln, lv1, true, rv1, rn)
 
                     match v0 with
                     | ValueNone ->
@@ -2231,7 +2242,7 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
         
     member x.ReplaceRange (k0, k1, replacement) =
         let repl = OptimizedClosures.FSharpFunc<_,_,_,_,_,_>.Adapt replacement
-        let res = MapTree.replaceRange comparer repl k0 k1 tree
+        let res = MapTree.replaceRange comparer repl k0 k1 ValueNone ValueNone tree
         MapExt<'Key, 'Value>(comparer, res)
         
     member x.SplitV (k) =
