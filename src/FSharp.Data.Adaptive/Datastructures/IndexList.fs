@@ -5,8 +5,6 @@ open System.Threading
 open System.Collections
 open System.Collections.Generic
 open FSharp.Data.Adaptive
-open System.Runtime.CompilerServices
-
 [<Struct; CustomComparison; CustomEquality>]
 type internal ReversedCompare<'a when 'a : comparison>(value : 'a) =
     member x.Value = value
@@ -598,73 +596,27 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
             and set (i : int) (v : 'T) = raise (NotSupportedException("IndexList cannot be mutated"))
         member x.Insert(i,v) = raise (NotSupportedException("IndexList cannot be mutated"))
 
-    member x.GetEnumerator() = new IndexListEnumerator<'T>(content.Tree)
-
     interface IEnumerable with
-        member x.GetEnumerator() = new IndexListEnumerator<'T>(content.Tree) :> _
+        member x.GetEnumerator() = new IndexListEnumerator<'T>(content :> seq<_>) :> _
 
     interface IEnumerable<'T> with
-        member x.GetEnumerator() = new IndexListEnumerator<'T>(content.Tree) :> _
+        member x.GetEnumerator() = new IndexListEnumerator<'T>(content :> seq<_>) :> _
 
 /// Enumerator for IndexList.
-and public IndexListEnumerator<'T> internal (m : MapExtImplementation.MapTree<Index, 'T>) =
-    
-    let mutable stack = [m]
+and private IndexListEnumerator<'T>(content : IEnumerable<KeyValuePair<Index, 'T>>) =
+    let r = content.GetEnumerator()
 
-    let mutable current = Unchecked.defaultof<'T>
-    
-    member x.MoveNext() = 
-        match stack with
-            | [] ->
-                false
-            | h :: rest ->
-                match h with
-                | MapExtImplementation.MapEmpty ->
-                    stack <- rest
-                    x.MoveNext()
+    member x.Current =
+        r.Current.Value
 
-                | MapExtImplementation.MapOne(_,value) ->
-                    stack <- rest
-                    current <- value
-                    true
+    interface IEnumerator with
+        member x.MoveNext() = r.MoveNext()
+        member x.Current = x.Current :> obj
+        member x.Reset() = r.Reset()
 
-                | MapExtImplementation.MapNode(k,v,l,r,_,_)  ->
-                    match l with
-                    | MapExtImplementation.MapEmpty ->
-                        match r with
-                        | MapExtImplementation.MapEmpty ->
-                            stack <- rest
-                        | r ->
-                            stack <- r :: rest
-
-                        current <- v
-                        true
-                    | _ ->
-                        match r with
-                        | MapExtImplementation.MapEmpty ->
-                            stack <- l :: MapExtImplementation.MapOne(k, v) :: rest
-                            x.MoveNext()
-                        | _ ->
-                            stack <- l :: MapExtImplementation.MapOne(k, v) :: r :: rest
-                            x.MoveNext()
-
-    member x.Current 
-        with get() = current
-                
-    member x.Dispose() = ()
-
-    interface System.Collections.IEnumerator with
-        member x.Current = current :> obj
-        member x.MoveNext() = x.MoveNext()
-        member x.Reset() =
-            stack <- [m]
-            current <- Unchecked.defaultof<_>
-                    
     interface IEnumerator<'T> with
-        member x.Current = current
-        member x.Dispose() =
-            stack <- []
-            current <- Unchecked.defaultof<_>
+        member x.Current = x.Current
+        member x.Dispose() = r.Dispose()
 
 /// Functional operators for IndexList.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
