@@ -72,12 +72,12 @@ type Transaction() =
     /// Gets or sets the transaction currently running on this thread (if any)
     static member Running
         with get() = Transaction.RunningTransaction
-        and internal set r = Transaction.RunningTransaction <- r
+        and set r = Transaction.RunningTransaction <- r
 
     /// Gets or sets the transaction currently being built on this thread (via transact (fun () -> ...))
     static member Current
         with get() = Transaction.CurrentTransaction
-        and internal set r = Transaction.CurrentTransaction <- r
+        and set r = Transaction.CurrentTransaction <- r
 
     /// Indicates if inside a running Transaction
     static member HasRunning =
