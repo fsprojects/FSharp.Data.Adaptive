@@ -1,3 +1,6 @@
+### 1.0.1
+* exposed ThreadStatic fields
+
 ### 1.0.0
 * stable release
 
