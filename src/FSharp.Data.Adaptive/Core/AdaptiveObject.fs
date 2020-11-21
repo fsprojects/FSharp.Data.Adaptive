@@ -6,11 +6,14 @@ open System.Runtime.CompilerServices
 
 #nowarn "7331"
 
+
+
 /// Core implementation of IAdaptiveObject containing tools for evaluation
 /// and locking
 [<AbstractClass>]
 type AdaptiveObject() =
-    
+
+
     [<DefaultValue; ThreadStatic>]
     static val mutable private CurrentEvaluationDepth : int
 
@@ -87,7 +90,8 @@ type AdaptiveObject() =
         member x.Level
             with get() = x.Level
             and set l = x.Level <- l
-   
+
+
 [<AutoOpen>]
 module AdadptiveObjectExtensions =
 
@@ -228,3 +232,67 @@ type ConstantObject() =
         member x.Level
             with get() = 0
             and set l = ()
+
+
+#if !FABLE_COMPILER
+
+/// A SynchronizationContext properly handling FSharp.Data.Adaptive's internal ThreadLocals in presense of
+/// WPF/WinForms-style lock-interception (code being executed on the main thread while locks contend).
+/// Due to our use of thread-locals/statics this interception breaks some of the system's internal state and 
+/// AdaptiveSynchronizationContext.Install() can be used to prevent this.
+type AdaptiveSynchronizationContext(captured : SynchronizationContext) =
+    inherit SynchronizationContext()
+
+    static let mutable installed = 0
+
+    do base.SetWaitNotificationRequired()
+
+    override x.CreateCopy() =
+        AdaptiveSynchronizationContext((if isNull captured then null else captured.CreateCopy())) :> SynchronizationContext
+
+    override x.Post(cp : SendOrPostCallback, s : Object) =
+        if isNull captured then base.Post(cp,s)
+        else captured.Post(cp,s)
+
+    override x.Send(cp : SendOrPostCallback, s : Object) = 
+        if isNull captured then base.Send(cp,s)
+        else captured.Post(cp,s)
+
+    override x.Wait(waitHandles : IntPtr[], waitAll : bool, millisecondsTimeout : int) =
+        // evacuate all thread-locals/static
+        let tc = Transaction.Current
+        let tr = Transaction.Running
+        let ad = AdaptiveObject.UnsafeEvaluationDepth
+        let ac = AfterEvaluateCallbacks.Callbacks
+        try
+            // reset all thread-locals/static to their default values
+            Transaction.Current <- None
+            Transaction.Running <- None
+            AdaptiveObject.UnsafeEvaluationDepth <- 0
+            AfterEvaluateCallbacks.Callbacks <- []
+
+            // run the inner code
+            try
+                if isNull captured then 
+                    base.Wait(waitHandles, waitAll, millisecondsTimeout)
+                else 
+                    captured.Wait(waitHandles, waitAll, millisecondsTimeout)
+            with _ -> 
+                reraise()
+        finally 
+            // reset all thread-locals/static to their initial values
+            Transaction.Current <- tc
+            Transaction.Running <- tr
+            AdaptiveObject.UnsafeEvaluationDepth <- ad
+            AfterEvaluateCallbacks.Callbacks <- ac
+
+    /// Installs the AdaptiveSynchronizationContext globally.  
+    static member Install() =
+        if Interlocked.Exchange(&installed, 1) = 0 then
+            System.Threading.SynchronizationContext.SetSynchronizationContext(
+                new AdaptiveSynchronizationContext(
+                    SynchronizationContext.Current
+                )
+            )
+
+#endif
