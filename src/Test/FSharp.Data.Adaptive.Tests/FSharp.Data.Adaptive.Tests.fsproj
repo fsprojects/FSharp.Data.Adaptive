@@ -17,6 +17,7 @@
     <Compile Include="Benchmarks\Map.fs" />
     <Compile Include="Benchmarks\Collect.fs" />
     <Compile Include="Benchmarks\Transact.fs" />
+    <Compile Include="Benchmarks\GetValue.fs" />
     <Compile Include="Utilities\Helpers.fs" />
     <Compile Include="Utilities\Generators.fs" />
     <Compile Include="Callbacks.fs" />

@@ -26,9 +26,13 @@ type ChangeableValue<'T>(value : 'T) =
                 x.MarkOutdated()
                 
     member x.GetValue (token: AdaptiveToken) =
-        x.EvaluateAlways token (fun _ ->
+        if Unchecked.isNull token.Caller then
+            x.OutOfDate <- false
             value
-        )
+        else
+            x.EvaluateAlways token (fun _ ->
+                value
+            )
 
     member x.UpdateTo(newValue: 'T) =
         if not (DefaultEquality.equals value newValue) then
@@ -66,14 +70,17 @@ module AVal =
         abstract member Compute: AdaptiveToken -> 'T
 
         member x.GetValue(token: AdaptiveToken) =
-            x.EvaluateAlways token (fun token ->
-                if x.OutOfDate then
-                    let v = x.Compute token
-                    valueCache <- v
-                    v
-                else
-                    valueCache                
-            )
+            if not x.OutOfDate && Unchecked.isNull token.Caller then
+                valueCache
+            else
+                x.EvaluateAlways token (fun token ->
+                    if x.OutOfDate then
+                        let v = x.Compute token
+                        valueCache <- v
+                        v
+                    else
+                        valueCache
+                )
 
         member private x.AsString =
             if x.OutOfDate then sprintf "aval*(%A)" valueCache

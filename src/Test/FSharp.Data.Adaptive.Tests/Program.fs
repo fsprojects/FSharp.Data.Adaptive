@@ -58,7 +58,8 @@ module Profile =
 [<EntryPoint>]
 let main _args =
     //Profile.run()
-    BenchmarkRunner.Run<Benchmarks.TransactBenchmark>() |> ignore
+    //BenchmarkRunner.Run<Benchmarks.TransactBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.MapBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.CollectBenchmark>() |> ignore
+    BenchmarkRunner.Run<Benchmarks.GetValueBenchmark>() |> ignore
     0
