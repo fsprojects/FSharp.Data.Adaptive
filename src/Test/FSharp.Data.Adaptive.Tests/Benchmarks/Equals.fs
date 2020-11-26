@@ -14,10 +14,12 @@ open BenchmarkDotNet.Attributes
 //|--------------------------- |-------------:|-----------:|-----------:|-------------:|---------:|------:|------:|----------:|
 //|            ReferenceEquals |     11.03 us |   0.404 us |   1.190 us |     10.71 us |        - |     - |     - |         - |
 //|              HashSetEquals |    788.45 us |  27.317 us |  80.545 us |    800.21 us | 305.6641 |     - |     - | 1920192 B |
-//|        HashSetEquals (NEW) |     23.27 us |   0.451 us |   0.501 us |            - |        - |     - |     - |         - |
-//| HashSetEqualsVirtual (NEW) |     71.35 us |   1.367 us |   1.279 us |            - |        - |     - |     - |         - |
 //|              Shadow_Equals |  1,123.63 us |  21.497 us |  20.108 us |  1,124.30 us | 406.2500 |     - |     - | 2560256 B |
 //|       Shadow_ShallowEquals | 12,480.33 us | 322.406 us | 950.622 us | 12,251.09 us |        - |     - |     - |         - |
+//|        HashSetEquals (NEW) |     23.27 us |   0.451 us |   0.501 us |            - |        - |     - |     - |         - |
+//| HashSetEqualsVirtual (NEW) |     71.35 us |   1.367 us |   1.279 us |            - |        - |     - |     - |         - |
+//|        Shadow_Equals (NEW) |    264.24 us |   5.235 us |  12.742 us |            - | 101.5625 |     - |     - |  640064 B |
+//| Shadow_ShallowEquals (NEW) | 12,115.89 us | 270.650 us | 798.016 us |            - |        - |     - |     - |         - |
 
 [<PlainExporter; MemoryDiagnoser>]
 type EqualsBenchmark() =
