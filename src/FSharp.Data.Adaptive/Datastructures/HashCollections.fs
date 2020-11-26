@@ -3382,12 +3382,19 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
 
     override x.Equals o =
         match o with
-        | :? HashSet<'T> as o -> HashSetNode.equals cmp root o.Root
+        | :? HashSet<'T> as o ->
+            if System.Object.ReferenceEquals(root, o.Root) then 
+                true
+            else
+                HashSetNode.equals cmp root o.Root
         | _ -> false
 
 
     member x.Equals(o : HashSet<'T>) =
-        HashSetNode.equals cmp root o.Root
+        if System.Object.ReferenceEquals(root, o.Root) then 
+            true
+        else 
+            HashSetNode.equals cmp root o.Root
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Single(value : 'T) =  
@@ -3680,11 +3687,18 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
 
     override x.Equals o =
         match o with
-        | :? HashMap<'K, 'V> as o -> HashMapNode.equals cmp root o.Root
+        | :? HashMap<'K, 'V> as o -> 
+            if System.Object.ReferenceEquals(root, o.Root) then
+                true
+            else
+                HashMapNode.equals cmp root o.Root
         | _ -> false
         
     member x.Equals(o : HashMap<'K, 'V>) =
-        HashMapNode.equals cmp root o.Root
+        if System.Object.ReferenceEquals(root, o.Root) then
+            true
+        else
+            HashMapNode.equals cmp root o.Root
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Single(key: 'K, value : 'V) =  
