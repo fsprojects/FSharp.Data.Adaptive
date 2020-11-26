@@ -176,8 +176,9 @@ type Transaction() =
                     e.ExitWrite()
 
                 // finally we enqueue all returned outputs
+                let outputs = outputs.Value
                 for i in 0 .. outputCount - 1 do
-                    let o = outputs.Value.[i]
+                    let o = outputs.[i]
                     o.InputChanged(x, e)
                     x.Enqueue o
 

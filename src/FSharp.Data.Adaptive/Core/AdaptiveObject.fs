@@ -176,7 +176,7 @@ module AdadptiveObjectExtensions =
             AdaptiveObject.UnsafeEvaluationDepth <- depth
             Monitor.Exit x
 
-            if depth = 0 && isNull (token.caller :> obj) && not Transaction.HasRunning then
+            if depth = 0 && Unchecked.isNull caller && not Transaction.HasRunning then
                 AfterEvaluateCallbacks.Run()
 
             res
