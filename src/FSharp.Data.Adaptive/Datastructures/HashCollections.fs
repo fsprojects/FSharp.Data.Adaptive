@@ -3598,61 +3598,70 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         let o = HashSet.OfArray elements
         HashSet<'T>(o.Comparer, o.Root)
         
+and HashSetEnumerator<'T> =
+    struct 
+        val private root : HashSetNode<'T>
+        val mutable private stack : list<HashSetNode<'T>>
+        val mutable private linked : HashSetLinked<'T>
+        val mutable private current : 'T
 
-and [<Sealed>] HashSetEnumerator<'T> internal(root: HashSetNode<'T>) =
-    let mutable stack = [root]
-    let mutable linked: HashSetLinked<'T> = null
-    let mutable current = Unchecked.defaultof<'T>
+        internal new(root: HashSetNode<'T>) = {
+            root = root
+            stack = [root];
+            linked = null;
+            current = Unchecked.defaultof<'T>    
+        }
 
-    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    member x.MoveNext() =
-        if isNull linked then
-            match stack with
-            | (:? HashSetEmpty<'T>) :: rest ->
-                stack <- rest 
-                x.MoveNext()
-            | (:? HashSetNoCollisionLeaf<'T> as l) :: rest ->
-                stack <- rest
-                current <- l.Value
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member x.MoveNext() =
+            if isNull x.linked then
+                match x.stack with
+                | (:? HashSetEmpty<'T>) :: rest ->
+                    x.stack <- rest 
+                    x.MoveNext()
+                | (:? HashSetNoCollisionLeaf<'T> as l) :: rest ->
+                    x.stack <- rest
+                    x.current <- l.Value
+                    true
+                | (:? HashSetCollisionLeaf<'T> as l) :: rest -> 
+                    x.stack <- rest
+                    x.current <- l.Value
+                    x.linked <- l.Next
+                    true
+                | (:? HashSetInner<'T> as n) :: rest ->
+                    x.stack <- n.Left:: n.Right:: rest
+                    x.MoveNext()
+                | _ ->
+                    false
+            else
+                x.current <- x.linked.Value
+                x.linked <- x.linked.Next
                 true
-            | (:? HashSetCollisionLeaf<'T> as l) :: rest -> 
-                stack <- rest
-                current <- l.Value
-                linked <- l.Next
-                true
-            | (:? HashSetInner<'T> as n) :: rest ->
-                stack <- n.Left:: n.Right:: rest
-                x.MoveNext()
-            | _ ->
-                false
-        else
-            current <- linked.Value
-            linked <- linked.Next
-            true
 
-    member x.Current
-        with [<MethodImpl(MethodImplOptions.AggressiveInlining)>] get() = current
+        member x.Current
+            with [<MethodImpl(MethodImplOptions.AggressiveInlining)>] get() = x.current
 
-    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    member x.Reset() =
-        stack <- [root]
-        linked <- null
-        current <- Unchecked.defaultof<_>
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member x.Reset() =
+            x.stack <- []
+            x.linked <- null
+            x.current <- Unchecked.defaultof<_>
 
-    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    member x.Dispose() =
-        stack <- []
-        linked <- null
-        current <- Unchecked.defaultof<_>
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member x.Dispose() =
+            x.stack <- []
+            x.linked <- null
+            x.current <- Unchecked.defaultof<_>
 
-    interface System.Collections.IEnumerator with
-        member x.MoveNext() = x.MoveNext()
-        member x.Current = x.Current:> obj
-        member x.Reset() = x.Reset()
+        interface System.Collections.IEnumerator with
+            member x.MoveNext() = x.MoveNext()
+            member x.Current = x.Current:> obj
+            member x.Reset() = x.Reset()
         
-    interface System.Collections.Generic.IEnumerator<'T> with
-        member x.Dispose() = x.Dispose()
-        member x.Current = x.Current
+        interface System.Collections.Generic.IEnumerator<'T> with
+            member x.Dispose() = x.Dispose()
+            member x.Current = x.Current
+    end
 
 
 [<Struct; CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}"); CompiledName("FSharpHashMap`2")>]
@@ -3956,12 +3965,13 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         
     member x.GetEnumerator() = new HashMapEnumerator<_,_>(root)
 
+    member x.GetStructEnumerator() = new HashMapStructEnumerator<_,_>(root)
+
     interface System.Collections.IEnumerable with 
         member x.GetEnumerator() = new HashMapEnumerator<_,_>(root) :> _
         
     interface System.Collections.Generic.IEnumerable<'K * 'V> with 
         member x.GetEnumerator() = new HashMapEnumerator<_,_>(root) :> _
-        
         
         
     new(elements : seq<'K * 'V>) = 
@@ -3985,111 +3995,135 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         HashMap<'K, 'V>(o.Comparer, o.Root)
     #endif
 
-and [<Sealed>] HashMapEnumerator<'K, 'V> internal(root: HashMapNode<'K, 'V>) =
-    let mutable stack = [root]
-    let mutable linked: HashMapLinked<'K, 'V> = null
-    let mutable current = Unchecked.defaultof<'K * 'V>
+and HashMapEnumerator<'K, 'V> =
+    struct 
+        val private root : HashMapNode<'K, 'V>
+        val mutable private stack : list<HashMapNode<'K, 'V>>
+        val mutable private  linked : HashMapLinked<'K, 'V>
+        val mutable private  current : 'K * 'V
 
-    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    member x.MoveNext() =
-        if isNull linked then
-            match stack with
-            | (:? HashMapEmpty<'K, 'V>) :: rest ->
-                stack <- rest 
-                x.MoveNext()
-            | (:? HashMapNoCollisionLeaf<'K, 'V> as l) :: rest ->
-                stack <- rest
-                current <- l.Key, l.Value
+        internal new (root: HashMapNode<'K, 'V>) = {
+            root = root;
+            stack = [root];
+            linked = null;
+            current = Unchecked.defaultof<'K * 'V>
+        }
+
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member x.MoveNext() =
+            if isNull x.linked then
+                match x.stack with
+                | (:? HashMapEmpty<'K, 'V>) :: rest ->
+                    x.stack <- rest 
+                    x.MoveNext()
+                | (:? HashMapNoCollisionLeaf<'K, 'V> as l) :: rest ->
+                    x.stack <- rest
+                    x.current <- (l.Key, l.Value)
+                    true
+                | (:? HashMapCollisionLeaf<'K, 'V> as l) :: rest -> 
+                    x.stack <- rest
+                    x.current <- (l.Key, l.Value)
+                    x.linked <- l.Next
+                    true
+                | (:? HashMapInner<'K, 'V> as n) :: rest ->
+                    x.stack <- n.Left:: n.Right:: rest
+                    x.MoveNext()
+                | _ ->
+                    false
+            else
+                x.current <- (x.linked.Key, x.linked.Value)
+                x.linked <- x.linked.Next
                 true
-            | (:? HashMapCollisionLeaf<'K, 'V> as l) :: rest -> 
-                stack <- rest
-                current <- l.Key, l.Value
-                linked <- l.Next
-                true
-            | (:? HashMapInner<'K, 'V> as n) :: rest ->
-                stack <- n.Left:: n.Right:: rest
-                x.MoveNext()
-            | _ ->
-                false
-        else
-            current <- (linked.Key, linked.Value)
-            linked <- linked.Next
-            true
     
-    member x.Current 
-        with [<MethodImpl(MethodImplOptions.AggressiveInlining)>] get () = current
+        member x.Current 
+            with [<MethodImpl(MethodImplOptions.AggressiveInlining)>] get() = x.current
 
-    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    member x.Reset() =
-        stack <- [root]
-        linked <- null
-        current <- Unchecked.defaultof<_>
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member x.Reset() =
+            x.stack <- [x.root]
+            x.linked <- null
+            x.current <- Unchecked.defaultof<_>
 
-    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    member x.Dispose() =
-        stack <- []
-        linked <- null
-        current <- Unchecked.defaultof<_>
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member x.Dispose() =
+            x.stack <- []
+            x.linked <- null
+            x.current <- Unchecked.defaultof<_>
 
-    interface System.Collections.IEnumerator with
-        member x.MoveNext() = x.MoveNext()
-        member x.Current = x.Current:> obj
-        member x.Reset() = x.Reset()
+        interface System.Collections.IEnumerator with
+            member x.MoveNext() = x.MoveNext()
+            member x.Current = x.Current:> obj
+            member x.Reset() = x.Reset()
         
-    interface System.Collections.Generic.IEnumerator<'K * 'V> with
-        member x.Dispose() = x.Dispose()
-        member x.Current = x.Current
+        interface System.Collections.Generic.IEnumerator<'K * 'V> with
+            member x.Dispose() = x.Dispose()
+            member x.Current = x.Current
+    end
 
-and internal HashMapStructEnumerator<'K, 'V>(root: HashMapNode<'K, 'V>) =
-    let mutable stack = [root]
-    let mutable linked: HashMapLinked<'K, 'V> = null
-    let mutable current = Unchecked.defaultof<struct ('K * 'V)>
+and HashMapStructEnumerator<'K, 'V> =
+    struct 
+        val private root : HashMapNode<'K, 'V>
+        val mutable private stack : list<HashMapNode<'K, 'V>>
+        val mutable private  linked : HashMapLinked<'K, 'V>
+        val mutable private  current : struct ('K * 'V)
 
-    member x.MoveNext() =
-        if isNull linked then
-            match stack with
-            | (:? HashMapEmpty<'K, 'V>) :: rest ->
-                stack <- rest 
-                x.MoveNext()
-            | (:? HashMapNoCollisionLeaf<'K, 'V> as l) :: rest ->
-                stack <- rest
-                current <- struct (l.Key, l.Value)
+        internal new (root: HashMapNode<'K, 'V>) = {
+            root = root;
+            stack = [root];
+            linked = null;
+            current = Unchecked.defaultof<struct ('K * 'V)>
+        }
+
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member x.MoveNext() =
+            if isNull x.linked then
+                match x.stack with
+                | (:? HashMapEmpty<'K, 'V>) :: rest ->
+                    x.stack <- rest 
+                    x.MoveNext()
+                | (:? HashMapNoCollisionLeaf<'K, 'V> as l) :: rest ->
+                    x.stack <- rest
+                    x.current <- struct (l.Key, l.Value)
+                    true
+                | (:? HashMapCollisionLeaf<'K, 'V> as l) :: rest -> 
+                    x.stack <- rest
+                    x.current <- struct (l.Key, l.Value)
+                    x.linked <- l.Next
+                    true
+                | (:? HashMapInner<'K, 'V> as n) :: rest ->
+                    x.stack <- n.Left:: n.Right:: rest
+                    x.MoveNext()
+                | _ ->
+                    false
+            else
+                x.current <- struct (x.linked.Key, x.linked.Value)
+                x.linked <- x.linked.Next
                 true
-            | (:? HashMapCollisionLeaf<'K, 'V> as l) :: rest -> 
-                stack <- rest
-                current <- struct (l.Key, l.Value)
-                linked <- l.Next
-                true
-            | (:? HashMapInner<'K, 'V> as n) :: rest ->
-                stack <- n.Left:: n.Right:: rest
-                x.MoveNext()
-            | _ ->
-                false
-        else
-            current <- struct (linked.Key, linked.Value)
-            linked <- linked.Next
-            true
     
-    member x.Current = current
+        member x.Current 
+            with [<MethodImpl(MethodImplOptions.AggressiveInlining)>] get() = x.current
 
-    member x.Reset() =
-        stack <- [root]
-        linked <- null
-        current <- Unchecked.defaultof<_>
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member x.Reset() =
+            x.stack <- [x.root]
+            x.linked <- null
+            x.current <- Unchecked.defaultof<_>
 
-    member x.Dispose() =
-        stack <- []
-        linked <- null
-        current <- Unchecked.defaultof<_>
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member x.Dispose() =
+            x.stack <- []
+            x.linked <- null
+            x.current <- Unchecked.defaultof<_>
 
-    interface System.Collections.IEnumerator with
-        member x.MoveNext() = x.MoveNext()
-        member x.Current = x.Current:> obj
-        member x.Reset() = x.Reset()
+        interface System.Collections.IEnumerator with
+            member x.MoveNext() = x.MoveNext()
+            member x.Current = x.Current:> obj
+            member x.Reset() = x.Reset()
         
-    interface System.Collections.Generic.IEnumerator<struct ('K * 'V)> with
-        member x.Dispose() = x.Dispose()
-        member x.Current = x.Current
+        interface System.Collections.Generic.IEnumerator<struct ('K * 'V)> with
+            member x.Dispose() = x.Dispose()
+            member x.Current = x.Current
+    end
 
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

@@ -44,6 +44,30 @@ Intel Core i7-4790K CPU 4.00GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
 |  IndexListSeq | 181.010 ns | 0.5090 ns | 0.4513 ns | 0.0560 |     - |     - |     264 B |
 | IndexListIter |  74.670 ns | 0.2800 ns | 0.2482 ns | 0.0101 |     - |     - |      48 B |
 | IndexListFold |  69.336 ns | 0.1507 ns | 0.1336 ns | 0.0050 |     - |     - |      24 B |
+
+
+Class:
+|  Method | Size |     Mean |    Error |   StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------- |----- |---------:|---------:|---------:|-------:|------:|------:|----------:|
+| HashSet |    0 | 20.88 ns | 0.104 ns | 0.092 ns | 0.0127 |     - |     - |      80 B |
+| HashSet |    1 | 21.42 ns | 0.187 ns | 0.175 ns | 0.0127 |     - |     - |      80 B |
+| HashSet |    2 | 40.95 ns | 0.495 ns | 0.463 ns | 0.0229 |     - |     - |     144 B |
+| HashSet |    5 | 94.55 ns | 0.409 ns | 0.383 ns | 0.0535 |     - |     - |     336 B |
+| HashSet |   10 | 194.4 ns |  3.85 ns |  3.95 ns | 0.1044 |     - |     - |     656 B |
+| HashSet |   20 | 402.5 ns |  4.99 ns |  4.66 ns | 0.2065 |     - |     - |    1296 B |
+| HashSet |   30 | 638.6 ns | 12.62 ns | 18.90 ns | 0.3080 |     - |     - |    1936 B |
+
+Struct:
+|  Method | Size |     Mean |    Error |   StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------- |----- |---------:|---------:|---------:|-------:|------:|------:|----------:|
+| HashSet |    0 |  10.94 ns | 0.107 ns | 0.095 ns | 0.0051 |     - |     - |      32 B |
+| HashSet |    1 |  12.27 ns | 0.269 ns | 0.464 ns | 0.0051 |     - |     - |      32 B |
+| HashSet |    2 |  30.27 ns | 0.575 ns | 0.538 ns | 0.0153 |     - |     - |      96 B |
+| HashSet |    5 |  91.30 ns | 0.493 ns | 0.437 ns | 0.0459 |     - |     - |     288 B |
+| HashSet |   10 | 192.20 ns | 1.010 ns | 0.900 ns | 0.0968 |     - |     - |     608 B |
+| HashSet |   20 | 390.20 ns | 2.930 ns | 2.600 ns | 0.1988 |     - |     - |    1248 B |
+| HashSet |   30 | 595.00 ns | 5.500 ns | 4.600 ns | 0.3004 |     - |     - |    1888 B |
+
 *)
 
 type ArrayEnumerator2<'a> =
@@ -140,10 +164,14 @@ type EnumeratorBenchmark() =
     let mutable indexlist = IndexList.ofArray arr
     let mutable indexlistSeq = indexlist :> seq<_>
     let mutable hashset = HashSet.ofArray arr
+    let mutable hashSetDelta = HashSetDelta.ofArray (arr |> Array.map (fun x -> SetOperation.add x))
     let mutable arrEnum = ArrayEnumerable(arr)
     let mutable arrEnumStruct = ArrayEnumerable2(arr)
-    
-    [<DefaultValue; Params(10)>] //, 20, 30, 50, 100, 500)>]
+    let mutable hashmap = HashMap.ofArray (arr |> Array.map (fun x -> (x, x)))
+        
+    //[<DefaultValue; Params(0, 1, 2, 5, 10, 20, 30, 50, 100, 500)>]
+    [<DefaultValue; Params(0, 1, 2, 5, 10, 20, 30)>]
+    //[<DefaultValue; Params(0, 1, 2)>]
     val mutable public Size : int
     
     [<GlobalSetup>]
@@ -157,6 +185,8 @@ type EnumeratorBenchmark() =
         hashset <- HashSet.ofArray arr
         arrEnum <- ArrayEnumerable(arr)
         arrEnumStruct <- ArrayEnumerable2(arr)
+        hashSetDelta <- HashSetDelta.ofArray (arr |> Array.map (fun x -> SetOperation.add x))
+        hashmap <- HashMap.ofArray (arr |> Array.map (fun x -> (x, x)))
 
 
     /// Baseline with cache coherent collection
@@ -222,6 +252,29 @@ type EnumeratorBenchmark() =
         let mutable sum = 0
         for a in hashset do
             sum <- sum + a
+        sum
+
+    [<Benchmark>]
+    member x.HashSetDelta() =
+        let mutable sum = 0
+        for a in hashSetDelta do
+            sum <- sum + a.Value
+        sum
+
+    [<Benchmark>]
+    member x.HashMap() =
+        let mutable sum = 0
+        for (a, b) in hashmap do
+            sum <- sum + a
+        sum
+
+    [<Benchmark>]
+    member x.HashMapStructEnum() =
+        let mutable sum = 0
+        let mutable e = hashmap.GetStructEnumerator()
+        while e.MoveNext() do
+            let struct (k,v) = e.Current
+            sum <- sum + k
         sum
 
     [<Benchmark>]
