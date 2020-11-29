@@ -333,6 +333,28 @@ type internal MapExtEnumerator0<'Key, 'Value when 'Key : comparison> =
         val mutable public _Current : KeyValuePair<'Key, 'Value>
 
 
+        member x.MoveNext (current : MapExtImplementation.MapTree<_,_>) =
+            match current with
+            | MapExtImplementation.MapNode(k,v,l,r,_,_) ->
+                if x.MoveNext l then
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack <- r :: x._Stack
+                    x._Stack <- MapExtImplementation.MapOne(k, v) :: x._Stack
+                    true
+                else
+                    x._Current <- KeyValuePair(k, v)
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack <- r :: x._Stack
+                    true
+            | MapExtImplementation.MapOne(k, v) ->
+                x._Current <- KeyValuePair(k, v)
+                true
+            | _ ->
+                false
+
+
         member x.MoveNext() =
             match x._Stack with
             | MapExtImplementation.MapEmpty :: _ ->
@@ -368,16 +390,16 @@ type internal MapExtEnumerator0<'Key, 'Value when 'Key : comparison> =
             | [] ->
                 false
 
-        member x.Current = x._Current
+        member inline x.Current = x._Current
 
-        member x.Reset() = 
+        member inline x.Reset() = 
             x._Current <- Unchecked.defaultof<_>
             x._Stack <- []
             match x._Root with
             | MapExtImplementation.MapEmpty -> ()
             | r -> x._Stack <- r :: x._Stack
 
-        member x.Dispose() =
+        member inline x.Dispose() =
             x._Current <- Unchecked.defaultof<_>
             x._Stack <- []
             x._Root <- MapExtImplementation.MapEmpty
@@ -409,49 +431,52 @@ type internal MapExtEnumerator2<'Key, 'Value when 'Key : comparison> =
         val mutable public _Current : KeyValuePair<'Key, 'Value>
 
 
-        member x.MoveNext() =
-            if x._Stack.Count > 0 then
-                match x._Stack.Pop() with
+        member x.MoveNext(top : MapExtImplementation.MapTree<_,_>) =
+            match top with
+            | MapExtImplementation.MapEmpty ->
+                failwith "invalid state"
+            | MapExtImplementation.MapOne(k, v) ->
+                x._Current <- KeyValuePair(k, v)
+                true
+            | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
+                match l with
                 | MapExtImplementation.MapEmpty ->
-                    failwith "invalid state"
-                | MapExtImplementation.MapOne(k, v) ->
-                    x._Current <- KeyValuePair(k, v)
+                    x._Current <- KeyValuePair(k,v)
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack.Push r
                     true
-                | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
-                    match l with
-                    | MapExtImplementation.MapEmpty ->
-                        x._Current <- KeyValuePair(k,v)
-                        match r with
-                        | MapExtImplementation.MapEmpty -> ()
-                        | _ -> x._Stack.Push r
-                        true
-                    | MapExtImplementation.MapOne(lk, lv) ->
-                        x._Current <- KeyValuePair(lk, lv)
-                        match r with
-                        | MapExtImplementation.MapEmpty -> ()
-                        | _ -> x._Stack.Push r
-                        x._Stack.Push(MapExtImplementation.MapOne(k, v))
-                        true
-                    | l ->
-                        match r with
-                        | MapExtImplementation.MapEmpty -> ()
-                        | _ -> x._Stack.Push r
-                        x._Stack.Push(MapExtImplementation.MapOne(k, v))
-                        x._Stack.Push l
-                        x.MoveNext()
+                | MapExtImplementation.MapOne(lk, lv) ->
+                    x._Current <- KeyValuePair(lk, lv)
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack.Push r
+                    x._Stack.Push(MapExtImplementation.MapOne(k, v))
+                    true
+                | l ->
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack.Push r
+                    x._Stack.Push(MapExtImplementation.MapOne(k, v))
+                    x.MoveNext l
+
+        member inline x.MoveNext() =
+            if x._Stack.Count > 0 then
+                let e = x._Stack.Pop()
+                x.MoveNext e
             else
                 false
 
-        member x.Current = x._Current
+        member inline x.Current = x._Current
 
-        member x.Reset() = 
+        member inline x.Reset() = 
             x._Current <- Unchecked.defaultof<_>
             x._Stack <- InlineStack2()
             match x._Root with
             | MapExtImplementation.MapEmpty -> ()
             | r -> x._Stack.Push r
 
-        member x.Dispose() =
+        member inline x.Dispose() =
             x._Current <- Unchecked.defaultof<_>
             x._Stack <- InlineStack2()
             x._Root <- MapExtImplementation.MapEmpty
@@ -486,50 +511,54 @@ type internal MapExtEnumerator4<'Key, 'Value when 'Key : comparison> =
         val mutable public _Root : MapExtImplementation.MapTree<'Key, 'Value>
         val mutable public _Current : KeyValuePair<'Key, 'Value>
 
-
-        member x.MoveNext() =
-            if x._Stack.Count > 0 then
-                match x._Stack.Pop() with
+        
+        
+        member x.MoveNext(top : MapExtImplementation.MapTree<_,_>) =
+            match top with
+            | MapExtImplementation.MapEmpty ->
+                failwith "invalid state"
+            | MapExtImplementation.MapOne(k, v) ->
+                x._Current <- KeyValuePair(k, v)
+                true
+            | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
+                match l with
                 | MapExtImplementation.MapEmpty ->
-                    failwith "invalid state"
-                | MapExtImplementation.MapOne(k, v) ->
-                    x._Current <- KeyValuePair(k, v)
+                    x._Current <- KeyValuePair(k,v)
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack.Push r
                     true
-                | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
-                    match l with
-                    | MapExtImplementation.MapEmpty ->
-                        x._Current <- KeyValuePair(k,v)
-                        match r with
-                        | MapExtImplementation.MapEmpty -> ()
-                        | _ -> x._Stack.Push r
-                        true
-                    | MapExtImplementation.MapOne(lk, lv) ->
-                        x._Current <- KeyValuePair(lk, lv)
-                        match r with
-                        | MapExtImplementation.MapEmpty -> ()
-                        | _ -> x._Stack.Push r
-                        x._Stack.Push(MapExtImplementation.MapOne(k, v))
-                        true
-                    | l ->
-                        match r with
-                        | MapExtImplementation.MapEmpty -> ()
-                        | _ -> x._Stack.Push r
-                        x._Stack.Push(MapExtImplementation.MapOne(k, v))
-                        x._Stack.Push l
-                        x.MoveNext()
+                | MapExtImplementation.MapOne(lk, lv) ->
+                    x._Current <- KeyValuePair(lk, lv)
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack.Push r
+                    x._Stack.Push(MapExtImplementation.MapOne(k, v))
+                    true
+                | l ->
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack.Push r
+                    x._Stack.Push(MapExtImplementation.MapOne(k, v))
+                    x.MoveNext l
+
+        member inline x.MoveNext() =
+            if x._Stack.Count > 0 then
+                let e = x._Stack.Pop()
+                x.MoveNext e
             else
                 false
 
-        member x.Current = x._Current
+        member inline x.Current = x._Current
 
-        member x.Reset() = 
+        member inline x.Reset() = 
             x._Current <- Unchecked.defaultof<_>
             x._Stack <- InlineStack4()
             match x._Root with
             | MapExtImplementation.MapEmpty -> ()
             | r -> x._Stack.Push r
 
-        member x.Dispose() =
+        member inline x.Dispose() =
             x._Current <- Unchecked.defaultof<_>
             x._Stack <- InlineStack4()
             x._Root <- MapExtImplementation.MapEmpty
@@ -564,49 +593,53 @@ type internal MapExtEnumerator8<'Key, 'Value when 'Key : comparison> =
         val mutable public _Current : KeyValuePair<'Key, 'Value>
 
 
-        member x.MoveNext() =
-            if x._Stack.Count > 0 then
-                match x._Stack.Pop() with
+        
+        member x.MoveNext(top : MapExtImplementation.MapTree<_,_>) =
+            match top with
+            | MapExtImplementation.MapEmpty ->
+                failwith "invalid state"
+            | MapExtImplementation.MapOne(k, v) ->
+                x._Current <- KeyValuePair(k, v)
+                true
+            | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
+                match l with
                 | MapExtImplementation.MapEmpty ->
-                    failwith "invalid state"
-                | MapExtImplementation.MapOne(k, v) ->
-                    x._Current <- KeyValuePair(k, v)
+                    x._Current <- KeyValuePair(k,v)
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack.Push r
                     true
-                | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
-                    match l with
-                    | MapExtImplementation.MapEmpty ->
-                        x._Current <- KeyValuePair(k,v)
-                        match r with
-                        | MapExtImplementation.MapEmpty -> ()
-                        | _ -> x._Stack.Push r
-                        true
-                    | MapExtImplementation.MapOne(lk, lv) ->
-                        x._Current <- KeyValuePair(lk, lv)
-                        match r with
-                        | MapExtImplementation.MapEmpty -> ()
-                        | _ -> x._Stack.Push r
-                        x._Stack.Push(MapExtImplementation.MapOne(k, v))
-                        true
-                    | l ->
-                        match r with
-                        | MapExtImplementation.MapEmpty -> ()
-                        | _ -> x._Stack.Push r
-                        x._Stack.Push(MapExtImplementation.MapOne(k, v))
-                        x._Stack.Push l
-                        x.MoveNext()
+                | MapExtImplementation.MapOne(lk, lv) ->
+                    x._Current <- KeyValuePair(lk, lv)
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack.Push r
+                    x._Stack.Push(MapExtImplementation.MapOne(k, v))
+                    true
+                | l ->
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack.Push r
+                    x._Stack.Push(MapExtImplementation.MapOne(k, v))
+                    x.MoveNext l
+
+        member inline x.MoveNext() =
+            if x._Stack.Count > 0 then
+                let e = x._Stack.Pop()
+                x.MoveNext e
             else
                 false
 
-        member x.Current = x._Current
+        member inline x.Current = x._Current
 
-        member x.Reset() = 
+        member inline x.Reset() = 
             x._Current <- Unchecked.defaultof<_>
             x._Stack <- InlineStack8()
             match x._Root with
             | MapExtImplementation.MapEmpty -> ()
             | r -> x._Stack.Push r
 
-        member x.Dispose() =
+        member inline x.Dispose() =
             x._Current <- Unchecked.defaultof<_>
             x._Stack <- InlineStack8()
             x._Root <- MapExtImplementation.MapEmpty
@@ -642,49 +675,54 @@ type internal MapExtEnumerator12<'Key, 'Value when 'Key : comparison> =
         val mutable public _Current : KeyValuePair<'Key, 'Value>
 
 
-        member x.MoveNext() =
-            if x._Stack.Count > 0 then
-                match x._Stack.Pop() with
+
+        
+        member x.MoveNext(top : MapExtImplementation.MapTree<_,_>) =
+            match top with
+            | MapExtImplementation.MapEmpty ->
+                failwith "invalid state"
+            | MapExtImplementation.MapOne(k, v) ->
+                x._Current <- KeyValuePair(k, v)
+                true
+            | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
+                match l with
                 | MapExtImplementation.MapEmpty ->
-                    failwith "invalid state"
-                | MapExtImplementation.MapOne(k, v) ->
-                    x._Current <- KeyValuePair(k, v)
+                    x._Current <- KeyValuePair(k,v)
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack.Push r
                     true
-                | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
-                    match l with
-                    | MapExtImplementation.MapEmpty ->
-                        x._Current <- KeyValuePair(k,v)
-                        match r with
-                        | MapExtImplementation.MapEmpty -> ()
-                        | _ -> x._Stack.Push r
-                        true
-                    | MapExtImplementation.MapOne(lk, lv) ->
-                        x._Current <- KeyValuePair(lk, lv)
-                        match r with
-                        | MapExtImplementation.MapEmpty -> ()
-                        | _ -> x._Stack.Push r
-                        x._Stack.Push(MapExtImplementation.MapOne(k, v))
-                        true
-                    | l ->
-                        match r with
-                        | MapExtImplementation.MapEmpty -> ()
-                        | _ -> x._Stack.Push r
-                        x._Stack.Push(MapExtImplementation.MapOne(k, v))
-                        x._Stack.Push l
-                        x.MoveNext()
+                | MapExtImplementation.MapOne(lk, lv) ->
+                    x._Current <- KeyValuePair(lk, lv)
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack.Push r
+                    x._Stack.Push(MapExtImplementation.MapOne(k, v))
+                    true
+                | l ->
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack.Push r
+                    x._Stack.Push(MapExtImplementation.MapOne(k, v))
+                    x.MoveNext l
+
+        member inline x.MoveNext() =
+            if x._Stack.Count > 0 then
+                let e = x._Stack.Pop()
+                x.MoveNext e
             else
                 false
 
-        member x.Current = x._Current
+        member inline x.Current = x._Current
 
-        member x.Reset() = 
+        member inline x.Reset() = 
             x._Current <- Unchecked.defaultof<_>
             x._Stack <- InlineStack12()
             match x._Root with
             | MapExtImplementation.MapEmpty -> ()
             | r -> x._Stack.Push r
 
-        member x.Dispose() =
+        member inline x.Dispose() =
             x._Current <- Unchecked.defaultof<_>
             x._Stack <- InlineStack12()
             x._Root <- MapExtImplementation.MapEmpty
@@ -719,49 +757,54 @@ type internal MapExtEnumerator16<'Key, 'Value when 'Key : comparison> =
         val mutable public _Current : KeyValuePair<'Key, 'Value>
 
 
-        member x.MoveNext() =
-            if x._Stack.Count > 0 then
-                match x._Stack.Pop() with
+
+        
+        member x.MoveNext(top : MapExtImplementation.MapTree<_,_>) =
+            match top with
+            | MapExtImplementation.MapEmpty ->
+                failwith "invalid state"
+            | MapExtImplementation.MapOne(k, v) ->
+                x._Current <- KeyValuePair(k, v)
+                true
+            | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
+                match l with
                 | MapExtImplementation.MapEmpty ->
-                    failwith "invalid state"
-                | MapExtImplementation.MapOne(k, v) ->
-                    x._Current <- KeyValuePair(k, v)
+                    x._Current <- KeyValuePair(k,v)
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack.Push r
                     true
-                | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
-                    match l with
-                    | MapExtImplementation.MapEmpty ->
-                        x._Current <- KeyValuePair(k,v)
-                        match r with
-                        | MapExtImplementation.MapEmpty -> ()
-                        | _ -> x._Stack.Push r
-                        true
-                    | MapExtImplementation.MapOne(lk, lv) ->
-                        x._Current <- KeyValuePair(lk, lv)
-                        match r with
-                        | MapExtImplementation.MapEmpty -> ()
-                        | _ -> x._Stack.Push r
-                        x._Stack.Push(MapExtImplementation.MapOne(k, v))
-                        true
-                    | l ->
-                        match r with
-                        | MapExtImplementation.MapEmpty -> ()
-                        | _ -> x._Stack.Push r
-                        x._Stack.Push(MapExtImplementation.MapOne(k, v))
-                        x._Stack.Push l
-                        x.MoveNext()
+                | MapExtImplementation.MapOne(lk, lv) ->
+                    x._Current <- KeyValuePair(lk, lv)
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack.Push r
+                    x._Stack.Push(MapExtImplementation.MapOne(k, v))
+                    true
+                | l ->
+                    match r with
+                    | MapExtImplementation.MapEmpty -> ()
+                    | _ -> x._Stack.Push r
+                    x._Stack.Push(MapExtImplementation.MapOne(k, v))
+                    x.MoveNext l
+
+        member inline x.MoveNext() =
+            if x._Stack.Count > 0 then
+                let e = x._Stack.Pop()
+                x.MoveNext e
             else
                 false
 
-        member x.Current = x._Current
+        member inline x.Current = x._Current
 
-        member x.Reset() = 
+        member inline x.Reset() = 
             x._Current <- Unchecked.defaultof<_>
             x._Stack <- InlineStack16()
             match x._Root with
             | MapExtImplementation.MapEmpty -> ()
             | r -> x._Stack.Push r
 
-        member x.Dispose() =
+        member inline x.Dispose() =
             x._Current <- Unchecked.defaultof<_>
             x._Stack <- InlineStack16()
             x._Root <- MapExtImplementation.MapEmpty
@@ -794,16 +837,13 @@ type internal MapExtEnumerator16<'Key, 'Value when 'Key : comparison> =
 type InlineStackBenchmark() =
 
     let mutable map : MapExt<int, int> = MapExt.empty
-    let mutable operations : array<int> = [||]
-    let mutable operationsd : array<double> = [||]
-    let mutable operationsq : array<decimal> = [||]
     
     [<DefaultValue; Params(5)>]
     val mutable public Count : int
 
 
 
-    member x.Check () =
+    static member Check () =
         let m = List.init 100 (fun i -> i, i) |> MapExt.ofList
 
         let res = System.Collections.Generic.List<_>()
@@ -811,68 +851,35 @@ type InlineStackBenchmark() =
         while e.MoveNext() do res.Add e.Current
         if Seq.toList res <> Seq.toList m then failwith "MapExtEnumerator0 bad"
 
-        let res = System.Collections.Generic.List<_>()
+        res.Clear()
         let mutable e = new MapExtEnumerator2<_,_>(m)
         while e.MoveNext() do res.Add e.Current
         if Seq.toList res <> Seq.toList m then failwith "MapExtEnumerator2 bad"
     
-        let res = System.Collections.Generic.List<_>()
+        res.Clear()
         let mutable e = new MapExtEnumerator4<_,_>(m)
         while e.MoveNext() do res.Add e.Current
         if Seq.toList res <> Seq.toList m then failwith "MapExtEnumerator4 bad"
     
-        let res = System.Collections.Generic.List<_>()
+        res.Clear()
         let mutable e = new MapExtEnumerator8<_,_>(m)
         while e.MoveNext() do res.Add e.Current
         if Seq.toList res <> Seq.toList m then failwith "MapExtEnumerator8 bad"
     
-        let res = System.Collections.Generic.List<_>()
+        res.Clear()
         let mutable e = new MapExtEnumerator12<_,_>(m)
         while e.MoveNext() do res.Add e.Current
         if Seq.toList res <> Seq.toList m then failwith "MapExtEnumerator12 bad"
     
-        let res = System.Collections.Generic.List<_>()
+        res.Clear()
         let mutable e = new MapExtEnumerator16<_,_>(m)
         while e.MoveNext() do res.Add e.Current
         if Seq.toList res <> Seq.toList m then failwith "MapExtEnumerator16 bad"
 
     [<GlobalSetup>]
     member x.Setup() =
-        x.Check()
-
-        let m = MapExt.ofList ([1.. x.Count] |> List.map (fun v -> v,v))
-
-        map <- m
-
-        let ops = System.Collections.Generic.List<int>()
-
-        let rec flatten (n : MapExtImplementation.MapTree<int, int>) =
-            match n with
-            | MapExtImplementation.MapEmpty ->
-                ()
-            | MapExtImplementation.MapNode(k,_,l,r,e,f) ->
-                ops.Add -1
-                match l with
-                | MapExtImplementation.MapEmpty -> ()
-                | MapExtImplementation.MapOne(k,_) -> ops.Add k
-                | MapExtImplementation.MapNode(k,_,_,_,_,_) -> ops.Add k
-                match r with
-                | MapExtImplementation.MapEmpty -> ()
-                | MapExtImplementation.MapOne(k,_) -> ops.Add k
-                | MapExtImplementation.MapNode(k,_,_,_,_,_) -> ops.Add k
-                flatten l
-                flatten r
-            | MapExtImplementation.MapOne(k,v) ->
-                ops.Add -1
-
-        match m.Tree with
-        | MapExtImplementation.MapEmpty -> ()
-        | MapExtImplementation.MapOne(k,_) -> ops.Add k
-        | MapExtImplementation.MapNode(k,_,_,_,_,_) -> ops.Add k
-        flatten m.Tree
-        operations <- Seq.toArray ops
-        operationsd <- Array.map float operations
-        operationsq <- Array.map decimal operations
+        InlineStackBenchmark.Check()
+        map <- MapExt.ofList ([1.. x.Count] |> List.map (fun v -> v,v))
 
         
     [<Benchmark>]
