@@ -58,53 +58,57 @@ type InlineStack16<'T> =
         [<DefaultValue(false)>]
         val mutable public Count : int
 
-        member inline x.Item
-            with get(i : int) =
-                let gc = GCHandle.FromIntPtr(NativePtr.toNativeInt &&x.Count - nativeint (16 - i) * nativeint sizeof<'T>)
-                gc.Target :?> 'T
-
-            and set (i : int) (value : 'T) =
-                let mutable gc = GCHandle.FromIntPtr(NativePtr.toNativeInt &&x.Count - nativeint (16 - i) * nativeint sizeof<'T>)
-                gc.Target <- value :> obj
-                
         member inline x.Push(value : 'T) =
-            if x.Count < 16 then x.[x.Count] <- value
-            elif isNull (x.Rest :> obj) then x.Rest <- [value]
-            else x.Rest <- value :: x.Rest
+            match x.Count with
+            | 0 -> x.E0 <- value
+            | 1 -> x.E1 <- value
+            | 2 -> x.E2 <- value
+            | 3 -> x.E3 <- value
+            | 4 -> x.E4 <- value
+            | 5 -> x.E5 <- value
+            | 6 -> x.E6 <- value
+            | 7 -> x.E7 <- value
+            | 8 -> x.E8 <- value
+            | 9 -> x.E9 <- value
+            | 10 -> x.E10 <- value
+            | 11 -> x.E11 <- value
+            | 12 -> x.E12 <- value
+            | 13 -> x.E13 <- value
+            | 14 -> x.E14 <- value
+            | 15 -> x.E15 <- value
+            | _ -> 
+                if isNull (x.Rest :> obj) then x.Rest <- [value]
+                else x.Rest <- value :: x.Rest
+
             x.Count <- x.Count + 1
 
         member inline x.Pop() =
             let c = x.Count
             if c <= 0 then raise <| System.IndexOutOfRangeException()
             x.Count <- c - 1
-            if c <= 16 then x.[c-1]
-            else
+
+            match c with
+            | 1 -> InlineStackUtilities.get &x.E0
+            | 2 -> InlineStackUtilities.get &x.E1
+            | 3 -> InlineStackUtilities.get &x.E2
+            | 4 -> InlineStackUtilities.get &x.E3
+            | 5 -> InlineStackUtilities.get &x.E4
+            | 6 -> InlineStackUtilities.get &x.E5
+            | 7 -> InlineStackUtilities.get &x.E6
+            | 8 -> InlineStackUtilities.get &x.E7
+            | 9 -> InlineStackUtilities.get &x.E8
+            | 10 -> InlineStackUtilities.get &x.E9
+            | 11 -> InlineStackUtilities.get &x.E10
+            | 12 -> InlineStackUtilities.get &x.E11
+            | 13 -> InlineStackUtilities.get &x.E12
+            | 14 -> InlineStackUtilities.get &x.E13
+            | 15 -> InlineStackUtilities.get &x.E14
+            | 16 -> InlineStackUtilities.get &x.E15
+            | _ ->
                 if isNull (x.Rest :> obj) then failwith "invalid state"
                 let h = List.head x.Rest
                 x.Rest <- List.tail x.Rest
                 h
-            //match c with
-            //| 1 -> InlineStackUtilities.get &x.E0
-            //| 2 -> InlineStackUtilities.get &x.E1
-            //| 3 -> InlineStackUtilities.get &x.E2
-            //| 4 -> InlineStackUtilities.get &x.E3
-            //| 5 -> InlineStackUtilities.get &x.E4
-            //| 6 -> InlineStackUtilities.get &x.E5
-            //| 7 -> InlineStackUtilities.get &x.E6
-            //| 8 -> InlineStackUtilities.get &x.E7
-            //| 9 -> InlineStackUtilities.get &x.E8
-            //| 10 -> InlineStackUtilities.get &x.E9
-            //| 11 -> InlineStackUtilities.get &x.E10
-            //| 12 -> InlineStackUtilities.get &x.E11
-            //| 13 -> InlineStackUtilities.get &x.E12
-            //| 14 -> InlineStackUtilities.get &x.E13
-            //| 15 -> InlineStackUtilities.get &x.E14
-            //| 16 -> InlineStackUtilities.get &x.E15
-            //| _ ->
-            //    if isNull (x.Rest :> obj) then failwith "invalid state"
-            //    let h = List.head x.Rest
-            //    x.Rest <- List.tail x.Rest
-            //    h
     end
 
 [<NoComparison; NoEquality>]
@@ -138,28 +142,44 @@ type InlineStack12<'T> =
         val mutable public E11 : 'T
         [<DefaultValue(false)>]
         val mutable public Count : int
-        
-        member inline x.Item
-            with get(i : int) =
-                let gc = GCHandle.FromIntPtr(NativePtr.toNativeInt &&x.Count - nativeint (12 - i) * nativeint sizeof<'T>)
-                gc.Target :?> 'T
 
-            and set (i : int) (value : 'T) =
-                let mutable gc = GCHandle.FromIntPtr(NativePtr.toNativeInt &&x.Count - nativeint (12 - i) * nativeint sizeof<'T>)
-                gc.Target <- value :> obj
-                
         member inline x.Push(value : 'T) =
-            if x.Count < 12 then x.[x.Count] <- value
-            elif isNull (x.Rest :> obj) then x.Rest <- [value]
-            else x.Rest <- value :: x.Rest
+            match x.Count with
+            | 0 -> x.E0 <- value
+            | 1 -> x.E1 <- value
+            | 2 -> x.E2 <- value
+            | 3 -> x.E3 <- value
+            | 4 -> x.E4 <- value
+            | 5 -> x.E5 <- value
+            | 6 -> x.E6 <- value
+            | 7 -> x.E7 <- value
+            | 8 -> x.E8 <- value
+            | 9 -> x.E9 <- value
+            | 10 -> x.E10 <- value
+            | 11 -> x.E11 <- value
+            | _ -> 
+                if isNull (x.Rest :> obj) then x.Rest <- [value]
+                else x.Rest <- value :: x.Rest
             x.Count <- x.Count + 1
 
         member inline x.Pop() =
             let c = x.Count
             if c <= 0 then raise <| System.IndexOutOfRangeException()
             x.Count <- c - 1
-            if c <= 12 then x.[c-1]
-            else 
+            match c with
+            | 1 -> InlineStackUtilities.get &x.E0
+            | 2 -> InlineStackUtilities.get &x.E1
+            | 3 -> InlineStackUtilities.get &x.E2
+            | 4 -> InlineStackUtilities.get &x.E3
+            | 5 -> InlineStackUtilities.get &x.E4
+            | 6 -> InlineStackUtilities.get &x.E5
+            | 7 -> InlineStackUtilities.get &x.E6
+            | 8 -> InlineStackUtilities.get &x.E7
+            | 9 -> InlineStackUtilities.get &x.E8
+            | 10 -> InlineStackUtilities.get &x.E9
+            | 11 -> InlineStackUtilities.get &x.E10
+            | 12 -> InlineStackUtilities.get &x.E11
+            | _ ->
                 if isNull (x.Rest :> obj) then failwith "invalid state"
                 let h = List.head x.Rest
                 x.Rest <- List.tail x.Rest
@@ -190,28 +210,36 @@ type InlineStack8<'T> =
         val mutable public E7 : 'T
         [<DefaultValue(false)>]
         val mutable public Count : int
-        
-        member inline x.Item
-            with get(i : int) =
-                let gc = GCHandle.FromIntPtr(NativePtr.toNativeInt &&x.Count - nativeint (8 - i) * nativeint sizeof<'T>)
-                gc.Target :?> 'T
 
-            and set (i : int) (value : 'T) =
-                let mutable gc = GCHandle.FromIntPtr(NativePtr.toNativeInt &&x.Count - nativeint (8 - i) * nativeint sizeof<'T>)
-                gc.Target <- value :> obj
-                
         member inline x.Push(value : 'T) =
-            if x.Count < 8 then x.[x.Count] <- value
-            elif isNull (x.Rest :> obj) then x.Rest <- [value]
-            else x.Rest <- value :: x.Rest
+            match x.Count with
+            | 0 -> x.E0 <- value
+            | 1 -> x.E1 <- value
+            | 2 -> x.E2 <- value
+            | 3 -> x.E3 <- value
+            | 4 -> x.E4 <- value
+            | 5 -> x.E5 <- value
+            | 6 -> x.E6 <- value
+            | 7 -> x.E7 <- value
+            | _ -> 
+                if isNull (x.Rest :> obj) then x.Rest <- [value]
+                else x.Rest <- value :: x.Rest
             x.Count <- x.Count + 1
 
         member inline x.Pop() =
             let c = x.Count
             if c <= 0 then raise <| System.IndexOutOfRangeException()
             x.Count <- c - 1
-            if c <= 8 then x.[c-1]
-            else
+            match c with
+            | 1 -> InlineStackUtilities.get &x.E0
+            | 2 -> InlineStackUtilities.get &x.E1
+            | 3 -> InlineStackUtilities.get &x.E2
+            | 4 -> InlineStackUtilities.get &x.E3
+            | 5 -> InlineStackUtilities.get &x.E4
+            | 6 -> InlineStackUtilities.get &x.E5
+            | 7 -> InlineStackUtilities.get &x.E6
+            | 8 -> InlineStackUtilities.get &x.E7
+            | _ ->
                 if isNull (x.Rest :> obj) then failwith "invalid state"
                 let h = List.head x.Rest
                 x.Rest <- List.tail x.Rest
@@ -233,28 +261,28 @@ type InlineStack4<'T> =
         val mutable public E3 : 'T
         [<DefaultValue(false)>]
         val mutable public Count : int
-        
-        member inline x.Item
-            with get(i : int) =
-                let gc = GCHandle.FromIntPtr(NativePtr.toNativeInt &&x.Count - nativeint (4 - i) * nativeint sizeof<'T>)
-                gc.Target :?> 'T
 
-            and set (i : int) (value : 'T) =
-                let mutable gc = GCHandle.FromIntPtr(NativePtr.toNativeInt &&x.Count - nativeint (4 - i) * nativeint sizeof<'T>)
-                gc.Target <- value :> obj
-                
         member inline x.Push(value : 'T) =
-            if x.Count < 4 then x.[x.Count] <- value
-            elif isNull (x.Rest :> obj) then x.Rest <- [value]
-            else x.Rest <- value :: x.Rest
+            match x.Count with
+            | 0 -> x.E0 <- value
+            | 1 -> x.E1 <- value
+            | 2 -> x.E2 <- value
+            | 3 -> x.E3 <- value
+            | _ -> 
+                if isNull (x.Rest :> obj) then x.Rest <- [value]
+                else x.Rest <- value :: x.Rest
             x.Count <- x.Count + 1
 
         member inline x.Pop() =
             let c = x.Count
             if c <= 0 then raise <| System.IndexOutOfRangeException()
             x.Count <- c - 1
-            if c <= 4 then x.[c-1]
-            else
+            match c with
+            | 1 -> InlineStackUtilities.get &x.E0
+            | 2 -> InlineStackUtilities.get &x.E1
+            | 3 -> InlineStackUtilities.get &x.E2
+            | 4 -> InlineStackUtilities.get &x.E3
+            | _ ->
                 if isNull (x.Rest :> obj) then failwith "invalid state"
                 let h = List.head x.Rest
                 x.Rest <- List.tail x.Rest
@@ -272,28 +300,24 @@ type InlineStack2<'T> =
         val mutable public E1 : 'T
         [<DefaultValue(false)>]
         val mutable public Count : int
-        
-        member inline x.Item
-            with get(i : int) =
-                let gc = GCHandle.FromIntPtr(NativePtr.toNativeInt &&x.Count - nativeint (4 - i) * nativeint sizeof<'T>)
-                gc.Target :?> 'T
 
-            and set (i : int) (value : 'T) =
-                let mutable gc = GCHandle.FromIntPtr(NativePtr.toNativeInt &&x.Count - nativeint (4 - i) * nativeint sizeof<'T>)
-                gc.Target <- value :> obj
-                
         member inline x.Push(value : 'T) =
-            if x.Count < 2 then x.[x.Count] <- value
-            elif isNull (x.Rest :> obj) then x.Rest <- [value]
-            else x.Rest <- value :: x.Rest
+            match x.Count with
+            | 0 -> x.E0 <- value
+            | 1 -> x.E1 <- value
+            | _ -> 
+                if isNull (x.Rest :> obj) then x.Rest <- [value]
+                else x.Rest <- value :: x.Rest
             x.Count <- x.Count + 1
 
         member inline x.Pop() =
             let c = x.Count
             if c <= 0 then raise <| System.IndexOutOfRangeException()
             x.Count <- c - 1
-            if c <= 2 then x.[c-1]
-            else
+            match c with
+            | 1 -> InlineStackUtilities.get &x.E0
+            | 2 -> InlineStackUtilities.get &x.E1
+            | _ ->
                 if isNull (x.Rest :> obj) then failwith "invalid state"
                 let h = List.head x.Rest
                 x.Rest <- List.tail x.Rest
@@ -774,7 +798,7 @@ type InlineStackBenchmark() =
     let mutable operationsd : array<double> = [||]
     let mutable operationsq : array<decimal> = [||]
     
-    [<DefaultValue; Params(1, 5, 10, 50, 100, 200, 500, 1000, 5000)>]
+    [<DefaultValue; Params(5)>]
     val mutable public Count : int
 
 
