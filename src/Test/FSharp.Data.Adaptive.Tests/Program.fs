@@ -62,5 +62,6 @@ let main _args =
     //BenchmarkRunner.Run<Benchmarks.MapBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.CollectBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.EnumeratorBenchmark>() |> ignore
+    Benchmarks.InlineStackBenchmark.Check()
     BenchmarkRunner.Run<Benchmarks.InlineStackBenchmark>() |> ignore
     0
