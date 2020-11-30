@@ -3600,39 +3600,80 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         
 and HashSetEnumerator<'T> =
     struct 
-        val private root : HashSetNode<'T>
-        val mutable private stack : list<HashSetNode<'T>>
+        val mutable private root : HashSetNode<'T>
+        //val mutable private stack : list<HashSetNode<'T>>
+        val mutable private head : HashSetNode<'T>
+        val mutable private tail : list<HashSetNode<'T>>
         val mutable private linked : HashSetLinked<'T>
         val mutable private current : 'T
 
-        internal new(root: HashSetNode<'T>) = {
-            root = root
-            stack = [root];
-            linked = null;
-            current = Unchecked.defaultof<'T>    
-        }
+        internal new(root: HashSetNode<'T>) = 
+            {
+                root = root
+                head = root
+                tail = []
+                //stack = [root]
+                linked = null
+                current = Unchecked.defaultof<'T>    
+            }
 
         [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
         member x.MoveNext() =
-            if isNull x.linked then
-                match x.stack with
-                | (:? HashSetEmpty<'T>) :: rest ->
-                    x.stack <- rest 
-                    x.MoveNext()
-                | (:? HashSetNoCollisionLeaf<'T> as l) :: rest ->
-                    x.stack <- rest
+           if isNull x.linked then
+
+                //match head with
+                //| :? HashSetEmpty<'T> ->
+                //    x.stack <- tail
+                //    x.MoveNext()
+                //| :? HashSetNoCollisionLeaf<'T> as l ->
+                //    x.stack <- tail
+                //    x.current <- l.Value
+                //    true
+                //| :? HashSetCollisionLeaf<'T> as l -> 
+                //    x.stack <- tail
+                //    x.current <- l.Value
+                //    x.linked <- l.Next
+                //    true
+                //| :? HashSetInner<'T> as n ->
+                //    x.stack <- n.Left:: n.Right:: tail
+                //    x.MoveNext()
+                //| _ ->
+                //    false
+
+                match x.head with
+                | :? HashSetEmpty<'T> ->
+                    //if not x.tail.IsEmpty then failwith ""
+                    //    x.head <- Unchecked.defaultof<_>
+                    //    false
+                    //else
+                    //    x.head <- x.tail.Head
+                    //    x.tail <- x.tail.Tail
+                    //    x.MoveNext()
+                    false
+                | :? HashSetNoCollisionLeaf<'T> as l ->
                     x.current <- l.Value
+                    if x.tail.IsEmpty then
+                        x.head <- Unchecked.defaultof<_>
+                    else
+                        x.head <- x.tail.Head
+                        x.tail <- x.tail.Tail
                     true
-                | (:? HashSetCollisionLeaf<'T> as l) :: rest -> 
-                    x.stack <- rest
+                | :? HashSetCollisionLeaf<'T> as l -> 
                     x.current <- l.Value
                     x.linked <- l.Next
+                    if x.tail.IsEmpty then
+                        x.head <- Unchecked.defaultof<_>
+                    else
+                        x.head <- x.tail.Head
+                        x.tail <- x.tail.Tail
                     true
-                | (:? HashSetInner<'T> as n) :: rest ->
-                    x.stack <- n.Left:: n.Right:: rest
+                | :? HashSetInner<'T> as n ->
+                    x.head <- n.Left
+                    x.tail <- n.Right:: x.tail
                     x.MoveNext()
                 | _ ->
                     false
+
             else
                 x.current <- x.linked.Value
                 x.linked <- x.linked.Next
@@ -3643,13 +3684,16 @@ and HashSetEnumerator<'T> =
 
         [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
         member x.Reset() =
-            x.stack <- []
+            x.head <- x.root
+            x.tail <- []
             x.linked <- null
             x.current <- Unchecked.defaultof<_>
 
         [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
         member x.Dispose() =
-            x.stack <- []
+            x.root <- Unchecked.defaultof<_>
+            x.tail <- []
+            x.head <- Unchecked.defaultof<_>
             x.linked <- null
             x.current <- Unchecked.defaultof<_>
 
