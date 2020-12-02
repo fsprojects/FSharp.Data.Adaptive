@@ -340,6 +340,8 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
     member private x.AsString = x.ToString()
 
+    member x.GetEnumerator() = new CountingHashSetEnumerator<_>(store)
+
     interface IEnumerable with
         member x.GetEnumerator() = new CountingHashSetEnumerator<_>(store) :> _
 
@@ -347,20 +349,23 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
         member x.GetEnumerator() = new CountingHashSetEnumerator<_>(store) :> _
 
 /// An enumerator for CountingHashSet.
-and private CountingHashSetEnumerator<'T>(store : HashMap<'T, int>) =
-    let e = (store :> seq<_>).GetEnumerator()
-
+and CountingHashSetEnumerator<'T>(store : HashMap<'T, int>) =
+    let mutable e = store.GetEnumerator()
+    
+    member x.MoveNext() = e.MoveNext()
+    member x.Reset() = e.Reset()
+    member x.Dispose() = e.Dispose()
     member x.Current = 
         let (v,_) = e.Current
         v
 
     interface IEnumerator with
-        member x.MoveNext() = e.MoveNext()
+        member x.MoveNext() = x.MoveNext()
         member x.Current = x.Current :> obj
-        member x.Reset() = e.Reset()
+        member x.Reset() = x.Reset()
 
     interface IEnumerator<'T> with
-        member x.Dispose() = e.Dispose()
+        member x.Dispose() = x.Dispose()
         member x.Current = x.Current
 
 /// Functional operators for CountingHashSet.
