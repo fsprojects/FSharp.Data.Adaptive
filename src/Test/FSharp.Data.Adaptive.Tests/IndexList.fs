@@ -125,7 +125,15 @@ let ``[IndexList] rev`` (l : list<float>) =
     ll.MaxIndex |> should equal rl.MaxIndex
 
     ll |> IndexList.rev |> IndexList.toList |> should equal (List.rev l)
+    
+[<Property>]
+let ``[IndexList] enumerator correct`` (m : list<int>) =
+    let h = IndexList.ofList m
 
+    h |> Seq.toList |> should equal (IndexList.toList h)
+    h |> Seq.toList |> should equal m
+
+    
 [<Property>]
 let ``[IndexList] collect`` (l : list<int>) =
     let ref = l |> List.collect (fun v -> [v; 2*v; 3*v])

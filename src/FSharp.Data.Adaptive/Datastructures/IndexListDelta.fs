@@ -89,6 +89,34 @@ type IndexListDelta< [<EqualityConditionalOn>] 'T> internal(content : MapExt<Ind
             res <- res.Combine(mapping i v)
         res
 
+    member x.GetEnumerator() = new IndexListDeltaEnumerator<'T>(x)
+
+    interface System.Collections.IEnumerable with
+        member x.GetEnumerator() = new IndexListDeltaEnumerator<'T>(x) :> _
+
+    interface System.Collections.Generic.IEnumerable<Index * ElementOperation<'T>> with
+        member x.GetEnumerator() = new IndexListDeltaEnumerator<'T>(x) :> _
+
+and IndexListDeltaEnumerator<'T>(delta : IndexListDelta<'T>) =
+    let mutable e = new MapExtEnumerator<Index, ElementOperation<'T>>(delta.Content.Tree)
+
+    member x.MoveNext() = e.MoveNext()
+    member x.Current = 
+        let kvp = e.Current
+        kvp.Key, kvp.Value
+
+    member x.Reset() = e.Reset()
+    member x.Dispose() = ()
+
+    interface System.Collections.IEnumerator with
+        member x.MoveNext() = x.MoveNext()
+        member x.Current = x.Current :> obj
+        member x.Reset() = x.Reset()
+
+    interface System.Collections.Generic.IEnumerator<Index * ElementOperation<'T>> with
+        member x.Current = x.Current
+        member x.Dispose() = x.Dispose()
+
 /// Functional operators for IndexListDelta.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module IndexListDelta =
