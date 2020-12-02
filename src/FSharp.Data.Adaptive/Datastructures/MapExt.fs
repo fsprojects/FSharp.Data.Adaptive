@@ -40,17 +40,19 @@ module internal MapExtImplementation =
 
         let empty = MapEmpty 
 
-        let height = function
+        let inline height m = 
+            match m with
             | MapEmpty -> 0
             | MapOne _ -> 1
             | MapNode(_,_,_,_,h,_) -> h
 
-        let size = function
+        let inline size m = 
+            match m with
             | MapEmpty -> 0
             | MapOne _ -> 1
             | MapNode(_,_,_,_,_,s) -> s
 
-        let isEmpty m = 
+        let inline isEmpty m = 
             match m with 
             | MapEmpty -> true
             | _ -> false
@@ -472,6 +474,59 @@ module internal MapExtImplementation =
                     let ll, res, lr = split comparer k l
                     ll, res, join lr k2 v2 r
 
+        let rec take (comparer: IComparer<'Value>) cnt m =
+            if cnt <= 0 then
+                MapEmpty
+            else
+                // cnt >= 1
+                match m with
+                | MapNode(k,v,l,r,_,c) ->
+                    if c <= cnt then 
+                        // take entire node
+                        m
+                    else
+                        let cl = size l
+                        if cl < cnt then
+                            // take left and self completely (cnt >= cl + 1)
+                            let rem = cnt - cl - 1
+                            if rem > 0 then
+                                let r1 = take comparer rem r
+                                join l k v r1
+                            else
+                                add comparer k v l
+                        elif cl = cnt then
+                            l
+                        else
+                            take comparer cnt l
+                | m ->  
+                    m
+
+        let rec skip (comparer: IComparer<'Value>) cnt m =
+            if cnt <= 0 then
+                m
+            else
+                // skip at least one (cnt >= 1)
+                match m with
+                | MapEmpty -> MapEmpty
+                | MapOne _ -> MapEmpty
+                | MapNode(k,v,l,r,_,c) ->
+                    if c <= cnt then
+                        // skip entire map
+                        MapEmpty
+                    else
+                        let cl = size l
+                        if cl < cnt then
+                            // skip l and self completely (cnt >= cl + 1)
+                            let rem = cnt - cl - 1
+                            if rem > 0 then
+                                skip comparer rem r
+                            else
+                                r
+                        elif cl = cnt then
+                            add comparer k v r
+                        else
+                            join (skip comparer cnt l) k v r
+         
 
         let rec tryMinAux acc m =
             match m with
@@ -1627,6 +1682,19 @@ module internal MapExtImplementation =
                 array.[!index] <- struct(k, v)
                 index := !index + 1
                 copyToV array index r
+                
+        let rec private copyToKVP (array : array<KeyValuePair<'k, 'v>>) (index : ref<int>) m =
+            match m with
+            | MapEmpty -> 
+                ()
+            | MapOne(k,v) -> 
+                array.[!index] <- KeyValuePair(k, v)
+                index := !index + 1
+            | MapNode(k, v, l, r, _, _) ->
+                copyToKVP array index l
+                array.[!index] <- KeyValuePair(k, v)
+                index := !index + 1
+                copyToKVP array index r
 
         let rec private copyValuesTo (array : array<'v>) (index : ref<int>) m =
             match m with
@@ -1646,6 +1714,13 @@ module internal MapExtImplementation =
             let arr = Array.zeroCreate cnt
             let index = ref 0 
             copyToV arr index m
+            arr
+            
+        let toArrayKVP m =
+            let cnt = size m
+            let arr = Array.zeroCreate cnt
+            let index = ref 0 
+            copyToKVP arr index m
             arr
 
         let toArray m =
@@ -1900,6 +1975,168 @@ module internal MapExtImplementation =
 
 open MapExtImplementation
 
+[<CompilationRepresentation(CompilationRepresentationFlags.UseNullAsTrueValue); RequireQualifiedAccess>]
+type internal KeyedList<'a> =
+    | Cons of value : 'a * tail : KeyedList<'a> * key : int
+    | Nil
+
+type internal MapExtEnumerator<'Key, 'Value when 'Key : comparison> =
+    struct
+        val mutable public Root : MapExtImplementation.MapTree<'Key, 'Value>
+        val mutable public Stack : KeyedList<MapExtImplementation.MapTree<'Key, 'Value>>
+        val mutable public Array : KeyValuePair<'Key, 'Value>[]
+        val mutable public Index : int
+
+        member x.Flatten(start : int, node : MapExtImplementation.MapTree<_,_>) =
+            match node with
+            | MapExtImplementation.MapEmpty ->
+                ()
+            | MapExtImplementation.MapOne(k, v) ->
+                x.Array.[start] <- KeyValuePair(k,v)
+            | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
+                let sl = MapTree.size l
+                let si = start + sl
+                x.Flatten(start, l)
+                x.Array.[si] <- KeyValuePair(k,v)
+                x.Flatten(si + 1, r)
+
+        member x.MoveNext (start : int, node : MapExtImplementation.MapTree<_,_>) =
+            match node with
+            | MapExtImplementation.MapEmpty ->
+                ()
+            | MapExtImplementation.MapOne(k, v) ->
+                x.Array.[start] <- KeyValuePair(k,v)
+            | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
+                let sl = MapTree.size l
+                x.Array.[start + sl] <- KeyValuePair(k,v)
+                match r with
+                | MapExtImplementation.MapEmpty -> ()
+                | r -> x.Stack <- KeyedList.Cons(r, x.Stack, start + 1 + sl)
+                x.MoveNext(start, l)
+
+
+        member inline x.MoveNext() =
+            x.Index <- x.Index + 1
+            if x.Index >= x.Array.Length then
+                false
+            else
+                match x.Stack with
+                | KeyedList.Cons(h, t, i) ->
+                    if i = x.Index then
+                        x.Stack <- t
+                        match h with
+                        | MapExtImplementation.MapEmpty -> 
+                            failwith "bad"
+
+                        | MapExtImplementation.MapOne(k,v) ->
+                            x.Array.[i] <- KeyValuePair(k,v)
+
+                        | MapExtImplementation.MapNode(k,v,l,r,_,c) ->
+                            if c <= 16 then
+                                x.Flatten(i, h)
+                            else
+                                match l with
+                                | MapExtImplementation.MapEmpty  ->
+                                    x.Array.[i] <- KeyValuePair(k,v)
+                                | MapExtImplementation.MapOne(lk, lv) ->
+                                    x.Array.[i] <- KeyValuePair(lk,lv)
+                                    x.Array.[i+1] <- KeyValuePair(k,v)
+                                    match r with
+                                    | MapExtImplementation.MapEmpty -> ()
+                                    | r -> x.Stack <- KeyedList.Cons(r, x.Stack, i + 2)
+                                | MapExtImplementation.MapNode(_,_,_,_,_,lc) ->
+                                    x.Array.[i + lc] <- KeyValuePair(k,v)
+                                    match r with
+                                    | MapExtImplementation.MapEmpty -> ()
+                                    | r -> x.Stack <- KeyedList.Cons(r, x.Stack, i + lc + 1)
+                                    x.MoveNext(i, l)
+
+                | KeyedList.Nil ->
+                    ()
+           
+                true
+           
+        member inline x.Reset() =
+            x.Stack <- (match x.Root with | MapExtImplementation.MapEmpty -> KeyedList.Nil | r -> KeyedList.Cons(r, KeyedList.Nil, 0))
+            x.Index <- -1
+ 
+        //member inline x.Dispose() =
+        //    x.Root <- Unchecked.defaultof<_>
+        //    x.Array <- null
+        //    x.Stack <- KeyedList.Nil
+        //    x.Index <- -1
+
+        member inline x.Current = x.Array.[x.Index]
+        
+        interface System.Collections.IEnumerator with
+            member x.MoveNext() = x.MoveNext()
+            member x.Reset() = x.Reset()
+            member x.Current = x.Current :> obj
+
+        interface IEnumerator<KeyValuePair<'Key, 'Value>> with
+            member x.Current = x.Current
+            member x.Dispose() = ()
+
+        static member Flatten(m : MapExtImplementation.MapTree<'Key, 'Value>, dst : KeyValuePair<'Key, 'Value>[], offset : byref<int>) =
+            match m with
+            | MapExtImplementation.MapEmpty ->
+                ()
+            | MapExtImplementation.MapOne(k, v) ->
+                dst.[offset] <- KeyValuePair(k, v)
+                offset <- offset + 1
+
+            | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
+                MapExtEnumerator<'Key, 'Value>.Flatten(l, dst, &offset)
+                
+                dst.[offset] <- KeyValuePair(k, v)
+                offset <- offset + 1
+                
+                MapExtEnumerator<'Key, 'Value>.Flatten(r, dst, &offset)
+
+
+        new(root : MapTree<'Key, 'Value>) =
+
+            match root with
+            | MapExtImplementation.MapEmpty ->
+                {
+                    Root = root
+                    Index = -1
+                    Array = [||]
+                    Stack = KeyedList.Nil
+                }
+            | MapExtImplementation.MapOne(k,v) ->
+                {
+                    Root = root
+                    Index = -1
+                    Array = [|KeyValuePair(k, v)|]
+                    Stack = KeyedList.Nil
+                }
+            | MapExtImplementation.MapNode(_,_,_,_,_,cnt) ->
+                let s = Array.zeroCreate cnt
+                if cnt <= 16 then
+                    let mutable i = 0
+                    MapExtEnumerator<'Key, 'Value>.Flatten(root, s, &i)
+                    {
+                        Root = root
+                        Index = -1
+                        Array = s
+                        Stack = KeyedList.Nil
+                    }
+                else
+                    let stack = 
+                        match root with
+                        | MapExtImplementation.MapEmpty -> KeyedList.Nil
+                        | r -> KeyedList.Cons(r, KeyedList.Nil, 0)
+
+                    {
+                        Root = root
+                        Index = -1
+                        Array = s
+                        Stack = stack
+                    }
+
+
+    end
 
 [<System.Diagnostics.DebuggerTypeProxy(typedefof<MapDebugView<_,_>>)>]
 [<System.Diagnostics.DebuggerDisplay("Count = {Count}")>]
@@ -2062,6 +2299,12 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
         let struct(l, lmax, self, rmin, r) = MapTree.splitV comparer k tree
         struct(MapExt<'Key, 'Value>(comparer, l), lmax, self, rmin, MapExt<'Key, 'Value>(comparer, r))
         
+    member x.Take(cnt : int) =
+        MapExt(comparer, MapTree.take comparer cnt tree)
+        
+    member x.Skip(cnt : int) =
+        MapExt(comparer, MapTree.skip comparer cnt tree)
+
     member x.UnionWith (other : MapExt<_,_>, resolve) =
         if x.IsEmpty then other
         elif other.IsEmpty then x
@@ -2154,11 +2397,13 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
     member x.GetForwardEnumeratorV() = new MapTree.ValueMapTreeEnumerator<'Key, 'Value>(tree) :> IEnumerator<_> 
     member x.GetBackwardEnumeratorV() = new MapTree.ValueMapTreeBackwardEnumerator<'Key, 'Value>(tree) :> IEnumerator<_> 
 
+    member x.GetEnumerator() = new MapExtEnumerator<_,_>(tree)
+
     interface IEnumerable<KeyValuePair<'Key, 'Value>> with
-        member __.GetEnumerator() = MapTree.mkIEnumerator tree
+        member __.GetEnumerator() = new MapExtEnumerator<_,_>(tree) :> _
 
     interface System.Collections.IEnumerable with
-        member __.GetEnumerator() = (MapTree.mkIEnumerator tree :> System.Collections.IEnumerator)
+        member __.GetEnumerator() = new MapExtEnumerator<_,_>(tree) :> _
 
     //interface IDictionary<'Key, 'Value> with 
     //    member m.Item 
@@ -2397,6 +2642,12 @@ module internal MapExt =
 
     [<CompiledName("Split")>]
     let split k (m:MapExt<_,_>) = m.Split k
+    
+    [<CompiledName("Take")>]
+    let take cnt (m:MapExt<_,_>) = m.Take cnt
+
+    [<CompiledName("Skip")>]
+    let skip cnt (m:MapExt<_,_>) = m.Skip cnt
 
     [<CompiledName("TryIndexOf")>]
     let tryIndexOf i (m:MapExt<_,_>) = m.TryIndexOf i

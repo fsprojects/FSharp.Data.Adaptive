@@ -5,6 +5,8 @@ open System.Threading
 open System.Collections
 open System.Collections.Generic
 open FSharp.Data.Adaptive
+open System.Runtime.CompilerServices
+
 [<Struct; CustomComparison; CustomEquality>]
 type internal ReversedCompare<'a when 'a : comparison>(value : 'a) =
     member x.Value = value
@@ -595,29 +597,180 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
             with get(i : int) = x.[i]
             and set (i : int) (v : 'T) = raise (NotSupportedException("IndexList cannot be mutated"))
         member x.Insert(i,v) = raise (NotSupportedException("IndexList cannot be mutated"))
+        
+    member x.GetEnumerator() = new IndexListEnumerator<'T>(content.Tree)
 
     interface IEnumerable with
-        member x.GetEnumerator() = new IndexListEnumerator<'T>(content :> seq<_>) :> _
+        member x.GetEnumerator() = new IndexListEnumerator<'T>(content.Tree) :> _
 
     interface IEnumerable<'T> with
-        member x.GetEnumerator() = new IndexListEnumerator<'T>(content :> seq<_>) :> _
+        member x.GetEnumerator() = new IndexListEnumerator<'T>(content.Tree) :> _
 
 /// Enumerator for IndexList.
-and private IndexListEnumerator<'T>(content : IEnumerable<KeyValuePair<Index, 'T>>) =
-    let r = content.GetEnumerator()
+and IndexListEnumerator<'Value> =
+    struct
+        val mutable internal Root : MapExtImplementation.MapTree<Index, 'Value>
+        val mutable internal Stack : KeyedList<MapExtImplementation.MapTree<Index, 'Value>>
+        val mutable internal Array : 'Value[]
+        val mutable internal Index : int
 
-    member x.Current =
-        r.Current.Value
+        member private x.Flatten(start : int, node : MapExtImplementation.MapTree<_,_>) =
+            match node with
+            | MapExtImplementation.MapEmpty ->
+                ()
+            | MapExtImplementation.MapOne(k, v) ->
+                x.Array.[start] <- v
+            | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
+                let sl = MapExtImplementation.MapTree.size l
+                let si = start + sl
+                x.Flatten(start, l)
+                x.Array.[si] <- v
+                x.Flatten(si + 1, r)
 
-    interface IEnumerator with
-        member x.MoveNext() = r.MoveNext()
-        member x.Current = x.Current :> obj
-        member x.Reset() = r.Reset()
+        member private x.MoveNext (start : int, node : MapExtImplementation.MapTree<_,_>) =
+            match node with
+            | MapExtImplementation.MapEmpty ->
+                ()
+            | MapExtImplementation.MapOne(k, v) ->
+                x.Array.[start] <- v
+            | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
+                let sl = MapExtImplementation.MapTree.size l
+                x.Array.[start + sl] <- v
+                match r with
+                | MapExtImplementation.MapEmpty -> ()
+                | r -> x.Stack <- KeyedList.Cons(r, x.Stack, start + 1 + sl)
+                x.MoveNext(start, l)
 
-    interface IEnumerator<'T> with
-        member x.Current = x.Current
-        member x.Dispose() = r.Dispose()
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member x.MoveNext() =
+            x.Index <- x.Index + 1
+            if x.Index >= x.Array.Length then
+                false
+            else
+                match x.Stack with
+                | KeyedList.Cons(h, t, i) ->
+                    if i = x.Index then
+                        x.Stack <- t
+                        match h with
+                        | MapExtImplementation.MapEmpty -> 
+                            failwith "bad"
 
+                        | MapExtImplementation.MapOne(k,v) ->
+                            x.Array.[i] <- v
+
+                        | MapExtImplementation.MapNode(k,v,l,r,_,c) ->
+                            if c <= 16 then
+                                x.Flatten(i, h)
+                            else
+                                match l with
+                                | MapExtImplementation.MapEmpty  ->
+                                    x.Array.[i] <- v
+                                | MapExtImplementation.MapOne(lk, lv) ->
+                                    x.Array.[i] <- lv
+                                    x.Array.[i+1] <- v
+                                    match r with
+                                    | MapExtImplementation.MapEmpty -> ()
+                                    | r -> x.Stack <- KeyedList.Cons(r, x.Stack, i + 2)
+                                | MapExtImplementation.MapNode(_,_,_,_,_,lc) ->
+                                    x.Array.[i + lc] <- v
+                                    match r with
+                                    | MapExtImplementation.MapEmpty -> ()
+                                    | r -> x.Stack <- KeyedList.Cons(r, x.Stack, i + lc + 1)
+                                    x.MoveNext(i, l)
+
+                | KeyedList.Nil ->
+                    ()
+           
+                true
+           
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member x.Reset() =
+            x.Stack <- (match x.Root with | MapExtImplementation.MapEmpty -> KeyedList.Nil | r -> KeyedList.Cons(r, KeyedList.Nil, 0))
+            x.Index <- -1
+ 
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member inline x.Dispose() =
+            ()
+            //x.Root <- Unchecked.defaultof<_>
+            //x.Array <- null
+            //x.Stack <- KeyedList.Nil
+            //x.Index <- -1
+            
+        
+        member x.Current 
+            with [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+                get() = x.Array.[x.Index]
+        
+        interface System.Collections.IEnumerator with
+            member x.MoveNext() = x.MoveNext()
+            member x.Reset() = x.Reset()
+            member x.Current = x.Current :> obj
+
+        interface IEnumerator<'Value> with
+            member x.Current = x.Current
+            member x.Dispose() = ()
+            
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        static member internal Flatten(m : MapExtImplementation.MapTree<Index, 'Value>, dst : 'Value[], offset : byref<int>) =
+            match m with
+            | MapExtImplementation.MapEmpty ->
+                ()
+            | MapExtImplementation.MapOne(k, v) ->
+                dst.[offset] <- v
+                offset <- offset + 1
+
+            | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
+                IndexListEnumerator<'Value>.Flatten(l, dst, &offset)
+                
+                dst.[offset] <- v
+                offset <- offset + 1
+                
+                IndexListEnumerator<'Value>.Flatten(r, dst, &offset)
+
+
+        internal new(root : MapExtImplementation.MapTree<Index, 'Value>) =
+
+            match root with
+            | MapExtImplementation.MapEmpty ->
+                {
+                    Root = root
+                    Index = -1
+                    Array = [||]
+                    Stack = KeyedList.Nil
+                }
+            | MapExtImplementation.MapOne(k,v) ->
+                {
+                    Root = root
+                    Index = -1
+                    Array = [|v|]
+                    Stack = KeyedList.Nil
+                }
+            | MapExtImplementation.MapNode(_,_,_,_,_,cnt) ->
+                let s = Array.zeroCreate cnt
+                if cnt <= 16 then
+                    let mutable i = 0
+                    IndexListEnumerator<'Value>.Flatten(root, s, &i)
+                    {
+                        Root = root
+                        Index = -1
+                        Array = s
+                        Stack = KeyedList.Nil
+                    }
+                else
+                    let stack = 
+                        match root with
+                        | MapExtImplementation.MapEmpty -> KeyedList.Nil
+                        | r -> KeyedList.Cons(r, KeyedList.Nil, 0)
+
+                    {
+                        Root = root
+                        Index = -1
+                        Array = s
+                        Stack = stack
+                    }
+
+
+    end
 /// Functional operators for IndexList.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module IndexList =
@@ -851,12 +1004,12 @@ module IndexList =
         tryFindIndexBack element list |> Option.get
 
     /// checks whether any element in the list fulfills the given predicate.
-    let exists (f : Index -> 'T -> bool) (list : IndexList<'T>) = 
-        list.Content |> Seq.exists (fun kv -> f kv.Key kv.Value)
+    let exists (predicate : Index -> 'T -> bool) (list : IndexList<'T>) = 
+        list.Content |> MapExt.exists predicate
 
     /// checks if all elements in the list fulfill the given predicate.
-    let forall (f : Index -> 'T -> bool) (list : IndexList<'T>) =   
-        list.Content |> Seq.forall (fun kv -> f kv.Key kv.Value)
+    let forall (predicate : Index -> 'T -> bool) (list : IndexList<'T>) =   
+        list.Content |> MapExt.forall predicate
     
     /// tries to find the first entry satisfying the predicate.
     let tryFind (predicate : Index -> 'T -> bool) (list : IndexList<'T>) = 
@@ -891,6 +1044,37 @@ module IndexList =
     let inline pairwiseCyclic (l : IndexList<'T>) =
         l.PairwiseCyclic()
 
+    /// splits a list of pairs into two lists.
+    let unzip (l : IndexList<'T1 * 'T2>) =
+        let mutable a = MapExt.empty
+        let mutable b = MapExt.empty
+        let mutable e = new MapExtEnumerator<_,_>(l.Content.Tree)
+        while e.MoveNext() do
+            let kvp = e.Current
+            let (va, vb) = kvp.Value
+            a <- MapExt.add kvp.Key va a
+            b <- MapExt.add kvp.Key vb b
+
+        IndexList<'T1>(l.MinIndex, l.MaxIndex, a), 
+        IndexList<'T2>(l.MinIndex, l.MaxIndex, b)
+        
+    /// splits a list of triples into three lists.
+    let unzip3 (l : IndexList<'T1 * 'T2* 'T3>) =
+        let mutable a = MapExt.empty
+        let mutable b = MapExt.empty
+        let mutable c = MapExt.empty
+        let mutable e = new MapExtEnumerator<_,_>(l.Content.Tree)
+        while e.MoveNext() do
+            let kvp = e.Current
+            let (va, vb, vc) = kvp.Value
+            a <- MapExt.add kvp.Key va a
+            b <- MapExt.add kvp.Key vb b
+            c <- MapExt.add kvp.Key vc c
+
+        IndexList<'T1>(l.MinIndex, l.MaxIndex, a), 
+        IndexList<'T2>(l.MinIndex, l.MaxIndex, b), 
+        IndexList<'T3>(l.MinIndex, l.MaxIndex, c)
+
     /// concats the given lists.
     let append (l : IndexList<'T>) (r : IndexList<'T>) =
         if l.Count = 0 then r
@@ -916,18 +1100,18 @@ module IndexList =
     /// takes the first n elements from the list.
     let take (n : int) (list : IndexList<'T>) =
         if n <= 0 then empty
-        elif n > list.Count then list
-        else
-            let l,_,_ = splitAt n list
-            l
+        elif n >= list.Count then list
+        else 
+            let c = list.Content.Take n
+            IndexList<'T>(list.MinIndex, MapExt.max c, c)
 
     /// skips the first n elements from the list.
     let skip (n : int) (list : IndexList<'T>) =
         if n <= 0 then list
-        elif n > list.Count then empty
+        elif n >= list.Count then empty
         else
-            let _,_,r = splitAt (n - 1) list
-            r
+            let c = list.Content.Skip n
+            IndexList<'T>(MapExt.min c, list.MaxIndex, c)
 
     /// creates a list containing a single element.
     let single (v : 'T) =
@@ -990,19 +1174,24 @@ module IndexList =
         
     /// creates a list from the given elements.
     let inline ofList (list : list<'T>) = 
-        ofSeq list
+        let mutable res = empty
+        for e in list do res <- add e res
+        res
         
     /// creates a list from the given elements.
     let inline ofArray (arr : 'T[]) = 
-        ofSeq arr
+        let mutable res = empty
+        for e in arr do res <- add e res
+        res
 
     /// applies the mapping function to all elements and concats the resulting lists.
     let collecti (mapping : Index -> 'T1 -> IndexList<'T2>) (l : IndexList<'T1>) = 
-        use e = (l.Content :> seq<_>).GetEnumerator()
+        let mapping = OptimizedClosures.FSharpFunc<Index, 'T1, IndexList<'T2>>.Adapt(mapping)
+        let mutable e = l.Content.GetEnumerator()
         if e.MoveNext() then 
-            let mutable res = mapping e.Current.Key e.Current.Value
+            let mutable res = mapping.Invoke(e.Current.Key, e.Current.Value)
             while e.MoveNext() do
-                let v = mapping e.Current.Key e.Current.Value
+                let v = mapping.Invoke(e.Current.Key, e.Current.Value)
                 res <- append res v
             res
         else
@@ -1010,7 +1199,15 @@ module IndexList =
         
     /// applies the mapping function to all elements and concats the resulting lists.
     let collect (mapping : 'T1 -> IndexList<'T2>) (l : IndexList<'T1>) = 
-        collecti (fun _ v -> mapping v) l
+        let mutable e = l.GetEnumerator()
+        if e.MoveNext() then 
+            let mutable res = mapping e.Current
+            while e.MoveNext() do
+                let v = mapping e.Current
+                res <- append res v
+            res
+        else
+            IndexList.Empty
 
     /// applies the mapping function to all elements in the list.
     let inline mapi (mapping : Index -> 'T1 -> 'T2) (list : IndexList<'T1>) = 
@@ -1052,45 +1249,170 @@ module IndexList =
 
     /// sorts the list by the given mapping.
     let sortByi (mapping : Index -> 'T1 -> 'T2) (l : IndexList<'T1>) =
-        let arr = l.Content |> MapExt.toArray
-        Array.sortInPlaceBy (fun (i,v) -> mapping i v, i) arr
-        ofArray (Array.map snd arr)
+        if l.Count <= 1 then
+            l
+        else
+            let mapping = OptimizedClosures.FSharpFunc<Index, 'T1, 'T2>.Adapt mapping
+            let arr = l.Content |> MapExt.toArrayV
+            let sorted = Array.sortBy (fun struct (i,v) -> struct(mapping.Invoke(i, v), i)) arr
+        
+            let mutable res = MapExt.empty
+            for i in 0 .. arr.Length - 1  do
+                let struct(index, _) = arr.[i]
+                let struct(_, value) = sorted.[i]
+                res <- MapExt.add index value res
+
+            IndexList<'T1>(l.MinIndex, l.MaxIndex, res)
 
     /// sorts the list by the given mapping.
     let sortBy (mapping : 'T1 -> 'T2) (l : IndexList<'T1>) =
-        let arr = l.Content |> MapExt.toArray
-        Array.sortInPlaceBy (fun (i, v) -> mapping v, i) arr
-        ofArray (Array.map snd arr)
+        if l.Count <= 1 then
+            l
+        else
+            let arr = l.Content |> MapExt.toArrayV
+            let sorted = Array.sortBy (fun struct (i,v) -> struct(mapping v, i)) arr
         
+            let mutable res = MapExt.empty
+            for i in 0 .. arr.Length - 1  do
+                let struct(index, _) = arr.[i]
+                let struct(_, value) = sorted.[i]
+                res <- MapExt.add index value res
+
+            IndexList<'T1>(l.MinIndex, l.MaxIndex, res)
+
     /// sorts the list by the given mapping in descending order.
     let sortByDescendingi (mapping : Index -> 'T1 -> 'T2) (l : IndexList<'T1>) =
-        let arr = l.Content |> MapExt.toArray
-        Array.sortInPlaceBy (fun (i,v) -> ReversedCompare(mapping i v), i) arr
-        ofArray (Array.map snd arr)
+        if l.Count <= 1 then
+            l
+        else
+            let mapping = OptimizedClosures.FSharpFunc<Index, 'T1, 'T2>.Adapt mapping
+            let arr = l.Content |> MapExt.toArrayV
+            let sorted = Array.sortBy (fun struct (i,v) -> struct(ReversedCompare(mapping.Invoke(i, v)), i)) arr
+        
+            let mutable res = MapExt.empty
+            for i in 0 .. arr.Length - 1  do
+                let struct(index, _) = arr.[i]
+                let struct(_, value) = sorted.[i]
+                res <- MapExt.add index value res
+
+            IndexList<'T1>(l.MinIndex, l.MaxIndex, res)
 
     /// sorts the list by the given mapping in descending order.
     let sortByDescending (mapping : 'T1 -> 'T2) (l : IndexList<'T1>) =
-        let arr = l.Content |> MapExt.toArray
-        Array.sortInPlaceBy (fun (i, v) -> ReversedCompare(mapping v), i) arr
-        ofArray (Array.map snd arr)
+        if l.Count <= 1 then
+            l
+        else
+            let arr = l.Content |> MapExt.toArrayV
+            let sorted = Array.sortBy (fun struct (i,v) -> struct(ReversedCompare(mapping v), i)) arr
+        
+            let mutable res = MapExt.empty
+            for i in 0 .. arr.Length - 1  do
+                let struct(index, _) = arr.[i]
+                let struct(_, value) = sorted.[i]
+                res <- MapExt.add index value res
+
+            IndexList<'T1>(l.MinIndex, l.MaxIndex, res)
         
     /// sorts the list using the given compare function.
     let sortWith (cmp : 'T -> 'T -> int) (l : IndexList<'T>) =
-        let arr = l.Content |> MapExt.toArray
-        let cmp (li: Index, lv: 'T) (ri: Index, rv: 'T) =
-            let c = cmp lv rv
-            if c = 0 then compare li ri
-            else c
+        if l.Count <= 1 then
+            l
+        else
+            let ic = Comparer<Index>.Default
+            let cmp = OptimizedClosures.FSharpFunc<'T,'T,int>.Adapt(cmp)
+            let inline comparer struct(li, lv) struct(ri, rv) =
+                let c = cmp.Invoke(lv, rv)
+                if c = 0 then ic.Compare(li, ri)
+                else c
 
-        Array.sortInPlaceWith cmp arr
-        ofArray (Array.map snd arr)
-
-    let fold (f : 'S -> 'T -> 'S) (seed : 'S) (l : IndexList<'T>) : 'S =
-        l.Content |> MapExt.fold (fun s _ v -> f s v) seed
-
-    let iter (f : 'T -> unit) (l : IndexList<'T>) =
-        l.Content |> MapExt.iter (fun _ v -> f(v))
-
-    let iteri (f : Index -> 'T -> unit) (l : IndexList<'T>) =
-        l.Content |> MapExt.iter (fun k v -> f k v)
+            let arr = l.Content |> MapExt.toArrayV
+            let sorted = Array.sortWith comparer arr
         
+            let mutable res = MapExt.empty
+            for i in 0 .. arr.Length - 1  do
+                let struct(index, _) = arr.[i]
+                let struct(_, value) = sorted.[i]
+                res <- MapExt.add index value res
+
+            IndexList<'T>(l.MinIndex, l.MaxIndex, res)
+
+    /// sorts the list.
+    let sort<'T when 'T : comparison> (l : IndexList<'T>) =
+        if l.Count <= 1 then
+            l
+        else
+            let arr = l.Content |> MapExt.toArrayV
+            let sorted = Array.sortBy (fun struct (i,v) -> struct(v, i)) arr
+        
+            let mutable res = MapExt.empty
+            for i in 0 .. arr.Length - 1  do
+                let struct(index, _) = arr.[i]
+                let struct(_, value) = sorted.[i]
+                res <- MapExt.add index value res
+
+            IndexList<'T>(l.MinIndex, l.MaxIndex, res)
+            
+    /// sorts the list in descending order
+    let sortDescending<'T when 'T : comparison> (l : IndexList<'T>) =
+        if l.Count <= 1 then
+            l
+        else
+            let arr = l.Content |> MapExt.toArrayV
+            let sorted = Array.sortBy (fun struct (i,v) -> struct(ReversedCompare v, i)) arr
+        
+            let mutable res = MapExt.empty
+            for i in 0 .. arr.Length - 1  do
+                let struct(index, _) = arr.[i]
+                let struct(_, value) = sorted.[i]
+                res <- MapExt.add index value res
+
+            IndexList<'T>(l.MinIndex, l.MaxIndex, res)
+
+    /// reverses the given list.
+    let rev (l : IndexList<'T>) =
+        if l.Count <= 1 then
+            l
+        else
+            let arr = MapExt.toArrayV l.Content
+            let mutable res = MapExt.empty
+            let mutable o = arr.Length - 1
+            for i in 0 .. arr.Length - 1 do
+                let struct(k, _) = arr.[i]
+                let struct(_, v) = arr.[o]
+                res <- MapExt.add k v res
+                o <- o - 1
+            IndexList<'T>(l.MinIndex, l.MaxIndex, res)
+
+
+    /// folds over all list entries.
+    let fold (folder : 'S -> 'T -> 'S) (seed : 'S) (l : IndexList<'T>) : 'S =
+        let folder = OptimizedClosures.FSharpFunc<'S, 'T, 'S>.Adapt folder
+        l.Content.Tree |> MapExtImplementation.MapTree.fold (fun s _ v -> folder.Invoke(s, v)) seed
+        
+    /// invokes the given action for all list elements in list order.
+    let iter (action : 'T -> unit) (l : IndexList<'T>) =
+        l.Content.Tree |> MapExtImplementation.MapTree.iter (fun _ v -> action(v))
+        
+    /// invokes the given action for all list elements in list order.
+    let iteri (action : Index -> 'T -> unit) (l : IndexList<'T>) =
+        let action = OptimizedClosures.FSharpFunc<Index, 'T, unit>.Adapt action
+        l.Content |> MapExt.iter (fun k v -> action.Invoke(k, v))
+        
+    /// calculates the sum of all elements in the list.
+    let inline sum (l : IndexList<'T>) =
+        fold (+) LanguagePrimitives.GenericZero l
+        
+    /// calculates the sum of all elements returned by mapping using the values from the list.
+    let inline sumBy (mapping : 'T1 -> 'T2) (l : IndexList<'T1>) =
+        (LanguagePrimitives.GenericZero, l) ||> fold (fun s v -> s + mapping v)
+        
+    /// calculates the average of all elements in the list.
+    let inline average (l : IndexList<'T>) =
+        let sum = fold (+) LanguagePrimitives.GenericZero l
+        LanguagePrimitives.DivideByInt sum l.Count
+        
+    /// calculates the average of all elements returned by mapping using the values from the list.
+    let inline averageBy (mapping : 'T1 -> 'T2) (l : IndexList<'T1>) =
+        let sum = (LanguagePrimitives.GenericZero, l) ||> fold (fun s v -> s + mapping v)
+        LanguagePrimitives.DivideByInt sum l.Count
+

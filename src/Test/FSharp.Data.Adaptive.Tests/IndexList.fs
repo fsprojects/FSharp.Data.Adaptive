@@ -56,6 +56,75 @@ let ``[IndexList] append`` (l : list<int>) (r : list<int>) =
     |> IndexList.toList
     |> should equal (List.append l r)
 
+[<Property>]
+let ``[IndexList] take/skip`` (l : list<int>) =
+    let ll = IndexList.ofList l
+
+    let c = List.length l
+
+    let s1 = c / 2
+    let s2 = c / 3
+    IndexList.skip c ll |> IndexList.toList |> should equal List.empty<int>
+    IndexList.skip 0 ll |> IndexList.toList |> should equal l
+    IndexList.skip s1 ll |> IndexList.toList |> should equal (List.skip s1 l)
+    IndexList.skip s2 ll |> IndexList.toList |> should equal (List.skip s2 l)
+    
+    IndexList.take c ll |> IndexList.toList |> should equal l
+    IndexList.take 0 ll |> IndexList.toList |> should equal List.empty<int>
+    IndexList.take s1 ll |> IndexList.toList |> should equal (List.take s1 l)
+    IndexList.take s2 ll |> IndexList.toList |> should equal (List.take s2 l)
+
+[<Property>]
+let ``[IndexList] sort`` (l : list<int>) =
+    let ll = IndexList.ofList l
+
+    let cmp (a : int) (b : int) =
+        b - a
+
+    ll |> IndexList.sortBy id |> IndexList.toList |> should equal (List.sortBy id l)
+    ll |> IndexList.sortByDescending id |> IndexList.toList |> should equal (List.sortByDescending id l)
+    ll |> IndexList.sortWith cmp |> IndexList.toList |> should equal (List.sortWith cmp l)
+    ll |> IndexList.sort |> IndexList.toList |> should equal (List.sort l)
+    ll |> IndexList.sortDescending |> IndexList.toList |> should equal (List.sortDescending l)
+    
+[<Property>]
+let ``[IndexList] sum/average`` (h : float) (l : list<float>) =
+    let l = h :: l
+    let ll = IndexList.ofList l
+    let mapping (v : float) = v + 1.0
+    ll |> IndexList.sum |> should equal (List.sum l)
+    ll |> IndexList.average |> should equal (List.average l)
+    ll |> IndexList.sumBy mapping |> should equal (List.sumBy mapping l)
+    ll |> IndexList.averageBy mapping |> should equal (List.averageBy mapping l)
+    
+      
+[<Property>]
+let ``[IndexList] unzip`` (l : list<int * float>) =
+    let a, b = List.unzip l
+    let la, lb = IndexList.unzip (IndexList.ofList l)
+      
+    la |> IndexList.toList |> should equal a
+    lb |> IndexList.toList |> should equal b
+    
+      
+[<Property>]
+let ``[IndexList] unzip3`` (l : list<int * float * string>) =
+    let a, b, c = List.unzip3 l
+    let la, lb, lc = IndexList.unzip3 (IndexList.ofList l)
+      
+    la |> IndexList.toList |> should equal a
+    lb |> IndexList.toList |> should equal b
+    lc |> IndexList.toList |> should equal c
+
+[<Property>]
+let ``[IndexList] rev`` (l : list<float>) =
+    let ll = IndexList.ofList l
+
+    let rl = IndexList.rev ll
+    ll.MinIndex |> should equal rl.MinIndex
+    ll.MaxIndex |> should equal rl.MaxIndex
+
+    ll |> IndexList.rev |> IndexList.toList |> should equal (List.rev l)
 
 [<Property>]
 let ``[IndexList] collect`` (l : list<int>) =

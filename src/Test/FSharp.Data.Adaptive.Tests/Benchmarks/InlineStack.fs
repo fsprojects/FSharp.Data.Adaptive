@@ -1,12 +1,12 @@
 ﻿namespace Benchmarks
 
-open FSharp.Data.Adaptive
 open System
 open System.Collections
 open System.Collections.Generic
 open BenchmarkDotNet.Attributes
 open Microsoft.FSharp.NativeInterop
 open System.Runtime.InteropServices
+open FSharp.Data.Adaptive
 
 
 
@@ -1795,13 +1795,176 @@ type internal MapExtEnumeratorNew<'Key, 'Value when 'Key : comparison> =
 
     end
 
+
+
+type private MapExtEnumeratorPartialArray<'Key, 'Value when 'Key : comparison> =
+    struct
+        val mutable public Root : MapExtImplementation.MapTree<'Key, 'Value>
+        val mutable public Stack : list<MapExtImplementation.MapTree<'Key, 'Value>>
+        val mutable public Values : KeyValuePair<'Key, 'Value>[]
+        val mutable public Index : int
+
+        member x.MoveNext (top : MapExtImplementation.MapTree<_,_>) =
+            let mutable top = top
+            let mutable run = true
+            while run do
+                match top with
+                | MapExtImplementation.MapEmpty ->
+                    failwith "invalid state"
+                | MapExtImplementation.MapOne(k, v) ->
+                    x.Values <- [| KeyValuePair(k, v) |]
+                    x.Index <- 0
+                    run <- false
+                | MapExtImplementation.MapNode(k, v, l, r, _, c) ->
+                    if c <= 16 then
+                        x.Values <- MapExtImplementation.MapTree.toArrayKVP top
+                        x.Index <- 0
+                        run <- false
+                    else
+                        match l with
+                        | MapExtImplementation.MapEmpty ->
+                            x.Values <- [| KeyValuePair(k,v) |]
+                            x.Index <- 0
+                            match r with
+                            | MapExtImplementation.MapEmpty -> ()
+                            | _ -> x.Stack <- r :: x.Stack
+                            run <- false
+                        | MapExtImplementation.MapOne(lk, lv) ->
+                            x.Values <- [| KeyValuePair(lk, lv); KeyValuePair(k, v) |]
+                            x.Index <- 0
+                            match r with
+                            | MapExtImplementation.MapEmpty -> ()
+                            | _ -> x.Stack <- r :: x.Stack
+                            run <- false
+                        | l ->
+                            match r with
+                            | MapExtImplementation.MapEmpty -> ()
+                            | _ -> x.Stack <- r :: x.Stack
+                            x.Stack <- MapExtImplementation.MapOne(k, v) :: x.Stack
+                            top <- l //x.MoveNext l
+            true
+            
+        member inline x.MoveNext() =
+            x.Index <- x.Index + 1
+            if isNull x.Values || x.Index >= x.Values.Length then
+                match x.Stack with
+                | h :: t ->
+                    x.Stack <- t
+                    x.MoveNext h
+                | [] ->
+                    false
+            else
+                true
+           
+        member x.Reset() =
+            match x.Root with
+            | MapExtImplementation.MapEmpty ->
+                x.Index <- -1
+                x.Values <- [||]
+                x.Stack <- []
+            | MapExtImplementation.MapOne(k,v) ->
+                x.Index <- -1
+                x.Values <- [|KeyValuePair(k, v)|]
+                x.Stack <- []
+            | MapExtImplementation.MapNode(_,_,_,_,_,cnt) ->
+                if cnt <= 16 then
+                    x.Index <- -1
+                    x.Values <- MapExtImplementation.MapTree.toArrayKVP x.Root
+                    x.Stack <- []
+                else
+                    let stack = 
+                        match x.Root with
+                        | MapExtImplementation.MapEmpty -> []
+                        | r -> [r]
+                    x.Index <- -1
+                    x.Values <- null
+                    x.Stack <- stack
+           
+        member inline x.Dispose() =
+            x.Root <- MapExtImplementation.MapEmpty
+            x.Index <- -1
+            x.Values <- null
+            x.Stack <- []
+
+        member inline x.Current = x.Values.[x.Index]
+        
+        interface IEnumerator with
+            member x.MoveNext() = x.MoveNext()
+            member x.Reset() = x.Reset()
+            member x.Current = x.Current :> obj
+
+        interface IEnumerator<KeyValuePair<'Key, 'Value>> with
+            member x.Current = x.Current
+            member x.Dispose() = x.Dispose()
+
+        static member Flatten(m : MapExtImplementation.MapTree<'Key, 'Value>, dst : KeyValuePair<'Key, 'Value>[], offset : byref<int>) =
+            match m with
+            | MapExtImplementation.MapEmpty ->
+                ()
+            | MapExtImplementation.MapOne(k, v) ->
+                dst.[offset] <- KeyValuePair(k, v)
+                offset <- offset + 1
+
+            | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
+                MapExtEnumeratorLazyArray<'Key, 'Value>.Flatten(l, dst, &offset)
+                
+                dst.[offset] <- KeyValuePair(k, v)
+                offset <- offset + 1
+                
+                MapExtEnumeratorLazyArray<'Key, 'Value>.Flatten(r, dst, &offset)
+
+
+        new(map : MapExt<'Key, 'Value>) =
+
+            let root = map.Tree
+            match root with
+            | MapExtImplementation.MapEmpty ->
+                {
+                    Root = root
+                    Index = -1
+                    Values = [||]
+                    Stack = []
+                }
+            | MapExtImplementation.MapOne(k,v) ->
+                {
+                    Root = root
+                    Index = -1
+                    Values = [|KeyValuePair(k, v)|]
+                    Stack = []
+                }
+            | MapExtImplementation.MapNode(_,_,_,_,_,cnt) ->
+                if cnt <= 16 then
+                    {
+                        Root = map.Tree
+                        Index = -1
+                        Values = MapExtImplementation.MapTree.toArrayKVP map.Tree
+                        Stack = []
+                    }
+                else
+                    let stack = 
+                        match map.Tree with
+                        | MapExtImplementation.MapEmpty -> []
+                        | r -> [r]
+
+                    {
+                        Root = map.Tree
+                        Index = -1
+                        Values = null
+                        Stack = stack
+                    }
+
+
+    end
+
+
 [<PlainExporter; MemoryDiagnoser>]
 type InlineStackBenchmark() =
 
-    let mutable map : MapExt<int, int> = MapExt.empty
-    let mutable array : KeyValuePair<int, int>[] = [||]
+    let mutable map : MapExt<Index, int> = MapExt.empty
+    let mutable list : IndexList<int> = IndexList.empty
+    let mutable array : KeyValuePair<Index, int>[] = [||]
     
-    [<DefaultValue; Params(0, 1, 5, 10, 100, 500, 1000)>]
+    [<DefaultValue; Params(0, 1, 10, 100, 1000)>]
     val mutable public Count : int
 
     // |               Method | Count |         Mean |      Error |     StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
@@ -1822,7 +1985,8 @@ type InlineStackBenchmark() =
 
 
     static member Check () =
-        let m = List.init 100 (fun i -> i, i) |> MapExt.ofList
+        let l = List.init 100 id |> IndexList.ofList
+        let m = l.Content
 
         let res = System.Collections.Generic.List<_>()
         let mutable e = new MapExtEnumerator0<_,_>(m)
@@ -1887,18 +2051,38 @@ type InlineStackBenchmark() =
         res.Clear()
         let mutable e = new MapExtEnumeratorNew<_,_>(m)
         while e.MoveNext() do res.Add e.Current
-        if Seq.toList res <> Seq.toList m then failwith "MapExtEnumeratorArr bad"
+        if Seq.toList res <> Seq.toList m then failwith "MapExtEnumeratorNew bad"
  
         res.Clear()
         let mutable e = new MapExtEnumeratorLazyArray<_,_>(m)
         while e.MoveNext() do res.Add e.Current
-        if Seq.toList res <> Seq.toList m then failwith "MapExtEnumeratorArr bad"
+        if Seq.toList res <> Seq.toList m then failwith "MapExtEnumeratorLazyArray bad"
+ 
+        res.Clear()
+        let mutable e = new MapExtEnumeratorPartialArray<_,_>(m)
+        while e.MoveNext() do res.Add e.Current
+        if Seq.toList res <> Seq.toList m then failwith "MapExtEnumeratorPartialArray bad"
  
     [<GlobalSetup>]
     member x.Setup() =
         InlineStackBenchmark.Check()
-        map <- MapExt.ofList ([1.. x.Count] |> List.map (fun v -> v,v))
+        let l = IndexList.ofList [1.. x.Count] 
+        map <- l.Content
+        list <- l
         array <- Array.zeroCreate x.Count
+        
+         
+    [<Benchmark>]
+    member x.MapExtEnumeratorPartialArray() =
+        let mutable sum = 0
+        let mutable e = new MapExtEnumeratorPartialArray<_,_>(map)
+        try
+            while e.MoveNext() do 
+                sum <- sum + e.Current.Value
+        finally
+            e.Dispose()
+        sum
+        
         
         
     [<Benchmark>]
@@ -1910,60 +2094,60 @@ type InlineStackBenchmark() =
             sum <- sum + kvp.Value
         sum
 
-    [<Benchmark>]
-    member x.MapExtEnumerator0() =
-        let mutable sum = 0
-        let mutable e = new MapExtEnumerator0<_,_>(map)
-        try
-            while e.MoveNext() do 
-                sum <- sum + e.Current.Value
-        finally
-            e.Dispose()
-        sum
+    //[<Benchmark>]
+    //member x.MapExtEnumerator0() =
+    //    let mutable sum = 0
+    //    let mutable e = new MapExtEnumerator0<_,_>(map)
+    //    try
+    //        while e.MoveNext() do 
+    //            sum <- sum + e.Current.Value
+    //    finally
+    //        e.Dispose()
+    //    sum
 
-    [<Benchmark>]
-    member x.MapExtEnumerator2Opt() =
-        let mutable sum = 0
-        let mutable e = new MapExtEnumerator2Opt<_,_>(map)
-        try
-            while e.MoveNext() do 
-                sum <- sum + e.Current.Value
-        finally
-            e.Dispose()
-        sum
+    //[<Benchmark>]
+    //member x.MapExtEnumerator2Opt() =
+    //    let mutable sum = 0
+    //    let mutable e = new MapExtEnumerator2Opt<_,_>(map)
+    //    try
+    //        while e.MoveNext() do 
+    //            sum <- sum + e.Current.Value
+    //    finally
+    //        e.Dispose()
+    //    sum
 
-    [<Benchmark>]
-    member x.MapExtEnumerator4Opt() =
-        let mutable sum = 0
-        let mutable e = new MapExtEnumerator4Opt<_,_>(map)
-        try
-            while e.MoveNext() do 
-                sum <- sum + e.Current.Value
-        finally
-            e.Dispose()
-        sum
+    //[<Benchmark>]
+    //member x.MapExtEnumerator4Opt() =
+    //    let mutable sum = 0
+    //    let mutable e = new MapExtEnumerator4Opt<_,_>(map)
+    //    try
+    //        while e.MoveNext() do 
+    //            sum <- sum + e.Current.Value
+    //    finally
+    //        e.Dispose()
+    //    sum
 
-    [<Benchmark>]
-    member x.MapExtEnumerator6Opt() =
-        let mutable sum = 0
-        let mutable e = new MapExtEnumerator6Opt<_,_>(map)
-        try
-            while e.MoveNext() do 
-                sum <- sum + e.Current.Value
-        finally
-            e.Dispose()
-        sum
+    //[<Benchmark>]
+    //member x.MapExtEnumerator6Opt() =
+    //    let mutable sum = 0
+    //    let mutable e = new MapExtEnumerator6Opt<_,_>(map)
+    //    try
+    //        while e.MoveNext() do 
+    //            sum <- sum + e.Current.Value
+    //    finally
+    //        e.Dispose()
+    //    sum
 
-    [<Benchmark>]
-    member x.MapExtEnumerator8Opt() =
-        let mutable sum = 0
-        let mutable e = new MapExtEnumerator8Opt<_,_>(map)
-        try
-            while e.MoveNext() do 
-                sum <- sum + e.Current.Value
-        finally
-            e.Dispose()
-        sum
+    //[<Benchmark>]
+    //member x.MapExtEnumerator8Opt() =
+    //    let mutable sum = 0
+    //    let mutable e = new MapExtEnumerator8Opt<_,_>(map)
+    //    try
+    //        while e.MoveNext() do 
+    //            sum <- sum + e.Current.Value
+    //    finally
+    //        e.Dispose()
+    //    sum
          
     [<Benchmark>]
     member x.MapExtEnumeratorLazyArray() =
@@ -1975,22 +2159,27 @@ type InlineStackBenchmark() =
         finally
             e.Dispose()
         sum
-        
-        
-    [<Benchmark>]
-    member x.MapExtEnumeratorArr() =
-        let mutable sum = 0
-        let mutable e = new MapExtEnumeratorArr<_,_>(map)
-        try
-            while e.MoveNext() do 
-                sum <- sum + e.Current.Value
-        finally
-            e.Dispose()
-        sum
+    //[<Benchmark>]
+    //member x.MapExtEnumeratorArr() =
+    //    let mutable sum = 0
+    //    let mutable e = new MapExtEnumeratorArr<_,_>(map)
+    //    try
+    //        while e.MoveNext() do 
+    //            sum <- sum + e.Current.Value
+    //    finally
+    //        e.Dispose()
+    //    sum
+
+    //[<Benchmark>]
+    //member x.CurrentImpl() =
+    //    let mutable sum = 0
+    //    for kvp in map do
+    //        sum <- sum + kvp.Value
+    //    sum
 
     [<Benchmark>]
-    member x.CurrentImpl() =
+    member x.IndexList() =
         let mutable sum = 0
-        for kvp in map do
-            sum <- sum + kvp.Value
+        for e in list do
+            sum <- sum + e
         sum
