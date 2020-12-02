@@ -443,6 +443,13 @@ let ``[HashSet] contains`` (l : Set<int>) (a : int)  =
 [<Property>]
 let ``[HashSet] ofList`` (l : list<int>) =
     HashSet.toList (HashSet.ofList l) |> List.sort = Set.toList (Set.ofList l)
+    
+[<Property>]
+let ``[HashSet] enumerator correct`` (m : Set<int>) =
+    let h = HashSet.ofSeq m
+
+    h |> Seq.toList |> should equal (HashSet.toList h)
+    h |> Seq.toList |> Seq.sort |> should equal (Set.toList m)
 
     
 [<Property>]

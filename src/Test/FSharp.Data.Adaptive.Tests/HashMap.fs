@@ -208,6 +208,13 @@ let ``[HashMap] map2/choose2`` (lm : Map<int, int>) (rm : Map<int, int>) =
         equal (HashMap.choose2 (fun k l r -> add k l r |> Some) l r) (map2 add lm rm)
         equal (HashMap.choose2 add2 l r) (choose2 add2 lm rm)
     ]
+    
+[<Property>]
+let ``[HashMap] enumerator correct`` (m : Map<int, int>) =
+    let h = HashMap.ofSeq (Map.toSeq m)
+
+    h |> Seq.toList |> should equal (HashMap.toList h)
+    h |> Seq.toList |> Seq.sort |> should equal (Map.toList m)
 
 [<Property>]
 let ``[HashMap] choose`` (m : Map<int, int>) (f : int -> int -> option<int>) =

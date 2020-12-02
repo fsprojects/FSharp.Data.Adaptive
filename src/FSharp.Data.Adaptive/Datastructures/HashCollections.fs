@@ -3679,11 +3679,13 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         | :? ISet<'T> as other -> x.IsSupersetOf other
         | other -> x.IsSupersetOf (HashSet<'T>.OfSeq other)
 
+    member x.GetEnumerator() = new HashSetEnumerator<_>(x)
+
     interface System.Collections.IEnumerable with 
-        member x.GetEnumerator() = new HashSetEnumerator<_>(root) :> _
+        member x.GetEnumerator() = new HashSetEnumerator<_>(x) :> _
         
     interface System.Collections.Generic.IEnumerable<'T> with 
-        member x.GetEnumerator() = new HashSetEnumerator<_>(root) :> _
+        member x.GetEnumerator() = new HashSetEnumerator<_>(x) :> _
 
     interface System.Collections.Generic.ICollection<'T> with
         member x.Count = x.Count
@@ -3720,57 +3722,119 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         HashSet<'T>(o.Comparer, o.Root)
         
 
-and internal HashSetEnumerator<'T>(root: HashSetNode<'T>) =
-    let mutable stack = [root]
-    let mutable linked: HashSetLinked<'T> = null
-    let mutable current = Unchecked.defaultof<'T>
+and HashSetEnumerator<'T> =
+    struct
+        val mutable private Root : HashSetNode<'T>
+        val mutable private Stack : list<HashSetNode<'T>>
+        val mutable private Values : 'T[]
+        val mutable private Index : int
 
-    member x.MoveNext() =
-        if isNull linked then
-            match stack with
-            | (:? HashSetEmpty<'T>) :: rest ->
-                stack <- rest 
-                x.MoveNext()
-            | (:? HashSetNoCollisionLeaf<'T> as l) :: rest ->
-                stack <- rest
-                current <- l.Value
-                true
-            | (:? HashSetCollisionLeaf<'T> as l) :: rest -> 
-                stack <- rest
-                current <- l.Value
-                linked <- l.Next
-                true
-            | (:? HashSetInner<'T> as n) :: rest ->
-                stack <- n.Left:: n.Right:: rest
-                x.MoveNext()
-            | _ ->
-                false
-        else
-            current <- linked.Value
-            linked <- linked.Next
+        member private x.MoveNext (current : HashSetNode<'T>) =
+            let mutable current = current
+            let mutable run = true
+            while run do
+                match current with
+                | :? HashSetEmpty<'T> ->
+                    failwith "bad"
+                | :? HashSetNoCollisionLeaf<'T> as h ->
+                    x.Values <- [| h.Value |]
+                    x.Index <- 0
+                    run <- false
+                | :? HashSetCollisionLeaf<'T> as h ->
+                    let arr = Array.zeroCreate h.Count
+                    arr.[0] <- h.Value
+                    let mutable c = h.Next
+                    let mutable i = 1
+                    while not (isNull c) do
+                        arr.[i] <- c.Value
+                        c <- c.Next
+                        i <- i + 1
+                    x.Values <- arr
+                    x.Index <- 0
+                    run <- false
+                | :? HashSetInner<'T> as h ->
+                    if h.Count <= 16 then
+                        let array = Array.zeroCreate h.Count
+                        let index = ref 0
+                        h.CopyTo(array, index)
+                        x.Values <- array
+                        x.Index <- 0
+                        run <- false
+                    else
+                        match h.Left with
+                        | :? HashSetEmpty<'T> ->
+                            current <- h.Right
+                        | _ ->
+                            match h.Right with
+                            | :? HashSetEmpty<'T> -> ()
+                            | r -> x.Stack <- r :: x.Stack
+
+                            current <- h.Left
+                | _ ->
+                    failwith "bad node"
+
             true
-    
-    member x.Current = current
 
-    member x.Reset() =
-        stack <- [root]
-        linked <- null
-        current <- Unchecked.defaultof<_>
+        member x.MoveNext() =
+            x.Index <- x.Index + 1
+            if isNull x.Values || x.Index >= x.Values.Length then
+                match x.Stack with
+                | [] ->
+                    false
+                | h :: t ->
+                    x.Stack <- t
+                    x.MoveNext h
+            else
+                true
 
-    member x.Dispose() =
-        stack <- []
-        linked <- null
-        current <- Unchecked.defaultof<_>
+        member x.Reset() =
+            if x.Root.Count <= 16 then
+                let array = Array.zeroCreate x.Root.Count
+                let index = ref 0
+                x.Root.CopyTo(array, index)
+                x.Values <- array
+                x.Index <- -1
+                x.Stack <- []
+            else
+                x.Values <- null
+                x.Index <- -1
+                x.Stack <- [x.Root]
 
-    interface System.Collections.IEnumerator with
-        member x.MoveNext() = x.MoveNext()
-        member x.Current = x.Current:> obj
-        member x.Reset() = x.Reset()
-        
-    interface System.Collections.Generic.IEnumerator<'T> with
-        member x.Dispose() = x.Dispose()
-        member x.Current = x.Current
+        member x.Dispose() =
+            x.Values <- null
+            x.Index <- -1
+            x.Stack <- []
+            x.Root <- Unchecked.defaultof<_>
 
+        member x.Current = x.Values.[x.Index]
+
+        interface System.Collections.IEnumerator with
+            member x.MoveNext() = x.MoveNext()
+            member x.Reset() = x.Reset()
+            member x.Current = x.Current :> obj
+            
+        interface System.Collections.Generic.IEnumerator<'T> with
+            member x.Current = x.Current
+            member x.Dispose() = x.Dispose()
+
+        new (map : HashSet<'T>) =
+            if map.Count <= 16 then
+                {
+                    Root = map.Root
+                    Stack = []
+                    Values = map.ToArray()
+                    Index = -1
+                }
+            else
+                {
+                    Root = map.Root
+                    Stack = [map.Root]
+                    Values = null
+                    Index = -1
+                }
+                
+
+    end
 
 [<Struct; CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}"); CompiledName("FSharpHashMap`2")>]
 type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'K>, root: HashMapNode<'K, 'V>) =
@@ -4082,11 +4146,13 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         let index = ref arrayIndex
         root.CopyTo(array, index)
 
+    member x.GetEnumerator() = new HashMapEnumerator<_,_>(x)
+
     interface System.Collections.IEnumerable with 
-        member x.GetEnumerator() = new HashMapEnumerator<_,_>(root) :> _
+        member x.GetEnumerator() = new HashMapEnumerator<_,_>(x) :> _
         
     interface System.Collections.Generic.IEnumerable<'K * 'V> with 
-        member x.GetEnumerator() = new HashMapEnumerator<_,_>(root) :> _
+        member x.GetEnumerator() = new HashMapEnumerator<_,_>(x) :> _
         
     interface System.Collections.Generic.ICollection<'K * 'V> with
         member x.Count = x.Count
@@ -4123,56 +4189,122 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         HashMap<'K, 'V>(o.Comparer, o.Root)
     #endif
 
-and internal HashMapEnumerator<'K, 'V>(root: HashMapNode<'K, 'V>) =
-    let mutable stack = [root]
-    let mutable linked: HashMapLinked<'K, 'V> = null
-    let mutable current = Unchecked.defaultof<'K * 'V>
+and HashMapEnumerator<'K, 'V> =
+    struct
+        val mutable private Root : HashMapNode<'K, 'V>
+        val mutable private Stack : list<HashMapNode<'K, 'V>>
+        val mutable private Values : ('K * 'V)[]
+        val mutable private Index : int
 
-    member x.MoveNext() =
-        if isNull linked then
-            match stack with
-            | (:? HashMapEmpty<'K, 'V>) :: rest ->
-                stack <- rest 
-                x.MoveNext()
-            | (:? HashMapNoCollisionLeaf<'K, 'V> as l) :: rest ->
-                stack <- rest
-                current <- l.Key, l.Value
-                true
-            | (:? HashMapCollisionLeaf<'K, 'V> as l) :: rest -> 
-                stack <- rest
-                current <- l.Key, l.Value
-                linked <- l.Next
-                true
-            | (:? HashMapInner<'K, 'V> as n) :: rest ->
-                stack <- n.Left:: n.Right:: rest
-                x.MoveNext()
-            | _ ->
-                false
-        else
-            current <- (linked.Key, linked.Value)
-            linked <- linked.Next
+        member private x.MoveNext (current : HashMapNode<'K, 'V>) =
+            let mutable current = current
+            let mutable run = true
+            while run do
+                match current with
+                | :? HashMapEmpty<'K, 'V> ->
+                    failwith "bad"
+                | :? HashMapNoCollisionLeaf<'K, 'V> as h ->
+                    x.Values <- [| h.Key, h.Value |]
+                    x.Index <- 0
+                    run <- false
+                | :? HashMapCollisionLeaf<'K, 'V> as h ->
+                    let arr = Array.zeroCreate h.Count
+                    arr.[0] <- h.Key, h.Value
+                    let mutable c = h.Next
+                    let mutable i = 1
+                    while not (isNull c) do
+                        arr.[i] <- c.Key, c.Value
+                        c <- c.Next
+                        i <- i + 1
+                    x.Values <- arr
+                    x.Index <- 0
+                    run <- false
+                | :? HashMapInner<'K, 'V> as h ->
+                    if h.Count <= 16 then
+                        let array = Array.zeroCreate h.Count
+                        let index = ref 0
+                        h.CopyTo(array, index)
+                        x.Values <- array
+                        x.Index <- 0
+                        run <- false
+                    else
+                        match h.Left with
+                        | :? HashMapEmpty<'K, 'V> ->
+                            current <- h.Right
+                        | _ ->
+                            match h.Right with
+                            | :? HashMapEmpty<'K, 'V> -> ()
+                            | r -> x.Stack <- r :: x.Stack
+
+                            current <- h.Left
+                | _ ->
+                    failwith "bad node"
+
             true
-    
-    member x.Current = current
 
-    member x.Reset() =
-        stack <- [root]
-        linked <- null
-        current <- Unchecked.defaultof<_>
+        member x.MoveNext() =
+            x.Index <- x.Index + 1
+            if isNull x.Values || x.Index >= x.Values.Length then
+                match x.Stack with
+                | [] ->
+                    false
+                | h :: t ->
+                    x.Stack <- t
+                    x.MoveNext h
+            else
+                true
 
-    member x.Dispose() =
-        stack <- []
-        linked <- null
-        current <- Unchecked.defaultof<_>
+        member x.Reset() =
+            if x.Root.Count <= 16 then
+                let array = Array.zeroCreate x.Root.Count
+                let index = ref 0
+                x.Root.CopyTo(array, index)
+                x.Values <- array
+                x.Index <- -1
+                x.Stack <- []
+            else
+                x.Values <- null
+                x.Index <- -1
+                x.Stack <- 
+                    match x.Root with
+                    | :? HashMapEmpty<'K, 'V> -> []
+                    | r -> [r]
 
-    interface System.Collections.IEnumerator with
-        member x.MoveNext() = x.MoveNext()
-        member x.Current = x.Current:> obj
-        member x.Reset() = x.Reset()
-        
-    interface System.Collections.Generic.IEnumerator<'K * 'V> with
-        member x.Dispose() = x.Dispose()
-        member x.Current = x.Current
+        member x.Dispose() =
+            x.Values <- null
+            x.Index <- -1
+            x.Stack <- []
+            x.Root <- Unchecked.defaultof<_>
+
+        member x.Current = x.Values.[x.Index]
+
+        interface System.Collections.IEnumerator with
+            member x.MoveNext() = x.MoveNext()
+            member x.Reset() = x.Reset()
+            member x.Current = x.Current :> obj
+            
+        interface System.Collections.Generic.IEnumerator<'K * 'V> with
+            member x.Current = x.Current
+            member x.Dispose() = x.Dispose()
+
+        new (map : HashMap<'K, 'V>) =
+            if map.Count <= 16 then
+                {
+                    Root = map.Root
+                    Stack = []
+                    Values = map.ToArray()
+                    Index = -1
+                }
+            else
+                {
+                    Root = map.Root
+                    Stack = [map.Root]
+                    Values = null
+                    Index = -1
+                }
+                
+
+    end
 
 and internal HashMapStructEnumerator<'K, 'V>(root: HashMapNode<'K, 'V>) =
     let mutable stack = [root]
