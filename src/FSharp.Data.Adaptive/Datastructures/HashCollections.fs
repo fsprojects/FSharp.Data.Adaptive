@@ -3586,11 +3586,127 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         let result = HashSetNode.intersect cmp l.Root r.Root
         HashSet(cmp, result)
  
+    member x.CopyTo(array : 'T[], arrayIndex : int) =
+        if arrayIndex < 0 || arrayIndex + x.Count > array.Length then raise <| System.IndexOutOfRangeException()
+        let index = ref arrayIndex
+        root.CopyTo(array, index)
+
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.Overlaps(other : HashSet<'T>) =
+        let x = x
+        other.Exists (fun e -> x.Contains e)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.SetEquals(other : HashSet<'T>) =
+        x.Equals other
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.SetEquals(other : seq<'T>) =
+        match other with
+        | :? HashSet<'T> as other -> x.SetEquals other
+        | other -> x.SetEquals(HashSet.OfSeq other)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.Overlaps(other : seq<'T>) =
+        match other with
+        | :? HashSet<'T> as other -> x.Overlaps other
+        | other -> 
+            let x = x
+            other |> Seq.exists (fun e -> x.Contains e)
+            
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.IsProperSubsetOf(other : HashSet<'T>) =
+        other.Count > x.Count && x.Forall(fun e -> other.Contains e)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.IsSubsetOf(other : HashSet<'T>) =
+        other.Count >= x.Count && x.Forall(fun e -> other.Contains e)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.IsProperSupersetOf(other : HashSet<'T>) =
+        let x = x
+        other.Count < x.Count && other.Forall(fun e -> x.Contains e)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.IsSupersetOf(other : HashSet<'T>) =
+        let x = x
+        other.Count <= x.Count && other.Forall(fun e -> x.Contains e)
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.IsProperSubsetOf(other : ISet<'T>) =
+        other.Count > x.Count && x.Forall(fun e -> other.Contains e)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.IsSubsetOf(other : ISet<'T>) =
+        other.Count >= x.Count && x.Forall(fun e -> other.Contains e)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.IsProperSupersetOf(other : ISet<'T>) =
+        let x = x
+        other.Count < x.Count && other |> Seq.forall (fun e -> x.Contains e)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.IsSupersetOf(other : ISet<'T>) =
+        let x = x
+        other.Count <= x.Count && other |> Seq.forall (fun e -> x.Contains e)
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.IsProperSubsetOf(other : seq<'T>) =
+        match other with
+        | :? HashSet<'T> as other -> x.IsProperSubsetOf other
+        | :? ISet<'T> as other -> x.IsProperSubsetOf other
+        | other -> x.IsProperSubsetOf (HashSet<'T>.OfSeq other)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.IsSubsetOf(other : seq<'T>) =
+        match other with
+        | :? HashSet<'T> as other -> x.IsSubsetOf other
+        | :? ISet<'T> as other -> x.IsSubsetOf other
+        | other -> x.IsSubsetOf (HashSet<'T>.OfSeq other)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.IsProperSupersetOf(other : seq<'T>) =
+        match other with
+        | :? HashSet<'T> as other -> x.IsProperSupersetOf other
+        | :? ISet<'T> as other -> x.IsProperSupersetOf other
+        | other -> x.IsProperSupersetOf (HashSet<'T>.OfSeq other)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.IsSupersetOf(other : seq<'T>) =
+        match other with
+        | :? HashSet<'T> as other -> x.IsSupersetOf other
+        | :? ISet<'T> as other -> x.IsSupersetOf other
+        | other -> x.IsSupersetOf (HashSet<'T>.OfSeq other)
+
     interface System.Collections.IEnumerable with 
         member x.GetEnumerator() = new HashSetEnumerator<_>(root) :> _
         
     interface System.Collections.Generic.IEnumerable<'T> with 
         member x.GetEnumerator() = new HashSetEnumerator<_>(root) :> _
+
+    interface System.Collections.Generic.ICollection<'T> with
+        member x.Count = x.Count
+        member x.Contains o = x.Contains o
+        member x.IsReadOnly = true
+        member x.Add _ = failwith "readonly"
+        member x.Remove _ = failwith "readonly"
+        member x.Clear() = failwith "readonly"
+        member x.CopyTo(array : 'T[], arrayIndex : int) =
+            x.CopyTo(array, arrayIndex)
+
+    interface System.Collections.Generic.ISet<'T> with
+        member x.Add _ = failwith "readonly"
+        member x.UnionWith _ = failwith "readonly"
+        member x.ExceptWith _ = failwith "readonly"
+        member x.IntersectWith _ = failwith "readonly"
+        member x.SymmetricExceptWith _ = failwith "readonly"
+        member x.IsProperSubsetOf(other : seq<'T>) = x.IsProperSubsetOf other
+        member x.IsSubsetOf(other : seq<'T>) = x.IsSubsetOf other
+        member x.IsProperSupersetOf(other : seq<'T>) = x.IsProperSupersetOf other
+        member x.IsSupersetOf(other : seq<'T>) = x.IsSupersetOf other
+        member x.Overlaps(other : seq<'T>) = x.Overlaps other
+        member x.SetEquals(other : seq<'T>) = x.SetEquals other
 
     new(elements : seq<'T>) = 
         let o = HashSet.OfSeq elements
@@ -3961,6 +4077,10 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         let cmp = DefaultEqualityComparer<'K>.Instance
         let result = HashMapNode.choose2 cmp resolve l.Root r.Root
         HashMap(cmp, result)
+        
+    member x.CopyTo(array : ('K * 'V)[], arrayIndex : int) =
+        let index = ref arrayIndex
+        root.CopyTo(array, index)
 
     interface System.Collections.IEnumerable with 
         member x.GetEnumerator() = new HashMapEnumerator<_,_>(root) :> _
@@ -3968,6 +4088,18 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
     interface System.Collections.Generic.IEnumerable<'K * 'V> with 
         member x.GetEnumerator() = new HashMapEnumerator<_,_>(root) :> _
         
+    interface System.Collections.Generic.ICollection<'K * 'V> with
+        member x.Count = x.Count
+        member x.Contains((k, v)) = 
+            match x.TryFindV k with
+            | ValueSome v1 -> Unchecked.equals v v1
+            | _ -> false
+        member x.IsReadOnly = true
+        member x.Add _ = failwith "readonly"
+        member x.Remove _ = failwith "readonly"
+        member x.Clear() = failwith "readonly"
+        member x.CopyTo(array : ('K * 'V)[], arrayIndex : int) =
+            x.CopyTo(array, arrayIndex)
         
         
     new(elements : seq<'K * 'V>) = 
