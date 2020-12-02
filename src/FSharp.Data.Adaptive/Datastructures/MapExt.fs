@@ -2077,21 +2077,21 @@ type internal MapExtEnumerator<'Key, 'Value when 'Key : comparison> =
             member x.Current = x.Current
             member x.Dispose() = ()
 
-        static member Flatten(m : MapExtImplementation.MapTree<'Key, 'Value>, dst : KeyValuePair<'Key, 'Value>[], offset : byref<int>) =
+        static member Flatten(m : MapExtImplementation.MapTree<'Key, 'Value>, dst : KeyValuePair<'Key, 'Value>[], offset : ref<int>) =
             match m with
             | MapExtImplementation.MapEmpty ->
                 ()
             | MapExtImplementation.MapOne(k, v) ->
-                dst.[offset] <- KeyValuePair(k, v)
-                offset <- offset + 1
+                dst.[!offset] <- KeyValuePair(k, v)
+                offset := !offset + 1
 
             | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
-                MapExtEnumerator<'Key, 'Value>.Flatten(l, dst, &offset)
+                MapExtEnumerator<'Key, 'Value>.Flatten(l, dst, offset)
                 
-                dst.[offset] <- KeyValuePair(k, v)
-                offset <- offset + 1
+                dst.[!offset] <- KeyValuePair(k, v)
+                offset := !offset + 1
                 
-                MapExtEnumerator<'Key, 'Value>.Flatten(r, dst, &offset)
+                MapExtEnumerator<'Key, 'Value>.Flatten(r, dst, offset)
 
 
         new(root : MapTree<'Key, 'Value>) =
@@ -2114,8 +2114,8 @@ type internal MapExtEnumerator<'Key, 'Value when 'Key : comparison> =
             | MapExtImplementation.MapNode(_,_,_,_,_,cnt) ->
                 let s = Array.zeroCreate cnt
                 if cnt <= 16 then
-                    let mutable i = 0
-                    MapExtEnumerator<'Key, 'Value>.Flatten(root, s, &i)
+                    let i = ref 0
+                    MapExtEnumerator<'Key, 'Value>.Flatten(root, s, i)
                     {
                         Root = root
                         Index = -1

@@ -711,21 +711,21 @@ and IndexListEnumerator<'Value> =
             member x.Dispose() = ()
             
         [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-        static member internal Flatten(m : MapExtImplementation.MapTree<Index, 'Value>, dst : 'Value[], offset : byref<int>) =
+        static member internal Flatten(m : MapExtImplementation.MapTree<Index, 'Value>, dst : 'Value[], offset : ref<int>) =
             match m with
             | MapExtImplementation.MapEmpty ->
                 ()
             | MapExtImplementation.MapOne(k, v) ->
-                dst.[offset] <- v
-                offset <- offset + 1
+                dst.[!offset] <- v
+                offset := !offset + 1
 
             | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
-                IndexListEnumerator<'Value>.Flatten(l, dst, &offset)
+                IndexListEnumerator<'Value>.Flatten(l, dst, offset)
                 
-                dst.[offset] <- v
-                offset <- offset + 1
+                dst.[!offset] <- v
+                offset := !offset + 1
                 
-                IndexListEnumerator<'Value>.Flatten(r, dst, &offset)
+                IndexListEnumerator<'Value>.Flatten(r, dst, offset)
 
 
         internal new(root : MapExtImplementation.MapTree<Index, 'Value>) =
@@ -748,8 +748,8 @@ and IndexListEnumerator<'Value> =
             | MapExtImplementation.MapNode(_,_,_,_,_,cnt) ->
                 let s = Array.zeroCreate cnt
                 if cnt <= 16 then
-                    let mutable i = 0
-                    IndexListEnumerator<'Value>.Flatten(root, s, &i)
+                    let i = ref 0
+                    IndexListEnumerator<'Value>.Flatten(root, s, i)
                     {
                         Root = root
                         Index = -1
