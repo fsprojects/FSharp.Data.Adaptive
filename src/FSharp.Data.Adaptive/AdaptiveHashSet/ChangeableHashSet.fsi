@@ -45,6 +45,8 @@ type ChangeableHashSet<'T> =
     /// Creates an adaptive reader for the set.
     member GetReader: unit -> IHashSetReader<'T>
 
+    member GetEnumerator : unit -> HashSetEnumerator<'T>
+
     /// Creates a new empty cset.
     new: unit -> cset<'T>
 

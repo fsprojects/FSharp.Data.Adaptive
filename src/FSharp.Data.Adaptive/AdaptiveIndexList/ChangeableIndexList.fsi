@@ -6,6 +6,7 @@ open FSharp.Data.Traceable
 [<Sealed>]
 type ChangeableIndexList<'T> =
     interface IAdaptiveIndexList<'T>
+    interface System.Collections.Generic.IEnumerable<'T>
 
     /// is the list currently empty?
     member IsEmpty : bool
@@ -92,6 +93,8 @@ type ChangeableIndexList<'T> =
 
     /// Gets the (optional) element associated to the given Index.
     member TryGet : index: Index -> option<'T>
+
+    member GetEnumerator : unit -> IndexListEnumerator<'T>
 
     /// Creates a new list initially holding the given elements.
     new : elements: IndexList<'T> -> ChangeableIndexList<'T>

@@ -63,7 +63,7 @@ type ChangeableHashMap<'Key,'Value> =
     /// Performs the given Operations on the Map.
     member Perform: operations : HashMapDelta<'Key, 'Value> -> unit
 
-    //interface System.Collections.IEnumerable
+    member GetEnumerator : unit -> HashMapEnumerator<'Key, 'Value>
 
 /// Changeable adaptive map that allows mutation by user-code and implements amap.
 type cmap<'Key,'Value> = ChangeableHashMap<'Key,'Value>

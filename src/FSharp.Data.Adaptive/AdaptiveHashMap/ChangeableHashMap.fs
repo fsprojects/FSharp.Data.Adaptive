@@ -110,6 +110,8 @@ type ChangeableHashMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
     #endif
 
 
+    member x.GetEnumerator() = history.State.GetEnumerator()
+
     interface System.Collections.IEnumerable with
         member x.GetEnumerator() = (history.State :> System.Collections.IEnumerable).GetEnumerator()
         

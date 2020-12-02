@@ -3655,28 +3655,36 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
     member x.IsProperSubsetOf(other : seq<'T>) =
         match other with
         | :? HashSet<'T> as other -> x.IsProperSubsetOf other
+        #if !FABLE_COMPILER
         | :? ISet<'T> as other -> x.IsProperSubsetOf other
+        #endif
         | other -> x.IsProperSubsetOf (HashSet<'T>.OfSeq other)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.IsSubsetOf(other : seq<'T>) =
         match other with
         | :? HashSet<'T> as other -> x.IsSubsetOf other
+        #if !FABLE_COMPILER
         | :? ISet<'T> as other -> x.IsSubsetOf other
+        #endif
         | other -> x.IsSubsetOf (HashSet<'T>.OfSeq other)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.IsProperSupersetOf(other : seq<'T>) =
         match other with
         | :? HashSet<'T> as other -> x.IsProperSupersetOf other
+        #if !FABLE_COMPILER
         | :? ISet<'T> as other -> x.IsProperSupersetOf other
+        #endif
         | other -> x.IsProperSupersetOf (HashSet<'T>.OfSeq other)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.IsSupersetOf(other : seq<'T>) =
         match other with
         | :? HashSet<'T> as other -> x.IsSupersetOf other
+        #if !FABLE_COMPILER
         | :? ISet<'T> as other -> x.IsSupersetOf other
+        #endif
         | other -> x.IsSupersetOf (HashSet<'T>.OfSeq other)
 
     member x.GetEnumerator() = new HashSetEnumerator<_>(x)
@@ -3697,6 +3705,7 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         member x.CopyTo(array : 'T[], arrayIndex : int) =
             x.CopyTo(array, arrayIndex)
 
+    #if !FABLE_COMPILER
     interface System.Collections.Generic.ISet<'T> with
         member x.Add _ = failwith "readonly"
         member x.UnionWith _ = failwith "readonly"
@@ -3709,6 +3718,7 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         member x.IsSupersetOf(other : seq<'T>) = x.IsSupersetOf other
         member x.Overlaps(other : seq<'T>) = x.Overlaps other
         member x.SetEquals(other : seq<'T>) = x.SetEquals other
+    #endif
 
     new(elements : seq<'T>) = 
         let o = HashSet.OfSeq elements

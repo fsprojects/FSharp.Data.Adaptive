@@ -230,6 +230,14 @@ type ChangeableIndexList<'T>(initial: IndexList<'T>) =
     /// Creates a new empty list.
     new() = ChangeableIndexList IndexList.empty
 
+    member x.GetEnumerator() = x.Value.GetEnumerator()
+
+    interface System.Collections.IEnumerable with
+        member x.GetEnumerator() = x.Value.GetEnumerator() :> _
+
+    interface System.Collections.Generic.IEnumerable<'T> with
+        member x.GetEnumerator() = x.Value.GetEnumerator() :> _
+
     interface alist<'T> with
         member x.IsConstant = false
         member x.Content = history :> _
