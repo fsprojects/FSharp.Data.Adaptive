@@ -20,6 +20,7 @@
     <Compile Include="Benchmarks\Transact.fs" />
     <Compile Include="Benchmarks\Equals.fs" />
     <Compile Include="Benchmarks\InlineStack.fs" />
+    <Compile Include="Benchmarks\AdaptiveEnumerators.fs" />
     <Compile Include="Utilities\Helpers.fs" />
     <Compile Include="Utilities\Generators.fs" />
     <Compile Include="Callbacks.fs" />
