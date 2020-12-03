@@ -188,13 +188,13 @@ type HashSetDelta<'T>(store: HashMap<'T, int>) =
 
 /// Special enumerator for HashSetDelta.
 and HashSetDeltaEnumerator<'T>(store: HashMap<'T, int>) =
-    let mutable e = store.GetEnumerator()
+    let mutable e = store.GetStructEnumerator()
     
     member x.MoveNext() = e.MoveNext()
     member x.Reset() = e.Reset()
     member x.Dispose() = e.Dispose()
     member x.Current = 
-        let (v,c) = e.Current
+        let struct(v,c) = e.Current
         SetOperation(v,c)
 
     interface IEnumerator with

@@ -16,7 +16,7 @@ type AdaptiveEnumeratorBenchmark() =
     let mutable hashSetDelta = HashSetDelta.empty<int>
     let mutable hashMapDelta = HashMapDelta.empty<int, int>
    
-    [<Params(0,1,10,100,1000); DefaultValue>]
+    [<Params(0, 1, 10, 100, 1000); DefaultValue>]
     val mutable public Count : int
 
     [<GlobalSetup>]

@@ -350,13 +350,13 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
 /// An enumerator for CountingHashSet.
 and CountingHashSetEnumerator<'T>(store : HashMap<'T, int>) =
-    let mutable e = store.GetEnumerator()
+    let mutable e = store.GetStructEnumerator()
     
     member x.MoveNext() = e.MoveNext()
     member x.Reset() = e.Reset()
     member x.Dispose() = e.Dispose()
     member x.Current = 
-        let (v,_) = e.Current
+        let struct (v,_) = e.Current
         v
 
     interface IEnumerator with
