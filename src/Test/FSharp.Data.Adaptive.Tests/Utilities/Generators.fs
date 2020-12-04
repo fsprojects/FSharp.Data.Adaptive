@@ -181,7 +181,7 @@ module Generators =
         cache, fun a b c -> cache.Invoke(a,b,c)
 
     let indent (str : string) =
-        str.Split("\r\n") |> Array.map (fun s -> "  " + s) |> String.concat "\r\n"
+        str.Split([|"\r\n"|], System.StringSplitOptions.None) |> Array.map (fun s -> "  " + s) |> String.concat "\r\n"
 
     module Val = 
         let create a b s c = 

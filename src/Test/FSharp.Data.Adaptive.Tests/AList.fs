@@ -52,7 +52,7 @@ let ``[AList] reference impl``() ({ lreal = real; lref = ref; lexpression = str;
                     //yield! beforeChangeStr.Split("\r\n") |> Array.map Generators.indent
                     
                     yield "CURRENT"
-                    yield! (str true).Split("\r\n") |> Array.map Generators.indent
+                    yield! (str true).Split([|"\r\n"|], System.StringSplitOptions.None) |> Array.map Generators.indent
 
                     yield sprintf "real:  %s" real
                     yield sprintf "ref:   %s" ref

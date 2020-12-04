@@ -4,37 +4,35 @@ open System
 open FSharp.Data.Adaptive
 open FSharp.Data.Traceable
 open BenchmarkDotNet.Attributes
+open BenchmarkDotNet.Jobs
 
 type ImprovedHashSetEnumerator<'T> =
     struct
         val mutable private Root : HashSetNode<'T>
-        val mutable private E0 : HashSetNode<'T>
-        val mutable private Stack : list<HashSetNode<'T>>
+        val mutable private Head : HashSetNode<'T>
+        val mutable private Tail : list<HashSetNode<'T>>
         val mutable private Values : 'T[]
         val mutable private ValueCount : int
         val mutable private Index : int
 
         member inline private x.Push(n : HashSetNode<'T>) =
-            if isNull (x.E0 :> obj) then
-                x.E0 <- n
+            if isNull (x.Head :> obj) then
+                x.Head <- n
             else
-                x.Stack <- x.E0 :: x.Stack
-                x.E0 <- n
+                x.Tail <- x.Head :: x.Tail
+                x.Head <- n
                 
         member inline private x.Pop() =
-            match x.Stack with
+            match x.Tail with
             | [] -> 
-                let v = x.E0
-                x.E0 <- Unchecked.defaultof<_>
+                let v = x.Head
+                x.Head <- Unchecked.defaultof<_>
                 v
             | h :: t ->
-                let v = x.E0
-                x.E0 <- h
-                x.Stack <- t
+                let v = x.Head
+                x.Head <- h
+                x.Tail <- t
                 v
-
-        member inline private x.IsEmpty =
-            isNull (x.E0 :> obj) && List.isEmpty x.Stack
 
         member private x.MoveNext (current : HashSetNode<'T>) =
             let mutable current = current
@@ -94,26 +92,23 @@ type ImprovedHashSetEnumerator<'T> =
             true
 
         member x.MoveNext() =
-            if isNull x.Values then
-                false
-            else
-                x.Index <- x.Index + 1
-                if x.Index >= x.ValueCount then
-                    if x.IsEmpty then
-                        false
-                    else
-                        let h = x.Pop()
-                        x.MoveNext h
+            x.Index <- x.Index + 1
+            if x.Index >= x.ValueCount then
+                if isNull (x.Head :> obj) then
+                    false
                 else
-                    true
+                    let h = x.Pop()
+                    x.MoveNext h
+            else
+                true
 
         member x.Reset() =
             let cnt = x.Root.Count
-            if cnt = 0 then
+            if cnt <= 0 then
                 x.Values <- null
-                x.ValueCount <- 0
+                x.ValueCount <- cnt
                 x.Index <- -1
-                x.Stack <- []
+                x.Tail <- []
             elif cnt <= 16 then
                 let array = Array.zeroCreate x.Root.Count
                 let index = ref 0
@@ -121,21 +116,27 @@ type ImprovedHashSetEnumerator<'T> =
                 x.Values <- array
                 x.ValueCount <- array.Length
                 x.Index <- -1
-                x.Stack <- []
+                x.Tail <- []
             else
                 x.Values <- Array.zeroCreate 16
                 x.ValueCount <- 0
                 x.Index <- -1
-                x.Stack <- [x.Root]
+                x.Tail <- [x.Root]
 
         member x.Dispose() =
             x.Values <- null
             x.ValueCount <- 0
             x.Index <- -1
-            x.Stack <- []
+            x.Tail <- []
             x.Root <- Unchecked.defaultof<_>
 
-        member x.Current = x.Values.[x.Index]
+        member x.Current = 
+            if isNull x.Values then
+                match x.Root with
+                | :? HashSetNoCollisionLeaf<'T> as r -> r.Value
+                | _ -> failwith "bad"
+            else
+                x.Values.[x.Index]
 
         interface System.Collections.IEnumerator with
             member x.MoveNext() = x.MoveNext()
@@ -148,20 +149,20 @@ type ImprovedHashSetEnumerator<'T> =
 
         new (map : HashSet<'T>) =
             let cnt = map.Count
-            if cnt = 0 then
+            if cnt <= 1 then
                 {
                     Root = map.Root
-                    E0 = Unchecked.defaultof<_>
-                    Stack = []
+                    Head = Unchecked.defaultof<_>
+                    Tail = []
                     Values = null
-                    ValueCount = 0
+                    ValueCount = cnt
                     Index = -1
                 }
             elif cnt <= 16 then
                 {
                     Root = map.Root
-                    E0 = Unchecked.defaultof<_>
-                    Stack = []
+                    Head = Unchecked.defaultof<_>
+                    Tail = []
                     Values = map.ToArray()
                     ValueCount = cnt
                     Index = -1
@@ -169,8 +170,8 @@ type ImprovedHashSetEnumerator<'T> =
             else
                 {
                     Root = map.Root
-                    E0 = map.Root
-                    Stack = []
+                    Head = map.Root
+                    Tail = []
                     Values = Array.zeroCreate 16
                     ValueCount = 0
                     Index = -1
@@ -179,7 +180,7 @@ type ImprovedHashSetEnumerator<'T> =
 
     end
 
-[<PlainExporter; MemoryDiagnoser>]
+[<PlainExporter; MemoryDiagnoser; SimpleJob(RuntimeMoniker.NetCoreApp31); SimpleJob(RuntimeMoniker.Net472)>]
 type AdaptiveEnumeratorBenchmark() =
 
     let mutable indexList = IndexList.empty<int>
@@ -202,7 +203,7 @@ type AdaptiveEnumeratorBenchmark() =
         while e.MoveNext() do res.Add e.Current
         if Seq.toList res <> HashSet.toList set then failwith "HashSetEnumerator wrong"
 
-    [<Params(0, 1, 1000); DefaultValue>]
+    [<Params(1, 1000); DefaultValue>]
     val mutable public Count : int
 
     [<GlobalSetup>]
