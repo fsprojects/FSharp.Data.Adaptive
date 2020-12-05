@@ -3744,25 +3744,6 @@ and HashSetEnumerator<'T> =
         
         member x.Collect() =
             match x.Head with
-            | :? HashSetInner<'T> as h ->
-                if sizeof<'T> <= 64 && h._Count <= 16 then
-                    let index = ref 0
-                    h.CopyTo(x.Values, index)
-                    x.BufferValueCount <- h._Count
-                    x.Next <- x.Values.[0]
-                    x.Index <- 1 // skip first element of array
-                    if x.Tail.IsEmpty then
-                        x.Head <- Unchecked.defaultof<_>
-                        x.Tail <- []
-                    else
-                        x.Head <- x.Tail.Head
-                        x.Tail <- x.Tail.Tail
-                    true
-                else
-                    x.Head <- h.Left
-                    x.Tail <- h.Right :: x.Tail
-                    x.Collect()
-
             | :? HashSetNoCollisionLeaf<'T> as h ->
                 x.Next <- h.Value
                 x.Index <- 0
@@ -3797,6 +3778,25 @@ and HashSetEnumerator<'T> =
                     x.Head <- x.Tail.Head
                     x.Tail <- x.Tail.Tail
                 true
+
+            | :? HashSetInner<'T> as h ->
+                if sizeof<'T> <= 64 && h._Count <= 16 then
+                    let index = ref 0
+                    h.CopyTo(x.Values, index)
+                    x.BufferValueCount <- h._Count
+                    x.Next <- x.Values.[0]
+                    x.Index <- 1 // skip first element of array
+                    if x.Tail.IsEmpty then
+                        x.Head <- Unchecked.defaultof<_>
+                        x.Tail <- []
+                    else
+                        x.Head <- x.Tail.Head
+                        x.Tail <- x.Tail.Tail
+                    true
+                else
+                    x.Head <- h.Left
+                    x.Tail <- h.Right :: x.Tail
+                    x.Collect()
                 
             | _ -> false
 

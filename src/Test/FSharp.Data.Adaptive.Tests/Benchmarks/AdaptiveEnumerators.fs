@@ -180,28 +180,28 @@ module BigStruct =
 //|    HashSet_384byte |  1000 | 94,500.83 ns | 1,437.677 ns | 1,344.804 ns | 94,210.69 ns | 62.2559 | 0.8545 |     - |  391280 B |
 
 // Combined:
-//|          Method | Count |         Mean |      Error |     StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-//|---------------- |------ |-------------:|-----------:|-----------:|-------:|------:|------:|----------:|
-//|   HashSet_4byte |     0 |     25.57 ns |   0.066 ns |   0.058 ns |      - |     - |     - |         - |
-//|  HashSet_32byte |     0 |     35.14 ns |   0.112 ns |   0.105 ns |      - |     - |     - |         - |
-//| HashSet_128byte |     0 |     53.21 ns |   0.499 ns |   0.467 ns |      - |     - |     - |         - |
-//| HashSet_384byte |     0 |     91.67 ns |   0.208 ns |   0.184 ns |      - |     - |     - |         - |
-//|   HashSet_4byte |     1 |     30.11 ns |   0.071 ns |   0.063 ns |      - |     - |     - |         - |
-//|  HashSet_32byte |     1 |     40.58 ns |   0.161 ns |   0.151 ns |      - |     - |     - |         - |
-//| HashSet_128byte |     1 |     67.64 ns |   0.363 ns |   0.340 ns |      - |     - |     - |         - |
-//| HashSet_384byte |     1 |    121.37 ns |   0.348 ns |   0.325 ns |      - |     - |     - |         - |
-//|   HashSet_4byte |    10 |     83.09 ns |   0.432 ns |   0.404 ns | 0.0139 |     - |     - |      88 B |
-//|  HashSet_32byte |    10 |    116.95 ns |   0.877 ns |   0.820 ns | 0.0587 |     - |     - |     368 B |
-//| HashSet_128byte |    10 |    379.45 ns |   0.969 ns |   0.859 ns | 0.0458 |     - |     - |     288 B |
-//| HashSet_384byte |    10 |    505.01 ns |   2.047 ns |   1.915 ns | 0.0458 |     - |     - |     288 B |
-//|   HashSet_4byte |   100 |    681.46 ns |   2.151 ns |   1.907 ns | 0.0973 |     - |     - |     616 B |
-//|  HashSet_32byte |   100 |    843.26 ns |   2.919 ns |   2.587 ns | 0.1602 |     - |     - |    1008 B |
-//| HashSet_128byte |   100 |  3,361.04 ns |   8.120 ns |   7.596 ns | 0.5035 |     - |     - |    3168 B |
-//| HashSet_384byte |   100 |  4,917.47 ns | 117.168 ns | 156.416 ns | 0.5035 |     - |     - |    3168 B |
-//|   HashSet_4byte |  1000 | 10,986.80 ns |  64.547 ns |  57.219 ns | 0.7935 |     - |     - |    4984 B |
-//|  HashSet_32byte |  1000 | 12,946.40 ns |  36.273 ns |  32.155 ns | 0.8545 |     - |     - |    5432 B |
-//| HashSet_128byte |  1000 | 35,571.64 ns | 248.162 ns | 232.131 ns | 5.0659 |     - |     - |   31968 B |
-//| HashSet_384byte |  1000 | 58,601.80 ns | 488.140 ns | 381.107 ns | 5.0659 |     - |     - |   31968 B |
+//|          Method | Count |         Mean |      Error |     StdDev |       Median |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+//|---------------- |------ |-------------:|-----------:|-----------:|-------------:|-------:|------:|------:|----------:|
+//|   HashSet_4byte |     0 |     25.11 ns |   0.043 ns |   0.040 ns |     25.11 ns |      - |     - |     - |         - |
+//|  HashSet_32byte |     0 |     34.74 ns |   0.094 ns |   0.084 ns |     34.72 ns |      - |     - |     - |         - |
+//| HashSet_128byte |     0 |     53.08 ns |   3.352 ns |   4.474 ns |     50.63 ns |      - |     - |     - |         - |
+//| HashSet_384byte |     0 |     82.80 ns |   2.496 ns |   4.238 ns |     80.45 ns |      - |     - |     - |         - |
+//|   HashSet_4byte |     1 |     28.68 ns |   0.060 ns |   0.053 ns |     28.67 ns |      - |     - |     - |         - |
+//|  HashSet_32byte |     1 |     39.33 ns |   0.036 ns |   0.032 ns |     39.33 ns |      - |     - |     - |         - |
+//| HashSet_128byte |     1 |     64.45 ns |   0.320 ns |   0.299 ns |     64.30 ns |      - |     - |     - |         - |
+//| HashSet_384byte |     1 |    110.64 ns |   2.294 ns |   3.896 ns |    108.46 ns |      - |     - |     - |         - |
+//|   HashSet_4byte |    10 |     75.74 ns |   0.328 ns |   0.256 ns |     75.75 ns | 0.0139 |     - |     - |      88 B |
+//|  HashSet_32byte |    10 |    111.50 ns |   0.657 ns |   0.582 ns |    111.44 ns | 0.0587 |     - |     - |     368 B |
+//| HashSet_128byte |    10 |    361.93 ns |   1.007 ns |   0.893 ns |    361.66 ns | 0.0458 |     - |     - |     288 B |
+//| HashSet_384byte |    10 |    496.92 ns |   2.708 ns |   2.533 ns |    496.08 ns | 0.0458 |     - |     - |     288 B |
+//|   HashSet_4byte |   100 |    702.91 ns |   9.011 ns |   7.988 ns |    701.19 ns | 0.0973 |     - |     - |     616 B |
+//|  HashSet_32byte |   100 |    807.20 ns |   4.128 ns |   3.861 ns |    806.99 ns | 0.1602 |     - |     - |    1008 B |
+//| HashSet_128byte |   100 |  3,473.62 ns |   9.920 ns |   7.745 ns |  3,472.46 ns | 0.5035 |     - |     - |    3168 B |
+//| HashSet_384byte |   100 |  4,747.73 ns |   7.972 ns |   7.067 ns |  4,745.35 ns | 0.5035 |     - |     - |    3168 B |
+//|   HashSet_4byte |  1000 | 10,656.21 ns |  39.046 ns |  36.524 ns | 10,647.60 ns | 0.7935 |     - |     - |    4984 B |
+//|  HashSet_32byte |  1000 | 12,434.85 ns |  34.983 ns |  32.723 ns | 12,424.54 ns | 0.8545 |     - |     - |    5432 B |
+//| HashSet_128byte |  1000 | 35,954.38 ns |  89.003 ns |  74.321 ns | 35,958.55 ns | 5.0659 |     - |     - |   31968 B |
+//| HashSet_384byte |  1000 | 56,970.45 ns | 341.421 ns | 285.102 ns | 57,072.92 ns | 5.0659 |     - |     - |   31968 B |
 
 [<PlainExporter; MemoryDiagnoser>]
 type HashSetEnumeratorBenchmark() =
@@ -222,37 +222,37 @@ type HashSetEnumeratorBenchmark() =
         collection128 <- HashSet.ofArray (Array.init x.Count (fun i -> BigStruct.createBig(rand.Next()) ))
         collection384 <- HashSet.ofArray (Array.init x.Count (fun i -> BigStruct.createBigger(rand.Next()) ))
 
-    [<Benchmark>]
-    member x.Baseline_4byte() =
-        let mutable e = new HashSetEnumeratorBaseline<_>(collection4.Root)
-        let mutable sum = 0
-        while e.MoveNext() do
-            sum <- sum + e.Current
-        sum
+    //[<Benchmark>]
+    //member x.Baseline_4byte() =
+    //    let mutable e = new HashSetEnumeratorBaseline<_>(collection4.Root)
+    //    let mutable sum = 0
+    //    while e.MoveNext() do
+    //        sum <- sum + e.Current
+    //    sum
 
-    [<Benchmark>]
-    member x.Baseline_32byte() =
-        let mutable e = new HashSetEnumeratorBaseline<_>(collection32.Root)
-        let mutable sum = 0.0
-        while e.MoveNext() do
-            sum <- sum + e.Current.a
-        sum
+    //[<Benchmark>]
+    //member x.Baseline_32byte() =
+    //    let mutable e = new HashSetEnumeratorBaseline<_>(collection32.Root)
+    //    let mutable sum = 0.0
+    //    while e.MoveNext() do
+    //        sum <- sum + e.Current.a
+    //    sum
 
-    [<Benchmark>]
-    member x.Baseline_128byte() =
-        let mutable e = new HashSetEnumeratorBaseline<_>(collection128.Root)
-        let mutable sum = 0.0
-        while e.MoveNext() do
-            sum <- sum + e.Current.w.c
-        sum
+    //[<Benchmark>]
+    //member x.Baseline_128byte() =
+    //    let mutable e = new HashSetEnumeratorBaseline<_>(collection128.Root)
+    //    let mutable sum = 0.0
+    //    while e.MoveNext() do
+    //        sum <- sum + e.Current.w.c
+    //    sum
 
-    [<Benchmark>]
-    member x.Baseline_384byte() =
-        let mutable e = new HashSetEnumeratorBaseline<_>(collection384.Root)
-        let mutable sum = 0.0
-        while e.MoveNext() do
-            sum <- sum + e.Current.s.y.c
-        sum
+    //[<Benchmark>]
+    //member x.Baseline_384byte() =
+    //    let mutable e = new HashSetEnumeratorBaseline<_>(collection384.Root)
+    //    let mutable sum = 0.0
+    //    while e.MoveNext() do
+    //        sum <- sum + e.Current.s.y.c
+    //    sum
 
     [<Benchmark>]
     member x.HashSet_4byte() =
