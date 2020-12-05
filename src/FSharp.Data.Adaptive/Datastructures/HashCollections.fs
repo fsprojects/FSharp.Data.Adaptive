@@ -3737,7 +3737,7 @@ and HashSetEnumerator<'T> =
         val mutable private Root : HashSetNode<'T>
         val mutable private Head : HashSetNode<'T>
         val mutable private Tail : list<HashSetNode<'T>>
-        val mutable private ValueCount : int
+        val mutable private BufferValueCount : int
         val mutable private Values : 'T[]
         val mutable private Index : int
         val mutable private Next : 'T
@@ -3748,15 +3748,16 @@ and HashSetEnumerator<'T> =
                 if sizeof<'T> <= 64 && h._Count <= 16 then
                     let index = ref 0
                     h.CopyTo(x.Values, index)
-                    x.ValueCount <- h._Count
+                    x.BufferValueCount <- h._Count
                     x.Next <- x.Values.[0]
-                    x.Index <- 0 // skip first element of array
+                    x.Index <- 1 // skip first element of array
                     if x.Tail.IsEmpty then
                         x.Head <- Unchecked.defaultof<_>
                         x.Tail <- []
                     else
                         x.Head <- x.Tail.Head
                         x.Tail <- x.Tail.Tail
+                    true
                 else
                     x.Head <- h.Left
                     x.Tail <- h.Right :: x.Tail
@@ -3764,14 +3765,15 @@ and HashSetEnumerator<'T> =
 
             | :? HashSetNoCollisionLeaf<'T> as h ->
                 x.Next <- h.Value
-                x.Index <- -1
-                x.ValueCount <- 1
+                x.Index <- 0
+                x.BufferValueCount <- 0
                 if x.Tail.IsEmpty then
                     x.Head <- Unchecked.defaultof<_>
                     x.Tail <- []
                 else
                     x.Head <- x.Tail.Head
-                    x.Tail <- x.Tail.Tail                  
+                    x.Tail <- x.Tail.Tail    
+                true
 
             | :? HashSetCollisionLeaf<'T> as h ->
                                     
@@ -3786,36 +3788,31 @@ and HashSetEnumerator<'T> =
                     x.Values.[i] <- c.Value
                     c <- c.Next
                     i <- i + 1
-                x.ValueCount <- cnt
-                x.Index <- -1
+                x.BufferValueCount <- i
+                x.Index <- 0
                 if x.Tail.IsEmpty then
                     x.Head <- Unchecked.defaultof<_>
                     x.Tail <- []
                 else
                     x.Head <- x.Tail.Head
                     x.Tail <- x.Tail.Tail
+                true
                 
-            | _ -> ()
+            | _ -> false
 
         member x.MoveNext() =
-            x.Index <- x.Index + 1
-            if x.Index < x.ValueCount then
-                if not (isNull x.Values) then
-                    x.Next <- x.Values.[x.Index]
+            if x.Index < x.BufferValueCount then
+                x.Next <- x.Values.[x.Index]
+                x.Index <- x.Index + 1
                 true
             else
-                if System.Object.ReferenceEquals(x.Head, null) then
-                    false
-                else
-                    x.Collect()
-                    true
+                x.Collect()
 
         member x.Reset() =
-            x.Index <- 1
-            if x.Root.Count > 16 then 
-                x.Head <- x.Root
-                x.Tail <- []
-                x.ValueCount <- -1
+            x.Index <- -1
+            x.Head <- x.Root
+            x.Tail <- []
+            x.BufferValueCount <- -1
 
         member x.Dispose() =
             x.Values <- null
@@ -3838,36 +3835,15 @@ and HashSetEnumerator<'T> =
 
         new (map : HashSet<'T>) =
             let cnt = map.Count
-            if cnt <= 1 then
-                {
-                    Root = map.Root
-                    Head = Unchecked.defaultof<_>
-                    Tail = []
-                    Values = null
-                    Index = -1
-                    ValueCount = cnt
-                    Next = if cnt = 1 then (map.Root :?> HashSetNoCollisionLeaf<'T>).Value else Unchecked.defaultof<_>
-                }
-            elif cnt <= 16 && sizeof<'T> <= 64 then
-                {
-                    Root = map.Root
-                    Head = Unchecked.defaultof<_>
-                    Tail = []
-                    Values = map.ToArray()
-                    Index = -1
-                    ValueCount = cnt
-                    Next = Unchecked.defaultof<_>
-                }
-            else
-                {
-                    Root = map.Root
-                    Head = map.Root
-                    Tail = []
-                    Values = if sizeof<'T> <= 64 then Array.zeroCreate 16 else null
-                    Index = -1
-                    ValueCount = -1
-                    Next = Unchecked.defaultof<_>
-                }
+            {
+                Root = map.Root
+                Head = map.Root
+                Tail = []
+                Values = if sizeof<'T> <= 64 && cnt > 1 then Array.zeroCreate (min cnt 16) else null
+                Index = -1
+                BufferValueCount = -1
+                Next = Unchecked.defaultof<_>
+            }
     end
 
 [<Struct; CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}"); CompiledName("FSharpHashMap`2")>]
