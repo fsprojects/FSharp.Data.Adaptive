@@ -4,279 +4,539 @@ open System
 open FSharp.Data.Adaptive
 open FSharp.Data.Traceable
 open BenchmarkDotNet.Attributes
-open BenchmarkDotNet.Jobs
+open System.Runtime.CompilerServices
 
-type ImprovedHashSetEnumerator<'T> =
-    struct
-        val mutable private Root : HashSetNode<'T>
-        val mutable private Head : HashSetNode<'T>
-        val mutable private Tail : list<HashSetNode<'T>>
-        val mutable private Values : 'T[]
-        val mutable private ValueCount : int
-        val mutable private Index : int
+type HashSetEnumeratorBaseline<'T> =
+    struct 
+        val mutable private root : HashSetNode<'T>
+        val mutable private head : HashSetNode<'T>
+        val mutable private tail : list<HashSetNode<'T>>
+        val mutable private linked : HashSetLinked<'T>
+        val mutable private current : 'T
 
-        member inline private x.Push(n : HashSetNode<'T>) =
-            if isNull (x.Head :> obj) then
-                x.Head <- n
-            else
-                x.Tail <- x.Head :: x.Tail
-                x.Head <- n
-                
-        member inline private x.Pop() =
-            match x.Tail with
-            | [] -> 
-                let v = x.Head
-                x.Head <- Unchecked.defaultof<_>
-                v
-            | h :: t ->
-                let v = x.Head
-                x.Head <- h
-                x.Tail <- t
-                v
+        internal new(root: HashSetNode<'T>) = 
+            {
+                root = root
+                head = root
+                tail = []
+                linked = null
+                current = Unchecked.defaultof<'T>    
+            }
 
-        member private x.MoveNext (current : HashSetNode<'T>) =
-            let mutable current = current
-            let mutable run = true
-            while run do
-                match current with
-                | :? HashSetEmpty<'T> ->
-                    failwith "bad"
-                | :? HashSetNoCollisionLeaf<'T> as h ->
-                    x.Values.[0] <- h.Value
-                    x.ValueCount <- 1
-                    run <- false
-                | :? HashSetCollisionLeaf<'T> as h ->
-                    if h.Count <= 16 then
-                        x.Values.[0] <- h.Value
-                        let mutable c = h.Next
-                        let mutable i = 1
-                        while not (isNull c) do
-                            x.Values.[i] <- c.Value
-                            c <- c.Next
-                            i <- i + 1
-                        x.ValueCount <- i    
-                    else
-                        // incredibly rare (more than 16 collisions)
-                        let arr = Array.zeroCreate h.Count
-                        arr.[0] <- h.Value
-                        let mutable c = h.Next
-                        let mutable i = 1
-                        while not (isNull c) do
-                            arr.[i] <- c.Value
-                            c <- c.Next
-                            i <- i + 1
-                        x.Values <- arr
-                        x.ValueCount <- i   
-                    run <- false
-                | :? HashSetInner<'T> as h ->
-                    if h.Count <= 16 then
-                        let index = ref 0
-                        h.CopyTo(x.Values, index)
-                        x.ValueCount <- !index
-                        run <- false
-                    else
-                        match h.Left with
-                        | :? HashSetEmpty<'T> ->
-                            // right cannot be empty here
-                            current <- h.Right
-                        | _ ->
-                            match h.Right with
-                            | :? HashSetEmpty<'T> -> ()
-                            | r -> x.Push r //x.Stack <- r :: x.Stack
-
-                            current <- h.Left
-                | _ ->
-                    failwith "bad node"
-
-            x.Index <- 0
-            true
-
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
         member x.MoveNext() =
-            x.Index <- x.Index + 1
-            if x.Index >= x.ValueCount then
-                if isNull (x.Head :> obj) then
+           if isNull x.linked then
+
+                match x.head with
+                | :? HashSetNoCollisionLeaf<'T> as l ->
+                    x.current <- l.Value
+                    if x.tail.IsEmpty then
+                        x.head <- Unchecked.defaultof<_>
+                    else
+                        x.head <- x.tail.Head
+                        x.tail <- x.tail.Tail
+                    true
+                | :? HashSetCollisionLeaf<'T> as l -> 
+                    x.current <- l.Value
+                    x.linked <- l.Next
+                    if x.tail.IsEmpty then
+                        x.head <- Unchecked.defaultof<_>
+                    else
+                        x.head <- x.tail.Head
+                        x.tail <- x.tail.Tail
+                    true
+                | :? HashSetInner<'T> as n ->
+                    x.head <- n.Left
+                    x.tail <- n.Right:: x.tail
+                    x.MoveNext()
+                | _ ->
                     false
-                else
-                    let h = x.Pop()
-                    x.MoveNext h
+
             else
+                x.current <- x.linked.Value
+                x.linked <- x.linked.Next
                 true
 
+        member x.Current
+            with [<MethodImpl(MethodImplOptions.AggressiveInlining)>] get() = x.current
+
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
         member x.Reset() =
-            let cnt = x.Root.Count
-            if cnt <= 0 then
-                x.Values <- null
-                x.ValueCount <- cnt
-                x.Index <- -1
-                x.Tail <- []
-            elif cnt <= 16 then
-                let array = Array.zeroCreate x.Root.Count
-                let index = ref 0
-                x.Root.CopyTo(array, index)
-                x.Values <- array
-                x.ValueCount <- array.Length
-                x.Index <- -1
-                x.Tail <- []
-            else
-                x.Values <- Array.zeroCreate 16
-                x.ValueCount <- 0
-                x.Index <- -1
-                x.Tail <- [x.Root]
+            x.head <- x.root
+            x.tail <- []
+            x.linked <- null
+            x.current <- Unchecked.defaultof<_>
 
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
         member x.Dispose() =
-            x.Values <- null
-            x.ValueCount <- 0
-            x.Index <- -1
-            x.Tail <- []
-            x.Root <- Unchecked.defaultof<_>
-
-        member x.Current = 
-            if isNull x.Values then
-                match x.Root with
-                | :? HashSetNoCollisionLeaf<'T> as r -> r.Value
-                | _ -> failwith "bad"
-            else
-                x.Values.[x.Index]
+            x.root <- Unchecked.defaultof<_>
+            x.tail <- []
+            x.head <- Unchecked.defaultof<_>
+            x.linked <- null
+            x.current <- Unchecked.defaultof<_>
 
         interface System.Collections.IEnumerator with
             member x.MoveNext() = x.MoveNext()
+            member x.Current = x.Current:> obj
             member x.Reset() = x.Reset()
-            member x.Current = x.Current :> obj
-            
+        
         interface System.Collections.Generic.IEnumerator<'T> with
-            member x.Current = x.Current
             member x.Dispose() = x.Dispose()
-
-        new (map : HashSet<'T>) =
-            let cnt = map.Count
-            if cnt <= 1 then
-                {
-                    Root = map.Root
-                    Head = Unchecked.defaultof<_>
-                    Tail = []
-                    Values = null
-                    ValueCount = cnt
-                    Index = -1
-                }
-            elif cnt <= 16 then
-                {
-                    Root = map.Root
-                    Head = Unchecked.defaultof<_>
-                    Tail = []
-                    Values = map.ToArray()
-                    ValueCount = cnt
-                    Index = -1
-                }
-            else
-                {
-                    Root = map.Root
-                    Head = map.Root
-                    Tail = []
-                    Values = Array.zeroCreate 16
-                    ValueCount = 0
-                    Index = -1
-                }
-                
-
+            member x.Current = x.Current
     end
 
-[<PlainExporter; MemoryDiagnoser; SimpleJob(RuntimeMoniker.NetCoreApp31); SimpleJob(RuntimeMoniker.Net472)>]
-type AdaptiveEnumeratorBenchmark() =
+[<Struct>]
+type Struct32 =
+    {
+        mutable a : float
+        mutable b : float
+        mutable c : float
+        mutable d : float
+    }
 
-    let mutable indexList = IndexList.empty<int>
-    let mutable hashSet = HashSet.empty<int>
-    let mutable hashMap = HashMap.empty<int, int>
-    let mutable countingHashSet = CountingHashSet.empty<int>
-    let mutable indexListDelta = IndexListDelta.empty<int>
-    let mutable hashSetDelta = HashSetDelta.empty<int>
-    let mutable hashMapDelta = HashMapDelta.empty<int, int>
+[<Struct>]
+type Struct128 = 
+    {
+        mutable x : Struct32
+        mutable y : Struct32
+        mutable z : Struct32
+        mutable w : Struct32
+    }
 
-    static let check() =
-        let set = HashSet.ofList [1 .. 1000]
-        let res = System.Collections.Generic.List<int>()
-        let mutable e = new ImprovedHashSetEnumerator<_>(set)
-        while e.MoveNext() do res.Add e.Current
-        if Seq.toList res <> HashSet.toList set then failwith "ImprovedHashSetEnumerator wrong"
+[<Struct>] 
+type Struct384 = 
+    {
+        mutable r : Struct128
+        mutable s : Struct128
+        mutable t : Struct128
+    }
+
+module BigStruct =
+    let create32 (seed : int) =
+        let f = (float)seed
+        { a = f; b = f + 1.0; c = f * 2.0; d = f - 1.0 }
+
+    // 128 byte (M44d)
+    let createBig(seed : int) =
+        { x = create32(seed); y = create32(seed * 2); z = create32(seed * 3); w = create32(seed + 1) }
+
+    // 384 bytes (Trafo3d + M44d)
+    let createBigger(seed : int) =
+        { r = createBig(seed); s = createBig(seed * 2); t = createBig(seed * 3) }
+
+
+//BenchmarkDotNet=v0.12.0, OS=Windows 10.0.19041
+//Intel Core i7-8700K CPU 3.70GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+//.NET Core SDK=5.0.100
+//  [Host]     : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT DEBUG
+//  DefaultJob : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
+
+// Traversal Enumerator:
+//|             Method | Count |         Mean |        Error |       StdDev |       Median |   Gen 0 |  Gen 1 | Gen 2 | Allocated |
+//|------------------- |------ |-------------:|-------------:|-------------:|-------------:|--------:|-------:|------:|----------:|
+//|     Baseline_4byte |     0 |     12.98 ns |     0.060 ns |     0.053 ns |     12.95 ns |       - |      - |     - |         - |
+//|    Baseline_32byte |     0 |     14.75 ns |     0.164 ns |     0.145 ns |     14.68 ns |       - |      - |     - |         - |
+//|   Baseline_128byte |     0 |     25.77 ns |     0.120 ns |     0.112 ns |     25.74 ns |       - |      - |     - |         - |
+//|   Baseline_384byte |     0 |     45.13 ns |     2.330 ns |     4.202 ns |     42.78 ns |       - |      - |     - |         - |
+//|     Baseline_4byte |     1 |     14.98 ns |     0.074 ns |     0.066 ns |     14.96 ns |       - |      - |     - |         - |
+//|    Baseline_32byte |     1 |     16.87 ns |     0.037 ns |     0.031 ns |     16.87 ns |       - |      - |     - |         - |
+//|   Baseline_128byte |     1 |     36.64 ns |     0.282 ns |     0.250 ns |     36.54 ns |       - |      - |     - |         - |
+//|   Baseline_384byte |     1 |     73.09 ns |     3.055 ns |     4.478 ns |     70.88 ns |       - |      - |     - |         - |
+//|     Baseline_4byte |    10 |    174.47 ns |     1.295 ns |     1.148 ns |    174.12 ns |  0.0458 |      - |     - |     288 B |
+//|    Baseline_32byte |    10 |    178.84 ns |     0.359 ns |     0.280 ns |    178.82 ns |  0.0458 |      - |     - |     288 B |
+//|   Baseline_128byte |    10 |    341.33 ns |     3.845 ns |     3.597 ns |    339.12 ns |  0.0458 |      - |     - |     288 B |
+//|   Baseline_384byte |    10 |    480.03 ns |     1.377 ns |     1.150 ns |    480.24 ns |  0.0458 |      - |     - |     288 B |
+//|     Baseline_4byte |   100 |  2,269.84 ns |    12.283 ns |    10.257 ns |  2,266.39 ns |  0.5035 |      - |     - |    3168 B |
+//|    Baseline_32byte |   100 |  2,255.84 ns |    11.618 ns |    10.868 ns |  2,253.45 ns |  0.5035 |      - |     - |    3168 B |
+//|   Baseline_128byte |   100 |  3,241.46 ns |    17.759 ns |    16.612 ns |  3,243.49 ns |  0.5035 |      - |     - |    3168 B |
+//|   Baseline_384byte |   100 |  5,095.53 ns |    43.932 ns |    41.094 ns |  5,093.84 ns |  0.5035 |      - |     - |    3168 B |
+//|     Baseline_4byte |  1000 | 24,409.25 ns |    79.678 ns |    66.535 ns | 24,402.84 ns |  5.0659 |      - |     - |   31968 B |
+//|    Baseline_32byte |  1000 | 22,290.28 ns |    48.992 ns |    45.827 ns | 22,296.44 ns |  5.0659 |      - |     - |   31968 B |
+//|   Baseline_128byte |  1000 | 35,486.47 ns |   114.133 ns |   101.176 ns | 35,471.98 ns |  5.0659 |      - |     - |   31968 B |
+//|   Baseline_384byte |  1000 | 59,970.33 ns |   281.730 ns |   249.746 ns | 59,994.19 ns |  5.0659 |      - |     - |   31968 B |
+
+// ArrayBuffer Enumerator:
+//|             Method | Count |         Mean |        Error |       StdDev |       Median |   Gen 0 |  Gen 1 | Gen 2 | Allocated |
+//|------------------- |------ |-------------:|-------------:|-------------:|-------------:|--------:|-------:|------:|----------:|
+//|      HashSet_4byte |     0 |     30.31 ns |     0.116 ns |     0.103 ns |     30.33 ns |  0.0076 |      - |     - |      48 B |
+//|     HashSet_32byte |     0 |     29.91 ns |     0.230 ns |     0.215 ns |     29.90 ns |  0.0076 |      - |     - |      48 B |
+//|    HashSet_128byte |     0 |     36.45 ns |     0.759 ns |     1.425 ns |     36.86 ns |  0.0076 |      - |     - |      48 B |
+//|    HashSet_384byte |     0 |     35.78 ns |     0.709 ns |     0.788 ns |     36.06 ns |  0.0076 |      - |     - |      48 B |
+//|      HashSet_4byte |     1 |     32.48 ns |     0.129 ns |     0.120 ns |     32.49 ns |  0.0089 |      - |     - |      56 B |
+//|     HashSet_32byte |     1 |     35.49 ns |     0.577 ns |     0.540 ns |     35.39 ns |  0.0127 |      - |     - |      80 B |
+//|    HashSet_128byte |     1 |     58.66 ns |     0.352 ns |     0.294 ns |     58.69 ns |  0.0280 |      - |     - |     176 B |
+//|    HashSet_384byte |     1 |     95.72 ns |     0.955 ns |     0.846 ns |     95.84 ns |  0.0688 |      - |     - |     432 B |
+//|      HashSet_4byte |    10 |     79.46 ns |     0.611 ns |     0.571 ns |     79.35 ns |  0.0139 |      - |     - |      88 B |
+//|     HashSet_32byte |    10 |    105.21 ns |     0.420 ns |     0.351 ns |    105.28 ns |  0.0587 |      - |     - |     368 B |
+//|    HashSet_128byte |    10 |    357.40 ns |     1.459 ns |     1.364 ns |    357.46 ns |  0.2112 |      - |     - |    1328 B |
+//|    HashSet_384byte |    10 |    706.40 ns |     6.832 ns |     6.391 ns |    707.93 ns |  0.6189 |      - |     - |    3888 B |
+//|      HashSet_4byte |   100 |    806.41 ns |     7.991 ns |     6.673 ns |    805.38 ns |  0.1945 |      - |     - |    1224 B |
+//|     HashSet_32byte |   100 |  1,112.80 ns |    20.943 ns |    21.507 ns |  1,109.66 ns |  0.6237 |      - |     - |    3920 B |
+//|    HashSet_128byte |   100 |  3,684.57 ns |    72.150 ns |    80.195 ns |  3,686.29 ns |  2.1515 | 0.0076 |     - |   13520 B |
+//|    HashSet_384byte |   100 |  7,828.77 ns |    69.564 ns |    61.667 ns |  7,823.32 ns |  6.2103 | 0.0916 |     - |   39040 B |
+//|      HashSet_4byte |  1000 | 11,806.29 ns |    53.757 ns |    50.284 ns | 11,801.55 ns |  1.7853 |      - |     - |   11232 B |
+//|     HashSet_32byte |  1000 | 15,629.16 ns |    78.019 ns |    65.149 ns | 15,626.96 ns |  6.1951 |      - |     - |   39040 B |
+//|    HashSet_128byte |  1000 | 41,979.60 ns |   496.932 ns |   464.830 ns | 41,937.07 ns | 21.5454 | 0.1221 |     - |  135280 B |
+//|    HashSet_384byte |  1000 | 94,500.83 ns | 1,437.677 ns | 1,344.804 ns | 94,210.69 ns | 62.2559 | 0.8545 |     - |  391280 B |
+
+// Combined:
+//|          Method | Count |         Mean |      Error |     StdDev |       Median |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+//|---------------- |------ |-------------:|-----------:|-----------:|-------------:|-------:|------:|------:|----------:|
+//|   HashSet_4byte |     0 |     25.11 ns |   0.043 ns |   0.040 ns |     25.11 ns |      - |     - |     - |         - |
+//|  HashSet_32byte |     0 |     34.74 ns |   0.094 ns |   0.084 ns |     34.72 ns |      - |     - |     - |         - |
+//| HashSet_128byte |     0 |     53.08 ns |   3.352 ns |   4.474 ns |     50.63 ns |      - |     - |     - |         - |
+//| HashSet_384byte |     0 |     82.80 ns |   2.496 ns |   4.238 ns |     80.45 ns |      - |     - |     - |         - |
+//|   HashSet_4byte |     1 |     28.68 ns |   0.060 ns |   0.053 ns |     28.67 ns |      - |     - |     - |         - |
+//|  HashSet_32byte |     1 |     39.33 ns |   0.036 ns |   0.032 ns |     39.33 ns |      - |     - |     - |         - |
+//| HashSet_128byte |     1 |     64.45 ns |   0.320 ns |   0.299 ns |     64.30 ns |      - |     - |     - |         - |
+//| HashSet_384byte |     1 |    110.64 ns |   2.294 ns |   3.896 ns |    108.46 ns |      - |     - |     - |         - |
+//|   HashSet_4byte |    10 |     75.74 ns |   0.328 ns |   0.256 ns |     75.75 ns | 0.0139 |     - |     - |      88 B |
+//|  HashSet_32byte |    10 |    111.50 ns |   0.657 ns |   0.582 ns |    111.44 ns | 0.0587 |     - |     - |     368 B |
+//| HashSet_128byte |    10 |    361.93 ns |   1.007 ns |   0.893 ns |    361.66 ns | 0.0458 |     - |     - |     288 B |
+//| HashSet_384byte |    10 |    496.92 ns |   2.708 ns |   2.533 ns |    496.08 ns | 0.0458 |     - |     - |     288 B |
+//|   HashSet_4byte |   100 |    702.91 ns |   9.011 ns |   7.988 ns |    701.19 ns | 0.0973 |     - |     - |     616 B |
+//|  HashSet_32byte |   100 |    807.20 ns |   4.128 ns |   3.861 ns |    806.99 ns | 0.1602 |     - |     - |    1008 B |
+//| HashSet_128byte |   100 |  3,473.62 ns |   9.920 ns |   7.745 ns |  3,472.46 ns | 0.5035 |     - |     - |    3168 B |
+//| HashSet_384byte |   100 |  4,747.73 ns |   7.972 ns |   7.067 ns |  4,745.35 ns | 0.5035 |     - |     - |    3168 B |
+//|   HashSet_4byte |  1000 | 10,656.21 ns |  39.046 ns |  36.524 ns | 10,647.60 ns | 0.7935 |     - |     - |    4984 B |
+//|  HashSet_32byte |  1000 | 12,434.85 ns |  34.983 ns |  32.723 ns | 12,424.54 ns | 0.8545 |     - |     - |    5432 B |
+//| HashSet_128byte |  1000 | 35,954.38 ns |  89.003 ns |  74.321 ns | 35,958.55 ns | 5.0659 |     - |     - |   31968 B |
+//| HashSet_384byte |  1000 | 56,970.45 ns | 341.421 ns | 285.102 ns | 57,072.92 ns | 5.0659 |     - |     - |   31968 B |
+
+[<PlainExporter; MemoryDiagnoser>]
+type HashSetEnumeratorBenchmark() =
+
+    let mutable collection4 = HashSet.empty<int>
+    let mutable collection32 = HashSet.empty<Struct32>
+    let mutable collection128 = HashSet.empty<Struct128>
+    let mutable collection384 = HashSet.empty<Struct384>
    
-        res.Clear()
-        let mutable e = new HashSetEnumerator<_>(set)
-        while e.MoveNext() do res.Add e.Current
-        if Seq.toList res <> HashSet.toList set then failwith "HashSetEnumerator wrong"
-
-    [<Params(1, 1000); DefaultValue>]
+    [<Params(0, 1, 10, 100, 1000); DefaultValue>]
     val mutable public Count : int
 
     [<GlobalSetup>]
     member x.Setup() =
-        check()
-        let rand = Random()
-        let arr = 
-            let mutable set = HashSet.empty
-            while set.Count < x.Count do
-                let v = rand.Next()
-                set <- HashSet.add v set
+        let rand = Random(123)
+        collection4 <- HashSet.ofArray (Array.init x.Count (fun i -> rand.Next() ))
+        collection32 <- HashSet.ofArray (Array.init x.Count (fun i -> BigStruct.create32(rand.Next()) ))
+        collection128 <- HashSet.ofArray (Array.init x.Count (fun i -> BigStruct.createBig(rand.Next()) ))
+        collection384 <- HashSet.ofArray (Array.init x.Count (fun i -> BigStruct.createBigger(rand.Next()) ))
 
-            HashSet.toArray set
-
-        indexList <- IndexList.ofArray arr
-        hashSet <- HashSet.ofArray arr
-        hashMap <- HashMap.ofArray (arr |> Array.map (fun a -> a,a))
-        countingHashSet <- CountingHashSet.ofArray arr
-        indexListDelta <- IndexList.computeDelta IndexList.empty indexList
-        hashSetDelta <- HashSet.computeDelta HashSet.empty hashSet
-        hashMapDelta <- HashMap.computeDelta HashMap.empty hashMap
-        
     [<Benchmark>]
-    member x.HashSet() =
+    member x.Baseline_4byte() =
+        let mutable e = new HashSetEnumeratorBaseline<_>(collection4.Root)
         let mutable sum = 0
-        for e in hashSet do sum <- sum + e
+        while e.MoveNext() do
+            sum <- sum + e.Current
         sum
 
-        
     [<Benchmark>]
-    member x.HashSetImproved() =
-        let mutable sum = 0
-        let mutable e = new ImprovedHashSetEnumerator<int>(hashSet)
-        try
-            while e.MoveNext() do
-                sum <- sum + e.Current
-        finally
-            (e :> IDisposable).Dispose()
-
+    member x.Baseline_32byte() =
+        let mutable e = new HashSetEnumeratorBaseline<_>(collection32.Root)
+        let mutable sum = 0.0
+        while e.MoveNext() do
+            sum <- sum + e.Current.a
         sum
 
-    //[<Benchmark>]
-    //member x.IndexList() =
-    //    let mutable sum = 0
-    //    for e in indexList do sum <- sum + e
-    //    sum
+    [<Benchmark>]
+    member x.Baseline_128byte() =
+        let mutable e = new HashSetEnumeratorBaseline<_>(collection128.Root)
+        let mutable sum = 0.0
+        while e.MoveNext() do
+            sum <- sum + e.Current.w.c
+        sum
 
-    //[<Benchmark>]
-    //member x.HashMap() =
-    //    let mutable sum = 0
-    //    for (e,_) in hashMap do sum <- sum + e
-    //    sum
+    [<Benchmark>]
+    member x.Baseline_384byte() =
+        let mutable e = new HashSetEnumeratorBaseline<_>(collection384.Root)
+        let mutable sum = 0.0
+        while e.MoveNext() do
+            sum <- sum + e.Current.s.y.c
+        sum
 
-    //[<Benchmark>]
-    //member x.CountingHashSet() =
-    //    let mutable sum = 0
-    //    for e in countingHashSet do sum <- sum + e
-    //    sum
+    [<Benchmark>]
+    member x.HashSet_4byte() =
+        let mutable sum = 0
+        for e in collection4 do sum <- sum + e
+        sum
 
-    //[<Benchmark>]
-    //member x.IndexListDelta() =
-    //    let mutable sum = 0
-    //    for (_,e) in indexListDelta do sum <- sum + 1
-    //    sum
-        
-    //[<Benchmark>]
-    //member x.HashSetDelta() =
-    //    let mutable sum = 0
-    //    for d in hashSetDelta do sum <- sum + d.Value
-    //    sum
-        
-    //[<Benchmark>]
-    //member x.HashMapDelta() =
-    //    let mutable sum = 0
-    //    for d in hashMapDelta do sum <- sum + 1
-    //    sum
+    [<Benchmark>]
+    member x.HashSet_32byte() =
+        let mutable sum = 0.0
+        for e in collection32 do sum <- sum + e.a
+        sum
+
+    [<Benchmark>]
+    member x.HashSet_128byte() =
+        let mutable sum = 0.0
+        for e in collection128 do sum <- sum + e.w.c
+        sum
+
+    [<Benchmark>]
+    member x.HashSet_384byte() =
+        let mutable sum = 0.0
+        for e in collection384 do sum <- sum + e.s.y.c
+        sum
+
+
+[<PlainExporter; MemoryDiagnoser>]
+type IndexListEnumeratorBenchmark() =
+
+    let mutable collection4 = IndexList.empty<int>
+    let mutable collection32 = IndexList.empty<Struct32>
+    let mutable collection128 = IndexList.empty<Struct128>
+    let mutable collection384 = IndexList.empty<Struct384>
+   
+    [<Params(0, 1, 10, 100, 1000); DefaultValue>]
+    val mutable public Count : int
+
+    [<GlobalSetup>]
+    member x.Setup() =
+        let rand = Random(123)
+        collection4 <- IndexList.ofArray (Array.init x.Count (fun i -> rand.Next() ))
+        collection32 <- IndexList.ofArray (Array.init x.Count (fun i -> BigStruct.create32(rand.Next()) ))
+        collection128 <- IndexList.ofArray (Array.init x.Count (fun i -> BigStruct.createBig(rand.Next()) ))
+        collection384 <- IndexList.ofArray (Array.init x.Count (fun i -> BigStruct.createBigger(rand.Next()) ))
+
+    [<Benchmark>]
+    member x.IndexList_4byte() =
+        let mutable sum = 0
+        for e in collection4 do sum <- sum + e
+        sum
+
+    [<Benchmark>]
+    member x.IndexList_32byte() =
+        let mutable sum = 0.0
+        for e in collection32 do sum <- sum + e.a
+        sum
+
+    [<Benchmark>]
+    member x.IndexList_128byte() =
+        let mutable sum = 0.0
+        for e in collection128 do sum <- sum + e.w.c
+        sum
+
+    [<Benchmark>]
+    member x.IndexList_384byte() =
+        let mutable sum = 0.0
+        for e in collection384 do sum <- sum + e.s.y.c
+        sum
+
+
+[<PlainExporter; MemoryDiagnoser>]
+type HashMapEnumeratorBenchmark() =
+
+    let mutable collection4 = HashMap.empty<int,int>
+    let mutable collection32 = HashMap.empty<Struct32,Struct32>
+    let mutable collection128 = HashMap.empty<Struct128,Struct128>
+    let mutable collection384 = HashMap.empty<Struct384,Struct384>
+   
+    [<Params(0, 1, 10, 100, 1000); DefaultValue>]
+    val mutable public Count : int
+
+    [<GlobalSetup>]
+    member x.Setup() =
+        let rand = Random(123)
+        collection4 <- HashMap.ofArray (Array.init x.Count (fun i -> (rand.Next(), rand.Next()) ))
+        collection32 <- HashMap.ofArray (Array.init x.Count (fun i -> (BigStruct.create32(rand.Next()), BigStruct.create32(rand.Next())) ))
+        collection128 <- HashMap.ofArray (Array.init x.Count (fun i -> (BigStruct.createBig(rand.Next()), BigStruct.createBig(rand.Next())) ))
+        collection384 <- HashMap.ofArray (Array.init x.Count (fun i -> (BigStruct.createBigger(rand.Next()), BigStruct.createBigger(rand.Next()))  ))
+
+    [<Benchmark>]
+    member x.HashMap_4byte() =
+        let mutable sum = 0
+        for (k,v) in collection4 do sum <- sum + k + v
+        sum
+
+    [<Benchmark>]
+    member x.HashMap_32byte() =
+        let mutable sum = 0.0
+        for (k,v) in collection32 do sum <- sum + k.a + v.b
+        sum
+
+    [<Benchmark>]
+    member x.HashMap_128byte() =
+        let mutable sum = 0.0
+        for (k,v) in collection128 do sum <- sum + k.x.b + v.y.c
+        sum
+
+    [<Benchmark>]
+    member x.HashMap_384byte() =
+        let mutable sum = 0.0
+        for (k,v) in collection384 do sum <- sum + k.r.z.d + v.r.x.a
+        sum
+
+[<PlainExporter; MemoryDiagnoser>]
+type CountingHashSetEnumeratorBenchmark() =
+
+    let mutable collection4 = CountingHashSet.empty<int>
+    let mutable collection32 = CountingHashSet.empty<Struct32>
+    let mutable collection128 = CountingHashSet.empty<Struct128>
+    let mutable collection384 = CountingHashSet.empty<Struct384>
+   
+    [<Params(0, 1, 10, 100, 1000); DefaultValue>]
+    val mutable public Count : int
+
+    [<GlobalSetup>]
+    member x.Setup() =
+        let rand = Random(123)
+        collection4 <- CountingHashSet.ofArray (Array.init x.Count (fun i -> rand.Next() ))
+        collection32 <- CountingHashSet.ofArray (Array.init x.Count (fun i -> BigStruct.create32(rand.Next()) ))
+        collection128 <- CountingHashSet.ofArray (Array.init x.Count (fun i -> BigStruct.createBig(rand.Next()) ))
+        collection384 <- CountingHashSet.ofArray (Array.init x.Count (fun i -> BigStruct.createBigger(rand.Next()) ))
+
+    [<Benchmark>]
+    member x.CountingHashSet_4byte() =
+        let mutable sum = 0
+        for e in collection4 do sum <- sum + e
+        sum
+
+    [<Benchmark>]
+    member x.CountingHashSet_32byte() =
+        let mutable sum = 0.0
+        for e in collection32 do sum <- sum + e.a
+        sum
+
+    [<Benchmark>]
+    member x.CountingHashSet_128byte() =
+        let mutable sum = 0.0
+        for e in collection128 do sum <- sum + e.x.b
+        sum
+
+    [<Benchmark>]
+    member x.CountingHashSet_384byte() =
+        let mutable sum = 0.0
+        for e in collection384 do sum <- sum + e.r.z.d
+        sum
+
+
+[<PlainExporter; MemoryDiagnoser>]
+type IndexListDeltaEnumeratorBenchmark() =
+
+    let mutable collection4 = IndexListDelta.empty<int>
+    let mutable collection32 = IndexListDelta.empty<Struct32>
+    let mutable collection128 = IndexListDelta.empty<Struct128>
+    let mutable collection384 = IndexListDelta.empty<Struct384>
+   
+    [<Params(0, 1, 10, 100, 1000); DefaultValue>]
+    val mutable public Count : int
+
+    [<GlobalSetup>]
+    member x.Setup() =
+        let rand = Random(123)
+        collection4 <- IndexList.computeDelta IndexList.empty (IndexList.ofArray (Array.init x.Count (fun i -> rand.Next() )))
+        collection32 <- IndexList.computeDelta IndexList.empty (IndexList.ofArray (Array.init x.Count (fun i -> BigStruct.create32(rand.Next()) )))
+        collection128 <- IndexList.computeDelta IndexList.empty (IndexList.ofArray (Array.init x.Count (fun i -> BigStruct.createBig(rand.Next()) )))
+        collection384 <- IndexList.computeDelta IndexList.empty (IndexList.ofArray (Array.init x.Count (fun i -> BigStruct.createBigger(rand.Next()) )))
+
+    [<Benchmark>]
+    member x.IndexListDelta_4byte() =
+        let mutable sum = 0
+        for e in collection4 do sum <- sum + 1
+        sum
+
+    [<Benchmark>]
+    member x.IndexListDelta_32byte() =
+        let mutable sum = 0
+        for e in collection32 do sum <- sum + 1
+        sum
+
+    [<Benchmark>]
+    member x.IndexListDelta_128byte() =
+        let mutable sum = 0
+        for e in collection128 do sum <- sum + 1
+        sum
+
+    [<Benchmark>]
+    member x.IndexListDelta_384byte() =
+        let mutable sum = 0
+        for e in collection384 do sum <- sum + 1
+        sum
+
+
+[<PlainExporter; MemoryDiagnoser>]
+type HashSetDeltaEnumeratorBenchmark() =
+
+    let mutable collection4 = HashSetDelta.empty<int>
+    let mutable collection32 = HashSetDelta.empty<Struct32>
+    let mutable collection128 = HashSetDelta.empty<Struct128>
+    let mutable collection384 = HashSetDelta.empty<Struct384>
+   
+    [<Params(0, 1, 10, 100, 1000); DefaultValue>]
+    val mutable public Count : int
+
+    [<GlobalSetup>]
+    member x.Setup() =
+        let rand = Random(123)
+        collection4 <- HashSet.computeDelta HashSet.empty (HashSet.ofArray (Array.init x.Count (fun i -> rand.Next() )))
+        collection32 <- HashSet.computeDelta HashSet.empty (HashSet.ofArray (Array.init x.Count (fun i -> BigStruct.create32(rand.Next()) )))
+        collection128 <- HashSet.computeDelta HashSet.empty (HashSet.ofArray (Array.init x.Count (fun i -> BigStruct.createBig(rand.Next()) )))
+        collection384 <- HashSet.computeDelta HashSet.empty (HashSet.ofArray (Array.init x.Count (fun i -> BigStruct.createBigger(rand.Next()) )))
+
+    [<Benchmark>]
+    member x.HashSetDelta_4byte() =
+        let mutable sum = 0
+        for e in collection4 do sum <- sum + 1
+        sum
+
+    [<Benchmark>]
+    member x.HashSetDelta_32byte() =
+        let mutable sum = 0
+        for e in collection32 do sum <- sum + 1
+        sum
+
+    [<Benchmark>]
+    member x.HashSetDelta_128byte() =
+        let mutable sum = 0
+        for e in collection128 do sum <- sum + 1
+        sum
+
+    [<Benchmark>]
+    member x.HashSetDelta_384byte() =
+        let mutable sum = 0
+        for e in collection384 do sum <- sum + 1
+        sum
+
+
+[<PlainExporter; MemoryDiagnoser>]
+type HashMapDeltaEnumeratorBenchmark() =
+
+    let mutable collection4 = HashMapDelta.empty<int,int>
+    let mutable collection32 = HashMapDelta.empty<Struct32,Struct32>
+    let mutable collection128 = HashMapDelta.empty<Struct128,Struct128>
+    let mutable collection384 = HashMapDelta.empty<Struct384,Struct384>
+   
+    [<Params(0, 1, 10, 100, 1000); DefaultValue>]
+    val mutable public Count : int
+
+    [<GlobalSetup>]
+    member x.Setup() =
+        let rand = Random(123)
+        collection4 <- HashMap.computeDelta HashMap.empty (HashMap.ofArray (Array.init x.Count (fun i -> (rand.Next(), rand.Next()) )))
+        collection32 <- HashMap.computeDelta HashMap.empty (HashMap.ofArray (Array.init x.Count (fun i -> (BigStruct.create32(rand.Next()), BigStruct.create32(rand.Next())) )))
+        collection128 <- HashMap.computeDelta HashMap.empty (HashMap.ofArray (Array.init x.Count (fun i -> (BigStruct.createBig(rand.Next()), BigStruct.createBig(rand.Next())) )))
+        collection384 <- HashMap.computeDelta HashMap.empty (HashMap.ofArray (Array.init x.Count (fun i -> (BigStruct.createBigger(rand.Next()), BigStruct.createBigger(rand.Next()))  )))
+
+    [<Benchmark>]
+    member x.HashMapDelta_4byte() =
+        let mutable sum = 0
+        for (k,v) in collection4 do sum <- sum + 1
+        sum
+
+    [<Benchmark>]
+    member x.HashMapDelta_32byte() =
+        let mutable sum = 0
+        for (k,v) in collection32 do sum <- sum + 1
+        sum
+
+    [<Benchmark>]
+    member x.HashMapDelta_128byte() =
+        let mutable sum = 0
+        for (k,v) in collection128 do sum <- sum + 1
+        sum
+
+    [<Benchmark>]
+    member x.HashMapDelta_384byte() =
+        let mutable sum = 0
+        for (k,v) in collection384 do sum <- sum + 1
+        sum

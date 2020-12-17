@@ -3735,88 +3735,94 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
 and HashSetEnumerator<'T> =
     struct
         val mutable private Root : HashSetNode<'T>
-        val mutable private Stack : list<HashSetNode<'T>>
+        val mutable private Head : HashSetNode<'T>
+        val mutable private Tail : list<HashSetNode<'T>>
+        val mutable private BufferValueCount : int
         val mutable private Values : 'T[]
         val mutable private Index : int
-
-        member private x.MoveNext (current : HashSetNode<'T>) =
-            let mutable current = current
-            let mutable run = true
-            while run do
-                match current with
-                | :? HashSetEmpty<'T> ->
-                    failwith "bad"
-                | :? HashSetNoCollisionLeaf<'T> as h ->
-                    x.Values <- [| h.Value |]
-                    x.Index <- 0
-                    run <- false
-                | :? HashSetCollisionLeaf<'T> as h ->
-                    let arr = Array.zeroCreate h.Count
-                    arr.[0] <- h.Value
-                    let mutable c = h.Next
-                    let mutable i = 1
-                    while not (isNull c) do
-                        arr.[i] <- c.Value
-                        c <- c.Next
-                        i <- i + 1
-                    x.Values <- arr
-                    x.Index <- 0
-                    run <- false
-                | :? HashSetInner<'T> as h ->
-                    if h.Count <= 16 then
-                        let array = Array.zeroCreate h.Count
-                        let index = ref 0
-                        h.CopyTo(array, index)
-                        x.Values <- array
-                        x.Index <- 0
-                        run <- false
-                    else
-                        match h.Left with
-                        | :? HashSetEmpty<'T> ->
-                            current <- h.Right
-                        | _ ->
-                            match h.Right with
-                            | :? HashSetEmpty<'T> -> ()
-                            | r -> x.Stack <- r :: x.Stack
-
-                            current <- h.Left
-                | _ ->
-                    failwith "bad node"
-
-            true
-
-        member x.MoveNext() =
-            x.Index <- x.Index + 1
-            if isNull x.Values || x.Index >= x.Values.Length then
-                match x.Stack with
-                | [] ->
-                    false
-                | h :: t ->
-                    x.Stack <- t
-                    x.MoveNext h
-            else
+        val mutable private Next : 'T
+        
+        member x.Collect() =
+            match x.Head with
+            | :? HashSetNoCollisionLeaf<'T> as h ->
+                x.Next <- h.Value
+                x.Index <- 0
+                x.BufferValueCount <- 0
+                if x.Tail.IsEmpty then
+                    x.Head <- Unchecked.defaultof<_>
+                    x.Tail <- []
+                else
+                    x.Head <- x.Tail.Head
+                    x.Tail <- x.Tail.Tail    
                 true
 
-        member x.Reset() =
-            if x.Root.Count <= 16 then
-                let array = Array.zeroCreate x.Root.Count
-                let index = ref 0
-                x.Root.CopyTo(array, index)
-                x.Values <- array
-                x.Index <- -1
-                x.Stack <- []
+            | :? HashSetCollisionLeaf<'T> as h ->
+                                    
+                let cnt = h.Count
+                if isNull x.Values || x.Values.Length < cnt-1 then
+                    x.Values <- Array.zeroCreate cnt
+            
+                x.Next <- h.Value
+                let mutable c = h.Next
+                let mutable i = 0
+                while not (isNull c) do
+                    x.Values.[i] <- c.Value
+                    c <- c.Next
+                    i <- i + 1
+                x.BufferValueCount <- i
+                x.Index <- 0
+                if x.Tail.IsEmpty then
+                    x.Head <- Unchecked.defaultof<_>
+                    x.Tail <- []
+                else
+                    x.Head <- x.Tail.Head
+                    x.Tail <- x.Tail.Tail
+                true
+
+            | :? HashSetInner<'T> as h ->
+                if sizeof<'T> <= 64 && h._Count <= 16 then
+                    let index = ref 0
+                    h.CopyTo(x.Values, index)
+                    x.BufferValueCount <- h._Count
+                    x.Next <- x.Values.[0]
+                    x.Index <- 1 // skip first element of array
+                    if x.Tail.IsEmpty then
+                        x.Head <- Unchecked.defaultof<_>
+                        x.Tail <- []
+                    else
+                        x.Head <- x.Tail.Head
+                        x.Tail <- x.Tail.Tail
+                    true
+                else
+                    x.Head <- h.Left
+                    x.Tail <- h.Right :: x.Tail
+                    x.Collect()
+                
+            | _ -> false
+
+        member x.MoveNext() =
+            if x.Index < x.BufferValueCount then
+                x.Next <- x.Values.[x.Index]
+                x.Index <- x.Index + 1
+                true
             else
-                x.Values <- null
-                x.Index <- -1
-                x.Stack <- [x.Root]
+                x.Collect()
+
+        member x.Reset() =
+            x.Index <- -1
+            x.Head <- x.Root
+            x.Tail <- []
+            x.BufferValueCount <- -1
 
         member x.Dispose() =
             x.Values <- null
             x.Index <- -1
-            x.Stack <- []
+            x.Head <- Unchecked.defaultof<_>
+            x.Tail <- []
             x.Root <- Unchecked.defaultof<_>
+            x.Next <- Unchecked.defaultof<_>
 
-        member x.Current = x.Values.[x.Index]
+        member x.Current = x.Next
 
         interface System.Collections.IEnumerator with
             member x.MoveNext() = x.MoveNext()
@@ -3828,22 +3834,16 @@ and HashSetEnumerator<'T> =
             member x.Dispose() = x.Dispose()
 
         new (map : HashSet<'T>) =
-            if map.Count <= 16 then
-                {
-                    Root = map.Root
-                    Stack = []
-                    Values = map.ToArray()
-                    Index = -1
-                }
-            else
-                {
-                    Root = map.Root
-                    Stack = [map.Root]
-                    Values = null
-                    Index = -1
-                }
-                
-
+            let cnt = map.Count
+            {
+                Root = map.Root
+                Head = map.Root
+                Tail = []
+                Values = if sizeof<'T> <= 64 && cnt > 1 then Array.zeroCreate (min cnt 16) else null
+                Index = -1
+                BufferValueCount = -1
+                Next = Unchecked.defaultof<_>
+            }
     end
 
 [<Struct; CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}"); CompiledName("FSharpHashMap`2")>]
