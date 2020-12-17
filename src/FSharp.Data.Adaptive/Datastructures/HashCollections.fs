@@ -250,12 +250,12 @@ module internal HashMapImplementation =
             else
                 forall predicate n.Next
 
-        let rec copyTo (index: ref<int>) (dst : 'T array) (n: HashSetLinked<'T>) =
+        let rec copyTo (index: int) (dst : 'T array) (n: HashSetLinked<'T>) =
             if not (isNull n) then
-                dst.[!index] <- n.Value
-                index := !index + 1
-                copyTo index dst n.Next
-
+                dst.[index] <- n.Value
+                copyTo (index + 1) dst n.Next
+            else
+                index
     [<AbstractClass>]
     type HashSetNode<'T>() =
         abstract member ComputeHash : unit -> int
@@ -283,8 +283,9 @@ module internal HashMapImplementation =
         abstract member Accept: HashSetVisitor<'T, 'R> -> 'R
 
         abstract member ToArray: ref<array<'T>> * ref<int> -> unit
-        abstract member CopyTo: dst: 'T array * index : ref<int> -> unit
-        
+        abstract member CopyTo: dst: 'T array * index : int -> int
+        abstract member ToList : list<'T> -> list<'T>
+
     [<AbstractClass>]
     type HashSetLeaf<'T>() =
         inherit HashSetNode<'T>()
@@ -363,8 +364,11 @@ module internal HashMapImplementation =
         override x.Forall(_predicate: 'T -> bool) =
             true
 
-        override x.CopyTo(_dst : 'T array, _index : ref<int>) =
-            ()
+        override x.CopyTo(_dst : 'T array, index : int) =
+            index
+
+        override x.ToList acc =
+            acc
      
     [<Sealed>]
     type HashSetNoCollisionLeaf<'T>() =
@@ -490,9 +494,12 @@ module internal HashMapImplementation =
         override x.Forall(predicate: 'T -> bool) =
             predicate x.Value
 
-        override x.CopyTo(dst : 'T array, index : ref<int>) =
-            dst.[!index] <- x.Value
-            index := !index + 1
+        override x.CopyTo(dst : 'T array, index : int) =
+            dst.[index] <- x.Value
+            index + 1
+            
+        override x.ToList acc =
+           x.Value :: acc
 
         static member New(h : uint32, v : 'T) : HashSetNode<'T> =
             new HashSetNoCollisionLeaf<_>(Hash = h, Value = v) :> HashSetNode<'T>
@@ -720,11 +727,16 @@ module internal HashMapImplementation =
             if predicate x.Value then HashSetLinked.forall predicate x.Next
             else false
 
-        override x.CopyTo(dst : 'T array, index : ref<int>) =
-            dst.[!index] <- x.Value
-            index := !index + 1
-            HashSetLinked.copyTo index dst x.Next
+        override x.CopyTo(dst : 'T array, index : int) =
+            dst.[index] <- x.Value
+            HashSetLinked.copyTo (index + 1) dst x.Next
             
+        override x.ToList acc =
+            let rec run (acc : list<'T>) (n : HashSetLinked<'T>) =
+                if isNull n then acc
+                else n.Value :: run acc n.Next
+            x.Value :: run acc x.Next
+
         static member New(h: uint32, v: 'T, n: HashSetLinked<'T>) : HashSetNode<'T> = 
             assert (not (isNull n))
             new HashSetCollisionLeaf<_>(Hash = h, Value = v, Next = n) :> HashSetNode<'T>
@@ -882,9 +894,13 @@ module internal HashMapImplementation =
         override x.Forall(predicate: 'T -> bool) =
             x.Left.Forall predicate && x.Right.Forall predicate
 
-        override x.CopyTo(dst : 'T array, index : ref<int>) =
-            x.Left.CopyTo(dst, index)
-            x.Right.CopyTo(dst, index)
+        override x.CopyTo(dst : 'T array, index : int) =
+            let i = x.Left.CopyTo(dst, index)
+            x.Right.CopyTo(dst, i)
+            
+        override x.ToList acc =
+            let a = x.Right.ToList acc
+            x.Left.ToList a
 
         static member New(p: uint32, m: Mask, l: HashSetNode<'T>, r: HashSetNode<'T>) : HashSetNode<'T> = 
             assert(not l.IsEmpty)
@@ -1095,18 +1111,20 @@ module internal HashMapImplementation =
             else
                 forall predicate n.Next
 
-        let rec copyTo (index: ref<int>) (dst : ('K * 'V) array) (n: HashMapLinked<'K, 'V>) =
+        let rec copyTo (index: int) (dst : ('K * 'V) array) (n: HashMapLinked<'K, 'V>) =
             if not (isNull n) then
-                dst.[!index] <- n.Key, n.Value
-                index := !index + 1
-                copyTo index dst n.Next
-                
-        let rec copyToV (index: ref<int>) (dst : (struct ('K * 'V)) array) (n: HashMapLinked<'K, 'V>) =
-            if not (isNull n) then
-                dst.[!index] <- struct (n.Key, n.Value)
-                index := !index + 1
-                copyToV index dst n.Next
+                dst.[index] <- n.Key, n.Value
+                copyTo (index + 1) dst n.Next
+            else
+                index
 
+        let rec copyToV (index: int) (dst : (struct ('K * 'V)) array) (n: HashMapLinked<'K, 'V>) =
+            if not (isNull n) then
+                dst.[index] <- struct (n.Key, n.Value)
+                copyToV (index + 1) dst n.Next
+            else
+                index
+                
     [<AbstractClass>]
     type HashMapNode<'K, 'V>() =
         abstract member Remove: IEqualityComparer<'K> * uint32 * 'K -> HashMapNode<'K, 'V>
@@ -1142,9 +1160,12 @@ module internal HashMapImplementation =
 
         abstract member ToArray: ref<array<struct('K * 'V)>> * ref<int> -> unit
 
-        abstract member CopyTo: dst: ('K * 'V) array * index : ref<int> -> unit
+        abstract member CopyTo: dst: ('K * 'V) array * index : int -> int
         
-        abstract member CopyToV: dst: (struct('K * 'V)) array * index : ref<int> -> unit
+        abstract member CopyToV: dst: (struct('K * 'V)) array * index : int -> int
+
+        abstract member ToList : list<'K * 'V> -> list<'K * 'V>
+        abstract member ToListV : list<struct('K * 'V)> -> list<struct('K * 'V)>
 
     [<AbstractClass>]
     type HashMapLeaf<'K, 'V>() =
@@ -1243,10 +1264,17 @@ module internal HashMapImplementation =
         override x.Forall(_predicate: OptimizedClosures.FSharpFunc<'K, 'V, bool>) =
             true
 
-        override x.CopyTo(_dst : ('K * 'V) array, _index : ref<int>) =
-            ()
-        override x.CopyToV(_dst : (struct ('K * 'V)) array, _index : ref<int>) =
-            ()
+        override x.CopyTo(_dst : ('K * 'V) array, index : int) =
+            index
+
+        override x.CopyToV(_dst : (struct ('K * 'V)) array, index : int) =
+            index
+
+        override x.ToList(acc : list<'K * 'V>) =
+            acc
+            
+        override x.ToListV(acc : list<struct('K * 'V)>) =
+            acc
 
     [<Sealed>]
     type HashMapCollisionLeaf<'K, 'V>() =
@@ -1553,16 +1581,26 @@ module internal HashMapImplementation =
             if predicate.Invoke(x.Key, x.Value) then HashMapLinked.forall predicate x.Next
             else false
 
-        override x.CopyTo(dst : ('K * 'V) array, index : ref<int>) =
-            dst.[!index] <- (x.Key, x.Value)
-            index := !index + 1
-            HashMapLinked.copyTo index dst x.Next
+        override x.CopyTo(dst : ('K * 'V) array, index : int) =
+            dst.[index] <- (x.Key, x.Value)
+            HashMapLinked.copyTo (index + 1) dst x.Next
             
-        override x.CopyToV(dst : (struct ('K * 'V)) array, index : ref<int>) =
-            dst.[!index] <- struct (x.Key, x.Value)
-            index := !index + 1
-            HashMapLinked.copyToV index dst x.Next
+        override x.CopyToV(dst : (struct ('K * 'V)) array, index : int) =
+            dst.[index] <- struct (x.Key, x.Value)
+            HashMapLinked.copyToV (index + 1) dst x.Next
             
+        override x.ToList(acc : list<'K * 'V>) =
+            let rec run (acc : list<'K * 'V>) (n : HashMapLinked<'K, 'V>) =
+                if isNull n then acc
+                else (n.Key,n.Value) :: run acc n.Next
+            (x.Key, x.Value) :: run acc x.Next
+            
+        override x.ToListV(acc : list<struct('K * 'V)>) =
+            let rec run (acc : list<struct('K * 'V)>) (n : HashMapLinked<'K, 'V>) =
+                if isNull n then acc
+                else struct(n.Key,n.Value) :: run acc n.Next
+            struct(x.Key, x.Value) :: run acc x.Next
+
         static member New(h: uint32, k: 'K, v: 'V, n: HashMapLinked<'K, 'V>) : HashMapNode<'K, 'V> = 
             assert (not (isNull n))
             new HashMapCollisionLeaf<_,_>(Hash = h, Key = k, Value = v, Next = n) :> HashMapNode<'K, 'V>
@@ -1739,13 +1777,19 @@ module internal HashMapImplementation =
         override x.Forall(predicate: OptimizedClosures.FSharpFunc<'K, 'V, bool>) =
             predicate.Invoke(x.Key, x.Value)
 
-        override x.CopyTo(dst : ('K * 'V) array, index : ref<int>) =
-            dst.[!index] <- (x.Key, x.Value)
-            index := !index + 1
+        override x.CopyTo(dst : ('K * 'V) array, index : int) =
+            dst.[index] <- (x.Key, x.Value)
+            index + 1
             
-        override x.CopyToV(dst : (struct ('K * 'V)) array, index : ref<int>) =
-            dst.[!index] <- struct (x.Key, x.Value)
-            index := !index + 1
+        override x.CopyToV(dst : (struct ('K * 'V)) array, index : int) =
+            dst.[index] <- struct (x.Key, x.Value)
+            index + 1
+            
+        override x.ToList(acc : list<'K * 'V>) =
+            (x.Key, x.Value) :: acc
+            
+        override x.ToListV(acc : list<struct('K * 'V)>) =
+            struct(x.Key, x.Value) :: acc
 
         static member New(h : uint32, k : 'K, v : 'V) : HashMapNode<'K, 'V> =
             new HashMapNoCollisionLeaf<_,_>(Hash = h, Key = k, Value = v) :> HashMapNode<'K, 'V>
@@ -1942,13 +1986,21 @@ module internal HashMapImplementation =
         override x.Forall(predicate: OptimizedClosures.FSharpFunc<'K, 'V, bool>) =
             x.Left.Forall predicate && x.Right.Forall predicate
 
-        override x.CopyTo(dst : ('K * 'V) array, index : ref<int>) =
-            x.Left.CopyTo(dst, index)
-            x.Right.CopyTo(dst, index)
+        override x.CopyTo(dst : ('K * 'V) array, index : int) =
+            let i = x.Left.CopyTo(dst, index)
+            x.Right.CopyTo(dst, i)
             
-        override x.CopyToV(dst : (struct ('K * 'V)) array, index : ref<int>) =
-            x.Left.CopyToV(dst, index)
-            x.Right.CopyToV(dst, index)
+        override x.CopyToV(dst : (struct ('K * 'V)) array, index : int) =
+            let i = x.Left.CopyToV(dst, index)
+            x.Right.CopyToV(dst, i)
+            
+        override x.ToList(acc : list<'K * 'V>) =
+            let a = x.Right.ToList acc
+            x.Left.ToList a
+            
+        override x.ToListV(acc : list<struct('K * 'V)>) =
+            let a = x.Right.ToListV acc
+            x.Left.ToListV a
 
         static member New(p: uint32, m: Mask, l: HashMapNode<'K, 'V>, r: HashMapNode<'K, 'V>) : HashMapNode<'K, 'V> = 
             assert(getPrefix p m = p)
@@ -2128,6 +2180,73 @@ module internal HashMapImplementation =
             }
 
     module HashMapNode = 
+
+        let rec copyTo (array : ('K * 'V)[]) (index : int) (n : HashMapNode<'K, 'V>) =
+            match n with
+            | :? HashMapEmpty<'K, 'V> ->
+                index
+            | :? HashMapNoCollisionLeaf<'K, 'V> as l ->
+                array.[index] <- (l.Key, l.Value)
+                index + 1
+            | :? HashMapCollisionLeaf<'K, 'V> as l ->
+                array.[index] <- (l.Key, l.Value)
+                HashMapLinked.copyTo (index + 1) array l.Next
+            | :? HashMapInner<'K, 'V> as n ->
+                let i = copyTo array index n.Left
+                copyTo array i n.Right
+            | _ ->
+                index
+
+        let rec copyToV (array : struct('K * 'V)[]) (index : int) (n : HashMapNode<'K, 'V>) =
+            match n with
+            | :? HashMapEmpty<'K, 'V> ->
+                index
+            | :? HashMapNoCollisionLeaf<'K, 'V> as l ->
+                array.[index] <- struct(l.Key, l.Value)
+                index + 1
+            | :? HashMapCollisionLeaf<'K, 'V> as l ->
+                array.[index] <- struct(l.Key, l.Value)
+                HashMapLinked.copyToV (index + 1) array l.Next
+            | :? HashMapInner<'K, 'V> as n ->
+                let i = copyToV array index n.Left
+                copyToV array i n.Right
+            | _ ->
+                index
+
+        let rec toList (acc : list<'K * 'V>) (n : HashMapNode<'K, 'V>) =
+            match n with
+            | :? HashMapEmpty<'K, 'V> ->
+                acc
+            | :? HashMapNoCollisionLeaf<'K, 'V> as l ->
+                (l.Key, l.Value) :: acc
+            | :? HashMapCollisionLeaf<'K, 'V> as l ->
+                let rec run (acc : list<_>) (n : HashMapLinked<_,_>) =
+                    if isNull n then acc
+                    else (n.Key, n.Value) :: run acc n.Next
+                (l.Key, l.Value) :: run acc l.Next
+            | :? HashMapInner<'K, 'V> as n ->
+                let r = toList acc n.Right
+                toList r n.Left
+            | _ ->
+                acc
+                
+        let rec toListV (acc : list<struct('K * 'V)>) (n : HashMapNode<'K, 'V>) =
+            match n with
+            | :? HashMapEmpty<'K, 'V> ->
+                acc
+            | :? HashMapNoCollisionLeaf<'K, 'V> as l ->
+                struct(l.Key, l.Value) :: acc
+            | :? HashMapCollisionLeaf<'K, 'V> as l ->
+                let rec run (acc : list<_>) (n : HashMapLinked<_,_>) =
+                    if isNull n then acc
+                    else struct(n.Key, n.Value) :: run acc n.Next
+                struct(l.Key, l.Value) :: run acc l.Next
+            | :? HashMapInner<'K, 'V> as n ->
+                let r = toListV acc n.Right
+                toListV r n.Left
+            | _ ->
+                acc
+
         let visit2 (v : HashMapVisitor2<'K, 'V1, 'V2, 'R>) (l : HashMapNode<'K, 'V1>) (r : HashMapNode<'K, 'V2>) =
             l.Accept (HashMapVisit2Visitor(v, r))
 
@@ -2783,6 +2902,41 @@ module internal HashMapImplementation =
 
 
     module HashSetNode = 
+
+        
+        let rec copyTo (array : 'T[]) (index : int) (n : HashSetNode<'T>) =
+            match n with
+            | :? HashSetEmpty<'T> ->
+                index
+            | :? HashSetNoCollisionLeaf<'T> as l ->
+                array.[index] <- l.Value
+                index + 1
+            | :? HashSetCollisionLeaf<'T> as l ->
+                array.[index] <- l.Value
+                HashSetLinked.copyTo (index + 1) array l.Next
+            | :? HashSetInner<'T> as n ->
+                let i = copyTo array index n.Left
+                copyTo array i n.Right
+            | _ ->
+                index
+                
+        let rec toList (acc : list<'T>) (n : HashSetNode<'T>) =
+            match n with
+            | :? HashSetEmpty<'T> ->
+                acc
+            | :? HashSetNoCollisionLeaf<'T> as l ->
+                l.Value :: acc
+            | :? HashSetCollisionLeaf<'T> as l ->
+                let rec run (acc : list<_>) (n : HashSetLinked<_>) =
+                    if isNull n then acc
+                    else n.Value :: run acc n.Next
+                l.Value :: run acc l.Next
+            | :? HashSetInner<'T> as n ->
+                let r = toList acc n.Right
+                toList r n.Left
+            | _ ->
+                acc
+
         let visit2 (v : HashSetVisitor2<'T, 'R>) (l : HashSetNode<'T>) (r : HashSetNode<'T>) =
             l.Accept (HashSetVisit2Visitor(v, r))
 
@@ -3444,23 +3598,23 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         HashSet<'T>(cmp, r)
     member inline x.ToSeq() =
         x :> seq<_>
-    
+
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    member x.ToList() =
-        let arr = Array.zeroCreate root.Count
-        let index = ref 0
-        root.CopyTo(arr, index)
-        let mutable res = []
-        for i in 1 .. arr.Length do
-            let i = arr.Length - i
-            res <- arr.[i] :: res
-        res
+    member x.ToList() = root.ToList []
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member internal x.ToListMatch() = HashSetNode.toList [] root
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ToArray() =
         let arr = Array.zeroCreate root.Count
-        let index = ref 0
-        root.CopyTo(arr, index)
+        root.CopyTo(arr, 0) |> ignore
+        arr   
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member internal x.ToArrayMatch() =
+        let arr = Array.zeroCreate root.Count
+        HashSetNode.copyTo arr 0 root |> ignore
         arr
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3588,8 +3742,7 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
  
     member x.CopyTo(array : 'T[], arrayIndex : int) =
         if arrayIndex < 0 || arrayIndex + x.Count > array.Length then raise <| System.IndexOutOfRangeException()
-        let index = ref arrayIndex
-        root.CopyTo(array, index)
+        root.CopyTo(array, arrayIndex) |> ignore
 
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3703,7 +3856,7 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         member x.Remove _ = failwith "readonly"
         member x.Clear() = failwith "readonly"
         member x.CopyTo(array : 'T[], arrayIndex : int) =
-            x.CopyTo(array, arrayIndex)
+            x.CopyTo(array, arrayIndex) |> ignore
 
     #if !FABLE_COMPILER
     interface System.Collections.Generic.ISet<'T> with
@@ -3781,8 +3934,7 @@ and HashSetEnumerator<'T> =
 
             | :? HashSetInner<'T> as h ->
                 if sizeof<'T> <= 64 && h._Count <= 16 then
-                    let index = ref 0
-                    h.CopyTo(x.Values, index)
+                    h.CopyTo(x.Values, 0) |> ignore
                     x.BufferValueCount <- h._Count
                     x.Next <- x.Values.[0]
                     x.Index <- 1 // skip first element of array
@@ -4077,39 +4229,21 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         Seq.ofEnumerator(fun () -> new HashMapStructEnumerator<_,_>(x))
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    member x.ToListV() =
-        let arr = Array.zeroCreate root.Count
-        let index = ref 0
-        root.CopyToV(arr, index)
-        let mutable res = []
-        for i in 1 .. arr.Length do
-            let i = arr.Length - i
-            res <- arr.[i] :: res
-        res
+    member x.ToListV() = root.ToListV []
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ToArrayV() =
         let arr = Array.zeroCreate root.Count
-        let index = ref 0
-        root.CopyToV(arr, index)
+        root.CopyToV(arr, 0) |> ignore
         arr
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    member x.ToList() =
-        let arr = Array.zeroCreate root.Count
-        let index = ref 0
-        root.CopyTo(arr, index)
-        let mutable res = []
-        for i in 1 .. arr.Length do
-            let i = arr.Length - i
-            res <- arr.[i] :: res
-        res
+    member x.ToList() = root.ToList []
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ToArray() =
         let arr = Array.zeroCreate root.Count
-        let index = ref 0
-        root.CopyTo(arr, index)
+        root.CopyTo(arr, 0) |> ignore
         arr
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -4153,8 +4287,7 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
         HashMap(cmp, result)
         
     member x.CopyTo(array : ('K * 'V)[], arrayIndex : int) =
-        let index = ref arrayIndex
-        root.CopyTo(array, index)
+        root.CopyTo(array, arrayIndex) |> ignore
 
     member x.GetEnumerator() = new HashMapEnumerator<_,_>(x)
     member x.GetStructEnumerator() = new HashMapStructEnumerator<_,_>(x)
@@ -4233,8 +4366,7 @@ and HashMapEnumerator<'K, 'V> =
                 | :? HashMapInner<'K, 'V> as h ->
                     if h.Count <= 16 then
                         let array = Array.zeroCreate h.Count
-                        let index = ref 0
-                        h.CopyTo(array, index)
+                        h.CopyTo(array, 0) |> ignore
                         x.Values <- array
                         x.Index <- 0
                         run <- false
@@ -4268,8 +4400,7 @@ and HashMapEnumerator<'K, 'V> =
         member x.Reset() =
             if x.Root.Count <= 16 then
                 let array = Array.zeroCreate x.Root.Count
-                let index = ref 0
-                x.Root.CopyTo(array, index)
+                x.Root.CopyTo(array, 0) |> ignore
                 x.Values <- array
                 x.Index <- -1
                 x.Stack <- []
@@ -4350,8 +4481,7 @@ and HashMapStructEnumerator<'K, 'V> =
                 | :? HashMapInner<'K, 'V> as h ->
                     if h.Count <= 16 then
                         let array = Array.zeroCreate h.Count
-                        let index = ref 0
-                        h.CopyToV(array, index)
+                        h.CopyToV(array, 0) |> ignore
                         x.Values <- array
                         x.Index <- 0
                         run <- false
@@ -4385,8 +4515,7 @@ and HashMapStructEnumerator<'K, 'V> =
         member x.Reset() =
             if x.Root.Count <= 16 then
                 let array = Array.zeroCreate x.Root.Count
-                let index = ref 0
-                x.Root.CopyToV(array, index)
+                x.Root.CopyToV(array, 0) |> ignore
                 x.Values <- array
                 x.Index <- -1
                 x.Stack <- []
