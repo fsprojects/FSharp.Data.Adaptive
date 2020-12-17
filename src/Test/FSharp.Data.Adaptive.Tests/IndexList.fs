@@ -88,8 +88,8 @@ let ``[IndexList] sort`` (l : list<int>) =
     ll |> IndexList.sortDescending |> IndexList.toList |> should equal (List.sortDescending l)
     
 [<Property>]
-let ``[IndexList] sum/average`` (h : float) (l : list<float>) =
-    let l = h :: l
+let ``[IndexList] sum/average`` (h : NormalFloat) (l : list<NormalFloat>) =
+    let l = h :: l |> List.map float
     let ll = IndexList.ofList l
     let mapping (v : float) = v + 1.0
     ll |> IndexList.sum |> should equal (List.sum l)

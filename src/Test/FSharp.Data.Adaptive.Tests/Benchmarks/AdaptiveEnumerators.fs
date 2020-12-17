@@ -5,6 +5,7 @@ open FSharp.Data.Adaptive
 open FSharp.Data.Traceable
 open BenchmarkDotNet.Attributes
 open System.Runtime.CompilerServices
+open BenchmarkDotNet.Configs
 
 type HashSetEnumeratorBaseline<'T> =
     struct 
@@ -203,7 +204,8 @@ module BigStruct =
 //| HashSet_128byte |  1000 | 35,954.38 ns |  89.003 ns |  74.321 ns | 35,958.55 ns | 5.0659 |     - |     - |   31968 B |
 //| HashSet_384byte |  1000 | 56,970.45 ns | 341.421 ns | 285.102 ns | 57,072.92 ns | 5.0659 |     - |     - |   31968 B |
 
-[<PlainExporter; MemoryDiagnoser>]
+[<PlainExporter; MemoryDiagnoser; IterationTime(100.0); MaxIterationCount(20)>]
+[<GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)>]
 type HashSetEnumeratorBenchmark() =
 
     let mutable collection4 = HashSet.empty<int>
@@ -222,7 +224,7 @@ type HashSetEnumeratorBenchmark() =
         collection128 <- HashSet.ofArray (Array.init x.Count (fun i -> BigStruct.createBig(rand.Next()) ))
         collection384 <- HashSet.ofArray (Array.init x.Count (fun i -> BigStruct.createBigger(rand.Next()) ))
 
-    [<Benchmark>]
+    [<Benchmark(Baseline = true); BenchmarkCategory("4byte")>]
     member x.Baseline_4byte() =
         let mutable e = new HashSetEnumeratorBaseline<_>(collection4.Root)
         let mutable sum = 0
@@ -230,7 +232,7 @@ type HashSetEnumeratorBenchmark() =
             sum <- sum + e.Current
         sum
 
-    [<Benchmark>]
+    [<Benchmark(Baseline = true); BenchmarkCategory("32byte")>]
     member x.Baseline_32byte() =
         let mutable e = new HashSetEnumeratorBaseline<_>(collection32.Root)
         let mutable sum = 0.0
@@ -238,7 +240,7 @@ type HashSetEnumeratorBenchmark() =
             sum <- sum + e.Current.a
         sum
 
-    [<Benchmark>]
+    [<Benchmark(Baseline = true); BenchmarkCategory("128byte")>]
     member x.Baseline_128byte() =
         let mutable e = new HashSetEnumeratorBaseline<_>(collection128.Root)
         let mutable sum = 0.0
@@ -246,7 +248,7 @@ type HashSetEnumeratorBenchmark() =
             sum <- sum + e.Current.w.c
         sum
 
-    [<Benchmark>]
+    [<Benchmark(Baseline = true); BenchmarkCategory("384byte")>]
     member x.Baseline_384byte() =
         let mutable e = new HashSetEnumeratorBaseline<_>(collection384.Root)
         let mutable sum = 0.0
@@ -254,25 +256,25 @@ type HashSetEnumeratorBenchmark() =
             sum <- sum + e.Current.s.y.c
         sum
 
-    [<Benchmark>]
+    [<Benchmark; BenchmarkCategory("4byte")>]
     member x.HashSet_4byte() =
         let mutable sum = 0
         for e in collection4 do sum <- sum + e
         sum
 
-    [<Benchmark>]
+    [<Benchmark; BenchmarkCategory("32byte")>]
     member x.HashSet_32byte() =
         let mutable sum = 0.0
         for e in collection32 do sum <- sum + e.a
         sum
 
-    [<Benchmark>]
+    [<Benchmark; BenchmarkCategory("128byte")>]
     member x.HashSet_128byte() =
         let mutable sum = 0.0
         for e in collection128 do sum <- sum + e.w.c
         sum
 
-    [<Benchmark>]
+    [<Benchmark; BenchmarkCategory("384byte")>]
     member x.HashSet_384byte() =
         let mutable sum = 0.0
         for e in collection384 do sum <- sum + e.s.y.c

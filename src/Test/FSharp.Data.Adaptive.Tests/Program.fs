@@ -60,7 +60,8 @@ let main _args =
     //BenchmarkRunner.Run<Benchmarks.CollectBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.EnumeratorBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.IndexListEnumeratorBenchmark>() |> ignore
-    BenchmarkRunner.Run<Benchmarks.HashSetEnumeratorBenchmark>() |> ignore
+    //BenchmarkRunner.Run<Benchmarks.HashSetEnumeratorBenchmark>() |> ignore
+    BenchmarkRunner.Run<Benchmarks.HashSetBenchmarks>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.HashMapEnumeratorBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.CountingHashSetEnumeratorBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.IndexListDeltaEnumeratorBenchmark>() |> ignore
