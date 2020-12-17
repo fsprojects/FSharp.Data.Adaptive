@@ -10,6 +10,15 @@ open System.Runtime.Intrinsics.X86
 [<AutoOpen>]
 module internal HashMapUtilities =
 
+    let inline nextPowerOfTwo (v : int) =
+        let mutable v = v - 1
+        v <- v ||| (v >>> 1)
+        v <- v ||| (v >>> 2)
+        v <- v ||| (v >>> 4)
+        v <- v ||| (v >>> 8)
+        v <- v ||| (v >>> 16)
+        v + 1
+
     let resizeArray (r : ref<'a[]>) (l : int) = 
         let len = r.Value.Length
         if l < len then 
@@ -19,6 +28,16 @@ module internal HashMapUtilities =
             res.[0..len-1] <- r.Value
             r := res
         
+    let inline ensureLength (r : ref<'a[]>) (minLength : int) =
+        let o = r.Value.Length
+        if minLength > o then
+            let n = nextPowerOfTwo minLength
+            let res = Array.zeroCreate n
+            res.[0..o-1] <- r.Value
+            r := res
+        //elif n < o then
+        //    r := Array.take n r.Value
+            
 
 
     type private EnumeratorSeq<'T>(create : unit -> System.Collections.Generic.IEnumerator<'T>) =
@@ -256,6 +275,7 @@ module internal HashMapImplementation =
                 copyTo (index + 1) dst n.Next
             else
                 index
+    
     [<AbstractClass>]
     type HashSetNode<'T>() =
         abstract member ComputeHash : unit -> int
@@ -282,7 +302,6 @@ module internal HashMapImplementation =
 
         abstract member Accept: HashSetVisitor<'T, 'R> -> 'R
 
-        abstract member ToArray: ref<array<'T>> * ref<int> -> unit
         abstract member CopyTo: dst: 'T array * index : int -> int
         abstract member ToList : list<'T> -> list<'T>
 
@@ -307,9 +326,6 @@ module internal HashMapImplementation =
             0
 
         override x.Count = 0
-
-        override x.ToArray(dst, o) =
-            ()
 
         override x.Accept(v: HashSetVisitor<_,_>) =
             v.VisitEmpty x
@@ -386,11 +402,6 @@ module internal HashMapImplementation =
         override x.ComputeHash() =
             int x.Hash
 
-        override x.ToArray(dst, o) =
-            if !o >= dst.Value.Length then resizeArray dst (!o * 2)
-            dst.Value.[!o] <- x.Value
-            o := !o + 1
-        
         override x.IsEmpty = false
         
         override x.Accept(v: HashSetVisitor<_,_>) =
@@ -534,18 +545,6 @@ module internal HashMapImplementation =
                 c <- c.Next
                 cnt <- cnt + 1
             combineHash cnt (int x.Hash)
-
-        override x.ToArray(dst, o) =
-            if !o >= dst.Value.Length then resizeArray dst (!o * 2)
-            dst.Value.[!o] <- x.Value
-            o := !o + 1
-            
-            let mutable n = x.Next
-            while not (isNull n) do
-                if !o >= dst.Value.Length then resizeArray dst (!o * 2)
-                dst.Value.[!o] <- n.Value
-                o := !o + 1
-                n <- n.Next
 
         override x.Accept(v: HashSetVisitor<_,_>) =
             v.VisitLeaf x
@@ -770,10 +769,6 @@ module internal HashMapImplementation =
             elif l.IsEmpty then r
             else HashSetInner.New(p, m, l, r)
 
-        override x.ToArray(dst, o) =
-            x.Left.ToArray(dst, o)
-            x.Right.ToArray(dst, o)
-            
         override x.ComputeHash() =
             combineHash (int x.Mask) (combineHash (x.Left.ComputeHash()) (x.Right.ComputeHash()))
 
@@ -1158,8 +1153,6 @@ module internal HashMapImplementation =
 
         abstract member Accept: HashMapVisitor<'K, 'V, 'R> -> 'R
 
-        abstract member ToArray: ref<array<struct('K * 'V)>> * ref<int> -> unit
-
         abstract member CopyTo: dst: ('K * 'V) array * index : int -> int
         
         abstract member CopyToV: dst: (struct('K * 'V)) array * index : int -> int
@@ -1189,9 +1182,6 @@ module internal HashMapImplementation =
 
         override x.ComputeHash() =
             0
-
-        override x.ToArray(dst, o) =
-            ()
 
         override x.GetKeys() =
             HashSetEmpty<'K>.Instance
@@ -1309,18 +1299,6 @@ module internal HashMapImplementation =
                 vh <- vh ^^^ (DefaultEquality.hash c.Value)
                 c <- c.Next
             combineHash (int x.Hash) vh
-
-        override x.ToArray(dst, o) =
-            if !o >= dst.Value.Length then resizeArray dst (!o * 2)
-            dst.Value.[!o] <- struct(x.Key, x.Value)
-            o := !o + 1
-            
-            let mutable n = x.Next
-            while not (isNull n) do
-                if !o >= dst.Value.Length then resizeArray dst (!o * 2)
-                dst.Value.[!o] <- struct(n.Key, n.Value)
-                o := !o + 1
-                n <- n.Next
 
         override x.GetKeys() =
             HashSetCollisionLeaf<'K>.New(x.Hash, x.Key, HashMapLinked.keys x.Next)
@@ -1627,11 +1605,6 @@ module internal HashMapImplementation =
         override x.GetKeys() =
             HashSetNoCollisionLeaf.New(x.Hash, x.Key)
 
-        override x.ToArray(dst, o) =
-            if !o >= dst.Value.Length then resizeArray dst (!o * 2)
-            dst.Value.[!o] <- struct(x.Key, x.Value)
-            o := !o + 1
-        
         override x.IsEmpty = false
         
         override x.Accept(v: HashMapVisitor<_,_,_>) =
@@ -1828,10 +1801,6 @@ module internal HashMapImplementation =
             if r.IsEmpty then l
             elif l.IsEmpty then r
             else HashMapInner.New(p, m, l, r)
-
-        override x.ToArray(dst, o) =
-            x.Left.ToArray(dst, o)
-            x.Right.ToArray(dst, o)
 
         override x.IsEmpty = false
         
@@ -2251,7 +2220,6 @@ module internal HashMapImplementation =
             l.Accept (HashMapVisit2Visitor(v, r))
 
         let equals (cmp : IEqualityComparer<'K>) (l : HashMapNode<'K,'V>) (r : HashMapNode<'K,'V>) =
-            let len = ref 0
             let arr = ref (Array.zeroCreate 4)
 
             (l, r) ||> visit2 {
@@ -2270,9 +2238,8 @@ module internal HashMapImplementation =
                         elif l.LHash = r.LHash then
                             let mutable rr = r :> HashMapNode<_,_>
                             let hash = l.LHash
-                            len := 0
-                            l.ToArray(arr, len)
-                            let len = !len
+                            ensureLength arr l.Count
+                            let len = l.CopyToV(!arr, 0)
 
                             let mutable i = 0
                             let mutable eq = true
@@ -2313,7 +2280,6 @@ module internal HashMapImplementation =
             let update = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(update)
 
         
-            let len = ref 0
             let arr = ref (Array.zeroCreate 4)
 
             (l, r) ||> HashMapNode.visit2 {
@@ -2327,14 +2293,14 @@ module internal HashMapImplementation =
                         if l == r then
                             HashMapEmpty.Instance
                         else
-                            len := 0
                             if l.LHash = r.LHash then
                                 let mutable r = r :> HashMapNode<_,_>
                                 let mutable res = HashMapEmpty.Instance
                                 let hash = l.LHash
-                        
-                                l.ToArray(arr, len)
-                                for i in 0 .. !len - 1 do
+
+                                ensureLength arr l.Count
+                                let len = l.CopyToV(!arr, 0)
+                                for i in 0 .. len - 1 do
                                     let struct (k, lv) = arr.Value.[i]
                                     match r.TryRemove(cmp, hash, k) with
                                     | ValueSome (rv, rest) ->
@@ -2347,17 +2313,18 @@ module internal HashMapImplementation =
                                     | ValueNone ->
                                         res <- res.AddInPlaceUnsafe(cmp, hash, k, remove.Invoke(k, lv))
 
-                                len := 0
-                                r.ToArray(arr, len)
-                                for i in 0 .. !len - 1 do
+                                ensureLength arr r.Count
+                                let len = r.CopyToV(!arr, 0)
+                                for i in 0 .. len - 1 do
                                     let struct (k, rv) = arr.Value.[i]
                                     res <- res.AddInPlaceUnsafe(cmp, hash, k, add.Invoke(k, rv))
                         
                                 res
                             else
                                 let mutable res = l.Map(remove)
-                                r.ToArray(arr, len)
-                                for i in 0 .. !len - 1 do
+                                ensureLength arr r.Count
+                                let len = r.CopyToV(!arr, 0)
+                                for i in 0 .. len - 1 do
                                     let struct (k, rv) = arr.Value.[i]
                                     res <- res.AddInPlaceUnsafe(cmp, r.LHash, k, add.Invoke(k, rv))
                                 res
@@ -2426,8 +2393,6 @@ module internal HashMapImplementation =
             let remove = OptimizedClosures.FSharpFunc<_,_,_>.Adapt(fun k l -> update.Invoke(k, ValueSome l, ValueNone))
             let update = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(fun k l r -> update.Invoke(k, ValueSome l, ValueSome r))
 
-        
-            let len = ref 0
             let arr1 = ref (Array.zeroCreate 4)
             let arr2 = ref (Array.zeroCreate 4)
 
@@ -2439,14 +2404,14 @@ module internal HashMapImplementation =
                     member x.VisitAE(l, _) = l.ChooseV(remove)
 
                     member x.VisitLL(l, r) = 
-                        len := 0
                         if l.LHash = r.LHash then
                             let mutable r = r :> HashMapNode<_,_>
                             let mutable res = HashMapEmpty.Instance
                             let hash = l.LHash
                         
-                            l.ToArray(arr1, len)
-                            for i in 0 .. !len - 1 do
+                            ensureLength arr1 l.Count
+                            let len = l.CopyToV(!arr1, 0)
+                            for i in 0 .. len - 1 do
                                 let struct (k, lv) = arr1.Value.[i]
                                 match r.TryRemove(cmp, hash, k) with
                                 | ValueSome (rv, rest) ->
@@ -2463,9 +2428,9 @@ module internal HashMapImplementation =
                                     | ValueNone ->
                                         ()
 
-                            len := 0
-                            r.ToArray(arr2, len)
-                            for i in 0 .. !len - 1 do
+                            ensureLength arr2 r.Count
+                            let len = r.CopyToV(!arr2, 0)
+                            for i in 0 .. len - 1 do
                                 let struct (k, rv) = arr2.Value.[i]
                                 match add.Invoke(k, rv) with
                                 | ValueSome av -> 
@@ -2475,8 +2440,9 @@ module internal HashMapImplementation =
                             res
                         else
                             let mutable res = l.ChooseV(remove)
-                            r.ToArray(arr2, len)
-                            for i in 0 .. !len - 1 do
+                            ensureLength arr2 r.Count
+                            let len = r.CopyToV(!arr2, 0)
+                            for i in 0 .. len - 1 do
                                 let struct (k, rv) = arr2.Value.[i]
                                 match add.Invoke(k, rv) with
                                 | ValueSome av -> 
@@ -2540,7 +2506,6 @@ module internal HashMapImplementation =
             (r : HashMapNode<'K, 'V>) =
             let resolve = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(resolve)
 
-            let len = ref 0
             let arr = ref (Array.zeroCreate 4)
 
             (l, r) ||> HashMapNode.visit2 {
@@ -2551,14 +2516,14 @@ module internal HashMapImplementation =
                     member x.VisitAE(l, _) = l
 
                     member x.VisitLL(l, r) = 
-                        len := 0
                         if l.LHash = r.LHash then
                             let mutable r = r :> HashMapNode<_,_>
                             let mutable res = HashMapEmpty.Instance
                             let hash = l.LHash
                     
-                            l.ToArray(arr, len)
-                            for i in 0 .. !len - 1 do
+                            ensureLength arr l.Count
+                            let len = l.CopyToV(!arr, 0)
+                            for i in 0 .. len - 1 do
                                 let struct (k, lv) = arr.Value.[i]
                                 match r.TryRemove(cmp, hash, k) with
                                 | ValueSome (rv, rest) ->
@@ -2570,9 +2535,9 @@ module internal HashMapImplementation =
                                 | ValueNone ->
                                     res <- res.AddInPlaceUnsafe(cmp, hash, k, lv)
 
-                            len := 0
-                            r.ToArray(arr, len)
-                            for i in 0 .. !len - 1 do
+                            ensureLength arr r.Count
+                            let len = r.CopyToV(!arr, 0)
+                            for i in 0 .. len - 1 do
                                 let struct (k, rv) = arr.Value.[i]
                                 res <- res.AddInPlaceUnsafe(cmp, hash, k, rv)
                     
@@ -2632,7 +2597,6 @@ module internal HashMapImplementation =
             (cmp : IEqualityComparer<'K>) 
             (l : HashMapNode<'K, 'V>) 
             (r : HashMapNode<'K, 'V>) =
-            let len = ref 0
             let arr = ref (Array.zeroCreate 4)
             (l, r) ||> visit2 {
                 new HashMapVisitor2<'K, 'V, 'V, HashMapNode<'K, 'V>>() with
@@ -2645,14 +2609,14 @@ module internal HashMapImplementation =
                         if l == r then
                             r :> HashMapNode<_,_>
                         else
-                            len := 0
                             if l.LHash = r.LHash then
                                 let mutable r = r :> HashMapNode<_,_>
                                 let mutable res = HashMapEmpty.Instance
                                 let hash = l.LHash
-                
-                                l.ToArray(arr, len)
-                                for i in 0 .. !len - 1 do
+                                
+                                ensureLength arr l.Count
+                                let len = l.CopyToV(!arr, 0)
+                                for i in 0 .. len - 1 do
                                     let struct (k, lv) = arr.Value.[i]
                                     match r.TryRemove(cmp, hash, k) with
                                     | ValueSome (rv, rest) ->
@@ -2661,9 +2625,9 @@ module internal HashMapImplementation =
                                     | ValueNone ->
                                         res <- res.AddInPlaceUnsafe(cmp, hash, k, lv)
 
-                                len := 0
-                                r.ToArray(arr, len)
-                                for i in 0 .. !len - 1 do
+                                ensureLength arr r.Count
+                                let len = r.CopyToV(!arr, 0)
+                                for i in 0 .. len - 1 do
                                     let struct (k, rv) = arr.Value.[i]
                                     res <- res.AddInPlaceUnsafe(cmp, hash, k, rv)
                 
@@ -2728,7 +2692,6 @@ module internal HashMapImplementation =
             (state : HashMapNode<'K, 'V>)
             (delta : HashMapNode<'K, 'D>) =
 
-            let len = ref 0
             let arr1 = ref (Array.zeroCreate 4)
             let arr2 = ref (Array.zeroCreate 4)
             let apply = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(apply)
@@ -2747,15 +2710,15 @@ module internal HashMapImplementation =
                         struct(l, HashMapEmpty.Instance)
 
                     member x.VisitLL(state, delta) = 
-                        len := 0
                         if state.LHash = delta.LHash then
                             let mutable delta = delta :> HashMapNode<_,_>
                             let mutable resState = HashMapEmpty.Instance
                             let mutable resDelta = HashMapEmpty.Instance
                             let hash = state.LHash
                     
-                            state.ToArray(arr1, len)
-                            for i in 0 .. !len - 1 do
+                            ensureLength arr1 state.Count
+                            let len = state.CopyToV(!arr1, 0)
+                            for i in 0 .. len - 1 do
                                 let struct (k, value) = arr1.Value.[i]
                                 match delta.TryRemove(cmp, hash, k) with
                                 | ValueSome (dd, rest) ->
@@ -2773,9 +2736,9 @@ module internal HashMapImplementation =
                                 | ValueNone ->
                                     resState <- resState.AddInPlaceUnsafe(cmp, hash, k, value)
 
-                            len := 0
-                            delta.ToArray(arr2, len)
-                            for i in 0 .. !len - 1 do
+                            ensureLength arr2 delta.Count
+                            let len = delta.CopyToV(!arr2, 0)
+                            for i in 0 .. len - 1 do
                                 let struct (k, rv) = arr2.Value.[i]
                                 let struct (s, d) = onlyDelta.Invoke(k, rv)
                                 match s with
@@ -2944,7 +2907,6 @@ module internal HashMapImplementation =
             l.Accept (HashMapSetVisit2Visitor(v, r))
 
         let equals (cmp : IEqualityComparer<'T>) (l : HashSetNode<'T>) (r : HashSetNode<'T>) =
-            let len = ref 0
             let arr = ref (Array.zeroCreate 4)
 
             (l, r) ||> visit2 {
@@ -2961,11 +2923,10 @@ module internal HashMapImplementation =
                         if l == r then
                             true
                         elif l.LHash = r.LHash then
-                            len := 0
                             let mutable r = r :> HashSetNode<_>
                             let hash = l.LHash
-                            l.ToArray(arr, len)
-                            let len = !len
+                            ensureLength arr l.Count
+                            let len = l.CopyTo(!arr, 0)
 
                             let mutable i = 0
                             let mutable eq = true
@@ -2994,7 +2955,6 @@ module internal HashMapImplementation =
             }
         
         let union (cmp : IEqualityComparer<'T>) (l : HashSetNode<'T>) (r : HashSetNode<'T>)  =
-            let len = ref 0
             let arr = ref (Array.zeroCreate 4)
 
             (l, r) ||> visit2 {
@@ -3008,12 +2968,12 @@ module internal HashMapImplementation =
                         if l == r then
                             r :> HashSetNode<_>
                         else
-                            len := 0
                             if l.LHash = r.LHash then
                                 let mutable r = r :> HashSetNode<_>
                                 let hash = l.LHash
-                                l.ToArray(arr, len)
-                                for i in 0 .. !len - 1 do
+                                ensureLength arr l.Count
+                                let len = l.CopyTo(!arr, 0)
+                                for i in 0 .. len - 1 do
                                     let lv = arr.Value.[i]
                                     r <- r.Add(cmp, hash, lv)
                                 r
@@ -3071,7 +3031,6 @@ module internal HashMapImplementation =
             }
             
         let intersect (cmp : IEqualityComparer<'T>) (l : HashSetNode<'T>) (r : HashSetNode<'T>)  =
-            let len = ref 0
             let arr = ref (Array.zeroCreate 4)
 
             (l, r) ||> visit2 {
@@ -3085,13 +3044,13 @@ module internal HashMapImplementation =
                         if l == r then
                             r :> HashSetNode<_>
                         else
-                            len := 0
                             if l.LHash = r.LHash then
                                 let mutable res = HashSetEmpty.Instance
                                 let mutable r = r :> HashSetNode<_>
                                 let hash = l.LHash
-                                l.ToArray(arr, len)
-                                for i in 0 .. !len - 1 do
+                                ensureLength arr l.Count
+                                let len = l.CopyTo(!arr, 0)
+                                for i in 0 .. len - 1 do
                                     let lv = arr.Value.[i]
                                     match r.TryRemove(cmp, hash, lv) with
                                     | ValueSome rest ->
@@ -3154,7 +3113,6 @@ module internal HashMapImplementation =
             }
             
         let difference  (cmp : IEqualityComparer<'T>) (l : HashSetNode<'T>) (r : HashSetNode<'T>)  =
-            let len = ref 0
             let arr = ref (Array.zeroCreate 4)
 
             (l, r) ||> visit2 {
@@ -3168,12 +3126,12 @@ module internal HashMapImplementation =
                         if l == r then
                             HashSetEmpty.Instance
                         else
-                            len := 0
                             if l.LHash = r.LHash then
                                 let mutable l = l :> HashSetNode<_>
                                 let hash = r.LHash
-                                r.ToArray(arr, len)
-                                for i in 0 .. !len - 1 do
+                                ensureLength arr r.Count
+                                let len = r.CopyTo(!arr, 0)
+                                for i in 0 .. len - 1 do
                                     let lv = arr.Value.[i]
                                     l <- l.Remove(cmp, hash, lv)
                                 l
@@ -3239,7 +3197,6 @@ module internal HashMapImplementation =
             (l : HashSetNode<'T>) 
             (r : HashSetNode<'T>)  =
 
-            let len = ref 0
             let arr = ref (Array.zeroCreate 4)
 
             (l, r) ||> visit2 {
@@ -3253,32 +3210,33 @@ module internal HashMapImplementation =
                         if l == r then
                             HashMapEmpty.Instance
                         else
-                            len := 0
                             if l.LHash = r.LHash then
                                 let mutable r = r :> HashSetNode<_>
                                 let mutable res = HashMapEmpty.Instance
                                 let hash = l.LHash
-                        
-                                l.ToArray(arr, len)
-                                for i in 0 .. !len - 1 do
+
+                                ensureLength arr l.Count
+                                let len = l.CopyTo(!arr, 0)
+                                for i in 0 .. len - 1 do
                                     let lv = arr.Value.[i]
                                     match r.TryRemove(cmp, hash, lv) with
                                     | ValueSome rest ->
                                         r <- rest
                                     | ValueNone ->
                                         res <- res.AddInPlaceUnsafe(cmp, hash, lv, remove lv)
-
-                                len := 0
-                                r.ToArray(arr, len)
-                                for i in 0 .. !len - 1 do
+                                        
+                                ensureLength arr r.Count
+                                let len = r.CopyTo(!arr, 0)
+                                for i in 0 .. len - 1 do
                                     let rv = arr.Value.[i]
                                     res <- res.AddInPlaceUnsafe(cmp, hash, rv, add rv)
                         
                                 res
                             else
                                 let mutable res = l.MapToMap(remove)
-                                r.ToArray(arr, len)
-                                for i in 0 .. !len - 1 do
+                                ensureLength arr r.Count
+                                let len = r.CopyTo(!arr, 0)
+                                for i in 0 .. len - 1 do
                                     let rv = arr.Value.[i]
                                     res <- res.AddInPlaceUnsafe(cmp, r.LHash, rv, add rv)
                                 res
@@ -3339,7 +3297,6 @@ module internal HashMapImplementation =
             (state : HashSetNode<'T>)
             (delta : HashMapNode<'T, 'D>) =
 
-            let len = ref 0
             let arr1 = ref (Array.zeroCreate 4)
             let arr2 = ref (Array.zeroCreate 4)
             let apply = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(apply)
@@ -3358,15 +3315,14 @@ module internal HashMapImplementation =
                         struct(l, HashMapEmpty.Instance)
 
                     member x.VisitLL(state, delta) = 
-                        len := 0
                         if state.LHash = delta.LHash then
                             let mutable delta = delta :> HashMapNode<_,_>
                             let mutable resState = HashSetEmpty.Instance
                             let mutable resDelta = HashMapEmpty.Instance
                             let hash = state.LHash
-                    
-                            state.ToArray(arr1, len)
-                            for i in 0 .. !len - 1 do
+                            ensureLength arr1 state.Count
+                            let len = state.CopyTo(!arr1, 0)
+                            for i in 0 .. len - 1 do
                                 let k = arr1.Value.[i]
                                 match delta.TryRemove(cmp, hash, k) with
                                 | ValueSome (dd, rest) ->
@@ -3382,10 +3338,10 @@ module internal HashMapImplementation =
 
                                 | ValueNone ->
                                     resState <- resState.AddInPlaceUnsafe(cmp, hash, k)
-
-                            len := 0
-                            delta.ToArray(arr2, len)
-                            for i in 0 .. !len - 1 do
+                                    
+                            ensureLength arr2 delta.Count
+                            let len = delta.CopyToV(!arr2, 0)
+                            for i in 0 .. len - 1 do
                                 let struct (k, rv) = arr2.Value.[i]
                                 let struct (s, d) = onlyDelta.Invoke(k, rv)
                                 if s then
