@@ -235,14 +235,20 @@ module Transaction =
             Transaction.Current <- old
 
     /// Executes a function "inside" a newly created
-    /// transaction and commits the transaction
+    /// transaction and commits the transaction.
     let transact (action : unit -> 'T) =
         use t = new Transaction()
         let r = useCurrent t action
         t.Commit()
         r
+        
+    /// Executes a function "inside" the current transaction
+    /// or creates and commits a new one whenever none was current.
+    let internal transactIfNecessary (action : unit -> 'T) =
+        match Transaction.Current with
+        | Some _ -> action()
+        | None -> transact action
             
-    
 
     // Defines some extension utilites for IAdaptiveObjects
     type IAdaptiveObject with

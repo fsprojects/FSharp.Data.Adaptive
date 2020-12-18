@@ -5,6 +5,7 @@
 type ChangeableHashSet<'T> =
     interface IAdaptiveHashSet<'T>
     interface System.Collections.Generic.ICollection<'T>
+    interface System.Collections.Generic.ISet<'T>
 
     /// The number of entries currently in the set.
     member Count: int

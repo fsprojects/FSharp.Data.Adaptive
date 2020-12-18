@@ -69,6 +69,23 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
         let ops = other |> Seq.map (fun v -> v, -1) |> HashMap.ofSeq |> HashSetDelta
         history.Perform ops |> ignore
         
+    member x.SymmetricExceptWith (other : seq<'T>) : unit =
+        let other = CountingHashSet.ofSeq other
+        let delta =
+            (history.State.ToHashMap(), other.ToHashMap()) ||> HashMap.choose2V (fun _k l r ->
+                match l with
+                | ValueSome l ->
+                    match r with
+                    | ValueSome _ -> ValueSome -l
+                    | ValueNone -> ValueNone
+                | ValueNone ->
+                    match r with
+                    | ValueSome _ -> ValueSome 1
+                    | ValueNone -> ValueNone
+            )
+            |> HashSetDelta
+        history.Perform delta |> ignore
+
     /// Removes all elements from the set that are not also contained in other.
     member x.IntersectWith (other : seq<'T>) =
         let otherSet = HashSet.ofSeq other
@@ -105,15 +122,28 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
         member x.IsReadOnly = false
         member x.Count = x.Count
         member x.Contains value = x.Contains value
-        member x.Clear() = x.Clear()
-        member x.Add value = x.Add value |> ignore
-        member x.Remove value = x.Remove value
+        member x.Clear() = transactIfNecessary (fun () -> x.Clear())
+        member x.Add value = transactIfNecessary (fun () -> x.Add value |> ignore)
+        member x.Remove value = transactIfNecessary (fun () -> x.Remove value)
         member x.CopyTo(array: 'T[], idx : int) =
             let mutable idx = idx
             for e in x.Value do 
                 array.[idx] <- e
                 idx <- idx + 1
     
+    interface System.Collections.Generic.ISet<'T> with
+        member x.Add value = transactIfNecessary (fun () -> x.Add value)
+        member x.ExceptWith other = transactIfNecessary (fun () -> x.ExceptWith other)
+        member x.SymmetricExceptWith other = transactIfNecessary (fun () -> x.SymmetricExceptWith other)
+        member x.UnionWith other = transactIfNecessary (fun () -> x.UnionWith other)
+        member x.IntersectWith other = transactIfNecessary (fun () -> x.IntersectWith other)
+        member x.IsProperSubsetOf other = x.Value.IsProperSubsetOf other
+        member x.IsProperSupersetOf other = x.Value.IsProperSupersetOf other
+        member x.IsSubsetOf other = x.Value.IsSubsetOf other
+        member x.IsSupersetOf other = x.Value.IsSupersetOf other
+        member x.Overlaps other = x.Value.Overlaps other
+        member x.SetEquals other = x.Value.SetEquals other
+
     override x.ToString() =
         let suffix =
             if x.Count > 5 then "; ..."
