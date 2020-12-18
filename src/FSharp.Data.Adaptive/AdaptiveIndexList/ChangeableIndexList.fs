@@ -237,7 +237,46 @@ type ChangeableIndexList<'T>(initial: IndexList<'T>) =
 
     interface System.Collections.Generic.IEnumerable<'T> with
         member x.GetEnumerator() = x.Value.GetEnumerator() :> _
+            
+    interface System.Collections.Generic.ICollection<'T> with 
+        member x.Add(v) = transactIfNecessary (fun () -> x.Add v |> ignore)
+        member x.Clear() = transactIfNecessary (fun () -> x.Clear())
+        member x.Remove(v) = 
+            match history.State.TryFindV v with
+            | ValueSome idx -> transactIfNecessary (fun () -> x.Remove idx)
+            | ValueNone -> false
+        member x.Contains(v) = history.State |> IndexList.exists (fun _ vi -> DefaultEquality.equals v vi)
+        member x.CopyTo(arr,i) = history.State.CopyTo(arr, i)
+        member x.IsReadOnly = false
+        member x.Count = x.Count
 
+    interface System.Collections.Generic.IList<'T> with
+        member x.RemoveAt(i) = transactIfNecessary (fun () -> x.RemoveAt i |> ignore)
+        member x.IndexOf item =
+            match history.State.TryFindV item with
+            | ValueSome idx -> history.State.IndexOf idx
+            | ValueNone -> -1
+
+        member x.Item
+            with get(i : int) = history.State.[i]
+            and set (i : int) (v : 'T) =
+                if i < 0 || i > x.Count then raise <| System.IndexOutOfRangeException(string i)
+                match history.State.TryGetIndexV i with
+                | ValueSome idx -> transactIfNecessary (fun () -> x.[idx] <- v)
+                | ValueNone -> raise <| System.IndexOutOfRangeException(string i)
+
+        member x.Insert(i,v) =
+            if i < 0 || i > x.Count then raise <| System.IndexOutOfRangeException(string i)
+            match history.State.TryGetIndexV i with
+            | ValueSome ref -> 
+                let idx = history.State.NewIndexBefore ref
+                transactIfNecessary (fun () ->
+                    history.Perform (IndexListDelta.single idx (Set v)) |> ignore
+                )
+            | ValueNone -> 
+                transactIfNecessary (fun () -> x.Add v |> ignore)
+            
+        
     interface alist<'T> with
         member x.IsConstant = false
         member x.Content = history :> _

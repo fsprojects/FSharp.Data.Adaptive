@@ -7,6 +7,8 @@ open FSharp.Data.Traceable
 type ChangeableIndexList<'T> =
     interface IAdaptiveIndexList<'T>
     interface System.Collections.Generic.IEnumerable<'T>
+    interface System.Collections.Generic.ICollection<'T>
+    interface System.Collections.Generic.IList<'T>
 
     /// is the list currently empty?
     member IsEmpty : bool

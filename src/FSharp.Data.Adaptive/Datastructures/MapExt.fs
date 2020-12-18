@@ -793,6 +793,21 @@ module internal MapExtImplementation =
                 tryPickOptBack f l
 
         let tryPickBack f m = tryPickOptBack (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
+        
+        let rec tryPickVOpt (f:OptimizedClosures.FSharpFunc<_,_,_>) m =
+            match m with 
+            | MapEmpty -> ValueNone
+            | MapOne(k2,v2) -> f.Invoke(k2, v2) 
+            | MapNode(k2,v2,l,r,_,_) -> 
+                match tryPickVOpt f l with 
+                | ValueSome _ as res -> res 
+                | ValueNone -> 
+                match f.Invoke(k2, v2) with 
+                | ValueSome _ as res -> res 
+                | ValueNone -> 
+                tryPickVOpt f r
+
+        let tryPickV f m = tryPickVOpt (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
 
 
         let rec existsOpt (f:OptimizedClosures.FSharpFunc<_,_,_>) m = 
@@ -2182,8 +2197,13 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
     member x.Values =
         x |> Seq.map (fun (KeyValue(_,v)) -> v)
 
-    member x.TryAt i = MapTree.tryAt i tree
-    member x.TryAtV i = MapTree.tryAtV i tree
+    member x.TryAt i = 
+        if i < 0 || i >= x.Count then None
+        else MapTree.tryAt i tree
+    member x.TryAtV i =  
+        if i < 0 || i >= x.Count then ValueNone
+        else MapTree.tryAtV i tree
+
     member x.Neighbours k = MapTree.neighbours comparer k tree
     member x.NeighboursAt i = MapTree.neighboursi i tree
     member x.NeighboursV k = MapTree.neighboursV comparer k tree
@@ -2192,6 +2212,7 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
     member x.TryGetIndexV k = MapTree.tryGetIndexV comparer k tree
 
     member m.TryPick(f) = MapTree.tryPick f tree 
+    member m.TryPickV(f) = MapTree.tryPickV f tree 
     member m.TryPickBack(f) = MapTree.tryPickBack f tree 
     member m.Exists(f) = MapTree.exists f tree 
     member m.Filter(f)  : MapExt<'Key,'Value> = new MapExt<'Key,'Value>(comparer ,MapTree.filter comparer f tree)
@@ -2510,6 +2531,9 @@ module internal MapExt =
 
     [<CompiledName("TryPick")>]
     let tryPick f (m:MapExt<_,_>) = m.TryPick(f)
+    
+    [<CompiledName("TryPickV")>]
+    let tryPickV f (m:MapExt<_,_>) = m.TryPickV(f)
 
     [<CompiledName("TryPickBack")>]
     let tryPickBack f (m:MapExt<_,_>) = m.TryPickBack(f)

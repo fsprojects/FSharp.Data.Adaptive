@@ -242,25 +242,11 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
 
     /// Tries to find the smallest index for the given element.
     member x.TryFind(element : 'T) : option<Index> =
-        let e = (content :> seq<_>).GetEnumerator()
-
-        let mutable key = None
-        while Option.isNone key && e.MoveNext() do
-            if DefaultEquality.equals e.Current.Value element then
-                key <- Some e.Current.Key
-
-        key
+        content |> MapExt.tryPick (fun i v -> if DefaultEquality.equals v element then Some i else None)
 
     /// Tries to find the smallest index for the given element.
     member x.TryFindV(element : 'T) : voption<Index> =
-        let e = (content :> seq<_>).GetEnumerator()
-
-        let mutable key = ValueNone
-        while key.IsNone && e.MoveNext() do
-            if DefaultEquality.equals e.Current.Value element then
-                key <- ValueSome e.Current.Key
-
-        key
+        content |> MapExt.tryPickV (fun i v -> if DefaultEquality.equals v element then ValueSome i else ValueNone)
         
     /// Removes the first occurrence of the given element (if any).
     member x.Remove(item : 'T) : IndexList<'T> =
