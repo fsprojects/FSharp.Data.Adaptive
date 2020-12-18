@@ -78,38 +78,35 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
     
     /// Gets the reference-count for the given value (0 if not contained)
     member x.GetRefCount (value : 'T) =
-        HashMap.tryFind value store |> Option.defaultValue 0
+        match HashMap.tryFindV value store with
+        | ValueSome r -> r
+        | ValueNone -> 0
 
     /// Adds the given value to the set. (one reference)
     member x.Add(value : 'T) =
-        store.AlterV(value, fun o -> 
-            match o with
-                | ValueSome o -> ValueSome (o + 1)
-                | ValueNone -> ValueSome 1
+        store.AlterV(value, function 
+            | ValueSome o -> ValueSome (o + 1)
+            | ValueNone -> ValueSome 1
         )
         |> CountingHashSet
 
     /// Removes the given value from the set. (one reference)
     member x.Remove(value : 'T) =
-        store
-        |> HashMap.alter value (fun o ->
-            match o with
-                | Some 1 -> None
-                | Some c -> Some (c - 1)
-                | None -> None
+        store.AlterV(value, function
+            | ValueSome v when v > 1 ->
+                ValueSome (v - 1)
+            | _ ->
+                ValueNone
         )
         |> CountingHashSet
 
     /// Changes the reference-count for the given element.
     member x.Alter(value : 'T, f : int -> int) =
-        store
-        |> HashMap.alter value (fun o ->
-            let o = defaultArg o 0
+        store.AlterV(value, fun o ->
+            let o = match o with | ValueSome o -> o | ValueNone -> 0
             let n = f o
-            if n > 0 then
-                Some n
-            else
-                None
+            if n > 0 then ValueSome n
+            else ValueNone
         )
         |> CountingHashSet
 
@@ -119,64 +116,72 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
     /// Computes the set difference for both sets. (this - other)
     member x.Difference(other : CountingHashSet<'T>) =
-        (store, other.Store) 
-        ||> HashMap.choose2V (fun k l r ->
-            let newRefCount = 
-                match l, r with 
-                    | ValueSome l, ValueSome r -> l - r
-                    | ValueSome l, ValueNone -> l
-                    | ValueNone, ValueSome r -> 0
-                    | ValueNone, ValueNone -> 0
-
-            if newRefCount > 0 then ValueSome newRefCount
-            else ValueNone
+        (store, other.Store) ||> HashMap.choose2V (fun _ l r ->
+            match l with
+            | ValueNone -> ValueNone
+            | ValueSome l ->
+                match r with
+                | ValueNone -> ValueSome l
+                | ValueSome r ->
+                    let n = l - r
+                    if n > 0 then ValueSome n
+                    else ValueNone
         )
         |> CountingHashSet
 
     /// Computes the intersection of both sets.
     member x.Intersect(other : CountingHashSet<'T>) =
-        (store, other.Store) 
-        ||> HashMap.choose2V (fun k l r ->
-            match l, r with 
-                | ValueSome l, ValueSome r -> ValueSome (min l r)
-                | _ -> ValueNone
+        (store, other.Store) ||> HashMap.choose2V (fun _ l r ->
+            match l with 
+            | ValueSome l ->
+                match r with
+                | ValueSome r -> ValueSome (min l r)
+                | ValueNone -> ValueNone
+            | ValueNone -> 
+                ValueNone
         )
         |> CountingHashSet
+        
+    /// Computes the exclusive or of both sets.
+    member x.Xor(other : CountingHashSet<'T>) =
+        (store, other.Store) ||> HashMap.choose2V (fun _ l r ->
+            match l with 
+            | ValueSome l ->
+                match r with
+                | ValueSome _ -> ValueNone
+                | ValueNone -> ValueSome l
+            | ValueNone -> 
+                r
+        )
+        |> CountingHashSet
+        
 
     /// Unions both sets using resolve to aggregate ref-counts.
     member x.UnionWith(other : CountingHashSet<'T>, resolve : int -> int -> int) =
-        HashMap.choose2V (fun k l r ->
-            let res = 
-                match l, r with 
-                    | ValueSome l, ValueSome r -> resolve l r
-                    | ValueSome l, ValueNone -> resolve l 0
-                    | ValueNone, ValueSome r -> resolve 0 r
-                    | ValueNone, ValueNone -> resolve 0 0
+        (store, other.Store) ||> HashMap.choose2V (fun _k l r ->
+            let l = match l with | ValueSome l -> l | ValueNone -> 0
+            let r = match r with | ValueSome r -> r | ValueNone -> 0
+            let res = resolve l r
             if res > 0 then ValueSome res
             else ValueNone
-        ) store other.Store
+        ) 
         |> CountingHashSet
-
+        
     /// Gets the HashMap representation of the set.
     member x.ToHashMap() =
         store
 
     /// All elements in the set.
     member x.ToSeq() =
-        store.ToSeq() |> Seq.map fst
+        store.GetKeys() :> seq<_>
         
     /// All elements in the set.
     member x.ToList() =
-        store.ToList() |> List.map fst
+        store.ToKeyList()
         
     /// All elements in the set.
-    member x.ToArray() =
-        let result = Array.zeroCreate store.Count
-        let mutable i = 0
-        for (key, _value) in store do
-            result.[i] <- key
-            i <- i + 1
-        result
+    member x.ToArray() = 
+        store.ToKeyArray()
 
     /// Creates a new set by applying the given function to all elements.
     member x.Map(mapping : 'T -> 'B) =
@@ -241,15 +246,21 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
         
     /// Creates a set holding all the given values. (with reference counts)
     static member OfList (list : list<'T>) =
-        CountingHashSet<'T>.OfSeq list
+        let mutable res = CountingHashSet<'T>.Empty
+        for e in list do
+            res <- res.Add e
+        res
         
     /// Creates a set holding all the given values. (with reference counts)
     static member OfArray (arr : 'T[]) =
-        CountingHashSet<'T>.OfSeq arr
+        let mutable res = CountingHashSet<'T>.Empty
+        for e in arr do
+            res <- res.Add e
+        res
         
     /// Creates a set holding all the given values. (with reference counts)
     static member OfHashMap (map : HashMap<'T, int>) =
-        CountingHashSet map
+        map |> HashMap.filter (fun _ v -> v > 0) |> CountingHashSet
         
     /// Creates a set holding all the given values.
     static member OfHashSet (set : HashSet<'T>) =
@@ -257,8 +268,8 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
     /// Differentiates two sets returning a HashSetDelta.
     member x.ComputeDelta(other : CountingHashSet<'T>) =
-        let inline add _ r = 1
-        let inline rem _ r = -1
+        let inline add _ _ = 1
+        let inline rem _ _ = -1
         let inline update _ _ _ = ValueNone
         HashMap<'T, int>.ComputeDelta(store, other.Store, add, update, rem) |> HashSetDelta
 
@@ -272,7 +283,7 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
     /// Integrates the given delta into the set, returns a new set and the effective deltas.
     member x.ApplyDelta (deltas : HashSetDelta<'T>) =
-        let apply (k : 'T) (o : voption<int>) (d : int) =
+        let apply (_k : 'T) (o : voption<int>) (d : int) =
             let o = match o with | ValueSome o -> o | ValueNone -> 0
             let n = d + o
 
@@ -443,6 +454,10 @@ module CountingHashSet =
     /// Computes the intersection of both sets.
     let inline intersect (l : CountingHashSet<'T>) (r : CountingHashSet<'T>) =
         l.Intersect r
+        
+    /// Computes the exclusive or for both sets.
+    let inline xor (l : CountingHashSet<'T>) (r : CountingHashSet<'T>) =
+        l.Xor r
 
     /// Changes the reference-count for the given element.
     let inline alter (value : 'T) (f : int -> int) (set : CountingHashSet<'T>) =

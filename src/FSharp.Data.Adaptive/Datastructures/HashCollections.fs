@@ -1120,6 +1120,20 @@ module internal HashMapImplementation =
             else
                 index
                 
+        let rec copyToKeys (index: int) (dst : 'K[]) (n: HashMapLinked<'K, 'V>) =
+            if not (isNull n) then
+                dst.[index] <- n.Key
+                copyToKeys (index + 1) dst n.Next
+            else
+                index
+
+        let rec copyToValues (index: int) (dst : 'V[]) (n: HashMapLinked<'K, 'V>) =
+            if not (isNull n) then
+                dst.[index] <- n.Value
+                copyToValues (index + 1) dst n.Next
+            else
+                index
+
     [<AbstractClass>]
     type HashMapNode<'K, 'V>() =
         abstract member Remove: IEqualityComparer<'K> * uint32 * 'K -> HashMapNode<'K, 'V>
@@ -1154,9 +1168,12 @@ module internal HashMapImplementation =
         abstract member Accept: HashMapVisitor<'K, 'V, 'R> -> 'R
 
         abstract member CopyTo: dst: ('K * 'V) array * index : int -> int
-        
         abstract member CopyToV: dst: (struct('K * 'V)) array * index : int -> int
+        abstract member CopyToKeys: dst: 'K[] * index : int -> int
+        abstract member CopyToValues: dst: 'V[] * index : int -> int
 
+        abstract member ToKeyList : list<'K> -> list<'K>
+        abstract member ToValueList : list<'V> -> list<'V>
         abstract member ToList : list<'K * 'V> -> list<'K * 'V>
         abstract member ToListV : list<struct('K * 'V)> -> list<struct('K * 'V)>
 
@@ -1259,11 +1276,23 @@ module internal HashMapImplementation =
 
         override x.CopyToV(_dst : (struct ('K * 'V)) array, index : int) =
             index
+            
+        override x.CopyToKeys(_dst : 'K[], index : int) =
+            index
+
+        override x.CopyToValues(_dst : 'V[], index : int) =
+            index
 
         override x.ToList(acc : list<'K * 'V>) =
             acc
             
         override x.ToListV(acc : list<struct('K * 'V)>) =
+            acc
+
+        override x.ToKeyList(acc : list<'K>) =
+            acc
+            
+        override x.ToValueList(acc : list<'V>) =
             acc
 
     [<Sealed>]
@@ -1567,6 +1596,14 @@ module internal HashMapImplementation =
             dst.[index] <- struct (x.Key, x.Value)
             HashMapLinked.copyToV (index + 1) dst x.Next
             
+        override x.CopyToKeys(dst : 'K[], index : int) =
+            dst.[index] <- x.Key
+            HashMapLinked.copyToKeys (index + 1) dst x.Next
+            
+        override x.CopyToValues(dst : 'V[], index : int) =
+            dst.[index] <- x.Value
+            HashMapLinked.copyToValues (index + 1) dst x.Next
+            
         override x.ToList(acc : list<'K * 'V>) =
             let rec run (acc : list<'K * 'V>) (n : HashMapLinked<'K, 'V>) =
                 if isNull n then acc
@@ -1578,6 +1615,18 @@ module internal HashMapImplementation =
                 if isNull n then acc
                 else struct(n.Key,n.Value) :: run acc n.Next
             struct(x.Key, x.Value) :: run acc x.Next
+
+        override x.ToKeyList(acc : list<'K>) =
+            let rec run (acc : list<_>) (n : HashMapLinked<'K, 'V>) =
+                if isNull n then acc
+                else n.Key :: run acc n.Next
+            x.Key :: run acc x.Next
+            
+        override x.ToValueList(acc : list<'V>) =
+            let rec run (acc : list<_>) (n : HashMapLinked<'K, 'V>) =
+                if isNull n then acc
+                else n.Value :: run acc n.Next
+            x.Value :: run acc x.Next
 
         static member New(h: uint32, k: 'K, v: 'V, n: HashMapLinked<'K, 'V>) : HashMapNode<'K, 'V> = 
             assert (not (isNull n))
@@ -1758,11 +1807,25 @@ module internal HashMapImplementation =
             dst.[index] <- struct (x.Key, x.Value)
             index + 1
             
+        override x.CopyToKeys(dst : 'K[], index : int) =
+            dst.[index] <- x.Key
+            index + 1
+            
+        override x.CopyToValues(dst : 'V[], index : int) =
+            dst.[index] <- x.Value
+            index + 1
+
         override x.ToList(acc : list<'K * 'V>) =
             (x.Key, x.Value) :: acc
             
         override x.ToListV(acc : list<struct('K * 'V)>) =
             struct(x.Key, x.Value) :: acc
+            
+        override x.ToKeyList(acc : list<'K>) =
+            x.Key :: acc
+            
+        override x.ToValueList(acc : list<'V>) =
+            x.Value :: acc
 
         static member New(h : uint32, k : 'K, v : 'V) : HashMapNode<'K, 'V> =
             new HashMapNoCollisionLeaf<_,_>(Hash = h, Key = k, Value = v) :> HashMapNode<'K, 'V>
@@ -1963,6 +2026,14 @@ module internal HashMapImplementation =
             let i = x.Left.CopyToV(dst, index)
             x.Right.CopyToV(dst, i)
             
+        override x.CopyToKeys(dst : 'K[], index : int) =
+            let i = x.Left.CopyToKeys(dst, index)
+            x.Right.CopyToKeys(dst, i)
+            
+        override x.CopyToValues(dst : 'V[], index : int) =
+            let i = x.Left.CopyToValues(dst, index)
+            x.Right.CopyToValues(dst, i)
+
         override x.ToList(acc : list<'K * 'V>) =
             let a = x.Right.ToList acc
             x.Left.ToList a
@@ -1970,6 +2041,14 @@ module internal HashMapImplementation =
         override x.ToListV(acc : list<struct('K * 'V)>) =
             let a = x.Right.ToListV acc
             x.Left.ToListV a
+            
+        override x.ToKeyList(acc : list<'K>) =
+            let a = x.Right.ToKeyList acc
+            x.Left.ToKeyList a
+
+        override x.ToValueList(acc : list<'V>) =
+            let a = x.Right.ToValueList acc
+            x.Left.ToValueList a
 
         static member New(p: uint32, m: Mask, l: HashMapNode<'K, 'V>, r: HashMapNode<'K, 'V>) : HashMapNode<'K, 'V> = 
             assert(getPrefix p m = p)
@@ -2498,6 +2577,140 @@ module internal HashMapImplementation =
                                 HashMapInner.Join(l.Prefix, l.ChooseV(remove), r.Prefix, r.ChooseV(add))
                                     
             }
+
+        let fold2
+            (cmp : IEqualityComparer<'K>)
+            (seed : 'S)
+            (folder : 'S -> 'K -> voption<'V1> -> voption<'V2> -> 'S)
+            (l : HashMapNode<'K, 'V1>) 
+            (r : HashMapNode<'K, 'V2>)  =
+            
+            let folder = OptimizedClosures.FSharpFunc<_,_,_,_,_>.Adapt folder
+
+            let add =
+                OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt (fun s k v ->
+                    folder.Invoke(s, k, ValueNone, ValueSome v)
+                )
+                
+            let remove =
+                OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt (fun s k v ->
+                    folder.Invoke(s, k, ValueSome v, ValueNone)
+                )
+                
+            let arr1 = ref (Array.zeroCreate 4)
+            let arr2 = ref (Array.zeroCreate 4)
+            let value = ref seed
+            (l, r) ||> HashMapNode.visit2 {
+                new HashMapVisitor2<'K, 'V1, 'V2, 'S>() with
+
+                    member x.VisitEE(_, _) = 
+                        !value
+
+                    member x.VisitEA(_, r) = 
+                        value := r.Fold(add, !value)
+                        !value
+
+                    member x.VisitAE(l, _) = 
+                        value := l.Fold(remove, !value)
+                        !value
+
+                    member x.VisitLL(l, r) = 
+                        if l.LHash = r.LHash then
+                            let mutable r = r :> HashMapNode<_,_>
+                            let hash = l.LHash
+                        
+                            ensureLength arr1 l.Count
+                            let len = l.CopyToV(!arr1, 0)
+                            for i in 0 .. len - 1 do
+                                let struct (k, lv) = arr1.Value.[i]
+                                match r.TryRemove(cmp, hash, k) with
+                                | ValueSome (rv, rest) ->
+                                    r <- rest
+                                    value := folder.Invoke(!value, k, ValueSome lv, ValueSome rv)
+                                | ValueNone ->
+                                    value := remove.Invoke(!value, k, lv)
+
+                            ensureLength arr2 r.Count
+                            let len = r.CopyToV(!arr2, 0)
+                            for i in 0 .. len - 1 do
+                                let struct (k, rv) = arr2.Value.[i]
+                                value := add.Invoke(!value, k, rv)
+                            !value
+                        else
+                            let s = l.Fold(remove, !value)
+                            value := r.Fold(add, s)
+                            !value
+
+                    member x.VisitLN(l, r) =
+                        let b = matchPrefixAndGetBit l.LHash r.Prefix r.Mask
+                        if b = 0u then
+                            let s = HashMapNode.visit2 x l r.Left
+                            value := r.Right.Fold(add, s)
+                            !value
+                        elif b = 1u then
+                            value := r.Left.Fold(add, !value)
+                            HashMapNode.visit2 x l r.Right
+                        else
+                            let s = l.Fold(remove, seed)
+                            value := r.Fold(add, s)
+                            !value
+
+                    member x.VisitNL(l, r) =
+                        let b = matchPrefixAndGetBit r.LHash l.Prefix l.Mask
+                        if b = 0u then
+                            let s = HashMapNode.visit2 x l.Left r
+                            value := l.Right.Fold(remove, s)
+                            !value
+                        elif b = 1u then
+                            value := l.Left.Fold(remove, !value)
+                            HashMapNode.visit2 x l.Right r
+                        else
+                            let s = l.Fold(remove, seed)
+                            value := r.Fold(add, s)
+                            !value
+
+                    member x.VisitNN(l, r) = 
+                        let cc = compareMasks l.Mask r.Mask
+                        if cc = 0 then
+                            if l.Prefix = r.Prefix then
+                                let l' = (l.Left, r.Left) ||> HashMapNode.visit2 x
+                                let r' = (l.Right, r.Right) ||> HashMapNode.visit2 x
+                                !value
+                            else
+                                let s = l.Fold(remove, !value)
+                                value := r.Fold(add, s)
+                                !value
+
+                        elif cc > 0 then
+                            let lr = matchPrefixAndGetBit l.Prefix r.Prefix r.Mask
+                            if lr = 0u then
+                                value := HashMapNode.visit2 x l r.Left
+                                value := r.Right.Fold(add, !value)
+                                !value
+                            elif lr = 1u then
+                                value := r.Left.Fold(add, !value)
+                                HashMapNode.visit2 x l r.Right
+                            else
+                                let s = l.Fold(remove, !value)
+                                value := r.Fold(add, s)
+                                !value
+                        else
+                            let rl = matchPrefixAndGetBit r.Prefix l.Prefix l.Mask
+                            
+                            if rl = 0u then
+                                value := HashMapNode.visit2 x l.Left r
+                                value := l.Right.Fold(remove, !value)
+                                !value
+                            elif rl = 1u then
+                                value := l.Left.Fold(remove, !value)
+                                HashMapNode.visit2 x l.Right r
+                            else
+                                let s = l.Fold(remove, !value)
+                                value := r.Fold(add, s)
+                                !value
+                                    
+            }
+
 
         let unionWith
             (cmp : IEqualityComparer<'K>)
@@ -3037,8 +3250,8 @@ module internal HashMapImplementation =
                 new HashSetVisitor2<'T, HashSetNode<'T>>() with
 
                     member x.VisitEE(_, _) = HashSetEmpty.Instance
-                    member x.VisitEA(_, r) = HashSetEmpty.Instance
-                    member x.VisitAE(l, _) = HashSetEmpty.Instance
+                    member x.VisitEA(_, _) = HashSetEmpty.Instance
+                    member x.VisitAE(_, _) = HashSetEmpty.Instance
 
                     member x.VisitLL(l, r) = 
                         if l == r then
@@ -3102,7 +3315,6 @@ module internal HashMapImplementation =
                                     HashSetEmpty.Instance
                             else
                                 let rl = matchPrefixAndGetBit r.Prefix l.Prefix l.Mask
-                            
                                 if rl = 0u then
                                     visit2 x l.Left r
                                 elif rl = 1u then
@@ -3173,14 +3385,13 @@ module internal HashMapImplementation =
                             elif cc > 0 then
                                 let lr = matchPrefixAndGetBit l.Prefix r.Prefix r.Mask
                                 if lr = 0u then
-                                    HashSetInner.Create(r.Prefix, r.Mask, visit2 x l r.Left, r.Right)
+                                    visit2 x l r.Left
                                 elif lr = 1u then
-                                    HashSetInner.Create(r.Prefix, r.Mask, r.Left, visit2 x l r.Right)
+                                    visit2 x l r.Right
                                 else
                                     l :> HashSetNode<_>
                             else
                                 let rl = matchPrefixAndGetBit r.Prefix l.Prefix l.Mask
-                            
                                 if rl = 0u then
                                     HashSetInner.Create(l.Prefix, l.Mask, visit2 x l.Left r, l.Right)
                                 elif rl = 1u then
@@ -3190,6 +3401,82 @@ module internal HashMapImplementation =
                                     
             }
 
+        let xor (cmp : IEqualityComparer<'T>) (l : HashSetNode<'T>) (r : HashSetNode<'T>)  =
+            let arr = ref (Array.zeroCreate 4)
+
+            (l, r) ||> visit2 {
+                new HashSetVisitor2<'T, HashSetNode<'T>>() with
+
+                    member x.VisitEE(_, _) = HashSetEmpty.Instance
+                    member x.VisitEA(_, r) = r
+                    member x.VisitAE(l, _) = l
+
+                    member x.VisitLL(l, r) = 
+                        if l == r then
+                            HashSetEmpty.Instance
+                        else
+                            if l.LHash = r.LHash then
+                                let mutable r = r :> HashSetNode<_>
+                                let hash = l.LHash
+                                ensureLength arr l.Count
+                                let len = l.CopyTo(!arr, 0)
+                                for i in 0 .. len - 1 do
+                                    let lv = arr.Value.[i]
+                                    r <- r.Alter(cmp, hash, lv, not)
+                                r
+                            else
+                                HashSetInner.Join(l.LHash, l, r.LHash, r)
+
+                    member x.VisitLN(l, r) =
+                        let b = matchPrefixAndGetBit l.LHash r.Prefix r.Mask
+                        if b = 0u then
+                            HashSetInner.Create(r.Prefix, r.Mask, visit2 x l r.Left, r.Right)
+                        elif b = 1u then
+                            HashSetInner.Create(r.Prefix, r.Mask, r.Left, visit2 x l r.Right)
+                        else
+                            HashSetInner.Join(l.LHash, l, r.Prefix, r)
+
+                    member x.VisitNL(l, r) =
+                        let b = matchPrefixAndGetBit r.LHash l.Prefix l.Mask
+                        if b = 0u then
+                            HashSetInner.Create(l.Prefix, l.Mask, visit2 x l.Left r, l.Right)
+                        elif b = 1u then
+                            HashSetInner.Create(l.Prefix, l.Mask, l.Left, visit2 x l.Right r)
+                        else
+                            HashSetInner.Join(l.Prefix, l, r.LHash, r)
+
+                    member x.VisitNN(l, r) = 
+                        if l == r then
+                            HashSetEmpty.Instance
+                        else
+                            let cc = compareMasks l.Mask r.Mask
+                            if cc = 0 then
+                                if l.Prefix = r.Prefix then
+                                    let l' = (l.Left, r.Left) ||> visit2 x
+                                    let r' = (l.Right, r.Right) ||> visit2 x
+                                    HashSetInner.Create(l.Prefix, l.Mask, l', r')
+                                else
+                                    HashSetInner.Join(l.Prefix, l, r.Prefix, r)
+                            elif cc > 0 then
+                                let lr = matchPrefixAndGetBit l.Prefix r.Prefix r.Mask
+                                if lr = 0u then
+                                    HashSetInner.Create(r.Prefix, r.Mask, visit2 x l r.Left, r.Right)
+                                elif lr = 1u then
+                                    HashSetInner.Create(r.Prefix, r.Mask, r.Left, visit2 x l r.Right)
+                                else
+                                    HashSetInner.Join(l.Prefix, l, r.Prefix, r)
+                            else
+                                let rl = matchPrefixAndGetBit r.Prefix l.Prefix l.Mask
+                            
+                                if rl = 0u then
+                                    HashSetInner.Create(l.Prefix, l.Mask, visit2 x l.Left r, l.Right)
+                                elif rl = 1u then
+                                    HashSetInner.Create(l.Prefix, l.Mask, l.Left, visit2 x l.Right r)
+                                else
+                                    HashSetInner.Join(l.Prefix, l, r.Prefix, r)
+                                    
+            }
+            
         let computeDelta 
             (cmp : IEqualityComparer<'T>)
             (add : 'T -> 'OP)
@@ -3691,10 +3978,18 @@ type HashSet<'T> internal(cmp: IEqualityComparer<'T>, root: HashSetNode<'T>) =
         HashSet(cmp, result)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member Intersect(l : HashSet<'T>, r : HashSet<'T>) =   
+    static member Xor(l : HashSet<'T>, r : HashSet<'T>) =   
         let cmp = DefaultEqualityComparer<'T>.Instance
-        let result = HashSetNode.intersect cmp l.Root r.Root
+        let result = HashSetNode.xor cmp l.Root r.Root
         HashSet(cmp, result)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Intersect(l : HashSet<'T>, r : HashSet<'T>) =   
+        if l.IsEmpty || r.IsEmpty then HashSet<'T>.Empty
+        else
+            let cmp = DefaultEqualityComparer<'T>.Instance
+            let result = HashSetNode.intersect cmp l.Root r.Root
+            HashSet(cmp, result)
  
     member x.CopyTo(array : 'T[], arrayIndex : int) =
         if arrayIndex < 0 || arrayIndex + x.Count > array.Length then raise <| System.IndexOutOfRangeException()
@@ -4188,9 +4483,27 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
     member x.ToListV() = root.ToListV []
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.ToKeyList() = root.ToKeyList []
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.ToValueList() = root.ToValueList []
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ToArrayV() =
         let arr = Array.zeroCreate root.Count
         root.CopyToV(arr, 0) |> ignore
+        arr
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.ToKeyArray() =
+        let arr = Array.zeroCreate root.Count
+        root.CopyToKeys(arr, 0) |> ignore
+        arr
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.ToValueArray() =
+        let arr = Array.zeroCreate root.Count
+        root.CopyToValues(arr, 0) |> ignore
         arr
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -4650,6 +4963,9 @@ module HashSet =
     let inline difference (l : HashSet<'T>) (r : HashSet<'T>) =
         HashSet<'T>.Difference(l, r)
                
+    let inline xor (l : HashSet<'T>) (r : HashSet<'T>) =
+        HashSet<'T>.Xor(l, r)
+               
     let inline intersect (l : HashSet<'T>) (r : HashSet<'T>) =
         HashSet<'T>.Intersect(l, r)
              
@@ -4731,7 +5047,7 @@ module HashMap =
     /// `O(N)`
     let inline toList (map: HashMap<'K, 'V>) = 
         map.ToList()
-
+        
     /// Creates an array holding all tuples contained in the map.
     /// `O(N)`
     let inline toArray (map: HashMap<'K, 'V>) = 
@@ -4741,6 +5057,26 @@ module HashMap =
     /// `O(N)`
     let inline toMap (map: HashMap<'K, 'V>) =
         map.ToSeq() |> Map.ofSeq
+
+    /// Creates a list holding all keys contained in the map.
+    /// `O(N)`
+    let inline toKeyList (map: HashMap<'K, 'V>) = 
+        map.ToKeyList()
+
+    /// Creates a list holding all values contained in the map.
+    /// `O(N)`
+    let inline toValueList (map: HashMap<'K, 'V>) = 
+        map.ToValueList()
+
+    /// Creates an array holding all keys contained in the map.
+    /// `O(N)`
+    let inline toKeyArray (map: HashMap<'K, 'V>) = 
+        map.ToKeyArray()
+
+    /// Creates an array holding all values contained in the map.
+    /// `O(N)`
+    let inline toValueArray (map: HashMap<'K, 'V>) = 
+        map.ToValueArray()
 
     /// Adds or updates the entry for the given key. `O(log N)`
     let inline add (key: 'K) (value: 'V) (map: HashMap<'K, 'V>) : HashMap<'K, 'V> =

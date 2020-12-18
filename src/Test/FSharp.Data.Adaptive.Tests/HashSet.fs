@@ -385,6 +385,84 @@ let ``[CountingHashSet] basic properties`` (fset1 : Set<int>) (fset2 : Set<int>)
     // no negatice refcounts!!!
     // (0 - A) = 0
     CountingHashSet.difference empty set1 |> should setequal empty
+   
+   
+[<Property>]
+let ``[HashSet] union`` (fset1 : Set<int>) (fset2 : Set<int>) =
+    let empty : HashSet<int> = HashSet.empty
+    let set1 = HashSet.ofSeq fset1
+    let set2 = HashSet.ofSeq fset2
+    HashSet.union set1 set2 |> should setequal (Set.union fset1 fset2)
+
+    // A + A = A
+    HashSet.union set1 set1 |> should setequal set1
+    
+    // 0 + A = A
+    HashSet.union empty set1 |> should setequal set1
+    
+    // A + 0 = A
+    HashSet.union set1 empty |> should setequal set1
+    
+    // A + B = B + A
+    HashSet.union set1 set2 |> should setequal (Set.union fset2 fset1)
+
+[<Property>]
+let ``[HashSet] difference`` (fset1 : Set<int>) (fset2 : Set<int>) =
+    let empty : HashSet<int> = HashSet.empty
+    let set1 = HashSet.ofSeq fset1
+    let set2 = HashSet.ofSeq fset2
+    let a = HashSet.difference set1 set2 
+    let b = Set.difference fset1 fset2
+    a |> should setequal b
+
+    // A - A = 0
+    HashSet.difference set1 set1 |> should setequal empty
+    
+    // 0 - A = 0
+    HashSet.difference empty set1 |> should setequal empty
+    
+    // A - 0 = A
+    HashSet.difference set1 empty |> should setequal set1
+    
+[<Property>]
+let ``[HashSet] intersect`` (fset1 : Set<int>) (fset2 : Set<int>) =
+    let empty : HashSet<int> = HashSet.empty
+    let set1 = HashSet.ofSeq fset1
+    let set2 = HashSet.ofSeq fset2
+    HashSet.intersect set1 set2 |> should setequal (Set.intersect fset1 fset2)
+
+    // A ^ A = A
+    HashSet.intersect set1 set1 |> should setequal set1
+    
+    // 0 ^ A = 0
+    HashSet.intersect empty set1 |> should setequal empty
+    
+    // A ^ 0 = 0
+    HashSet.intersect set1 empty |> should setequal empty
+
+[<Property>]
+let ``[HashSet] xor`` (fset1 : Set<int>) (fset2 : Set<int>) =
+    let empty : HashSet<int> = HashSet.empty
+    let set1 = HashSet.ofSeq fset1
+    let set2 = HashSet.ofSeq fset2
+
+    let inline xor (a : Set<int>) (b : Set<int>) =
+        Set.difference (Set.union a b) (Set.intersect a b)
+
+    HashSet.xor set1 set2 |> should setequal (xor fset1 fset2)
+
+    // A x A = 0
+    HashSet.xor set1 set1 |> should setequal empty
+    
+    // 0 x A = A
+    HashSet.xor empty set1 |> should setequal set1
+    
+    // A x 0 = A
+    HashSet.xor set1 empty |> should setequal set1
+    
+    // A x B = B x A
+    HashSet.xor set1 set2 |> should setequal (xor fset2 fset1)
+
 
 
 [<Property>]
