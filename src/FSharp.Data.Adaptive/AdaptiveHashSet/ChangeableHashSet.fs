@@ -130,7 +130,8 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
             for e in x.Value do 
                 array.[idx] <- e
                 idx <- idx + 1
-    
+
+    #if !FABLE_COMPILER
     interface System.Collections.Generic.ISet<'T> with
         member x.Add value = transactIfNecessary (fun () -> x.Add value)
         member x.ExceptWith other = transactIfNecessary (fun () -> x.ExceptWith other)
@@ -143,6 +144,7 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
         member x.IsSupersetOf other = x.Value.IsSupersetOf other
         member x.Overlaps other = x.Value.Overlaps other
         member x.SetEquals other = x.Value.SetEquals other
+    #endif
 
     override x.ToString() =
         let suffix =

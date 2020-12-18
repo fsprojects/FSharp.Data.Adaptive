@@ -4184,7 +4184,7 @@ and HashSetEnumerator<'T> =
                 true
 
             | :? HashSetInner<'T> as h ->
-                if sizeof<'T> <= 64 && h._Count <= 16 then
+                if typesize<'T> <= 64 && h._Count <= 16 then
                     h.CopyTo(x.Values, 0) |> ignore
                     x.BufferValueCount <- h._Count
                     x.Next <- x.Values.[0]
@@ -4242,7 +4242,7 @@ and HashSetEnumerator<'T> =
                 Root = map.Root
                 Head = map.Root
                 Tail = []
-                Values = if sizeof<'T> <= 64 && cnt > 1 then Array.zeroCreate (min cnt 16) else null
+                Values = if typesize<'T> <= 64 && cnt > 1 then Array.zeroCreate (min cnt 16) else null
                 Index = -1
                 BufferValueCount = -1
                 Next = Unchecked.defaultof<_>

@@ -1,5 +1,14 @@
 ﻿namespace FSharp.Data.Adaptive
 
+[<AutoOpen>]
+module internal Operators =
+    let inline typesize<'T> =  
+        #if FABLE_COMPILER
+        4
+        #else
+        sizeof<'T>
+        #endif
+
 #if FABLE_COMPILER
 namespace System.Collections.Generic
 
@@ -100,6 +109,7 @@ type ConditionalWeakTable<'K, 'V when 'K : not struct and 'V : not struct>() =
         m.delete key
 
 namespace Microsoft.FSharp.Core
+
 
 
 [<AutoOpen>]
