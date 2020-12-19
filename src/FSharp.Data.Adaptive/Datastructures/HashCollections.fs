@@ -4603,88 +4603,88 @@ type HashMap<'K, [<EqualityConditionalOn>] 'V> internal(cmp: IEqualityComparer<'
     #endif
 
 and HashMapEnumerator<'K, 'V> =
-    struct
+    struct // Array Buffer (with re-use) + Inline Stack Head 
         val mutable private Root : HashMapNode<'K, 'V>
-        val mutable private Stack : list<HashMapNode<'K, 'V>>
+        val mutable private Head : HashMapNode<'K, 'V>
+        val mutable private Tail : list<HashMapNode<'K, 'V>>
         val mutable private Values : ('K * 'V)[]
+        val mutable private BufferValueCount : int
         val mutable private Index : int
+        
+        member x.Collect() =
+            match x.Head with
+            | :? HashMapNoCollisionLeaf<'K, 'V> as h ->
+                x.Values.[0] <- (h.Key, h.Value)
+                x.BufferValueCount <- 1
+                x.Index <- 0
+                if x.Tail.IsEmpty then
+                    x.Head <- Unchecked.defaultof<_>
+                    x.Tail <- []
+                else
+                    x.Head <- x.Tail.Head
+                    x.Tail <- x.Tail.Tail    
+                true
 
-        member private x.MoveNext (current : HashMapNode<'K, 'V>) =
-            let mutable current = current
-            let mutable run = true
-            while run do
-                match current with
-                | :? HashMapEmpty<'K, 'V> ->
-                    failwith "bad"
-                | :? HashMapNoCollisionLeaf<'K, 'V> as h ->
-                    x.Values <- [| h.Key, h.Value |]
+            | :? HashMapCollisionLeaf<'K, 'V> as h ->
+                                    
+                let cnt = h.Count
+                if x.Values.Length < cnt then
+                    x.Values <- Array.zeroCreate cnt
+
+                x.Values.[0] <- (h.Key, h.Value)
+                let mutable c = h.Next
+                let mutable i = 1
+                while not (isNull c) do
+                    x.Values.[i] <- (c.Key, c.Value)
+                    c <- c.Next
+                    i <- i + 1
+                x.BufferValueCount <- cnt
+                x.Index <- 0
+                if x.Tail.IsEmpty then
+                    x.Head <- Unchecked.defaultof<_>
+                    x.Tail <- []
+                else
+                    x.Head <- x.Tail.Head
+                    x.Tail <- x.Tail.Tail
+                true
+
+            | :? HashMapInner<'K, 'V> as h ->
+                if h._Count <= 16 then
+                    h.CopyTo(x.Values, 0) |> ignore
+                    x.BufferValueCount <- h._Count
                     x.Index <- 0
-                    run <- false
-                | :? HashMapCollisionLeaf<'K, 'V> as h ->
-                    let arr = Array.zeroCreate h.Count
-                    arr.[0] <- h.Key, h.Value
-                    let mutable c = h.Next
-                    let mutable i = 1
-                    while not (isNull c) do
-                        arr.[i] <- c.Key, c.Value
-                        c <- c.Next
-                        i <- i + 1
-                    x.Values <- arr
-                    x.Index <- 0
-                    run <- false
-                | :? HashMapInner<'K, 'V> as h ->
-                    if h.Count <= 16 then
-                        let array = Array.zeroCreate h.Count
-                        h.CopyTo(array, 0) |> ignore
-                        x.Values <- array
-                        x.Index <- 0
-                        run <- false
+                    if x.Tail.IsEmpty then
+                        x.Head <- Unchecked.defaultof<_>
+                        x.Tail <- []
                     else
-                        match h.Left with
-                        | :? HashMapEmpty<'K, 'V> ->
-                            current <- h.Right
-                        | _ ->
-                            match h.Right with
-                            | :? HashMapEmpty<'K, 'V> -> ()
-                            | r -> x.Stack <- r :: x.Stack
-
-                            current <- h.Left
-                | _ ->
-                    failwith "bad node"
-
-            true
+                        x.Head <- x.Tail.Head
+                        x.Tail <- x.Tail.Tail
+                    true
+                else
+                    x.Head <- h.Left
+                    x.Tail <- h.Right :: x.Tail
+                    x.Collect()
+                
+            | _ -> false
 
         member x.MoveNext() =
             x.Index <- x.Index + 1
-            if isNull x.Values || x.Index >= x.Values.Length then
-                match x.Stack with
-                | [] ->
-                    false
-                | h :: t ->
-                    x.Stack <- t
-                    x.MoveNext h
-            else
+            if x.Index < x.BufferValueCount then
                 true
+            else
+                x.Collect()
 
         member x.Reset() =
-            if x.Root.Count <= 16 then
-                let array = Array.zeroCreate x.Root.Count
-                x.Root.CopyTo(array, 0) |> ignore
-                x.Values <- array
-                x.Index <- -1
-                x.Stack <- []
-            else
-                x.Values <- null
-                x.Index <- -1
-                x.Stack <- 
-                    match x.Root with
-                    | :? HashMapEmpty<'K, 'V> -> []
-                    | r -> [r]
+            x.Index <- -1
+            x.Head <- x.Root
+            x.Tail <- []
+            x.BufferValueCount <- -1
 
         member x.Dispose() =
             x.Values <- null
             x.Index <- -1
-            x.Stack <- []
+            x.Head <- Unchecked.defaultof<_>
+            x.Tail <- []
             x.Root <- Unchecked.defaultof<_>
 
         member x.Current = x.Values.[x.Index]
@@ -4699,22 +4699,25 @@ and HashMapEnumerator<'K, 'V> =
             member x.Dispose() = x.Dispose()
 
         new (map : HashMap<'K, 'V>) =
-            if map.Count <= 16 then
+            let cnt = map.Count
+            if cnt <= 16 then
                 {
                     Root = map.Root
-                    Stack = []
-                    Values = map.ToArray()
+                    Head = Unchecked.defaultof<_>
+                    Tail = []
+                    Values = if cnt > 0 then map.ToArray() else null
+                    BufferValueCount = cnt
                     Index = -1
                 }
             else
                 {
                     Root = map.Root
-                    Stack = [map.Root]
-                    Values = null
+                    Head = map.Root
+                    Tail = []
+                    Values = Array.zeroCreate 16
+                    BufferValueCount = -1
                     Index = -1
                 }
-                
-
     end
 
 and HashMapStructEnumerator<'K, 'V> =

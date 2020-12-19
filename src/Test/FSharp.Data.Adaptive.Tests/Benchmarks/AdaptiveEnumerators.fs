@@ -324,6 +324,59 @@ type IndexListEnumeratorBenchmark() =
         for e in collection384 do sum <- sum + e.s.y.c
         sum
 
+//BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+//Intel Core i7-8700K CPU 3.70GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+//.NET Core SDK=5.0.101
+//  [Host]     : .NET Core 3.1.10 (CoreCLR 4.700.20.51601, CoreFX 4.700.20.51901), X64 RyuJIT DEBUG
+//  DefaultJob : .NET Core 3.1.10 (CoreCLR 4.700.20.51601, CoreFX 4.700.20.51901), X64 RyuJIT
+
+// Baseline: Array Buffer (c2bc22c9)
+//|          Method | Count |          Mean |        Error |       StdDev |    Gen 0 |  Gen 1 | Gen 2 | Allocated |
+//|---------------- |------ |--------------:|-------------:|-------------:|---------:|-------:|------:|----------:|
+//|   HashMap_4byte |     0 |      24.62 ns |     0.074 ns |     0.061 ns |   0.0038 |      - |     - |      24 B |
+//|  HashMap_32byte |     0 |      24.83 ns |     0.049 ns |     0.043 ns |   0.0038 |      - |     - |      24 B |
+//| HashMap_128byte |     0 |      30.58 ns |     0.636 ns |     0.870 ns |   0.0038 |      - |     - |      24 B |
+//| HashMap_384byte |     0 |      35.97 ns |     0.074 ns |     0.069 ns |   0.0038 |      - |     - |      24 B |
+//|   HashMap_4byte |     1 |      33.57 ns |     0.097 ns |     0.081 ns |   0.0089 |      - |     - |      56 B |
+//|  HashMap_32byte |     1 |      39.14 ns |     0.138 ns |     0.122 ns |   0.0178 |      - |     - |     112 B |
+//| HashMap_128byte |     1 |      77.85 ns |     0.184 ns |     0.154 ns |   0.0484 |      - |     - |     304 B |
+//| HashMap_384byte |     1 |     145.08 ns |     0.391 ns |     0.327 ns |   0.1299 | 0.0002 |     - |     816 B |
+//|   HashMap_4byte |    10 |     121.78 ns |     0.184 ns |     0.172 ns |   0.0548 |      - |     - |     344 B |
+//|  HashMap_32byte |    10 |     216.97 ns |     0.698 ns |     0.653 ns |   0.1440 | 0.0002 |     - |     904 B |
+//| HashMap_128byte |    10 |     603.70 ns |     3.769 ns |     3.525 ns |   0.4501 | 0.0038 |     - |    2824 B |
+//| HashMap_384byte |    10 |   1,293.39 ns |     3.204 ns |     2.997 ns |   1.2646 | 0.0362 |     - |    7944 B |
+//|   HashMap_4byte |   100 |   1,472.21 ns |     1.957 ns |     1.735 ns |   0.5894 |      - |     - |    3704 B |
+//|  HashMap_32byte |   100 |   2,554.01 ns |    10.132 ns |     9.477 ns |   1.4801 | 0.0076 |     - |    9304 B |
+//| HashMap_128byte |   100 |   6,500.95 ns |    29.817 ns |    26.432 ns |   4.5395 | 0.0992 |     - |   28504 B |
+//| HashMap_384byte |   100 |  13,733.24 ns |    60.002 ns |    50.105 ns |  12.6953 | 0.7477 |     - |   79704 B |
+//|   HashMap_4byte |  1000 |  17,582.06 ns |   102.279 ns |    85.408 ns |   5.8289 |      - |     - |   36704 B |
+//|  HashMap_32byte |  1000 |  29,200.80 ns |    64.734 ns |    54.056 ns |  14.8315 | 0.0916 |     - |   93208 B |
+//| HashMap_128byte |  1000 |  71,812.17 ns |   613.578 ns |   543.921 ns |  45.2881 | 1.0986 |     - |  284816 B |
+//| HashMap_384byte |  1000 | 155,848.97 ns | 1,450.227 ns | 1,285.588 ns | 126.9531 | 7.8125 |     - |  796928 B |
+
+// Array Re-Use + Inline Stack Head
+//|          Method | Count |          Mean |        Error |       StdDev |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+//|---------------- |------ |--------------:|-------------:|-------------:|---------:|--------:|------:|----------:|
+//|   HashMap_4byte |     0 |      25.03 ns |     0.035 ns |     0.031 ns |        - |       - |     - |         - |
+//|  HashMap_32byte |     0 |      30.38 ns |     0.054 ns |     0.045 ns |        - |       - |     - |         - |
+//| HashMap_128byte |     0 |      36.11 ns |     0.056 ns |     0.050 ns |        - |       - |     - |         - |
+//| HashMap_384byte |     0 |      44.83 ns |     0.140 ns |     0.117 ns |        - |       - |     - |         - |
+//|   HashMap_4byte |     1 |      39.66 ns |     0.110 ns |     0.097 ns |   0.0089 |       - |     - |      56 B |
+//|  HashMap_32byte |     1 |      53.17 ns |     0.146 ns |     0.114 ns |   0.0178 |       - |     - |     112 B |
+//| HashMap_128byte |     1 |      88.65 ns |     0.497 ns |     0.441 ns |   0.0484 |       - |     - |     304 B |
+//| HashMap_384byte |     1 |     162.11 ns |     0.578 ns |     0.512 ns |   0.1299 |  0.0002 |     - |     816 B |
+//|   HashMap_4byte |    10 |     118.16 ns |     0.538 ns |     0.449 ns |   0.0548 |       - |     - |     344 B |
+//|  HashMap_32byte |    10 |     224.68 ns |     0.643 ns |     0.602 ns |   0.1440 |  0.0002 |     - |     904 B |
+//| HashMap_128byte |    10 |     587.83 ns |     1.861 ns |     1.554 ns |   0.4501 |  0.0038 |     - |    2824 B |
+//| HashMap_384byte |    10 |   1,284.98 ns |     4.560 ns |     4.266 ns |   1.2646 |  0.0362 |     - |    7944 B |
+//|   HashMap_4byte |   100 |   1,291.43 ns |     3.800 ns |     3.368 ns |   0.4463 |       - |     - |    2808 B |
+//|  HashMap_32byte |   100 |   2,442.68 ns |    12.110 ns |    11.328 ns |   1.3390 |  0.0114 |     - |    8408 B |
+//| HashMap_128byte |   100 |   6,280.08 ns |    20.067 ns |    15.667 ns |   4.3945 |  0.1144 |     - |   27608 B |
+//| HashMap_384byte |   100 |  13,786.82 ns |    68.897 ns |    61.075 ns |  12.5580 |  0.9003 |     - |   78808 B |
+//|   HashMap_4byte |  1000 |  16,149.69 ns |    89.500 ns |    74.736 ns |   4.2725 |       - |     - |   26808 B |
+//|  HashMap_32byte |  1000 |  28,088.65 ns |    92.151 ns |    81.689 ns |  13.2446 |  0.1221 |     - |   83096 B |
+//| HashMap_128byte |  1000 |  70,710.24 ns |   682.394 ns |   569.830 ns |  43.7012 |  1.3428 |     - |  274872 B |
+//| HashMap_384byte |  1000 | 158,957.35 ns | 1,504.544 ns | 1,407.352 ns | 125.2441 | 10.0098 |     - |  786936 B |
 
 [<PlainExporter; MemoryDiagnoser>]
 type HashMapEnumeratorBenchmark() =
@@ -334,6 +387,7 @@ type HashMapEnumeratorBenchmark() =
     let mutable collection384 = HashMap.empty<Struct384,Struct384>
    
     [<Params(0, 1, 10, 100, 1000); DefaultValue>]
+    //[<Params(0, 1, 10); DefaultValue>]
     val mutable public Count : int
 
     [<GlobalSetup>]
