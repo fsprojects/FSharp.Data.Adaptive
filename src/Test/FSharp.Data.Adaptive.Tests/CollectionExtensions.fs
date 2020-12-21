@@ -11,7 +11,7 @@ open Generators
 
 
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[Seq] existsA``(values : list<bool>) =
     let cs = values |> List.map cval
     let result = Seq.existsA id (Seq.cast cs)

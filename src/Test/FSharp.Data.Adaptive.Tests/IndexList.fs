@@ -37,17 +37,17 @@ let ``[Index] maintaining order``(lr : list<bool>) =
 
     check (List.zip lr all) min max
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] creation`` (l : list<int>) =
     let test = l |> IndexList.ofList |> IndexList.toList
     test |> should equal l
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] count`` (l : list<int>) =
     let test = l |> IndexList.ofList
     test.Count |> should equal (List.length l)
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] append`` (l : list<int>) (r : list<int>) =
     let ll = IndexList.ofList l
     let rl = IndexList.ofList r
@@ -56,7 +56,7 @@ let ``[IndexList] append`` (l : list<int>) (r : list<int>) =
     |> IndexList.toList
     |> should equal (List.append l r)
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] take/skip`` (l : list<int>) =
     let ll = IndexList.ofList l
 
@@ -74,7 +74,7 @@ let ``[IndexList] take/skip`` (l : list<int>) =
     IndexList.take s1 ll |> IndexList.toList |> should equal (List.take s1 l)
     IndexList.take s2 ll |> IndexList.toList |> should equal (List.take s2 l)
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] sort`` (l : list<int>) =
     let ll = IndexList.ofList l
 
@@ -87,7 +87,7 @@ let ``[IndexList] sort`` (l : list<int>) =
     ll |> IndexList.sort |> IndexList.toList |> should equal (List.sort l)
     ll |> IndexList.sortDescending |> IndexList.toList |> should equal (List.sortDescending l)
     
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] sum/average`` (h : NormalFloat) (l : list<NormalFloat>) =
     let l = h :: l |> List.map float
     let ll = IndexList.ofList l
@@ -98,7 +98,7 @@ let ``[IndexList] sum/average`` (h : NormalFloat) (l : list<NormalFloat>) =
     ll |> IndexList.averageBy mapping |> should equal (List.averageBy mapping l)
     
       
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] unzip`` (l : list<int * float>) =
     let a, b = List.unzip l
     let la, lb = IndexList.unzip (IndexList.ofList l)
@@ -107,7 +107,7 @@ let ``[IndexList] unzip`` (l : list<int * float>) =
     lb |> IndexList.toList |> should equal b
     
       
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] unzip3`` (l : list<int * float * string>) =
     let a, b, c = List.unzip3 l
     let la, lb, lc = IndexList.unzip3 (IndexList.ofList l)
@@ -116,7 +116,7 @@ let ``[IndexList] unzip3`` (l : list<int * float * string>) =
     lb |> IndexList.toList |> should equal b
     lc |> IndexList.toList |> should equal c
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] rev`` (l : list<float>) =
     let ll = IndexList.ofList l
 
@@ -126,7 +126,7 @@ let ``[IndexList] rev`` (l : list<float>) =
 
     ll |> IndexList.rev |> IndexList.toList |> should equal (List.rev l)
     
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] enumerator correct`` (m : list<int>) =
     let h = IndexList.ofList m
 
@@ -134,20 +134,20 @@ let ``[IndexList] enumerator correct`` (m : list<int>) =
     h |> Seq.toList |> should equal m
 
     
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] collect`` (l : list<int>) =
     let ref = l |> List.collect (fun v -> [v; 2*v; 3*v])
     let test = l |> IndexList.ofList |> IndexList.collect (fun v -> IndexList.ofList [v; 2*v; 3*v]) |> IndexList.toList
     test |> should equal ref
     
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] map`` (l : list<int>) =
     let ref = l |> List.map (fun v -> v / 3)
     let test = l |> IndexList.ofList |> IndexList.map (fun v -> v / 3) |> IndexList.toList
     test |> should equal ref
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] add/prepend`` (l : list<int>) = 
     let indexList = IndexList.ofList l
     indexList 
@@ -156,7 +156,7 @@ let ``[IndexList] add/prepend`` (l : list<int>) =
     |> IndexList.toList
     |> should equal ([5] @ l @ [1])
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] equality`` (l : list<int>) =
     let a = IndexList.ofList l
 
@@ -164,20 +164,20 @@ let ``[IndexList] equality`` (l : list<int>) =
     a |> should not' (equal (IndexList.add 1 a))
     a |> should not' (equal (IndexList.prepend 1 a))
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] range`` (lowerBound: int)  (upperBound: int)=
     let a = IndexList.range lowerBound upperBound
 
     a |> IndexList.toList |> should equal [ lowerBound .. upperBound ]
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] init`` (length: int)  =
     if length >= 0 then 
         let a = IndexList.init length id 
 
         a |> IndexList.toList |> should equal [ 0 .. length - 1 ]
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[IndexList] tryGetPosition`` (l : list<int>) =
     let l = IndexList.ofList l
     let mutable i = 0

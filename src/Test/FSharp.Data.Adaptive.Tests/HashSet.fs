@@ -30,7 +30,7 @@ type StupidHash = { value : int } with
 let emptyDelta : HashSetDelta<int> = HashSetDelta.empty
 
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[CountingHashSet] ref counts`` (input : Set<int>) =
     let set = 
         input 
@@ -64,7 +64,7 @@ let ``[CountingHashSet] ref counts`` (input : Set<int>) =
     ()
 
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashSet] applyDelta drops useless removes``() =
 
     // value empty
@@ -108,7 +108,7 @@ let ``[HashSet] applyDelta drops useless removes``() =
     eff |> should setequal emptyDelta
     
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashSet] applyDelta drops useless adds``() =
     // applyDelta({1}, {Add 1}) = ({1}, {})
     let set = HashSet.single 1
@@ -131,7 +131,7 @@ let ``[HashSet] applyDelta drops useless adds``() =
     res |> should setequal set
     eff |> should setequal emptyDelta
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashSet] applyDelta basic``() =  
     // applyDelta({1..19}, {Add 20}) = ({1..20}, {Add 20})
     let delta = HashSetDelta.ofList [Add 20]
@@ -145,7 +145,7 @@ let ``[HashSet] applyDelta basic``() =
     set |> should setequal (HashSet.ofList [1..20])
     eff |> should setequal (HashSetDelta.ofList ([2..20] |> List.map Add))
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashSet] computeDelta/applyDelta`` (set1 : Set<int>) (set2 : Set<int>) (set3 : Set<int>) =
     let set1 = HashSet.ofSeq set1
     let set2 = HashSet.ofSeq set2
@@ -189,7 +189,7 @@ let ``[HashSet] computeDelta/applyDelta`` (set1 : Set<int>) (set2 : Set<int>) (s
     // diff(A, B) + diff(B, C) = diff(A, C)
     HashSetDelta.combine d12 d23 |> should setequal d31.Inverse
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[CountingHashSet] computeDelta/applyDelta`` (set1 : Set<int>) (set2 : Set<int>) (set3 : Set<int>) =
     let set1 = CountingHashSet.ofSeq set1
     let set2 = CountingHashSet.ofSeq set2
@@ -244,7 +244,7 @@ let ``[CountingHashSet] computeDelta/applyDelta`` (set1 : Set<int>) (set2 : Set<
     HashSetDelta.combine d12 d23 |> should setequal d31.Inverse
 
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[CountingHashSet] applyDelta drops useless removes``() =
 
     // value empty
@@ -287,7 +287,7 @@ let ``[CountingHashSet] applyDelta drops useless removes``() =
     res |> should setequal set
     eff |> should setequal emptyDelta
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[CountingHashSet] applyDelta drops useless adds``() =
     // applyDelta({1}, {Add 1}) = ({1}, {})
     let set = CountingHashSet.single 1
@@ -310,7 +310,7 @@ let ``[CountingHashSet] applyDelta drops useless adds``() =
     res |> should setequal set
     eff |> should setequal emptyDelta
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[CountingHashSet] applyDelta basic``() =  
     // applyDelta({1..19}, {Add 20}) = ({1..20}, {Add 20})
     let delta = HashSetDelta.ofList [Add 20]
@@ -326,7 +326,7 @@ let ``[CountingHashSet] applyDelta basic``() =
 
 
     
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[CountingHashSet] basic properties`` (fset1 : Set<int>) (fset2 : Set<int>) =
     let empty : CountingHashSet<int> = CountingHashSet.empty
     let set1 = CountingHashSet.ofSeq fset1
@@ -387,7 +387,7 @@ let ``[CountingHashSet] basic properties`` (fset1 : Set<int>) (fset2 : Set<int>)
     CountingHashSet.difference empty set1 |> should setequal empty
    
    
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashSet] union`` (fset1 : Set<int>) (fset2 : Set<int>) =
     let empty : HashSet<int> = HashSet.empty
     let set1 = HashSet.ofSeq fset1
@@ -406,7 +406,7 @@ let ``[HashSet] union`` (fset1 : Set<int>) (fset2 : Set<int>) =
     // A + B = B + A
     HashSet.union set1 set2 |> should setequal (Set.union fset2 fset1)
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashSet] difference`` (fset1 : Set<int>) (fset2 : Set<int>) =
     let empty : HashSet<int> = HashSet.empty
     let set1 = HashSet.ofSeq fset1
@@ -424,7 +424,7 @@ let ``[HashSet] difference`` (fset1 : Set<int>) (fset2 : Set<int>) =
     // A - 0 = A
     HashSet.difference set1 empty |> should setequal set1
     
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashSet] intersect`` (fset1 : Set<int>) (fset2 : Set<int>) =
     let empty : HashSet<int> = HashSet.empty
     let set1 = HashSet.ofSeq fset1
@@ -440,7 +440,7 @@ let ``[HashSet] intersect`` (fset1 : Set<int>) (fset2 : Set<int>) =
     // A ^ 0 = 0
     HashSet.intersect set1 empty |> should setequal empty
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashSet] xor`` (fset1 : Set<int>) (fset2 : Set<int>) =
     let empty : HashSet<int> = HashSet.empty
     let set1 = HashSet.ofSeq fset1
@@ -465,7 +465,7 @@ let ``[HashSet] xor`` (fset1 : Set<int>) (fset2 : Set<int>) =
 
 
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashSet] count`` (l : Set<int>) (a : int)  =
     not (Set.contains a l) ==> lazy (
         let set = l |> Set.toList |> HashSet.ofList
@@ -491,7 +491,7 @@ let ``[HashSet] count`` (l : Set<int>) (a : int)  =
         ]
     )
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashSet] contains`` (l : Set<int>) (a : int)  =
     not (Set.contains a l) ==> lazy (
         let set = l |> Set.toList |> HashSet.ofList
@@ -518,11 +518,11 @@ let ``[HashSet] contains`` (l : Set<int>) (a : int)  =
 
     )
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashSet] ofList`` (l : list<int>) =
     HashSet.toList (HashSet.ofList l) |> List.sort = Set.toList (Set.ofList l)
     
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashSet] enumerator correct`` (m : Set<int>) =
     let h = HashSet.ofSeq m
 
@@ -530,7 +530,7 @@ let ``[HashSet] enumerator correct`` (m : Set<int>) =
     h |> Seq.toList |> Seq.sort |> should equal (Set.toList m)
 
     
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashSet] equality`` (h0 : StupidHash) =
     let h1 = { value = h0.value + 1 }
     let h2 = { value = h0.value + 2 }

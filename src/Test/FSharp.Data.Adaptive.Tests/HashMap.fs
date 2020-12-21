@@ -26,7 +26,7 @@ type StupidHash = { value : int } with
             | :? StupidHash as o -> x.value = o.value
             | _ -> false
 
-[<Property(MaxTest = 10000)>]
+[<Property(MaxTest = 10000, EndSize = 10000)>]
 let ``[HashMap] computeDelta / applyDelta`` (map1 : Map<int, int>) (map2 : Map<int, int>) (map3 : Map<int, int>) =
     let map1 = HashMap.ofMap map1
     let map2 = HashMap.ofMap map2
@@ -73,7 +73,7 @@ let ``[HashMap] computeDelta / applyDelta`` (map1 : Map<int, int>) (map2 : Map<i
 
 
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashMap] count`` (l : Map<int, int>) (a : int)  =
     not (Map.containsKey a l) ==> lazy (
         let map = l |> Map.toList |> HashMap.ofList
@@ -96,7 +96,7 @@ let ``[HashMap] count`` (l : Map<int, int>) (a : int)  =
         ]
     )
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashMap] tryFind`` (l : Map<int, int>) (a : int)  =
     not (Map.containsKey a l) ==> lazy (
         let map = l |> Map.toList |> HashMap.ofList
@@ -123,22 +123,22 @@ let ``[HashMap] tryFind`` (l : Map<int, int>) (a : int)  =
 
     )
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashMap] containsKey`` (l : Map<int, int>) (a : int)  =
     let map = l |> Map.toList |> HashMap.ofList
     HashMap.containsKey a map = Option.isSome (HashMap.tryFind a map)
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashMap] find`` (l : Map<int, int>) (a : int)  =
     let map = l |> Map.toList |> HashMap.ofList
     let map = map |> HashMap.add a a
     HashMap.find a map = a
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashMap] ofList`` (l : list<int * int>) =
     List.sortBy fst (HashMap.toList (HashMap.ofList l)) = Map.toList (Map.ofList l)
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashMap] map2/choose2`` (lm : Map<int, int>) (rm : Map<int, int>) =
     let l = lm |> Map.toList |> HashMap.ofList
     let r = rm |> Map.toList |> HashMap.ofList
@@ -209,15 +209,16 @@ let ``[HashMap] map2/choose2`` (lm : Map<int, int>) (rm : Map<int, int>) =
         equal (HashMap.choose2 add2 l r) (choose2 add2 lm rm)
     ]
     
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashMap] enumerator correct`` (m : Map<int, int>) =
     let h = HashMap.ofSeq (Map.toSeq m)
 
     h |> Seq.toList |> should equal (HashMap.toList h)
     h |> Seq.toList |> Seq.sort |> should equal (Map.toList m)
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashMap] choose`` (m : Map<int, int>) (f : int -> int -> option<int>) =
+    
     let h = HashMap.ofSeq (Map.toSeq m)
 
     let tm =
@@ -234,7 +235,7 @@ let ``[HashMap] choose`` (m : Map<int, int>) (f : int -> int -> option<int>) =
 
 
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[HashMap] equality`` (h0 : StupidHash) =
     let h1 = { value = h0.value + 1 }
     let h2 = { value = h0.value + 2 }
