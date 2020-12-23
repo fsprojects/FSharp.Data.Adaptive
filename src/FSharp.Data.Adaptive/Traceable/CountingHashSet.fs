@@ -360,24 +360,121 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
         member x.GetEnumerator() = new CountingHashSetEnumerator<_>(store) :> _
 
 /// An enumerator for CountingHashSet.
-and CountingHashSetEnumerator<'T>(store : HashMap<'T, int>) =
-    let mutable e = store.GetStructEnumerator()
-    
-    member x.MoveNext() = e.MoveNext()
-    member x.Reset() = e.Reset()
-    member x.Dispose() = e.Dispose()
-    member x.Current = 
-        let struct (v,_) = e.Current
-        v
+and CountingHashSetEnumerator<'T> =
+    struct // Array Buffer (with re-use) + Inline Stack Head + Single Value / Large Struct optimization
+        val mutable private Root : HashMapNode<'T, int>
+        val mutable private Head : HashMapNode<'T, int>
+        val mutable private Tail : list<HashMapNode<'T, int>>
+        val mutable private BufferValueCount : int
+        val mutable private Values : struct('T * int)[]
+        val mutable private Index : int
+        val mutable private Next : 'T
+        
+        member x.Collect() =
+            match x.Head with
+            | :? HashMapNoCollisionLeaf<'T, int> as h ->
+                x.Next <- h.Key
+                x.Index <- 0
+                x.BufferValueCount <- 0
+                if x.Tail.IsEmpty then
+                    x.Head <- Unchecked.defaultof<_>
+                    x.Tail <- []
+                else
+                    x.Head <- x.Tail.Head
+                    x.Tail <- x.Tail.Tail    
+                true
 
-    interface IEnumerator with
-        member x.MoveNext() = x.MoveNext()
-        member x.Current = x.Current :> obj
-        member x.Reset() = x.Reset()
+            | :? HashMapCollisionLeaf<'T, int> as h ->
+                                    
+                let cnt = h.Count
+                if isNull x.Values || x.Values.Length < cnt-1 then
+                    x.Values <- Array.zeroCreate (cnt-1)
+            
+                x.Next <- h.Key
+                let mutable c = h.Next
+                let mutable i = 0
+                while not (isNull c) do
+                    x.Values.[i] <- struct(c.Key, 0)
+                    c <- c.Next
+                    i <- i + 1
+                x.BufferValueCount <- i
+                x.Index <- 0
+                if x.Tail.IsEmpty then
+                    x.Head <- Unchecked.defaultof<_>
+                    x.Tail <- []
+                else
+                    x.Head <- x.Tail.Head
+                    x.Tail <- x.Tail.Tail
+                true
 
-    interface IEnumerator<'T> with
-        member x.Dispose() = x.Dispose()
-        member x.Current = x.Current
+            | :? HashMapInner<'T, int> as h ->
+                if typesize<'T> <= 64 && h._Count <= 16 then
+                    h.CopyToV(x.Values, 0) |> ignore
+                    x.BufferValueCount <- h._Count
+                    let struct(fst, _) = x.Values.[0]
+                    x.Next <- fst
+                    x.Index <- 1 // skip first element of array
+                    if x.Tail.IsEmpty then
+                        x.Head <- Unchecked.defaultof<_>
+                        x.Tail <- []
+                    else
+                        x.Head <- x.Tail.Head
+                        x.Tail <- x.Tail.Tail
+                    true
+                else
+                    x.Head <- h.Left
+                    x.Tail <- h.Right :: x.Tail
+                    x.Collect()
+                
+            | _ -> false
+
+        member x.MoveNext() =
+            if x.Index < x.BufferValueCount then
+                let struct(fst, _) = x.Values.[x.Index]
+                x.Next <- fst
+                //x.Next <- x.Values.[x.Index].Item1
+                x.Index <- x.Index + 1
+                true
+            else
+                x.Collect()
+
+        member x.Reset() =
+            x.Index <- -1
+            x.Head <- x.Root
+            x.Tail <- []
+            x.BufferValueCount <- -1
+
+        member x.Dispose() =
+            x.Values <- null
+            x.Index <- -1
+            x.Head <- Unchecked.defaultof<_>
+            x.Tail <- []
+            x.Root <- Unchecked.defaultof<_>
+            x.Next <- Unchecked.defaultof<_>
+
+        member x.Current = x.Next
+
+        interface System.Collections.IEnumerator with
+            member x.MoveNext() = x.MoveNext()
+            member x.Reset() = x.Reset()
+            member x.Current = x.Current :> obj
+            
+        interface System.Collections.Generic.IEnumerator<'T> with
+            member x.Current = x.Current
+            member x.Dispose() = x.Dispose()
+
+        new (map : HashMap<'T, int>) =
+            let cnt = map.Count
+            {
+                Root = map.Root
+                Head = map.Root
+                Tail = []
+                Values = if typesize<'T> <= 64 && cnt > 1 then Array.zeroCreate (min cnt 16) else null
+                Index = -1
+                BufferValueCount = -1
+                Next = Unchecked.defaultof<_>
+            }
+    end
 
 /// Functional operators for CountingHashSet.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
