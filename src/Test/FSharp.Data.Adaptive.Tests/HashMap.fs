@@ -217,6 +217,19 @@ let ``[HashMap] enumerator correct`` (m : Map<int, int>) =
     h |> Seq.toList |> Seq.sort |> should equal (Map.toList m)
 
 [<Property(EndSize = 10000)>]
+let ``[HashMap] struct enumerator correct`` (m : Map<int, int>) =
+    let h = HashMap.ofSeq (Map.toSeq m)
+
+    let mutable list : list<int*int> = []
+    let mutable e = h.GetStructEnumerator()
+    while e.MoveNext() do
+        let struct (f, s) = e.Current
+        list <- list @ [(f, s)]
+
+    list |> should equal (HashMap.toList h)
+    list |> Seq.sort |> should equal (Map.toList m)
+
+[<Property(EndSize = 10000)>]
 let ``[HashMap] choose`` (m : Map<int, int>) (f : int -> int -> option<int>) =
     
     let h = HashMap.ofSeq (Map.toSeq m)
