@@ -993,19 +993,19 @@ module ASet =
     open AdaptiveHashSetImplementation
 
     /// Creates a constant set using the creation function.
-    let constant (content : unit -> HashSet<'T>) = 
-        ConstantSet(lazy(content())) :> aset<_> 
+    let constant (value : unit -> HashSet<'T>) = 
+        ConstantSet(lazy(value())) :> aset<_> 
 
     /// Creates an aset using the given reader-creator.
-    let ofReader (reader : unit -> #IOpReader<HashSetDelta<'T>>) =
-        AdaptiveHashSetImpl(fun () -> reader() :> IOpReader<_>) :> aset<_>
+    let ofReader (create : unit -> #IOpReader<HashSetDelta<'T>>) =
+        AdaptiveHashSetImpl(fun () -> create() :> IOpReader<_>) :> aset<_>
         
     /// Creates an aset using the given compute function
-    let custom (f : AdaptiveToken -> CountingHashSet<'a> -> HashSetDelta<'a>) : aset<'a> = 
+    let custom (compute : AdaptiveToken -> CountingHashSet<'a> -> HashSetDelta<'a>) : aset<'a> = 
         ofReader (fun () -> 
             { new AbstractReader<CountingHashSet<'a>,HashSetDelta<'a>>(CountingHashSet.trace) with
                 override x.Compute(t) = 
-                    f t x.State
+                    compute t x.State
             }
         )
 
@@ -1019,16 +1019,16 @@ module ASet =
         constant (fun () -> HashSet.single value)
         
     /// Creates an aset holding the given values.
-    let ofSeq (s : seq<'T>) =
-        constant (fun () -> HashSet.ofSeq s)
+    let ofSeq (elements : seq<'T>) =
+        constant (fun () -> HashSet.ofSeq elements)
         
     /// Creates an aset holding the given values.
-    let ofList (s : list<'T>) =
-        constant (fun () -> HashSet.ofList s)
+    let ofList (elements : list<'T>) =
+        constant (fun () -> HashSet.ofList elements)
         
     /// Creates an aset holding the given values.
-    let ofArray (s : 'T[]) =
-        constant (fun () -> HashSet.ofArray s)
+    let ofArray (elements : 'T[]) =
+        constant (fun () -> HashSet.ofArray elements)
         
     /// Creates an aset holding the given values. `O(1)`
     let ofHashSet (elements : HashSet<'T>) =
@@ -1231,47 +1231,47 @@ module ASet =
 
     /// Reduces the set using the given `AdaptiveReduction` and returns
     /// the resulting adaptive value.
-    let reduce (r : AdaptiveReduction<'a, 's, 'v>) (list: aset<'a>) =
-        SetReductions.ReduceValue(r, list) :> aval<'v>
+    let reduce (reduction : AdaptiveReduction<'a, 's, 'v>) (set: aset<'a>) =
+        SetReductions.ReduceValue(reduction, set) :> aval<'v>
         
     /// Applies the mapping function to all elements of the set and reduces the results
     /// using the given `AdaptiveReduction`.
     /// Returns the resulting adaptive value.
-    let reduceBy (r : AdaptiveReduction<'b, 's, 'v>) (mapping: 'a -> 'b) (list: aset<'a>) =
-        SetReductions.ReduceByValue(r, mapping, list) :> aval<'v>
+    let reduceBy (reduction : AdaptiveReduction<'b, 's, 'v>) (mapping: 'a -> 'b) (set: aset<'a>) =
+        SetReductions.ReduceByValue(reduction, mapping, set) :> aval<'v>
         
     /// Applies the mapping function to all elements of the set and reduces the results
     /// using the given `AdaptiveReduction`.
     /// Returns the resulting adaptive value.
-    let reduceByA (r : AdaptiveReduction<'b, 's, 'v>) (mapping: 'a -> aval<'b>) (list: aset<'a>) =
-        SetReductions.AdaptiveReduceByValue(r, mapping, list) :> aval<'v>
+    let reduceByA (reduction : AdaptiveReduction<'b, 's, 'v>) (mapping: 'a -> aval<'b>) (set: aset<'a>) =
+        SetReductions.AdaptiveReduceByValue(reduction, mapping, set) :> aval<'v>
 
     /// Adaptively folds over the set using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
     /// Also note that the order of elements given to add/trySubtract is undefined.
-    let foldHalfGroup (add : 'S -> 'A -> 'S) (trySub : 'S -> 'A -> option<'S>) (zero : 'S) (s : aset<'A>) =
+    let foldHalfGroup (add : 'S -> 'A -> 'S) (trySubtract : 'S -> 'A -> option<'S>) (zero : 'S) (set : aset<'A>) =
         let inline trySub s v =
-            match trySub s v with
+            match trySubtract s v with
             | Some v -> ValueSome v
             | None -> ValueNone
         let reduction = AdaptiveReduction.halfGroup zero add trySub
-        reduce reduction s
+        reduce reduction set
 
     /// Adaptively folds over the set using add for additions and recomputes the value on every removal.
     /// Note that the order of elements given to add is undefined.
-    let fold (f : 'S -> 'A -> 'S) (seed : 'S) (s : aset<'A>) =
-        let reduction = AdaptiveReduction.fold seed f
-        reduce reduction s
-
+    let fold (add : 'S -> 'A -> 'S) (zero : 'S) (set : aset<'A>) =
+        let reduction = AdaptiveReduction.fold zero add
+        reduce reduction set
+        
     /// Adaptively folds over the set using add for additions and subtract for removals.
     /// Note that the order of elements given to add/subtract is undefined.
-    let foldGroup (add : 'S -> 'A -> 'S) (sub : 'S -> 'A -> 'S) (zero : 'S) (s : aset<'A>) =
-        let reduction = AdaptiveReduction.group zero add sub
-        reduce reduction s
+    let foldGroup (add : 'S -> 'A -> 'S) (subtract : 'S -> 'A -> 'S) (zero : 'S) (set : aset<'A>) =
+        let reduction = AdaptiveReduction.group zero add subtract
+        reduce reduction set
 
     /// Creates a constant aset lazy content.
-    let delay (creator : unit -> HashSet<'T>) =
-        constant creator
+    let delay (create : unit -> HashSet<'T>) =
+        constant create
 
     /// Adaptively tests if the list is empty.
     let isEmpty (l: aset<'a>) =
@@ -1281,64 +1281,64 @@ module ASet =
     let count (l: aset<'a>) =
         l.Content |> AVal.map HashSet.count
 
-    let forall (predicate: 'T -> bool) (list: aset<'T>) =
+    let forall (predicate: 'T -> bool) (set: aset<'T>) =
         let r = AdaptiveReduction.countNegative |> AdaptiveReduction.mapOut (fun v -> v = 0)
-        reduceBy r predicate list
+        reduceBy r predicate set
         
-    let exists (predicate: 'T -> bool) (list: aset<'T>) =
+    let exists (predicate: 'T -> bool) (set: aset<'T>) =
         let r = AdaptiveReduction.countPositive |> AdaptiveReduction.mapOut (fun v -> v <> 0)
-        reduceBy r predicate list
+        reduceBy r predicate set
         
     let contains (value: 'T) (set: aset<'T>) =
         SetReductions.ContainsValue(set, value) :> aval<_>
 
-    let forallA (predicate: 'T -> aval<bool>) (list: aset<'T>) =
+    let forallA (predicate: 'T -> aval<bool>) (set: aset<'T>) =
         let r = AdaptiveReduction.countNegative |> AdaptiveReduction.mapOut (fun v -> v = 0)
-        reduceByA r predicate list
+        reduceByA r predicate set
         
-    let existsA (predicate: 'T -> aval<bool>) (list: aset<'T>) =
+    let existsA (predicate: 'T -> aval<bool>) (set: aset<'T>) =
         let r = AdaptiveReduction.countPositive |> AdaptiveReduction.mapOut (fun v -> v <> 0)
-        reduceByA r predicate list
+        reduceByA r predicate set
 
         
     /// Adaptively counts all elements fulfilling the predicate
-    let countBy (predicate: 'a -> bool) (list: aset<'a>) =
-        reduceBy AdaptiveReduction.countPositive predicate list 
+    let countBy (predicate: 'a -> bool) (set: aset<'a>) =
+        reduceBy AdaptiveReduction.countPositive predicate set 
 
     /// Adaptively counts all elements fulfilling the predicate
-    let countByA (predicate: 'a -> aval<bool>) (list: aset<'a>) =
-        reduceByA AdaptiveReduction.countPositive predicate list 
+    let countByA (predicate: 'a -> aval<bool>) (set: aset<'a>) =
+        reduceByA AdaptiveReduction.countPositive predicate set 
 
-    let inline tryMin (l : aset<'a>) =
+    let inline tryMin (set : aset<'a>) =
         let reduction = 
             AdaptiveReduction.tryMin
             |> AdaptiveReduction.mapOut (function ValueSome v -> Some v | ValueNone -> None)
-        reduce reduction l
+        reduce reduction set
 
-    let inline tryMax (l : aset<'a>) =
+    let inline tryMax (set : aset<'a>) =
         let reduction = 
             AdaptiveReduction.tryMax
             |> AdaptiveReduction.mapOut (function ValueSome v -> Some v | ValueNone -> None)
-        reduce reduction l
+        reduce reduction set
 
     /// Adaptively computes the sum all entries in the list.
-    let inline sum (s : aset<'a>) = 
-        reduce (AdaptiveReduction.sum()) s
+    let inline sum (set : aset<'a>) = 
+        reduce (AdaptiveReduction.sum()) set
     
-    let inline sumBy (mapping : 'T1 -> 'T2) (list : aset<'T1>) =
-        reduceBy (AdaptiveReduction.sum()) mapping list
+    let inline sumBy (mapping : 'T1 -> 'T2) (set : aset<'T1>) =
+        reduceBy (AdaptiveReduction.sum()) mapping set
 
-    let inline sumByA (mapping : 'T1 -> aval<'T2>) (list : aset<'T1>) =
-        reduceByA (AdaptiveReduction.sum()) mapping list
+    let inline sumByA (mapping : 'T1 -> aval<'T2>) (set : aset<'T1>) =
+        reduceByA (AdaptiveReduction.sum()) mapping set
 
-    let inline average (s : aset<'a>) =
-        reduce (AdaptiveReduction.average()) s
+    let inline average (set : aset<'a>) =
+        reduce (AdaptiveReduction.average()) set
         
-    let inline averageBy (mapping : 'T1 -> 'T2) (list : aset<'T1>) =
-        reduceBy (AdaptiveReduction.average()) mapping list
+    let inline averageBy (mapping : 'T1 -> 'T2) (set : aset<'T1>) =
+        reduceBy (AdaptiveReduction.average()) mapping set
 
-    let inline averageByA (mapping : 'T1 -> aval<'T2>) (list : aset<'T1>) =
-        reduceByA (AdaptiveReduction.average()) mapping list
+    let inline averageByA (mapping : 'T1 -> aval<'T2>) (set : aset<'T1>) =
+        reduceByA (AdaptiveReduction.average()) mapping set
 
     let inline range (lowerBound: aval< ^T >) (upperBound: aval< ^T >) =
         if lowerBound.IsConstant && upperBound.IsConstant then

@@ -34,6 +34,9 @@ type ChangeableValue<'T>(value : 'T) =
         if not (DefaultEquality.equals value newValue) then
             value <- newValue
             x.MarkOutdated()
+            true
+        else
+            false
         
 
     interface IAdaptiveValue with
@@ -335,8 +338,8 @@ module AVal =
     let constant (value: 'T) =
         ConstantVal.Value value
         
-    let delay (value: unit -> 'T) =
-        ConstantVal.Lazy value
+    let delay (create: unit -> 'T) =
+        ConstantVal.Lazy create
 
     let map (mapping: 'T1 -> 'T2) (value: aval<'T1>) =
         if value.IsConstant then 

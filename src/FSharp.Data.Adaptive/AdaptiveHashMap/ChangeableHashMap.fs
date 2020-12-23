@@ -38,12 +38,12 @@ type ChangeableHashMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
         with get() = 
             history.State
         and set value = 
-            x.UpdateTo value
+            x.UpdateTo value |> ignore
+
     /// Sets the current state as HashMap applying the init function to new elements and the update function to
     /// existing ones.
-    member x.UpdateTo(other : HashMap<'Key, 'T2>, init : 'T2 -> 'Value, update : 'Value -> 'T2 -> 'Value) =
+    member x.UpdateTo(target : HashMap<'Key, 'T2>, init : 'T2 -> 'Value, update : 'Value -> 'T2 -> 'Value) =
         let current = history.State
-        let target = other
 
         let store = 
             (current, target) ||> HashMap.choose2V (fun i l r ->
@@ -68,10 +68,15 @@ type ChangeableHashMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
         history.Perform ops |> ignore
         
     /// Sets the current state as HashMap.
-    member x.UpdateTo(other : HashMap<'Key, 'Value>) =
-        if not (cheapEqual history.State other) then
-            let delta = HashMap.computeDelta history.State other
-            history.PerformUnsafe(other, delta) |> ignore
+    member x.UpdateTo(target : HashMap<'Key, 'Value>) =
+        if not (cheapEqual history.State target) then
+            let delta = HashMap.computeDelta history.State target
+            if HashMapDelta.isEmpty delta then 
+                false
+            else
+                history.PerformUnsafe(target, delta)
+        else
+            false
 
     /// Performs the given Operations on the Map.
     member x.Perform(operations : HashMapDelta<'Key, 'Value>) = 

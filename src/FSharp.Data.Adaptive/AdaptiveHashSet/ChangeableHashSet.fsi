@@ -22,7 +22,7 @@ type ChangeableHashSet<'T> =
     member Value: HashSet<'T> with get, set
     
     /// Sets the current state as HashSet.
-    member UpdateTo: HashSet<'T> -> unit
+    member UpdateTo: HashSet<'T> -> bool
 
     /// Performs the given Operations on the Set.
     member Perform: operations : HashSetDelta<'T> -> unit

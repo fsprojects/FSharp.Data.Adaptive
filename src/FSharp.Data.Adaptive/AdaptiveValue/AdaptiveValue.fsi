@@ -43,7 +43,7 @@ type ChangeableValue<'T> =
     member GetValue : token : AdaptiveToken -> 'T
     
     /// Sets the current state of the cval.
-    member UpdateTo : 'T -> unit
+    member UpdateTo : 'T -> bool
 
     /// Creates a new changeable value, intially holding the given value
     new : value : 'T -> cval<'T>
@@ -106,7 +106,7 @@ module AVal =
     /// Adaptively applies the mapping function to the given adaptive values and
     /// adaptively depends on the adaptive value returned by mapping.
     /// The resulting aval<'T4> will hold the latest value of the aval<_> returned by mapping.
-    val bind3 : mapping : ('T1 -> 'T2 -> 'T3 -> aval<'T4>) -> value1 : aval<'T1> -> value2 : aval<'T2> -> value2 : aval<'T3> -> aval<'T4>
+    val bind3 : mapping : ('T1 -> 'T2 -> 'T3 -> aval<'T4>) -> value1 : aval<'T1> -> value2 : aval<'T2> -> value3 : aval<'T3> -> aval<'T4>
 
     /// Creates a custom adaptive value using the given computation.
     /// Callers are responsible for removing inputs that are no longer needed.

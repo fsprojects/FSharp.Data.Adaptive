@@ -58,7 +58,7 @@ type ChangeableHashMap<'Key,'Value> =
     member UpdateTo : target : HashMap<'Key, 'T2> * init : ('T2 -> 'Value) * update : ('Value -> 'T2 -> 'Value) -> unit
     
     /// Sets the current state as HashMap.
-    member UpdateTo : target : HashMap<'Key, 'Value> -> unit
+    member UpdateTo : target : HashMap<'Key, 'Value> -> bool
 
     /// Performs the given Operations on the Map.
     member Perform: operations : HashMapDelta<'Key, 'Value> -> unit

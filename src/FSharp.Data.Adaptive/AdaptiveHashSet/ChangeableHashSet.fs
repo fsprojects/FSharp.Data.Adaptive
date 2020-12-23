@@ -31,15 +31,16 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
         with get() = 
             AVal.force content
         and set newSet = 
-            x.UpdateTo newSet
+            x.UpdateTo newSet |> ignore
                 
     /// Sets the current state as HashSet.
     member x.UpdateTo(newSet : HashSet<'T>) =
         let nonCountingSet = AVal.force content
         if not (cheapEqual nonCountingSet newSet) then
             let delta = HashSet.computeDelta nonCountingSet newSet
-            history.Perform(delta) |> ignore
-
+            history.Perform(delta)
+        else
+            false
     /// Performs the given Operations on the Set.
     member x.Perform(operations : HashSetDelta<'T>) =   
         if not (HashSetDelta.isEmpty operations) then

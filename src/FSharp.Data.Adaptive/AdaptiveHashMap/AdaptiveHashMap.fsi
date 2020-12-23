@@ -56,7 +56,7 @@ module AMap =
     val ofASetIgnoreDuplicates : elements:aset<'Key * 'Value> -> amap<'Key, 'Value>
     
     /// Creates an amap using the given reader-creator.
-    val ofReader : create: (unit -> #IOpReader<HashMapDelta<'Key, 'Value>>) -> amap<'Key, 'Value>
+    val ofReader : creator: (unit -> #IOpReader<HashMapDelta<'Key, 'Value>>) -> amap<'Key, 'Value>
     
     /// Creates an amap using the given compute function
     val custom : compute : (AdaptiveToken -> HashMap<'Key, 'Value> -> HashMapDelta<'Key, 'Value>) -> amap<'Key, 'Value>
@@ -160,55 +160,55 @@ module AMap =
     /// Adaptively folds over the map using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
     /// Also note that the order of elements given to add/trySubtract is undefined.
-    val foldHalfGroup : add : ('S -> 'K -> 'V -> 'S) -> trySubtract : ('S -> 'K -> 'V -> option<'S>) -> zero : 'S -> set : amap<'K, 'V> -> aval<'S>
+    val foldHalfGroup : add : ('S -> 'K -> 'V -> 'S) -> trySubtract : ('S -> 'K -> 'V -> option<'S>) -> zero : 'S -> map: amap<'K, 'V> -> aval<'S>
     
     /// Adaptively folds over the map using add for additions and subtract for removals.
     /// Note that the order of elements given to add/subtract is undefined.
-    val foldGroup : add : ('S -> 'K -> 'V -> 'S) -> subtract : ('S -> 'K -> 'V -> 'S) -> zero : 'S -> set : amap<'K, 'V> -> aval<'S>
+    val foldGroup : add : ('S -> 'K -> 'V -> 'S) -> subtract : ('S -> 'K -> 'V -> 'S) -> zero : 'S -> map: amap<'K, 'V> -> aval<'S>
 
     /// Adaptively folds over the map using add for additions and recomputes the value on every removal.
     /// Note that the order of elements given to add is undefined.
-    val fold : add : ('S -> 'K -> 'V -> 'S) -> zero : 'S -> set : amap<'K, 'V> -> aval<'S>
+    val fold : add : ('S -> 'K -> 'V -> 'S) -> zero : 'S -> map: amap<'K, 'V> -> aval<'S>
     
     /// Adaptively checks whether the predicate holds for all entries.
-    val forall: predicate: ('K -> 'V -> bool) -> list: amap<'K, 'V> -> aval<bool> 
+    val forall: predicate: ('K -> 'V -> bool) -> map: amap<'K, 'V> -> aval<bool> 
     
     /// Adaptively checks whether the predicate holds for at least one entry.
-    val exists: predicate: ('K -> 'V -> bool) -> list: amap<'K, 'V> -> aval<bool> 
+    val exists: predicate: ('K -> 'V -> bool) -> map: amap<'K, 'V> -> aval<bool> 
 
     /// Adaptively computes the sum of all values returned by mapping for the map.
-    val inline sumBy: mapping : ('K -> 'V -> 'T) -> list : amap<'K, 'V> -> aval<'S>
+    val inline sumBy: mapping : ('K -> 'V -> 'T) -> map : amap<'K, 'V> -> aval<'S>
         when ('T or 'S) : (static member (+) : 'S -> 'T -> 'S) 
         and  ('T or 'S) : (static member (-) : 'S -> 'T -> 'S) 
         and   'S : (static member Zero : 'S)
         
     /// Adaptively computes the average of all values returned by mapping for the map.
-    val inline averageBy: mapping : ('K -> 'V -> 'T) -> list : amap<'K, 'V> -> aval<'S>
+    val inline averageBy: mapping : ('K -> 'V -> 'T) -> map : amap<'K, 'V> -> aval<'S>
         when ('T or 'S) : (static member (+) : 'S -> 'T -> 'S) 
         and  ('T or 'S) : (static member (-) : 'S -> 'T -> 'S) 
         and   'S : (static member Zero : 'S)
         and   'S : (static member DivideByInt : ^S * int -> ^S) 
         
     /// Adaptively checks whether the predicate holds for all entries.
-    val forallA: predicate: ('K -> 'V -> aval<bool>) -> list: amap<'K, 'V> -> aval<bool> 
+    val forallA: predicate: ('K -> 'V -> aval<bool>) -> map: amap<'K, 'V> -> aval<bool> 
     
     /// Adaptively checks whether the predicate holds for at least one entry.
-    val existsA: predicate: ('K -> 'V -> aval<bool>) -> list: amap<'K, 'V> -> aval<bool> 
+    val existsA: predicate: ('K -> 'V -> aval<bool>) -> map: amap<'K, 'V> -> aval<bool> 
     
     /// Adaptively counts all elements fulfilling the predicate
-    val countBy : predicate: ('K -> 'V -> bool) -> list: amap<'K, 'V> -> aval<int>
+    val countBy : predicate: ('K -> 'V -> bool) -> map: amap<'K, 'V> -> aval<int>
 
     /// Adaptively counts all elements fulfilling the predicate
-    val countByA : predicate: ('K -> 'V -> aval<bool>) -> list: amap<'K, 'V> -> aval<int>
+    val countByA : predicate: ('K -> 'V -> aval<bool>) -> map: amap<'K, 'V> -> aval<int>
 
     /// Adaptively computes the sum of all values returned by mapping for the map.
-    val inline sumByA: mapping : ('K -> 'V -> aval<'T>) -> list : amap<'K, 'V> -> aval<'S>
+    val inline sumByA: mapping : ('K -> 'V -> aval<'T>) -> map: amap<'K, 'V> -> aval<'S>
         when ('T or 'S) : (static member (+) : 'S -> 'T -> 'S) 
         and  ('T or 'S) : (static member (-) : 'S -> 'T -> 'S) 
         and   'S : (static member Zero : 'S)
         
     /// Adaptively computes the average of all values returned by mapping for the map.
-    val inline averageByA: mapping : ('K -> 'V -> aval<'T>) -> list : amap<'K, 'V> -> aval<'S>
+    val inline averageByA: mapping : ('K -> 'V -> aval<'T>) -> map: amap<'K, 'V> -> aval<'S>
         when ('T or 'S) : (static member (+) : 'S -> 'T -> 'S) 
         and  ('T or 'S) : (static member (-) : 'S -> 'T -> 'S) 
         and   'S : (static member Zero : 'S)

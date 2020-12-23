@@ -24,7 +24,7 @@ type ChangeableIndexList<'T> =
     member UpdateTo : target : IndexList<'T2> * init : ('T2 -> 'T) * update : ('T -> 'T2 -> 'T) -> unit
     
     /// Sets the current state as List.
-    member UpdateTo : target : IndexList<'T> -> unit
+    member UpdateTo : target : IndexList<'T> -> bool
     
     /// Performs the given Operations on the List.
     member Perform: IndexListDelta<'T> -> unit

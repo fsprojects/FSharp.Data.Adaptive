@@ -113,7 +113,7 @@ module ASet =
     val chooseA : mapping : ('A -> aval<option<'B>>) -> set : aset<'A> -> aset<'B>
 
     /// Adaptively filters the set and also respects inner changes.
-    val filterA : mapping : ('A -> aval<bool>) -> set : aset<'A> -> aset<'A>
+    val filterA : predicate : ('A -> aval<bool>) -> set : aset<'A> -> aset<'A>
 
     /// Creates an aset using the given reader-creator.
     val ofReader : create : (unit -> #IOpReader<HashSetDelta<'T>>) -> aset<'T>

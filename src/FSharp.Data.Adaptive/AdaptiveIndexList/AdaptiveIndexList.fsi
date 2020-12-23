@@ -85,10 +85,10 @@ module AList =
     val choose : mapping: ('T1 -> option<'T2>) -> list: alist<'T1> -> alist<'T2>
         
     /// Adaptively filters the list using the given predicate.
-    val filteri : mapping: (Index -> 'T -> bool) -> list: alist<'T> -> alist<'T>
+    val filteri : predicate: (Index -> 'T -> bool) -> list: alist<'T> -> alist<'T>
     
     /// Adaptively filters the list using the given predicate.
-    val filter : mapping: ('T -> bool) -> list: alist<'T> -> alist<'T>
+    val filter : predicate: ('T -> bool) -> list: alist<'T> -> alist<'T>
         
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
     val mapAi : mapping: (Index -> 'T1 -> aval<'T2>) -> list: alist<'T1> -> alist<'T2>
@@ -103,10 +103,10 @@ module AList =
     val chooseA : mapping: ('T1 -> aval<option<'T2>>) -> list: alist<'T1> -> alist<'T2>
         
     /// Adaptively filters the list using the given predicate.
-    val filterAi : mapping: (Index -> 'T -> aval<bool>) -> list: alist<'T> -> alist<'T>
+    val filterAi : predicate: (Index -> 'T -> aval<bool>) -> list: alist<'T> -> alist<'T>
     
     /// Adaptively filters the list using the given predicate.
-    val filterA : mapping: ('T -> aval<bool>) -> list: alist<'T> -> alist<'T>
+    val filterA : predicate: ('T -> aval<bool>) -> list: alist<'T> -> alist<'T>
 
     /// Adaptively applies the given mapping function to all elements and returns a new alist holding the concatenated results.
     val collecti : mapping: (Index -> 'T1 -> alist<'T2>) -> list: alist<'T1> -> alist<'T2>
@@ -146,11 +146,11 @@ module AList =
     
     /// Adaptively maps over the given list and disposes all removed values while active.
     /// Additionally the returned Disposable disposes all currently existing values and clears the resulting list.
-    val mapUsei : mapping : (Index -> 'A -> 'B) -> set : alist<'A> -> IDisposable * alist<'B> when 'B :> IDisposable
+    val mapUsei : mapping : (Index -> 'A -> 'B) -> list : alist<'A> -> IDisposable * alist<'B> when 'B :> IDisposable
     
     /// Adaptively maps over the given list and disposes all removed values while active.
     /// Additionally the returned Disposable disposes all currently existing values and clears the resulting list.
-    val mapUse : mapping : ('A -> 'B) -> set : alist<'A> -> IDisposable * alist<'B> when 'B :> IDisposable
+    val mapUse : mapping : ('A -> 'B) -> list : alist<'A> -> IDisposable * alist<'B> when 'B :> IDisposable
 
     /// Sorts the list using the keys given by projection.
     /// Note that the sorting is stable.
