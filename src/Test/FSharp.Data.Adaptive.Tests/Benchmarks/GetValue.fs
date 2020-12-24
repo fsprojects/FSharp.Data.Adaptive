@@ -16,6 +16,13 @@ open BenchmarkDotNet.Attributes
 //| AValueGetValue |   262.2 ns | 1.59 ns | 1.33 ns |      - |     - |     - |         - |
 //|     CValUpdate | 1,155.7 ns | 8.26 ns | 7.32 ns | 0.1259 |     - |     - |     792 B |
 
+// without CancellationToken
+//|         Method |      Mean |    Error |   StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+//|--------------- |----------:|---------:|---------:|-------:|------:|------:|----------:|
+//|   CValGetValue |  26.70 ns | 0.139 ns | 0.130 ns |      - |     - |     - |         - |
+//| AValueGetValue |  28.01 ns | 0.187 ns | 0.175 ns |      - |     - |     - |         - |
+//|     CValUpdate | 904.03 ns | 8.161 ns | 7.234 ns | 0.1259 |     - |     - |     792 B |
+
 [<PlainExporter; MemoryDiagnoser>]
 type GetValueBenchmark() =
     let cval = ChangeableValue(10)
