@@ -20,19 +20,40 @@ type AdaptiveToken =
     [<CompilerMessage("for internal use", 7331, IsHidden = true)>]
     val mutable caller : IAdaptiveObject
 
+    val mutable cancellationToken : CancellationToken
+
+    /// The currrent CancellationToken.
+    member x.CancellationToken = x.cancellationToken
+
+    /// The (optional) caller for the AdaptiveToken.
     member x.Caller =
         if Unchecked.isNull x.caller then None
         else Some x.caller
 
-    /// Creates a new AdaptiveToken with the given caller
+    /// Creates a new AdaptiveToken with the given caller.
     member x.WithCaller (c : IAdaptiveObject) =
-        AdaptiveToken(c)
+        AdaptiveToken(c, x.cancellationToken)
+        
+    /// Creates a new AdaptiveToken with the given CancellationToken.
+    member x.WithCancellationToken(ct : CancellationToken) =
+        AdaptiveToken(x.caller, ct)
 
-    /// The top-level AdaptiveToken without a calling IAdaptiveObject
+    /// The top-level AdaptiveToken without a calling IAdaptiveObject.
     static member Top = AdaptiveToken(Unchecked.defaultof<_>)
+    
+    /// Creates a top-level AdaptiveToken with the given CancellationToken.
+    static member Cancelable (ct : CancellationToken) =
+        AdaptiveToken(Unchecked.defaultof<_>, ct)
 
     /// Creates a new AdaptiveToken using the given caller
     internal new(caller : IAdaptiveObject) =
         {
             caller = caller
+            cancellationToken = CancellationToken.None
+        }
+    /// Creates a new AdaptiveToken using the given caller and CancellationToken.
+    internal new(caller : IAdaptiveObject, ct : CancellationToken) =
+        {
+            caller = caller
+            cancellationToken = ct
         }
