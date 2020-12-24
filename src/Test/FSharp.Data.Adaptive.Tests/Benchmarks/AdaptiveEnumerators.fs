@@ -95,6 +95,9 @@ type Struct32 =
         mutable d : float
     }
 
+    member x.Sum() = 
+        x.a + x.b + x.c + x.d
+
 [<Struct>]
 type Struct128 = 
     {
@@ -104,6 +107,9 @@ type Struct128 =
         mutable w : Struct32
     }
 
+    member x.Sum() = 
+        x.x.Sum() + x.y.Sum() + x.z.Sum() + x.w.Sum()
+
 [<Struct>] 
 type Struct384 = 
     {
@@ -111,6 +117,9 @@ type Struct384 =
         mutable s : Struct128
         mutable t : Struct128
     }
+
+    member x.Sum() = 
+        x.r.Sum() + x.s.Sum() + x.t.Sum()
 
 module BigStruct =
     let create32 (seed : int) =
@@ -618,29 +627,101 @@ type HashMapStructEnumeratorBenchmark() =
 //| CountingHashSet_128byte |  1000 |  68,235.60 ns | 241.701 ns | 201.831 ns | 22.4609 | 0.1221 |     - |  141144 B |
 //| CountingHashSet_384byte |  1000 | 134,144.08 ns | 807.431 ns | 755.272 ns | 63.2324 | 0.9766 |     - |  397144 B |
 
-// Array Buffer (with re-use) + Inline Stack Head + Single Value / Large Struct optimization
+// Array Buffer (with re-use) + Inline Stack Head: with field access
+//|                  Method | Count |         Mean |      Error |     StdDev |       Median |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+//|------------------------ |------ |-------------:|-----------:|-----------:|-------------:|-------:|------:|------:|----------:|
+//|   CountingHashSet_4byte |     0 |     19.47 ns |   0.023 ns |   0.020 ns |     19.47 ns |      - |     - |     - |         - |
+//|  CountingHashSet_32byte |     0 |     19.76 ns |   0.046 ns |   0.040 ns |     19.77 ns |      - |     - |     - |         - |
+//| CountingHashSet_128byte |     0 |     25.96 ns |   0.054 ns |   0.048 ns |     25.94 ns |      - |     - |     - |         - |
+//| CountingHashSet_384byte |     0 |     30.98 ns |   0.636 ns |   0.891 ns |     30.37 ns |      - |     - |     - |         - |
+//|   CountingHashSet_4byte |     1 |     28.28 ns |   0.318 ns |   0.298 ns |     28.41 ns | 0.0051 |     - |     - |      32 B |
+//|  CountingHashSet_32byte |     1 |     30.90 ns |   0.126 ns |   0.112 ns |     30.89 ns | 0.0089 |     - |     - |      56 B |
+//| CountingHashSet_128byte |     1 |     48.63 ns |   0.233 ns |   0.218 ns |     48.67 ns | 0.0242 |     - |     - |     152 B |
+//| CountingHashSet_384byte |     1 |     84.61 ns |   0.672 ns |   0.629 ns |     84.78 ns | 0.0650 |     - |     - |     408 B |
+//|   CountingHashSet_4byte |    10 |     62.23 ns |   0.215 ns |   0.201 ns |     62.16 ns | 0.0101 |     - |     - |      64 B |
+//|  CountingHashSet_32byte |    10 |     77.25 ns |   0.706 ns |   0.626 ns |     77.24 ns | 0.0548 |     - |     - |     344 B |
+//| CountingHashSet_128byte |    10 |    316.63 ns |   1.951 ns |   1.729 ns |    316.51 ns | 0.2074 |     - |     - |    1304 B |
+//| CountingHashSet_384byte |    10 |    588.88 ns |   4.476 ns |   4.187 ns |    589.65 ns | 0.6151 |     - |     - |    3864 B |
+//|   CountingHashSet_4byte |   100 |    564.24 ns |   2.037 ns |   1.806 ns |    563.90 ns | 0.0591 |     - |     - |     376 B |
+//|  CountingHashSet_32byte |   100 |    761.92 ns |   2.605 ns |   2.175 ns |    762.47 ns | 0.1259 |     - |     - |     792 B |
+//| CountingHashSet_128byte |   100 |  2,661.46 ns |   7.418 ns |   6.939 ns |  2,660.48 ns | 0.3700 |     - |     - |    2328 B |
+//| CountingHashSet_384byte |   100 |  5,131.63 ns |   8.108 ns |   7.187 ns |  5,131.11 ns | 1.0147 |     - |     - |    6392 B |
+//|   CountingHashSet_4byte |  1000 |  9,486.32 ns | 159.084 ns | 148.808 ns |  9,433.27 ns | 0.4578 |     - |     - |    2872 B |
+//|  CountingHashSet_32byte |  1000 | 10,735.50 ns |  69.511 ns |  58.045 ns | 10,714.00 ns | 0.5188 |     - |     - |    3320 B |
+//| CountingHashSet_128byte |  1000 | 27,918.00 ns | 188.222 ns | 157.174 ns | 27,918.36 ns | 0.7629 |     - |     - |    4952 B |
+//| CountingHashSet_384byte |  1000 | 64,257.46 ns | 226.609 ns | 200.883 ns | 64,279.79 ns | 1.3428 |     - |     - |    9048 B |
+
+// Array Buffer (with re-use) + Inline Stack Head: with x.Sum()
 //|                  Method | Count |         Mean |      Error |     StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
 //|------------------------ |------ |-------------:|-----------:|-----------:|-------:|------:|------:|----------:|
-//|   CountingHashSet_4byte |     0 |     20.27 ns |   0.052 ns |   0.046 ns |      - |     - |     - |         - |
-//|  CountingHashSet_32byte |     0 |     40.65 ns |   0.105 ns |   0.093 ns |      - |     - |     - |         - |
-//| CountingHashSet_128byte |     0 |     68.16 ns |   0.205 ns |   0.192 ns |      - |     - |     - |         - |
-//| CountingHashSet_384byte |     0 |    106.50 ns |   0.200 ns |   0.177 ns |      - |     - |     - |         - |
-//|   CountingHashSet_4byte |     1 |     27.33 ns |   0.483 ns |   0.452 ns |      - |     - |     - |         - |
-//|  CountingHashSet_32byte |     1 |     58.57 ns |   0.090 ns |   0.080 ns |      - |     - |     - |         - |
-//| CountingHashSet_128byte |     1 |     88.78 ns |   0.163 ns |   0.144 ns |      - |     - |     - |         - |
-//| CountingHashSet_384byte |     1 |    142.73 ns |   0.128 ns |   0.107 ns |      - |     - |     - |         - |
-//|   CountingHashSet_4byte |    10 |     70.78 ns |   0.209 ns |   0.175 ns | 0.0166 |     - |     - |     104 B |
-//|  CountingHashSet_32byte |    10 |    273.04 ns |   1.431 ns |   1.339 ns | 0.0672 |     - |     - |     424 B |
-//| CountingHashSet_128byte |    10 |    451.53 ns |   0.801 ns |   0.710 ns | 0.0458 |     - |     - |     288 B |
-//| CountingHashSet_384byte |    10 |    610.17 ns |   1.471 ns |   1.304 ns | 0.0458 |     - |     - |     288 B |
-//|   CountingHashSet_4byte |   100 |    612.41 ns |   6.602 ns |   6.176 ns | 0.0696 |     - |     - |     440 B |
-//|  CountingHashSet_32byte |   100 |  2,352.67 ns |  10.932 ns |  10.226 ns | 0.1450 |     - |     - |     920 B |
-//| CountingHashSet_128byte |   100 |  4,187.25 ns |  60.432 ns |  56.528 ns | 0.5035 |     - |     - |    3168 B |
-//| CountingHashSet_384byte |   100 |  5,760.34 ns |  22.282 ns |  19.752 ns | 0.5035 |     - |     - |    3168 B |
-//|   CountingHashSet_4byte |  1000 |  9,995.07 ns |  37.143 ns |  32.926 ns | 0.4578 |     - |     - |    2936 B |
-//|  CountingHashSet_32byte |  1000 | 25,207.91 ns |  56.723 ns |  50.284 ns | 0.5493 |     - |     - |    3448 B |
-//| CountingHashSet_128byte |  1000 | 41,221.64 ns | 112.617 ns | 105.342 ns | 5.0659 |     - |     - |   31969 B |
-//| CountingHashSet_384byte |  1000 | 66,310.27 ns | 263.419 ns | 246.402 ns | 5.0049 |     - |     - |   31968 B |
+//|   CountingHashSet_4byte |     0 |     19.45 ns |   0.025 ns |   0.022 ns |      - |     - |     - |         - |
+//|  CountingHashSet_32byte |     0 |     21.19 ns |   0.056 ns |   0.049 ns |      - |     - |     - |         - |
+//| CountingHashSet_128byte |     0 |     26.02 ns |   0.063 ns |   0.059 ns |      - |     - |     - |         - |
+//| CountingHashSet_384byte |     0 |     30.35 ns |   0.063 ns |   0.056 ns |      - |     - |     - |         - |
+//|   CountingHashSet_4byte |     1 |     29.35 ns |   0.491 ns |   0.459 ns | 0.0051 |     - |     - |      32 B |
+//|  CountingHashSet_32byte |     1 |     33.45 ns |   0.112 ns |   0.099 ns | 0.0089 |     - |     - |      56 B |
+//| CountingHashSet_128byte |     1 |     57.01 ns |   0.137 ns |   0.128 ns | 0.0242 |     - |     - |     152 B |
+//| CountingHashSet_384byte |     1 |    106.96 ns |   0.477 ns |   0.446 ns | 0.0650 |     - |     - |     408 B |
+//|   CountingHashSet_4byte |    10 |     60.33 ns |   0.345 ns |   0.288 ns | 0.0101 |     - |     - |      64 B |
+//|  CountingHashSet_32byte |    10 |     88.85 ns |   0.388 ns |   0.362 ns | 0.0548 |     - |     - |     344 B |
+//| CountingHashSet_128byte |    10 |    374.72 ns |   1.594 ns |   1.491 ns | 0.2074 |     - |     - |    1304 B |
+//| CountingHashSet_384byte |    10 |    800.62 ns |   4.620 ns |   3.607 ns | 0.6151 |     - |     - |    3864 B |
+//|   CountingHashSet_4byte |   100 |    570.74 ns |   8.542 ns |   7.133 ns | 0.0591 |     - |     - |     376 B |
+//|  CountingHashSet_32byte |   100 |    745.51 ns |   2.607 ns |   2.439 ns | 0.1259 |     - |     - |     792 B |
+//| CountingHashSet_128byte |   100 |  3,276.92 ns |  20.769 ns |  19.427 ns | 0.3700 |     - |     - |    2328 B |
+//| CountingHashSet_384byte |   100 |  7,174.83 ns |  32.239 ns |  30.156 ns | 1.0147 |     - |     - |    6392 B |
+//|   CountingHashSet_4byte |  1000 |  9,190.37 ns |  49.697 ns |  41.500 ns | 0.4578 |     - |     - |    2872 B |
+//|  CountingHashSet_32byte |  1000 | 11,571.38 ns |  32.859 ns |  30.737 ns | 0.5188 |     - |     - |    3320 B |
+//| CountingHashSet_128byte |  1000 | 34,489.90 ns | 122.531 ns | 114.616 ns | 0.7324 |     - |     - |    4952 B |
+//| CountingHashSet_384byte |  1000 | 81,543.80 ns | 681.020 ns | 637.027 ns | 1.3428 |     - |     - |    9048 B |
+
+// Array Buffer (with re-use) + Inline Stack Head + Single / Large Value optimization: with field access
+//|                  Method | Count |         Mean |      Error |     StdDev |       Median |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+//|------------------------ |------ |-------------:|-----------:|-----------:|-------------:|-------:|------:|------:|----------:|
+//|   CountingHashSet_4byte |     0 |     19.66 ns |   0.270 ns |   0.252 ns |     19.55 ns |      - |     - |     - |         - |
+//|  CountingHashSet_32byte |     0 |     29.91 ns |   0.169 ns |   0.158 ns |     29.85 ns |      - |     - |     - |         - |
+//| CountingHashSet_128byte |     0 |     57.14 ns |   0.315 ns |   0.295 ns |     57.14 ns |      - |     - |     - |         - |
+//| CountingHashSet_384byte |     0 |     90.67 ns |   0.206 ns |   0.161 ns |     90.64 ns |      - |     - |     - |         - |
+//|   CountingHashSet_4byte |     1 |     26.28 ns |   0.132 ns |   0.123 ns |     26.29 ns |      - |     - |     - |         - |
+//|  CountingHashSet_32byte |     1 |     34.77 ns |   0.536 ns |   0.501 ns |     34.57 ns |      - |     - |     - |         - |
+//| CountingHashSet_128byte |     1 |     70.50 ns |   0.462 ns |   0.386 ns |     70.72 ns |      - |     - |     - |         - |
+//| CountingHashSet_384byte |     1 |    117.88 ns |   2.317 ns |   2.845 ns |    119.75 ns |      - |     - |     - |         - |
+//|   CountingHashSet_4byte |    10 |     64.96 ns |   0.258 ns |   0.215 ns |     64.92 ns | 0.0101 |     - |     - |      64 B |
+//|  CountingHashSet_32byte |    10 |    143.20 ns |   1.704 ns |   1.594 ns |    142.77 ns | 0.0548 |     - |     - |     344 B |
+//| CountingHashSet_128byte |    10 |    376.66 ns |   1.826 ns |   1.525 ns |    376.96 ns | 0.0458 |     - |     - |     288 B |
+//| CountingHashSet_384byte |    10 |    509.28 ns |   7.090 ns |   6.285 ns |    506.15 ns | 0.0458 |     - |     - |     288 B |
+//|   CountingHashSet_4byte |   100 |    572.76 ns |   6.446 ns |   5.033 ns |    572.71 ns | 0.0591 |     - |     - |     376 B |
+//|  CountingHashSet_32byte |   100 |    711.78 ns |   3.453 ns |   3.230 ns |    711.21 ns | 0.1259 |     - |     - |     792 B |
+//| CountingHashSet_128byte |   100 |  3,318.92 ns |  46.577 ns |  43.568 ns |  3,297.08 ns | 0.5035 |     - |     - |    3168 B |
+//| CountingHashSet_384byte |   100 |  4,849.69 ns |  96.358 ns |  94.637 ns |  4,868.56 ns | 0.5035 |     - |     - |    3168 B |
+//|   CountingHashSet_4byte |  1000 |  9,606.45 ns |  34.864 ns |  32.612 ns |  9,606.77 ns | 0.4578 |     - |     - |    2872 B |
+//|  CountingHashSet_32byte |  1000 | 11,322.49 ns |  21.717 ns |  16.955 ns | 11,328.99 ns | 0.5188 |     - |     - |    3320 B |
+//| CountingHashSet_128byte |  1000 | 34,252.31 ns | 122.533 ns | 114.617 ns | 34,282.18 ns | 5.0659 |     - |     - |   31968 B |
+//| CountingHashSet_384byte |  1000 | 54,322.16 ns | 354.314 ns | 314.090 ns | 54,447.69 ns | 5.0659 |     - |     - |   31968 B |
+
+// Array Buffer (with re-use) + Inline Stack Head + Single / Large Value optimization: with x.Sum()
+//|                  Method | Count |         Mean |      Error |     StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+//|------------------------ |------ |-------------:|-----------:|-----------:|-------:|------:|------:|----------:|
+//|   CountingHashSet_4byte |     0 |     19.42 ns |   0.055 ns |   0.046 ns |      - |     - |     - |         - |
+//|  CountingHashSet_32byte |     0 |     32.18 ns |   0.050 ns |   0.045 ns |      - |     - |     - |         - |
+//| CountingHashSet_128byte |     0 |     62.07 ns |   0.079 ns |   0.070 ns |      - |     - |     - |         - |
+//| CountingHashSet_384byte |     0 |     89.04 ns |   0.231 ns |   0.205 ns |      - |     - |     - |         - |
+//|   CountingHashSet_4byte |     1 |     25.62 ns |   0.164 ns |   0.145 ns |      - |     - |     - |         - |
+//|  CountingHashSet_32byte |     1 |     40.70 ns |   0.180 ns |   0.151 ns |      - |     - |     - |         - |
+//| CountingHashSet_128byte |     1 |     82.15 ns |   0.364 ns |   0.341 ns |      - |     - |     - |         - |
+//| CountingHashSet_384byte |     1 |    144.05 ns |   0.365 ns |   0.324 ns |      - |     - |     - |         - |
+//|   CountingHashSet_4byte |    10 |     64.12 ns |   0.210 ns |   0.186 ns | 0.0101 |     - |     - |      64 B |
+//|  CountingHashSet_32byte |    10 |    113.51 ns |   0.445 ns |   0.394 ns | 0.0548 |     - |     - |     344 B |
+//| CountingHashSet_128byte |    10 |    438.42 ns |   0.711 ns |   0.631 ns | 0.0458 |     - |     - |     288 B |
+//| CountingHashSet_384byte |    10 |    736.63 ns |   2.028 ns |   1.798 ns | 0.0458 |     - |     - |     288 B |
+//|   CountingHashSet_4byte |   100 |    576.36 ns |   2.835 ns |   2.513 ns | 0.0591 |     - |     - |     376 B |
+//|  CountingHashSet_32byte |   100 |    806.46 ns |   3.312 ns |   2.765 ns | 0.1259 |     - |     - |     792 B |
+//| CountingHashSet_128byte |   100 |  4,095.94 ns |   8.931 ns |   7.917 ns | 0.5035 |     - |     - |    3168 B |
+//| CountingHashSet_384byte |   100 |  6,577.52 ns |   9.530 ns |   8.448 ns | 0.5035 |     - |     - |    3168 B |
+//|   CountingHashSet_4byte |  1000 |  9,458.28 ns |  35.547 ns |  33.251 ns | 0.4578 |     - |     - |    2872 B |
+//|  CountingHashSet_32byte |  1000 | 11,997.03 ns |  60.856 ns |  50.817 ns | 0.5188 |     - |     - |    3320 B |
+//| CountingHashSet_128byte |  1000 | 41,867.02 ns | 149.785 ns | 132.780 ns | 5.0659 |     - |     - |   31969 B |
+//| CountingHashSet_384byte |  1000 | 73,062.84 ns | 264.914 ns | 247.801 ns | 5.0049 |     - |     - |   31968 B |
 
 [<PlainExporter; MemoryDiagnoser>]
 type CountingHashSetEnumeratorBenchmark() =
@@ -670,19 +751,19 @@ type CountingHashSetEnumeratorBenchmark() =
     [<Benchmark>]
     member x.CountingHashSet_32byte() =
         let mutable sum = 0.0
-        for e in collection32 do sum <- sum + e.a
+        for e in collection32 do sum <- sum + e.Sum()
         sum
 
     [<Benchmark>]
     member x.CountingHashSet_128byte() =
         let mutable sum = 0.0
-        for e in collection128 do sum <- sum + e.x.b
+        for e in collection128 do sum <- sum + e.Sum()
         sum
 
     [<Benchmark>]
     member x.CountingHashSet_384byte() =
         let mutable sum = 0.0
-        for e in collection384 do sum <- sum + e.r.z.d
+        for e in collection384 do sum <- sum + e.Sum()
         sum
 
 

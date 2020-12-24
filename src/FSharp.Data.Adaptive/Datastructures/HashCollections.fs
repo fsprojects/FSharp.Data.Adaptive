@@ -4164,7 +4164,7 @@ and HashSetEnumerator<'T> =
                                     
                 let cnt = h.Count
                 if isNull x.Values || x.Values.Length < cnt-1 then
-                    x.Values <- Array.zeroCreate cnt
+                    x.Values <- Array.zeroCreate (cnt-1)
             
                 x.Next <- h.Value
                 let mutable c = h.Next

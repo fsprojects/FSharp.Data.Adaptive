@@ -361,21 +361,20 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
 /// An enumerator for CountingHashSet.
 and CountingHashSetEnumerator<'T> =
-    struct // Array Buffer (with re-use) + Inline Stack Head + Single Value / Large Struct optimization
+    struct // Array Buffer (with re-use) + Inline Stack Head
         val mutable private Root : HashMapNode<'T, int>
         val mutable private Head : HashMapNode<'T, int>
         val mutable private Tail : list<HashMapNode<'T, int>>
         val mutable private BufferValueCount : int
-        val mutable private Values : struct('T * int)[]
+        val mutable private Values : 'T[]
         val mutable private Index : int
-        val mutable private Next : 'T
         
         member x.Collect() =
             match x.Head with
             | :? HashMapNoCollisionLeaf<'T, int> as h ->
-                x.Next <- h.Key
+                x.Values.[0] <- h.Key
                 x.Index <- 0
-                x.BufferValueCount <- 0
+                x.BufferValueCount <- 1
                 if x.Tail.IsEmpty then
                     x.Head <- Unchecked.defaultof<_>
                     x.Tail <- []
@@ -387,17 +386,17 @@ and CountingHashSetEnumerator<'T> =
             | :? HashMapCollisionLeaf<'T, int> as h ->
                                     
                 let cnt = h.Count
-                if isNull x.Values || x.Values.Length < cnt-1 then
-                    x.Values <- Array.zeroCreate (cnt-1)
+                if x.Values.Length < cnt then
+                    x.Values <- Array.zeroCreate cnt
             
-                x.Next <- h.Key
+                x.Values.[0] <- h.Key
                 let mutable c = h.Next
                 let mutable i = 0
                 while not (isNull c) do
-                    x.Values.[i] <- struct(c.Key, 0)
+                    x.Values.[i] <- c.Key
                     c <- c.Next
                     i <- i + 1
-                x.BufferValueCount <- i
+                x.BufferValueCount <- cnt
                 x.Index <- 0
                 if x.Tail.IsEmpty then
                     x.Head <- Unchecked.defaultof<_>
@@ -408,12 +407,10 @@ and CountingHashSetEnumerator<'T> =
                 true
 
             | :? HashMapInner<'T, int> as h ->
-                if typesize<'T> <= 64 && h._Count <= 16 then
-                    h.CopyToV(x.Values, 0) |> ignore
+                if h._Count <= 16 then
+                    h.CopyToKeys(x.Values, 0) |> ignore
                     x.BufferValueCount <- h._Count
-                    let struct(fst, _) = x.Values.[0]
-                    x.Next <- fst
-                    x.Index <- 1 // skip first element of array
+                    x.Index <- 0
                     if x.Tail.IsEmpty then
                         x.Head <- Unchecked.defaultof<_>
                         x.Tail <- []
@@ -429,11 +426,8 @@ and CountingHashSetEnumerator<'T> =
             | _ -> false
 
         member x.MoveNext() =
+            x.Index <- x.Index + 1
             if x.Index < x.BufferValueCount then
-                let struct(fst, _) = x.Values.[x.Index]
-                x.Next <- fst
-                //x.Next <- x.Values.[x.Index].Item1
-                x.Index <- x.Index + 1
                 true
             else
                 x.Collect()
@@ -450,9 +444,8 @@ and CountingHashSetEnumerator<'T> =
             x.Head <- Unchecked.defaultof<_>
             x.Tail <- []
             x.Root <- Unchecked.defaultof<_>
-            x.Next <- Unchecked.defaultof<_>
 
-        member x.Current = x.Next
+        member x.Current = x.Values.[x.Index]
 
         interface System.Collections.IEnumerator with
             member x.MoveNext() = x.MoveNext()
@@ -469,10 +462,9 @@ and CountingHashSetEnumerator<'T> =
                 Root = map.Root
                 Head = map.Root
                 Tail = []
-                Values = if typesize<'T> <= 64 && cnt > 1 then Array.zeroCreate (min cnt 16) else null
+                Values = if cnt > 0 then Array.zeroCreate (min cnt 16) else null
                 Index = -1
                 BufferValueCount = -1
-                Next = Unchecked.defaultof<_>
             }
     end
 
