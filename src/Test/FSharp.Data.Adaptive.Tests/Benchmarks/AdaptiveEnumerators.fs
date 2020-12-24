@@ -321,6 +321,35 @@ type HashSetEnumeratorBenchmark() =
         for e in collection384 do sum <- sum + e.s.y.c
         sum
 
+//BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+//Intel Core i7-8700K CPU 3.70GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+//.NET Core SDK=5.0.101
+//    [Host]     : .NET Core 3.1.10 (CoreCLR 4.700.20.51601, CoreFX 4.700.20.51901), X64 RyuJIT DEBUG
+//    DefaultJob : .NET Core 3.1.10 (CoreCLR 4.700.20.51601, CoreFX 4.700.20.51901), X64 RyuJIT
+ 
+// Baseline
+//|            Method | Count |          Mean |        Error |       StdDev |        Median |    Gen 0 |    Gen 1 |    Gen 2 | Allocated |
+//|------------------ |------ |--------------:|-------------:|-------------:|--------------:|---------:|---------:|---------:|----------:|
+//|   IndexList_4byte |     0 |      16.63 ns |     0.108 ns |     0.096 ns |      16.62 ns |   0.0038 |        - |        - |      24 B |
+//|  IndexList_32byte |     0 |      23.38 ns |     0.169 ns |     0.149 ns |      23.43 ns |   0.0038 |        - |        - |      24 B |
+//| IndexList_128byte |     0 |      28.12 ns |     0.199 ns |     0.166 ns |      28.09 ns |   0.0038 |        - |        - |      24 B |
+//| IndexList_384byte |     0 |      33.65 ns |     0.211 ns |     0.302 ns |      33.58 ns |   0.0038 |        - |        - |      24 B |
+//|   IndexList_4byte |     1 |      17.44 ns |     0.155 ns |     0.145 ns |      17.34 ns |   0.0051 |        - |        - |      32 B |
+//|  IndexList_32byte |     1 |      25.97 ns |     0.125 ns |     0.111 ns |      25.97 ns |   0.0089 |        - |        - |      56 B |
+//| IndexList_128byte |     1 |      46.43 ns |     0.849 ns |     0.794 ns |      46.90 ns |   0.0242 |        - |        - |     152 B |
+//| IndexList_384byte |     1 |      90.72 ns |     1.830 ns |     3.481 ns |      92.28 ns |   0.0650 |        - |        - |     408 B |
+//|   IndexList_4byte |    10 |      76.26 ns |     0.583 ns |     0.456 ns |      76.40 ns |   0.0139 |        - |        - |      88 B |
+//|  IndexList_32byte |    10 |     122.65 ns |     1.002 ns |     0.888 ns |     122.62 ns |   0.0587 |        - |        - |     368 B |
+//| IndexList_128byte |    10 |     316.59 ns |     4.775 ns |     4.466 ns |     317.55 ns |   0.2112 |        - |        - |    1328 B |
+//| IndexList_384byte |    10 |     643.50 ns |    11.330 ns |    10.043 ns |     645.49 ns |   0.6189 |        - |        - |    3888 B |
+//|   IndexList_4byte |   100 |   1,010.72 ns |     8.411 ns |     7.457 ns |   1,011.54 ns |   0.1812 |        - |        - |    1144 B |
+//|  IndexList_32byte |   100 |   1,147.85 ns |     3.972 ns |     3.521 ns |   1,148.79 ns |   0.6275 |        - |        - |    3944 B |
+//| IndexList_128byte |   100 |   3,281.35 ns |    20.382 ns |    18.068 ns |   3,277.45 ns |   2.1515 |        - |        - |   13544 B |
+//| IndexList_384byte |   100 |   6,693.57 ns |    48.170 ns |    42.701 ns |   6,682.28 ns |   6.2103 |        - |        - |   39144 B |
+//|   IndexList_4byte |  1000 |  10,021.10 ns |    86.600 ns |    72.315 ns |  10,010.63 ns |   1.6479 |   0.0153 |        - |   10344 B |
+//|  IndexList_32byte |  1000 |  11,178.42 ns |    84.479 ns |    79.022 ns |  11,179.39 ns |   6.0883 |        - |        - |   38344 B |
+//| IndexList_128byte |  1000 |  87,514.29 ns |   646.150 ns |   504.471 ns |  87,365.21 ns |  39.9170 |  39.9170 |  39.9170 |  134344 B |
+//| IndexList_384byte |  1000 | 255,008.64 ns | 4,871.563 ns | 4,556.863 ns | 253,265.92 ns | 110.8398 | 110.8398 | 110.8398 |  390345 B |
 
 [<PlainExporter; MemoryDiagnoser>]
 type IndexListEnumeratorBenchmark() =
