@@ -60,6 +60,21 @@ type Monitor =
     static member inline IsEntered (_o : obj) = true
     static member inline TryEnter (_o : obj) = true
 
+type CancellationTokenRegistration() =
+    member x.Unregister() = true
+    member x.Dispose() = ()
+    interface System.IDisposable with
+        member x.Dispose() = ()
+
+[<AllowNullLiteral>]
+type CancellationToken =
+    static member None : CancellationToken = null
+
+    member x.IsCancellationRequested = false
+    member x.CanBeCanceled = false
+    member x.ThrowIfCancellationRequested() = ()
+    member x.Register(action : System.Action) = CancellationTokenRegistration()
+
 namespace Microsoft.FSharp.Core
 
 module OptimizedClosures =
