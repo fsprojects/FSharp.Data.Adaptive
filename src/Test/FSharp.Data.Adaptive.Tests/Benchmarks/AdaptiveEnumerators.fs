@@ -810,6 +810,35 @@ type IndexListDeltaEnumeratorBenchmark() =
         for e in collection384 do sum <- sum + 1
         sum
 
+//BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+//Intel Core i7-8700K CPU 3.70GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+//.NET Core SDK=5.0.101
+//  [Host]     : .NET Core 3.1.10 (CoreCLR 4.700.20.51601, CoreFX 4.700.20.51901), X64 RyuJIT DEBUG
+//  DefaultJob : .NET Core 3.1.10 (CoreCLR 4.700.20.51601, CoreFX 4.700.20.51901), X64 RyuJIT
+
+// Array Buffer (with re-use) + Inline Stack Head
+//|               Method | Count |         Mean |      Error |     StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+//|--------------------- |------ |-------------:|-----------:|-----------:|-------:|------:|------:|----------:|
+//|   HashSetDelta_4byte |     0 |     19.56 ns |   0.035 ns |   0.029 ns |      - |     - |     - |         - |
+//|  HashSetDelta_32byte |     0 |     19.70 ns |   0.045 ns |   0.040 ns |      - |     - |     - |         - |
+//| HashSetDelta_128byte |     0 |     19.78 ns |   0.083 ns |   0.073 ns |      - |     - |     - |         - |
+//| HashSetDelta_384byte |     0 |     19.73 ns |   0.069 ns |   0.061 ns |      - |     - |     - |         - |
+//|   HashSetDelta_4byte |     1 |     32.34 ns |   0.217 ns |   0.203 ns | 0.0051 |     - |     - |      32 B |
+//|  HashSetDelta_32byte |     1 |     34.22 ns |   0.448 ns |   0.419 ns | 0.0102 |     - |     - |      64 B |
+//| HashSetDelta_128byte |     1 |     60.42 ns |   0.230 ns |   0.215 ns | 0.0254 |     - |     - |     160 B |
+//| HashSetDelta_384byte |     1 |     93.81 ns |   0.866 ns |   0.768 ns | 0.0663 |     - |     - |     416 B |
+//|   HashSetDelta_4byte |    10 |    102.11 ns |   0.431 ns |   0.360 ns | 0.0166 |     - |     - |     104 B |
+//|  HashSetDelta_32byte |    10 |    124.27 ns |   0.471 ns |   0.441 ns | 0.0675 |     - |     - |     424 B |
+//| HashSetDelta_128byte |    10 |    412.49 ns |   2.250 ns |   2.104 ns | 0.2203 |     - |     - |    1384 B |
+//| HashSetDelta_384byte |    10 |    710.35 ns |   3.179 ns |   2.974 ns | 0.6285 |     - |     - |    3944 B |
+//|   HashSetDelta_4byte |   100 |    917.26 ns |  15.746 ns |  14.729 ns | 0.0696 |     - |     - |     440 B |
+//|  HashSetDelta_32byte |   100 |  1,029.33 ns |  15.315 ns |  13.576 ns | 0.1450 |     - |     - |     920 B |
+//| HashSetDelta_128byte |   100 |  3,847.37 ns |  19.511 ns |  17.296 ns | 0.3891 |     - |     - |    2456 B |
+//| HashSetDelta_384byte |   100 |  6,263.23 ns |  16.441 ns |  15.379 ns | 1.0376 |     - |     - |    6520 B |
+//|   HashSetDelta_4byte |  1000 | 12,021.92 ns |  35.964 ns |  28.078 ns | 0.4578 |     - |     - |    2936 B |
+//|  HashSetDelta_32byte |  1000 | 12,325.90 ns | 209.099 ns | 205.364 ns | 0.5493 |     - |     - |    3448 B |
+//| HashSetDelta_128byte |  1000 | 39,528.23 ns | 262.127 ns | 232.369 ns | 0.7935 |     - |     - |    5080 B |
+//| HashSetDelta_384byte |  1000 | 68,683.09 ns |  99.583 ns |  77.748 ns | 1.3428 |     - |     - |    9176 B |
 
 [<PlainExporter; MemoryDiagnoser>]
 type HashSetDeltaEnumeratorBenchmark() =
@@ -854,6 +883,35 @@ type HashSetDeltaEnumeratorBenchmark() =
         for e in collection384 do sum <- sum + 1
         sum
 
+//BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+//Intel Core i7-8700K CPU 3.70GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+//.NET Core SDK=5.0.101
+//  [Host]     : .NET Core 3.1.10 (CoreCLR 4.700.20.51601, CoreFX 4.700.20.51901), X64 RyuJIT DEBUG
+//  DefaultJob : .NET Core 3.1.10 (CoreCLR 4.700.20.51601, CoreFX 4.700.20.51901), X64 RyuJIT
+
+// using HashMapEnumerator with Array Re-Use + Inline Stack Head
+//|               Method | Count |          Mean |      Error |     StdDev |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+//|--------------------- |------ |--------------:|-----------:|-----------:|---------:|--------:|------:|----------:|
+//|   HashMapDelta_4byte |     0 |      22.03 ns |   0.150 ns |   0.140 ns |        - |       - |     - |         - |
+//|  HashMapDelta_32byte |     0 |      27.54 ns |   0.117 ns |   0.109 ns |        - |       - |     - |         - |
+//| HashMapDelta_128byte |     0 |      34.26 ns |   0.056 ns |   0.050 ns |        - |       - |     - |         - |
+//| HashMapDelta_384byte |     0 |      38.44 ns |   0.100 ns |   0.089 ns |        - |       - |     - |         - |
+//|   HashMapDelta_4byte |     1 |      34.89 ns |   0.055 ns |   0.052 ns |   0.0102 |       - |     - |      64 B |
+//|  HashMapDelta_32byte |     1 |      46.93 ns |   0.106 ns |   0.094 ns |   0.0191 |       - |     - |     120 B |
+//| HashMapDelta_128byte |     1 |      91.65 ns |   0.383 ns |   0.359 ns |   0.0497 |       - |     - |     312 B |
+//| HashMapDelta_384byte |     1 |     135.45 ns |   0.762 ns |   0.675 ns |   0.1311 |  0.0002 |     - |     824 B |
+//|   HashMapDelta_4byte |    10 |     114.53 ns |   0.630 ns |   0.589 ns |   0.0675 |       - |     - |     424 B |
+//|  HashMapDelta_32byte |    10 |     210.21 ns |   1.200 ns |   1.123 ns |   0.1566 |  0.0005 |     - |     984 B |
+//| HashMapDelta_128byte |    10 |     621.10 ns |   1.354 ns |   1.131 ns |   0.4625 |  0.0048 |     - |    2904 B |
+//| HashMapDelta_384byte |    10 |   1,079.82 ns |   3.336 ns |   2.957 ns |   1.2779 |  0.0362 |     - |    8024 B |
+//|   HashMapDelta_4byte |   100 |   1,321.77 ns |   5.968 ns |   5.290 ns |   0.5741 |  0.0019 |     - |    3608 B |
+//|  HashMapDelta_32byte |   100 |   2,354.86 ns |   6.418 ns |   5.359 ns |   1.4648 |  0.0114 |     - |    9208 B |
+//| HashMapDelta_128byte |   100 |   6,550.54 ns |  35.941 ns |  30.012 ns |   4.5242 |  0.1221 |     - |   28408 B |
+//| HashMapDelta_384byte |   100 |  11,375.15 ns |  19.324 ns |  18.076 ns |  12.6801 |  0.9460 |     - |   79608 B |
+//|   HashMapDelta_4byte |  1000 |  15,710.54 ns |  51.273 ns |  45.452 ns |   5.5237 |       - |     - |   34808 B |
+//|  HashMapDelta_32byte |  1000 |  27,304.23 ns |  85.427 ns |  79.908 ns |  14.4958 |  0.1526 |     - |   91096 B |
+//| HashMapDelta_128byte |  1000 |  69,801.44 ns | 238.503 ns | 223.096 ns |  45.0439 |  1.3428 |     - |  282872 B |
+//| HashMapDelta_384byte |  1000 | 126,103.01 ns | 593.341 ns | 555.012 ns | 126.7090 | 10.3760 |     - |  794936 B |
 
 [<PlainExporter; MemoryDiagnoser>]
 type HashMapDeltaEnumeratorBenchmark() =

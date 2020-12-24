@@ -187,24 +187,116 @@ type HashSetDelta<'T>(store: HashMap<'T, int>) =
         member x.GetEnumerator() = new HashSetDeltaEnumerator<_>(store) :> _
 
 /// Special enumerator for HashSetDelta.
-and HashSetDeltaEnumerator<'T>(store: HashMap<'T, int>) =
-    let mutable e = store.GetStructEnumerator()
-    
-    member x.MoveNext() = e.MoveNext()
-    member x.Reset() = e.Reset()
-    member x.Dispose() = e.Dispose()
-    member x.Current = 
-        let struct(v,c) = e.Current
-        SetOperation(v,c)
+and HashSetDeltaEnumerator<'T> =
+    struct // Array Buffer (with re-use) + Inline Stack Head
+        val mutable private Root : HashMapNode<'T, int>
+        val mutable private Head : HashMapNode<'T, int>
+        val mutable private Tail : list<HashMapNode<'T, int>>
+        val mutable private BufferValueCount : int
+        val mutable private Values : struct('T * int)[]
+        val mutable private Index : int
+        
+        member x.Collect() =
+            match x.Head with
+            | :? HashMapNoCollisionLeaf<'T, int> as h ->
+                x.Values.[0] <- struct(h.Key, h.Value)
+                x.Index <- 0
+                x.BufferValueCount <- 1
+                if x.Tail.IsEmpty then
+                    x.Head <- Unchecked.defaultof<_>
+                    x.Tail <- []
+                else
+                    x.Head <- x.Tail.Head
+                    x.Tail <- x.Tail.Tail    
+                true
 
-    interface IEnumerator with
-        member x.MoveNext() = x.MoveNext()
-        member x.Current = x.Current :> obj
-        member x.Reset() = x.Reset()
+            | :? HashMapCollisionLeaf<'T, int> as h ->
+                                    
+                let cnt = h.Count
+                if x.Values.Length < cnt then
+                    x.Values <- Array.zeroCreate cnt
+            
+                x.Values.[0] <- struct(h.Key, h.Value)
+                let mutable c = h.Next
+                let mutable i = 0
+                while not (isNull c) do
+                    x.Values.[i] <- struct(c.Key, c.Value)
+                    c <- c.Next
+                    i <- i + 1
+                x.BufferValueCount <- cnt
+                x.Index <- 0
+                if x.Tail.IsEmpty then
+                    x.Head <- Unchecked.defaultof<_>
+                    x.Tail <- []
+                else
+                    x.Head <- x.Tail.Head
+                    x.Tail <- x.Tail.Tail
+                true
 
-    interface IEnumerator<SetOperation<'T>> with
-        member x.Dispose() = x.Dispose()
-        member x.Current = x.Current
+            | :? HashMapInner<'T, int> as h ->
+                if h._Count <= 16 then
+                    h.CopyToV(x.Values, 0) |> ignore
+                    x.BufferValueCount <- h._Count
+                    x.Index <- 0
+                    if x.Tail.IsEmpty then
+                        x.Head <- Unchecked.defaultof<_>
+                        x.Tail <- []
+                    else
+                        x.Head <- x.Tail.Head
+                        x.Tail <- x.Tail.Tail
+                    true
+                else
+                    x.Head <- h.Left
+                    x.Tail <- h.Right :: x.Tail
+                    x.Collect()
+                
+            | _ -> false
+
+        member x.MoveNext() =
+            x.Index <- x.Index + 1
+            if x.Index < x.BufferValueCount then
+                true
+            else
+                x.Collect()
+
+        member x.Reset() =
+            x.Index <- -1
+            x.Head <- x.Root
+            x.Tail <- []
+            x.BufferValueCount <- -1
+
+        member x.Dispose() =
+            x.Values <- null
+            x.Index <- -1
+            x.Head <- Unchecked.defaultof<_>
+            x.Tail <- []
+            x.Root <- Unchecked.defaultof<_>
+
+        member x.Current : SetOperation<'T> = 
+            let struct(v,c) = x.Values.[x.Index]
+            SetOperation(v,c)
+
+        interface System.Collections.IEnumerator with
+            member x.MoveNext() = x.MoveNext()
+            member x.Reset() = x.Reset()
+            member x.Current = x.Current :> obj
+            
+        interface System.Collections.Generic.IEnumerator<SetOperation<'T>> with
+            member x.Current = x.Current
+            member x.Dispose() = x.Dispose()
+
+        new (map : HashMap<'T, int>) =
+            let cnt = map.Count
+            {
+                Root = map.Root
+                Head = map.Root
+                Tail = []
+                Values = if cnt > 0 then Array.zeroCreate (min cnt 16) else null
+                Index = -1
+                BufferValueCount = -1
+            }
+    end
+
 
 /// Functional operators for HashSetDelta.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix); CompiledName("FSharpHashSetDeltaModule")>]
