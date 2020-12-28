@@ -29,6 +29,7 @@ and amap<'Key, 'Value> = IAdaptiveHashMap<'Key, 'Value>
 module internal MapReductions =
 
     /// aval for reduce operations.
+    [<Sealed>]
     type ReduceValue<'k, 'a, 's, 'v>(reduction : AdaptiveReduction<'a, 's, 'v>, input : amap<'k, 'a>) =
         inherit AdaptiveObject()
 
@@ -98,6 +99,7 @@ module internal MapReductions =
             member x.GetValue t = x.GetValue t
             
     /// aval for reduceBy operations.
+    [<Sealed>]
     type ReduceByValue<'k, 'a, 'b, 's, 'v>(reduction : AdaptiveReduction<'b, 's, 'v>, mapping : 'k -> 'a -> 'b, input : amap<'k, 'a>) =
         inherit AdaptiveObject()
 
@@ -186,6 +188,7 @@ module internal MapReductions =
             member x.GetValue t = x.GetValue t
 
     /// aval for reduceByA operations.
+    [<Sealed>]
     type AdaptiveReduceByValue<'k, 'a, 'b, 's, 'v>(reduction : AdaptiveReduction<'b, 's, 'v>, mapping : 'k -> 'a -> aval<'b>, l : amap<'k, 'a>) =
         inherit AdaptiveObject()
 
@@ -344,6 +347,7 @@ module internal MapReductions =
 module AdaptiveHashMapImplementation =
 
     /// Core implementation for a dependent map.
+    [<Sealed>]
     type AdaptiveHashMapImpl<'Key, 'Value>(createReader : unit -> IOpReader<HashMapDelta<'Key, 'Value>>) =
         let history = History(createReader, HashMap.trace)
         /// Gets a new reader to the set.
@@ -361,6 +365,7 @@ module AdaptiveHashMapImplementation =
             member x.History = Some history
 
     /// Efficient implementation for an empty adaptive map.
+    [<Sealed>]
     type EmptyMap<'Key, 'Value> private() =   
         static let instance = EmptyMap<'Key, 'Value>() :> amap<_,_>
         let content = AVal.constant HashMap.empty
@@ -377,6 +382,7 @@ module AdaptiveHashMapImplementation =
             member x.History = None
 
     /// Efficient implementation for a constant adaptive map.
+    [<Sealed>]
     type ConstantMap<'Key, 'Value>(content : Lazy<HashMap<'Key, 'Value>>) =
         let value = AVal.delay (fun () -> content.Value)
 
@@ -396,6 +402,7 @@ module AdaptiveHashMapImplementation =
             member x.History = None
 
     /// Reader for map operations.
+    [<Sealed>]
     type MapWithKeyReader<'Key, 'Value1, 'Value2>(input : amap<'Key, 'Value1>, mapping : 'Key -> 'Value1 -> 'Value2) =
         inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.empty)
         
@@ -419,6 +426,7 @@ module AdaptiveHashMapImplementation =
             ) |> HashMapDelta
             
     /// Reader for map operations without keys.
+    [<Sealed>]
     type MapReader<'Key, 'Value1, 'Value2>(input : amap<'Key, 'Value1>, mapping : 'Value1 -> 'Value2) =
         inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.empty)
 
@@ -460,6 +468,7 @@ module AdaptiveHashMapImplementation =
 
 
     /// Reader for mapUse operations.
+    [<Sealed>]
     type MapUseReader<'K, 'A, 'B when 'B :> IDisposable>(input : amap<'K, 'A>, mapping : 'K -> 'A -> 'B) =
         inherit AbstractReader<HashMapDelta<'K, 'B>>(HashMapDelta.empty)
             
@@ -512,6 +521,7 @@ module AdaptiveHashMapImplementation =
         
 
     /// Reader for choose operations.
+    [<Sealed>]
     type ChooseWithKeyReader<'Key, 'Value1, 'Value2>(input : amap<'Key, 'Value1>, mapping : 'Key -> 'Value1 -> option<'Value2>) =
         inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.empty)
 
@@ -557,6 +567,7 @@ module AdaptiveHashMapImplementation =
             ) |> HashMapDelta
             
     /// Reader for choose operations without keys.
+    [<Sealed>]
     type ChooseReader<'Key, 'Value1, 'Value2>(input : amap<'Key, 'Value1>, f : 'Value1 -> option<'Value2>) =
         inherit AbstractReader<HashMapDelta<'Key, 'Value2>>(HashMapDelta.empty)
 
@@ -617,6 +628,7 @@ module AdaptiveHashMapImplementation =
 
             
     /// Reader for mapA operations.
+    [<Sealed>]
     type MapAReader<'k, 'a, 'b>(input : amap<'k, 'a>, mapping : 'k -> 'a -> aval<'b>) =
         inherit AbstractReader<HashMapDelta<'k, 'b>>(HashMapDelta.empty)
 
@@ -684,6 +696,7 @@ module AdaptiveHashMapImplementation =
             HashMapDelta.ofHashMap changes
      
     /// Reader for chooseA operations.
+    [<Sealed>]
     type ChooseAReader<'k, 'a, 'b>(input : amap<'k, 'a>, mapping : 'k -> 'a -> aval<Option<'b>>) =
         inherit AbstractReader<HashMapDelta<'k, 'b>>(HashMapDelta.empty)
 
@@ -768,6 +781,7 @@ module AdaptiveHashMapImplementation =
 
 
     /// Reader for union/unionWith operations.
+    [<Sealed>]
     type UnionWithReader<'Key, 'Value>(l : amap<'Key, 'Value>, r : amap<'Key, 'Value>, resolve : 'Key -> 'Value -> 'Value -> 'Value) =
         inherit AbstractReader<HashMapDelta<'Key, 'Value>>(HashMapDelta.empty)
 
@@ -801,6 +815,7 @@ module AdaptiveHashMapImplementation =
             HashMap.choose2 merge lops.Store rops.Store |> HashMapDelta
 
     /// Reader for ofAVal.
+    [<Sealed>]
     type AValReader<'Seq, 'Key, 'Value when 'Seq :> seq<'Key * 'Value>>(input : aval<'Seq>) =
         inherit AbstractReader<HashMap<'Key, 'Value>, HashMapDelta<'Key, 'Value>>(HashMap.trace)
 
@@ -811,6 +826,7 @@ module AdaptiveHashMapImplementation =
             |> HashMap.computeDelta x.State
 
     /// Reader for bind.
+    [<Sealed>]
     type BindReader<'T, 'Key, 'Value>(value : aval<'T>, mapping : 'T -> amap<'Key, 'Value>) =
         inherit AbstractReader<HashMapDelta<'Key, 'Value>>(HashMapDelta.empty)
 
@@ -839,6 +855,7 @@ module AdaptiveHashMapImplementation =
                 HashMapDelta.combine (HashMapDelta rem) add
 
     /// Reader for toASet.
+    [<Sealed>]
     type ToASetReader<'Key, 'Value>(input : amap<'Key, 'Value>) =
         inherit AbstractReader<HashSetDelta<'Key * 'Value>>(HashSetDelta.empty)
 
@@ -893,6 +910,7 @@ module AdaptiveHashMapImplementation =
             deltas
             
     /// Reader for toASetValues.
+    [<Sealed>]
     type ToValueASetReader<'Key, 'Value>(input : amap<'Key, 'Value>) =
         inherit AbstractReader<HashSetDelta<'Value>>(HashSetDelta.empty)
 
@@ -944,6 +962,7 @@ module AdaptiveHashMapImplementation =
             deltas
 
     /// Reader for mapSet.
+    [<Sealed>]
     type MapSetReader<'Key, 'Value>(set : aset<'Key>, mapping : 'Key -> 'Value) =
         inherit AbstractReader<HashMapDelta<'Key, 'Value>>(HashMapDelta.empty)
 
@@ -972,6 +991,7 @@ module AdaptiveHashMapImplementation =
     /// Reader used for ofASet operations.
     /// It's safe to assume that the view function will only be called with non-empty HashSets.
     /// Internally assumes that the view function is cheap.
+    [<Sealed>]
     type SetReader<'Key, 'Value, 'View>(input : aset<'Key * 'Value>, view : HashSet<'Value> -> 'View) =
         inherit AbstractReader<HashMapDelta<'Key, 'View>>(HashMapDelta.empty)
 

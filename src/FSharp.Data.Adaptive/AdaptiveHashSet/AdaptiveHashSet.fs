@@ -27,6 +27,7 @@ and aset<'T> = IAdaptiveHashSet<'T>
 module SetReductions =
     
     /// aval for contains queries.
+    [<Sealed>]
     type ContainsValue<'T>(input : aset<'T>, value : 'T) =
         inherit AbstractVal<bool>()
 
@@ -43,6 +44,7 @@ module SetReductions =
             refCount > 0
 
     /// aval for reduce operations.
+    [<Sealed>]
     type ReduceValue<'a, 's, 'v>(reduction : AdaptiveReduction<'a, 's, 'v>, input : aset<'a>) =
         inherit AdaptiveObject()
 
@@ -94,6 +96,7 @@ module SetReductions =
             member x.GetValue t = x.GetValue t
             
     /// aval for reduceBy operations.
+    [<Sealed>]
     type ReduceByValue<'a, 'b, 's, 'v>(reduction : AdaptiveReduction<'b, 's, 'v>, mapping : 'a -> 'b, input : aset<'a>) =
         inherit AdaptiveObject()
 
@@ -177,6 +180,7 @@ module SetReductions =
             member x.GetValue t = x.GetValue t
 
     /// aval for reduceByA operations.
+    [<Sealed>]
     type AdaptiveReduceByValue<'a, 'b, 's, 'v>(reduction : AdaptiveReduction<'b, 's, 'v>, mapping : 'a -> aval<'b>, l : aset<'a>) =
         inherit AdaptiveObject()
 
@@ -339,6 +343,7 @@ module AdaptiveHashSetImplementation =
     let inline checkTag (value : 'a) (real : obj) = DefaultEquality.equals (value :> obj) real
     
     /// Core implementation for a dependent set.
+    [<Sealed>]
     type AdaptiveHashSetImpl<'T>(createReader : unit -> IOpReader<HashSetDelta<'T>>) =
         let history = History(createReader, CountingHashSet.trace)
         let content = history |> AVal.map CountingHashSet.toHashSet
@@ -358,6 +363,7 @@ module AdaptiveHashSetImplementation =
             member x.History = Some history
 
     /// Efficient implementation for an empty adaptive set.
+    [<Sealed>]
     type EmptySet<'T> private() =   
         static let instance = EmptySet<'T>() :> aset<_>
         let content = AVal.constant HashSet.empty
@@ -374,6 +380,7 @@ module AdaptiveHashSetImplementation =
             member x.History = None
 
     /// Efficient implementation for a constant adaptive set.
+    [<Sealed>]
     type ConstantSet<'T>(content : Lazy<HashSet<'T>>) =
         let value = AVal.delay (fun () -> content.Value)
 
@@ -394,6 +401,7 @@ module AdaptiveHashSetImplementation =
 
 
     /// Reader for map operations.
+    [<Sealed>]
     type MapReader<'A, 'B>(input : aset<'A>, mapping : 'A -> 'B) =
         inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.empty)
             
@@ -419,6 +427,7 @@ module AdaptiveHashSetImplementation =
         
 
     /// Reader for mapUse operations.
+    [<Sealed>]
     type MapUseReader<'A, 'B when 'B :> IDisposable>(input : aset<'A>, mapping : 'A -> 'B) =
         inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.empty)
             
@@ -464,6 +473,7 @@ module AdaptiveHashSetImplementation =
             
 
     /// Reader for collect operations with inner constants.
+    [<Sealed>]
     type CollectSeqReader<'A, 'B>(input : aset<'A>, mapping : 'A -> seq<'B>) =
         inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.empty)
             
@@ -488,6 +498,7 @@ module AdaptiveHashSetImplementation =
             )
           
     /// Reader for choose operations.
+    [<Sealed>]
     type ChooseReader<'A, 'B>(input : aset<'A>, mapping : 'A -> option<'B>) =
         inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.empty)
             
@@ -530,6 +541,7 @@ module AdaptiveHashSetImplementation =
             )
 
     /// Reader for filter operations.
+    [<Sealed>]
     type FilterReader<'T>(input : aset<'T>, predicate : 'T -> bool) =
         inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.empty)
             
@@ -554,6 +566,7 @@ module AdaptiveHashSetImplementation =
             )
 
     /// Reader for fully dynamic union operations.
+    [<Sealed>]
     type UnionReader<'T>(input : aset<aset<'T>>) =
         inherit AbstractDirtyReader<IHashSetReader<'T>, HashSetDelta<'T>>(HashSetDelta.monoid, checkTag "InnerReader")
 
@@ -597,6 +610,7 @@ module AdaptiveHashSetImplementation =
             deltas
 
     /// Reader for binary intersect operations.
+    [<Sealed>]
     type IntersectReader<'T>(set1 : aset<'T>, set2 : aset<'T>) =
         inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.empty)
 
@@ -647,6 +661,7 @@ module AdaptiveHashSetImplementation =
 
 
     /// Reader for unioning a constant set of asets.
+    [<Sealed>]
     type UnionConstantReader<'T>(input : HashSet<aset<'T>>) =
         inherit AbstractDirtyReader<IHashSetReader<'T>, HashSetDelta<'T>>(HashSetDelta.monoid, checkTag "InnerReader")
 
@@ -672,6 +687,7 @@ module AdaptiveHashSetImplementation =
                 )
 
     /// Reader for unioning a dynamic aset of immutable sets.
+    [<Sealed>]
     type UnionHashSetReader<'T>(input : aset<HashSet<'T>>) =
         inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.empty)
 
@@ -686,6 +702,7 @@ module AdaptiveHashSetImplementation =
             )
 
     /// Reader for collect operations.
+    [<Sealed>]
     type CollectReader<'A, 'B>(input : aset<'A>, mapping : 'A -> aset<'B>) =
         inherit AbstractDirtyReader<IHashSetReader<'B>, HashSetDelta<'B>>(HashSetDelta.monoid, checkTag "InnerReader")
 
@@ -733,6 +750,7 @@ module AdaptiveHashSetImplementation =
             deltas
 
     /// Reader for aval<HashSet<_>>
+    [<Sealed>]
     type AValReader<'S, 'A when 'S :> seq<'A>>(input : aval<'S>) =
         inherit AbstractReader<HashSetDelta<'A>>(HashSetDelta.empty)
 
@@ -745,6 +763,7 @@ module AdaptiveHashSetImplementation =
             deltas
 
     /// Reader for bind operations.
+    [<Sealed>]
     type BindReader<'A, 'B>(input : aval<'A>, mapping : 'A -> aset<'B>) =
         inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.empty)
             
@@ -784,6 +803,7 @@ module AdaptiveHashSetImplementation =
                 r.GetChanges token
 
     /// Reader for flattenA
+    [<Sealed>]
     type FlattenAReader<'T>(input : aset<aval<'T>>) =
         inherit AbstractDirtyReader<aval<'T>, HashSetDelta<'T>>(HashSetDelta.monoid, isNull)
             
@@ -832,6 +852,7 @@ module AdaptiveHashSetImplementation =
             
 
     /// Reader for mapA
+    [<Sealed>]
     type MapAReader<'A, 'B>(input : aset<'A>, mapping : 'A -> aval<'B>) =
         inherit AbstractDirtyReader<aval<'B>, HashSetDelta<'B>>(HashSetDelta.monoid, isNull)
             
@@ -893,6 +914,7 @@ module AdaptiveHashSetImplementation =
             deltas
             
     /// Reader for chooseA
+    [<Sealed>]
     type ChooseAReader<'A, 'B>(input : aset<'A>, f : 'A -> aval<option<'B>>) =
         inherit AbstractDirtyReader<aval<option<'B>>, HashSetDelta<'B>>(HashSetDelta.monoid, isNull)
             

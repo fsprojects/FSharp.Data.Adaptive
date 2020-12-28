@@ -30,6 +30,7 @@ and alist<'T> = IAdaptiveIndexList<'T>
 module internal Reductions =
 
     /// aval for reduce operations.
+    [<Sealed>]
     type ReduceValue<'a, 's, 'v>(reduction : AdaptiveReduction<'a, 's, 'v>, input : alist<'a>) =
         inherit AdaptiveObject()
 
@@ -98,6 +99,7 @@ module internal Reductions =
             member x.GetValue t = x.GetValue t
             
     /// aval for reduceBy operations.
+    [<Sealed>]
     type ReduceByValue<'a, 'b, 's, 'v>(reduction : AdaptiveReduction<'b, 's, 'v>, mapping : Index -> 'a -> 'b, input : alist<'a>) =
         inherit AdaptiveObject()
 
@@ -186,6 +188,7 @@ module internal Reductions =
             member x.GetValue t = x.GetValue t
 
     /// aval for reduceByA operations.
+    [<Sealed>]
     type AdaptiveReduceByValue<'a, 'b, 's, 'v>(reduction : AdaptiveReduction<'b, 's, 'v>, mapping : Index -> 'a -> aval<'b>, l : alist<'a>) =
         inherit AdaptiveObject()
 
@@ -347,6 +350,7 @@ module internal AdaptiveIndexListImplementation =
     let inline checkTag (value : 'a) (real : obj) = DefaultEquality.equals (value :> obj) real
     
     /// Core implementation for a dependent list.
+    [<Sealed>]
     type AdaptiveIndexListImpl<'T>(ofReaderReader : unit -> IOpReader<IndexListDelta<'T>>) =
         let history = History(ofReaderReader, IndexList.trace)
 
@@ -365,6 +369,7 @@ module internal AdaptiveIndexListImplementation =
             member x.History = Some history
 
     /// Efficient implementation for an empty adaptive list.
+    [<Sealed>]
     type EmptyList<'T> private() =   
         static let instance = EmptyList<'T>() :> alist<_>
         let content = AVal.constant IndexList.empty
@@ -381,6 +386,7 @@ module internal AdaptiveIndexListImplementation =
             member x.History = None
 
     /// Efficient implementation for a constant adaptive list.
+    [<Sealed>]
     type ConstantList<'T>(content : Lazy<IndexList<'T>>) =
         let value = AVal.delay (fun () -> content.Value)
 
@@ -401,6 +407,7 @@ module internal AdaptiveIndexListImplementation =
 
 
     /// Reader for init operation
+    [<Sealed>]
     type InitReader<'T>(input : aval<int>, mapping : int -> 'T) =
         inherit AbstractReader<IndexListDelta<'T>>(IndexListDelta.empty)
         let mutable lastLength = 0
@@ -422,6 +429,7 @@ module internal AdaptiveIndexListImplementation =
             delta
 
     /// Reader for map operations.
+    [<Sealed>]
     type MapReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> 'b) =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
@@ -442,6 +450,7 @@ module internal AdaptiveIndexListImplementation =
             )
 
     /// Reader for mapUse operations.
+    [<Sealed>]
     type MapUseReader<'a, 'b when 'b :> System.IDisposable>(input : alist<'a>, mapping : Index -> 'a -> 'b) =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
@@ -493,6 +502,7 @@ module internal AdaptiveIndexListImplementation =
                 )
 
     /// Reader for choose operations.
+    [<Sealed>]
     type ChooseReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> option<'b>) =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
@@ -536,6 +546,7 @@ module internal AdaptiveIndexListImplementation =
         )
 
     /// Reader for filter operations.
+    [<Sealed>]
     type FilterReader<'a>(input : alist<'a>, predicate : Index -> 'a -> bool) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
 
@@ -580,6 +591,7 @@ module internal AdaptiveIndexListImplementation =
             )
             
     /// Reader for mapA operations.
+    [<Sealed>]
     type MapAReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> aval<'b>) =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
@@ -647,6 +659,7 @@ module internal AdaptiveIndexListImplementation =
             changes
      
     /// Reader for chooseA operations.
+    [<Sealed>]
     type ChooseAReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> aval<Option<'b>>) =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
@@ -729,6 +742,7 @@ module internal AdaptiveIndexListImplementation =
             changes
   
     /// Ulitity used by CollectReader.
+    [<Sealed>]
     type MultiReader<'a>(mapping : IndexMapping<Index * Index>, list : alist<'a>, release : alist<'a> -> unit) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
             
@@ -814,6 +828,7 @@ module internal AdaptiveIndexListImplementation =
                 IndexListDelta.empty
 
     /// Reader for collect operations.
+    [<Sealed>]
     type CollectReader<'a, 'b>(input : alist<'a>, f : Index -> 'a -> alist<'b>) =
         inherit AbstractDirtyReader<MultiReader<'b>, IndexListDelta<'b>>(IndexListDelta.monoid, checkTag "MultiReader")
             
@@ -891,6 +906,7 @@ module internal AdaptiveIndexListImplementation =
             result
 
     /// Helper for ConcatReader.
+    [<Sealed>]
     type IndexedReader<'a>(mapping : IndexMapping<Index * Index>, index : Index, input : alist<'a>) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty) 
 
@@ -913,6 +929,7 @@ module internal AdaptiveIndexListImplementation =
             )
 
     /// Reader for concat operations.
+    [<Sealed>]
     type ConcatReader<'a>(inputs : IndexList<alist<'a>>) =
         inherit AbstractDirtyReader<IndexedReader<'a>, IndexListDelta<'a>>(IndexListDelta.monoid, checkTag "InnerReader")
 
@@ -940,6 +957,7 @@ module internal AdaptiveIndexListImplementation =
                 result
 
     /// Reader for bind operations.
+    [<Sealed>]
     type BindReader<'a, 'b>(input : aval<'a>, mapping : 'a -> alist<'b>) =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
@@ -975,6 +993,7 @@ module internal AdaptiveIndexListImplementation =
                 deltas
 
     /// Reader for sortBy operations
+    [<Sealed>]
     type SortByReader<'a, 'b when 'b : comparison>(input : alist<'a>, mapping : Index -> 'a -> 'b) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
 
@@ -1014,6 +1033,7 @@ module internal AdaptiveIndexListImplementation =
             |> IndexListDelta.ofSeq
 
     /// Reader for sortWith operations
+    [<Sealed>]
     type SortWithReader<'a>(input : alist<'a>, compare : 'a -> 'a -> int) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
 
@@ -1059,6 +1079,7 @@ module internal AdaptiveIndexListImplementation =
             |> IndexListDelta.ofSeq
 
     /// Reader for ofAVal operations
+    [<Sealed>]
     type AValReader<'s, 'a when 's :> seq<'a>>(input: aval<'s>) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
 
@@ -1071,6 +1092,7 @@ module internal AdaptiveIndexListImplementation =
             ops
     
     /// Reader for pairwise operations
+    [<Sealed>]
     type PairwiseReader<'a>(input : alist<'a>, cyclic : bool) =
         inherit AbstractReader<IndexList<'a * 'a>, IndexListDelta<'a * 'a>>(IndexList.trace)
         

@@ -108,7 +108,7 @@ module AVal =
         new(create: unit -> 'T) = { Create = create; Value = Unchecked.defaultof<_>; IsValue = false }
         
     /// A constant value that can either be a value or a lazy computation
-    [<StructuredFormatDisplay("{AsString}")>]
+    [<StructuredFormatDisplay("{AsString}"); Sealed>]
     type ConstantVal<'T> private(data: LazyOrValue<'T>) =
         inherit ConstantObject()
         let mutable data = data
@@ -162,7 +162,9 @@ module AVal =
                 DefaultEquality.equals xv ov
             | _ ->
                 false
+
     /// Aval for mapping a single value
+    [<Sealed>]
     type MapVal<'T1, 'T2>(mapping: 'T1 -> 'T2, input: aval<'T1>) =
         inherit AbstractVal<'T2>()
 
@@ -180,6 +182,7 @@ module AVal =
                 b
 
     /// Aval for mapping 2 values in 'parallel'
+    [<Sealed>]
     type Map2Val<'T1, 'T2, 'T3>(mapping: 'T1 -> 'T2 -> 'T3, a: aval<'T1>, b: aval<'T2>) =
         inherit AbstractVal<'T3>()
 
@@ -198,6 +201,7 @@ module AVal =
                 c
 
     /// Aval for mapping 3 values in 'parallel'
+    [<Sealed>]
     type Map3Val<'T1, 'T2, 'T3, 'T4>(mapping: 'T1 -> 'T2 -> 'T3 -> 'T4, a: aval<'T1>, b: aval<'T2>, c: aval<'T3>) =
         inherit AbstractVal<'T4>()
 
@@ -217,6 +221,7 @@ module AVal =
                 d
 
     /// Aval for binding a single value
+    [<Sealed>]
     type BindVal<'T1, 'T2>(mapping: 'T1 -> aval<'T2>, input: aval<'T1>) =
         inherit AbstractVal<'T2>()
 
@@ -250,6 +255,7 @@ module AVal =
                 result.GetValue token     
 
     /// Aval for binding two values in 'parallel'
+    [<Sealed>]
     type Bind2Val<'T1, 'T2, 'T3>(mapping: 'T1 -> 'T2 -> aval<'T3>, value1: aval<'T1>, value2: aval<'T2>) =
         inherit AbstractVal<'T3>()
 
@@ -286,6 +292,7 @@ module AVal =
                 res.GetValue token     
     
     /// Aval for binding three values in 'parallel'
+    [<Sealed>]
     type Bind3Val<'T1, 'T2, 'T3, 'T4>(mapping: 'T1 -> 'T2 -> 'T3 -> aval<'T4>, value1: aval<'T1>, value2: aval<'T2>, value3: aval<'T3>) =
         inherit AbstractVal<'T4>()
 
@@ -323,6 +330,7 @@ module AVal =
                 res.GetValue token     
 
     /// Aval for custom computations
+    [<Sealed>]
     type CustomVal<'T>(compute: AdaptiveToken -> 'T) =
         inherit AbstractVal<'T>()
 
