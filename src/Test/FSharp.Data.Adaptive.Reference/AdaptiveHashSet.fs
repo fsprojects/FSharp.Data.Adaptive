@@ -157,6 +157,10 @@ module ASet =
     let difference (a: aset<'T>) (b: aset<'T>) =
         AVal.map2 (HashSet.difference) a.Content b.Content |> ofRef
         
+    /// 'Xors'  the sets.
+    let xor (a: aset<'T>) (b: aset<'T>) =
+        AVal.map2 (HashSet.xor) a.Content b.Content |> ofRef
+        
     /// Unions all the sets.
     let unionMany (sets: aset<aset<'T>>) =
         sets.Content |> AVal.map (fun sets ->

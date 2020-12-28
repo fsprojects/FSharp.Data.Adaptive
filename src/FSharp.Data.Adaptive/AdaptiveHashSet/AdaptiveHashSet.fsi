@@ -80,6 +80,9 @@ module ASet =
     
     /// Adaptively subtracts the given sets.
     val difference : a : aset<'T> -> b : aset<'T> -> aset<'T>
+    
+    /// Adaptively 'xors' the given sets.
+    val xor : a : aset<'T> -> b : aset<'T> -> aset<'T>
 
     /// Adaptively intersects the given sets
     val intersect : a : aset<'T> -> b : aset<'T> -> aset<'T>

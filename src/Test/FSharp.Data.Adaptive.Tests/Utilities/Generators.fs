@@ -677,6 +677,24 @@ module Generators =
                         (fun () -> a.schanges() @ b.schanges())
 
             }
+        let xor<'a> () =
+            gen {
+                let! a = Arb.generate<VSet<'a>> |> Gen.scaleSize (fun v -> v / 2)
+                let! b = Arb.generate<VSet<'a>> |> Gen.scaleSize (fun v -> v / 2)
+                return 
+                    create 
+                        (Adaptive.ASet.xor a.sreal b.sreal)
+                        (Reference.ASet.xor a.sref b.sref)
+                        (fun verbose ->
+                            let ma, a = a.sexpression verbose
+                            let mb, b = b.sexpression verbose
+                            let m = Map.union ma mb
+
+                            m, sprintf "xor\r\n%s\r\n%s" (indent a) (indent b)
+                        )
+                        (fun () -> a.schanges() @ b.schanges())
+
+            }
 
         let unionMany<'a> () =
             gen {
@@ -1746,6 +1764,7 @@ type AdaptiveGenerators() =
                                     3, Gen.constant "union"
                                     3, Gen.constant "intersect"
                                     3, Gen.constant "difference"
+                                    3, Gen.constant "xor"
                                     2, Gen.constant "collect"
                                     1, Gen.constant "unionMany"
                                     1, Gen.constant "aval"
@@ -1765,6 +1784,8 @@ type AdaptiveGenerators() =
                             return! Generators.Set.intersect<'a>()
                         | "difference" ->
                             return! Generators.Set.difference<'a>()
+                        | "xor" ->
+                            return! Generators.Set.xor<'a>()
                         | "unionMany" ->
                             return! Generators.Set.unionMany<'a>()
                         | "aval" ->

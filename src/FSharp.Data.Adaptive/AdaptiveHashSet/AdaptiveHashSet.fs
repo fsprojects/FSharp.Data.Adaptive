@@ -608,7 +608,8 @@ module AdaptiveHashSetImplementation =
                 deltas <- HashSetDelta.combine deltas (d.GetChanges token)
 
             deltas
-
+            
+    /// Reader for binary difference operations.
     [<Sealed>]
     type DifferenceReader<'T>(set1 : aset<'T>, set2 : aset<'T>) =
         inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.empty)
@@ -655,9 +656,6 @@ module AdaptiveHashSetImplementation =
             let newState, delta = HashMap.ApplyDelta(state, changes, apply)
             state <- newState
             HashSetDelta.ofHashMap delta
-
-
-
 
     /// Reader for binary intersect operations.
     [<Sealed>]
@@ -706,9 +704,54 @@ module AdaptiveHashSetImplementation =
             let newState, delta = HashMap.ApplyDelta(state, changes, apply)
             state <- newState
             HashSetDelta.ofHashMap delta
+                  
+    /// Reader for binary difference operations.
+    [<Sealed>]
+    type XorReader<'T>(set1 : aset<'T>, set2 : aset<'T>) =
+        inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.empty)
+        
+        let mutable state = HashMap.empty
+        let r1 = set1.GetReader()
+        let r2 = set2.GetReader()
 
+        override x.Compute(token : AdaptiveToken) =
+            let changes1 = r1.GetChanges token |> HashSetDelta.toHashMap
+            let changes2 = r2.GetChanges token |> HashSetDelta.toHashMap
+            let changes = (changes1, changes2) ||> HashMap.map2V (fun _k l r -> struct(l,r))
 
+            let inline apply (_key : 'T) (value : voption<struct(int * int)>) (struct(delta1 : voption<int>, delta2 : voption<int>)) : struct(voption<struct(int * int)> * voption<int>) = 
+                let struct(oldRef1, oldRef2) =
+                    match value with
+                    | ValueSome s -> s
+                    | ValueNone -> struct(0, 0)
 
+                let newRef1 = 
+                    match delta1 with
+                    | ValueSome d1 -> oldRef1 + d1
+                    | ValueNone -> oldRef1
+
+                let newRef2 = 
+                    match delta2 with
+                    | ValueSome d2 -> oldRef2 + d2
+                    | ValueNone -> oldRef2
+
+                let oldRef = (oldRef1 + oldRef2) % 2
+                let newRef = (newRef1 + newRef2) % 2
+
+                let outDelta =
+                    if newRef > 0 && oldRef <= 0 then ValueSome 1
+                    elif newRef <= 0 && oldRef > 0 then ValueSome -1
+                    else ValueNone
+
+                let outRef =
+                    if newRef1 >= 0 || newRef2 >= 0 then ValueSome(struct (newRef1, newRef2))
+                    else ValueNone
+
+                struct (outRef, outDelta)
+                
+            let newState, delta = HashMap.ApplyDelta(state, changes, apply)
+            state <- newState
+            HashSetDelta.ofHashMap delta
 
     /// Reader for unioning a constant set of asets.
     [<Sealed>]
@@ -1186,6 +1229,18 @@ module ASet =
             else constant (fun () -> HashSet.intersect va vb)
         else
             ofReader (fun () -> IntersectReader(a, b))
+            
+    /// Adaptively xors the given sets
+    let xor (a : aset<'T>) (b : aset<'T>) =
+        if a = b then
+            empty
+        elif a.IsConstant && b.IsConstant then
+            let va = force a
+            let vb = force b
+            if va.IsEmpty && vb.IsEmpty then empty
+            else constant (fun () -> HashSet.xor va vb)
+        else
+            ofReader (fun () -> XorReader(a, b))
             
 
     /// Adaptively unions all the given sets
