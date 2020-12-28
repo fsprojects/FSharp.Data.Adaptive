@@ -78,6 +78,9 @@ module ASet =
     /// Adaptively unions all the given sets
     val unionMany : sets : aset<aset<'A>> -> aset<'A>
     
+    /// Adaptively subtracts the given sets.
+    val difference : a : aset<'T> -> b : aset<'T> -> aset<'T>
+
     /// Adaptively intersects the given sets
     val intersect : a : aset<'T> -> b : aset<'T> -> aset<'T>
 

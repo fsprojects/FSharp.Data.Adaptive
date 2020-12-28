@@ -153,6 +153,10 @@ module ASet =
     let intersect (a: aset<'T>) (b: aset<'T>) =
         AVal.map2 (HashSet.intersect) a.Content b.Content |> ofRef
         
+    /// Subtracts the sets.
+    let difference (a: aset<'T>) (b: aset<'T>) =
+        AVal.map2 (HashSet.difference) a.Content b.Content |> ofRef
+        
     /// Unions all the sets.
     let unionMany (sets: aset<aset<'T>>) =
         sets.Content |> AVal.map (fun sets ->

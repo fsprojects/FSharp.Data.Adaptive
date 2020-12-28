@@ -658,6 +658,25 @@ module Generators =
                         (fun () -> a.schanges() @ b.schanges())
 
             }
+            
+        let difference<'a> () =
+            gen {
+                let! a = Arb.generate<VSet<'a>> |> Gen.scaleSize (fun v -> v / 2)
+                let! b = Arb.generate<VSet<'a>> |> Gen.scaleSize (fun v -> v / 2)
+                return 
+                    create 
+                        (Adaptive.ASet.difference a.sreal b.sreal)
+                        (Reference.ASet.difference a.sref b.sref)
+                        (fun verbose ->
+                            let ma, a = a.sexpression verbose
+                            let mb, b = b.sexpression verbose
+                            let m = Map.union ma mb
+
+                            m, sprintf "difference\r\n%s\r\n%s" (indent a) (indent b)
+                        )
+                        (fun () -> a.schanges() @ b.schanges())
+
+            }
 
         let unionMany<'a> () =
             gen {
@@ -1726,6 +1745,7 @@ type AdaptiveGenerators() =
                                     3, Gen.constant "filter"
                                     3, Gen.constant "union"
                                     3, Gen.constant "intersect"
+                                    3, Gen.constant "difference"
                                     2, Gen.constant "collect"
                                     1, Gen.constant "unionMany"
                                     1, Gen.constant "aval"
@@ -1743,6 +1763,8 @@ type AdaptiveGenerators() =
                             return! Generators.Set.union<'a>()
                         | "intersect" ->
                             return! Generators.Set.intersect<'a>()
+                        | "difference" ->
+                            return! Generators.Set.difference<'a>()
                         | "unionMany" ->
                             return! Generators.Set.unionMany<'a>()
                         | "aval" ->
