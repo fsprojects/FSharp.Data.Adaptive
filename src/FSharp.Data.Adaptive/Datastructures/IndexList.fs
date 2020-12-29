@@ -596,167 +596,135 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
 and IndexListEnumerator<'Value> =
     struct
         val mutable internal Root : MapExtImplementation.MapTree<Index, 'Value>
-        val mutable internal Stack : KeyedList<MapExtImplementation.MapTree<Index, 'Value>>
-        val mutable internal Array : 'Value[]
+        val mutable internal Head : MapExtImplementation.MapTree<Index, 'Value>
+        val mutable internal Tail : list<MapExtImplementation.MapTree<Index, 'Value>>
+        val mutable internal Next : 'Value
         val mutable internal Index : int
-
+        val mutable internal BufferValueCount : int
+        val mutable internal Buffer : 'Value[]
+    
         member private x.Flatten(start : int, node : MapExtImplementation.MapTree<_,_>) =
             match node with
-            | MapExtImplementation.MapEmpty ->
-                ()
-            | MapExtImplementation.MapOne(k, v) ->
-                x.Array.[start] <- v
-            | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
+            | MapExtImplementation.MapOne(_,v) ->
+                x.Buffer.[start] <- v
+            | MapExtImplementation.MapNode(_,v,l,r,_,_) ->
                 let sl = MapExtImplementation.MapTree.size l
                 let si = start + sl
+                x.Buffer.[si] <- v
                 x.Flatten(start, l)
-                x.Array.[si] <- v
                 x.Flatten(si + 1, r)
+            | _ -> ()
 
-        member private x.MoveNext (start : int, node : MapExtImplementation.MapTree<_,_>) =
-            match node with
-            | MapExtImplementation.MapEmpty ->
-                ()
-            | MapExtImplementation.MapOne(k, v) ->
-                x.Array.[start] <- v
-            | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
-                let sl = MapExtImplementation.MapTree.size l
-                x.Array.[start + sl] <- v
-                match r with
-                | MapExtImplementation.MapEmpty -> ()
-                | r -> x.Stack <- KeyedList.Cons(r, x.Stack, start + 1 + sl)
-                x.MoveNext(start, l)
-
-        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-        member x.MoveNext() =
-            x.Index <- x.Index + 1
-            if x.Index >= x.Array.Length then
-                false
-            else
-                match x.Stack with
-                | KeyedList.Cons(h, t, i) ->
-                    if i = x.Index then
-                        x.Stack <- t
-                        match h with
-                        | MapExtImplementation.MapEmpty -> 
-                            failwith "bad"
-
-                        | MapExtImplementation.MapOne(k,v) ->
-                            x.Array.[i] <- v
-
-                        | MapExtImplementation.MapNode(k,v,l,r,_,c) ->
-                            if c <= 16 then
-                                x.Flatten(i, h)
-                            else
-                                match l with
-                                | MapExtImplementation.MapEmpty  ->
-                                    x.Array.[i] <- v
-                                | MapExtImplementation.MapOne(lk, lv) ->
-                                    x.Array.[i] <- lv
-                                    x.Array.[i+1] <- v
-                                    match r with
-                                    | MapExtImplementation.MapEmpty -> ()
-                                    | r -> x.Stack <- KeyedList.Cons(r, x.Stack, i + 2)
-                                | MapExtImplementation.MapNode(_,_,_,_,_,lc) ->
-                                    x.Array.[i + lc] <- v
-                                    match r with
-                                    | MapExtImplementation.MapEmpty -> ()
-                                    | r -> x.Stack <- KeyedList.Cons(r, x.Stack, i + lc + 1)
-                                    x.MoveNext(i, l)
-
-                | KeyedList.Nil ->
-                    ()
-           
+        member x.Collect() = 
+            match x.Head with
+            | MapExtImplementation.MapOne(_,v) ->
+                x.Next <- v
+                if x.Tail.IsEmpty then
+                    x.Head <- Unchecked.defaultof<_>
+                    x.Tail <- []
+                else
+                    x.Head <- x.Tail.Head
+                    x.Tail <- x.Tail.Tail
                 true
-           
-        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-        member x.Reset() =
-            x.Stack <- (match x.Root with | MapExtImplementation.MapEmpty -> KeyedList.Nil | r -> KeyedList.Cons(r, KeyedList.Nil, 0))
-            x.Index <- -1
- 
-        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-        member inline x.Dispose() =
-            ()
-            //x.Root <- Unchecked.defaultof<_>
-            //x.Array <- null
-            //x.Stack <- KeyedList.Nil
-            //x.Index <- -1
-            
-        
+
+            | MapExtImplementation.MapNode(k,v,l,r,_,cnt)  ->
+                if typesize<'Value> <= 64 && cnt <= 16 then
+                    let sl = MapExtImplementation.MapTree.size l
+                    if sl > 0 then
+                        x.Flatten(0, l)
+                        x.Buffer.[sl] <- v
+                        x.Next <- x.Buffer.[0]
+                    else
+                        x.Next <- v
+                        
+                    x.Flatten(sl+1, r)
+
+                    x.Index <- 1
+                    x.BufferValueCount <- cnt
+
+                    if x.Tail.IsEmpty then
+                        x.Head <- Unchecked.defaultof<_>
+                        x.Tail <- []
+                    else
+                        x.Head <- x.Tail.Head
+                        x.Tail <- x.Tail.Tail
+                    true
+                else
+                    match l with
+                    | MapExtImplementation.MapEmpty ->
+                        match r with
+                        | MapExtImplementation.MapEmpty ->
+                            if x.Tail.IsEmpty then
+                                x.Head <- Unchecked.defaultof<_>
+                                x.Tail <- []
+                            else
+                                x.Head <- x.Tail.Head
+                                x.Tail <- x.Tail.Tail
+                        | r ->
+                            x.Head <- r
+
+                        x.Next <- v
+                        true
+                    | _ ->
+                        x.Head <- l
+                        match r with
+                        | MapExtImplementation.MapEmpty ->
+                            x.Tail <- MapExtImplementation.MapOne(k, v) :: x.Tail
+                        | _ ->
+                            x.Tail <- MapExtImplementation.MapOne(k, v) :: r :: x.Tail
+                        x.Collect()
+
+            | _ -> false
+
+        member x.MoveNext() =
+            if x.Index < x.BufferValueCount then
+                x.Next <- x.Buffer.[x.Index]
+                x.Index <- x.Index + 1
+                true
+            else
+                x.Collect()
+
         member x.Current 
-            with [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-                get() = x.Array.[x.Index]
-        
+            with get() = x.Next
+                
+        member x.Dispose() = ()
+
         interface System.Collections.IEnumerator with
+            member x.Current = x.Next :> obj
             member x.MoveNext() = x.MoveNext()
-            member x.Reset() = x.Reset()
-            member x.Current = x.Current :> obj
-
+            member x.Reset() =
+                x.Head <- x.Root
+                x.Tail <- []
+                x.Index <- -1
+                x.BufferValueCount <- -1
+                x.Next <- Unchecked.defaultof<_>
+                    
         interface IEnumerator<'Value> with
-            member x.Current = x.Current
-            member x.Dispose() = ()
-            
-        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-        static member internal Flatten(m : MapExtImplementation.MapTree<Index, 'Value>, dst : 'Value[], offset : ref<int>) =
-            match m with
-            | MapExtImplementation.MapEmpty ->
-                ()
-            | MapExtImplementation.MapOne(k, v) ->
-                dst.[!offset] <- v
-                offset := !offset + 1
-
-            | MapExtImplementation.MapNode(k, v, l, r, _, _) ->
-                IndexListEnumerator<'Value>.Flatten(l, dst, offset)
-                
-                dst.[!offset] <- v
-                offset := !offset + 1
-                
-                IndexListEnumerator<'Value>.Flatten(r, dst, offset)
-
+            member x.Current = x.Next
+            member x.Dispose() =
+                x.Root <- Unchecked.defaultof<_>
+                x.Head <- Unchecked.defaultof<_>
+                x.Tail <- []
+                x.Next <- Unchecked.defaultof<_>
 
         internal new(root : MapExtImplementation.MapTree<Index, 'Value>) =
-
-            match root with
-            | MapExtImplementation.MapEmpty ->
-                {
-                    Root = root
-                    Index = -1
-                    Array = [||]
-                    Stack = KeyedList.Nil
-                }
-            | MapExtImplementation.MapOne(k,v) ->
-                {
-                    Root = root
-                    Index = -1
-                    Array = [|v|]
-                    Stack = KeyedList.Nil
-                }
-            | MapExtImplementation.MapNode(_,_,_,_,_,cnt) ->
-                let s = Array.zeroCreate cnt
-                if cnt <= 16 then
-                    let i = ref 0
-                    IndexListEnumerator<'Value>.Flatten(root, s, i)
-                    {
-                        Root = root
-                        Index = -1
-                        Array = s
-                        Stack = KeyedList.Nil
-                    }
-                else
-                    let stack = 
+            {
+                Root = root
+                Head = root
+                Tail = []
+                Index = -1
+                BufferValueCount = -1
+                Next = Unchecked.defaultof<_>
+                Buffer =
+                    if typesize<'Value> <= 64 then
                         match root with
-                        | MapExtImplementation.MapEmpty -> KeyedList.Nil
-                        | r -> KeyedList.Cons(r, KeyedList.Nil, 0)
-
-                    {
-                        Root = root
-                        Index = -1
-                        Array = s
-                        Stack = stack
-                    }
-
-
+                        | MapExtImplementation.MapNode(_,_,_,_,_,cnt) -> Array.zeroCreate (min cnt 16)
+                        | _ -> null
+                    else 
+                        null
+            }
     end
+
 /// Functional operators for IndexList.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module IndexList =

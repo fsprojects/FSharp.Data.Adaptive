@@ -327,7 +327,55 @@ type HashSetEnumeratorBenchmark() =
 //    [Host]     : .NET Core 3.1.10 (CoreCLR 4.700.20.51601, CoreFX 4.700.20.51901), X64 RyuJIT DEBUG
 //    DefaultJob : .NET Core 3.1.10 (CoreCLR 4.700.20.51601, CoreFX 4.700.20.51901), X64 RyuJIT
  
-// Baseline
+// Previous (cdaa5f8c): MapExt Traversal (Stack)
+//|            Method | Count |         Mean |      Error |     StdDev |       Median |   Gen 0 |  Gen 1 | Gen 2 | Allocated |
+//|------------------ |------ |-------------:|-----------:|-----------:|-------------:|--------:|-------:|------:|----------:|
+//|   IndexList_4byte |     0 |     21.00 ns |   0.219 ns |   0.205 ns |     21.09 ns |  0.0115 |      - |     - |      72 B |
+//|  IndexList_32byte |     0 |     23.55 ns |   0.494 ns |   0.643 ns |     23.66 ns |  0.0153 |      - |     - |      96 B |
+//| IndexList_128byte |     0 |     59.56 ns |   1.209 ns |   1.918 ns |     60.03 ns |  0.0305 |      - |     - |     192 B |
+//| IndexList_384byte |     0 |     96.86 ns |   1.932 ns |   3.435 ns |     94.92 ns |  0.0714 |      - |     - |     448 B |
+//|   IndexList_4byte |     1 |     22.67 ns |   0.169 ns |   0.158 ns |     22.62 ns |  0.0115 |      - |     - |      72 B |
+//|  IndexList_32byte |     1 |     25.41 ns |   0.466 ns |   0.436 ns |     25.50 ns |  0.0153 |      - |     - |      96 B |
+//| IndexList_128byte |     1 |     76.94 ns |   0.322 ns |   0.269 ns |     76.86 ns |  0.0305 |      - |     - |     192 B |
+//| IndexList_384byte |     1 |    138.87 ns |   1.182 ns |   1.106 ns |    138.48 ns |  0.0713 |      - |     - |     448 B |
+//|   IndexList_4byte |    10 |    185.17 ns |   0.922 ns |   0.719 ns |    185.10 ns |  0.1082 |      - |     - |     680 B |
+//|  IndexList_32byte |    10 |    197.17 ns |   0.886 ns |   0.829 ns |    197.04 ns |  0.1311 |      - |     - |     824 B |
+//| IndexList_128byte |    10 |    511.09 ns |   2.115 ns |   1.978 ns |    511.38 ns |  0.2232 |      - |     - |    1400 B |
+//| IndexList_384byte |    10 |    907.30 ns |   6.465 ns |   5.731 ns |    906.66 ns |  0.4673 |      - |     - |    2936 B |
+//|   IndexList_4byte |   100 |  1,825.69 ns |  11.721 ns |  10.964 ns |  1,826.71 ns |  1.0262 |      - |     - |    6440 B |
+//|  IndexList_32byte |   100 |  2,075.86 ns |  19.533 ns |  18.271 ns |  2,067.26 ns |  1.2207 |      - |     - |    7664 B |
+//| IndexList_128byte |   100 |  5,177.58 ns |  54.479 ns |  50.959 ns |  5,177.13 ns |  1.9989 |      - |     - |   12560 B |
+//| IndexList_384byte |   100 |  8,465.16 ns |  30.295 ns |  26.855 ns |  8,453.93 ns |  4.0741 | 0.0153 |     - |   25616 B |
+//|   IndexList_4byte |  1000 | 22,283.35 ns | 170.694 ns | 159.667 ns | 22,265.40 ns | 10.1929 |      - |     - |   64040 B |
+//|  IndexList_32byte |  1000 | 22,253.35 ns | 161.684 ns | 143.329 ns | 22,200.70 ns | 12.1155 |      - |     - |   76064 B |
+//| IndexList_128byte |  1000 | 50,774.44 ns | 264.672 ns | 234.625 ns | 50,697.92 ns | 19.7754 | 0.0610 |     - |  124160 B |
+//| IndexList_384byte |  1000 | 87,921.30 ns | 362.902 ns | 321.703 ns | 87,822.04 ns | 40.1611 | 0.2441 |     - |  252416 B |
+
+// MapExt Traversal with Struct Enumerator + Inline Stack Head
+//|            Method | Count |          Mean |       Error |      StdDev |        Median |   Gen 0 |  Gen 1 | Gen 2 | Allocated |
+//|------------------ |------ |--------------:|------------:|------------:|--------------:|--------:|-------:|------:|----------:|
+//|   IndexList_4byte |     0 |      6.306 ns |   0.1515 ns |   0.1803 ns |      6.346 ns |       - |      - |     - |         - |
+//|  IndexList_32byte |     0 |     17.602 ns |   0.1250 ns |   0.1169 ns |     17.574 ns |       - |      - |     - |         - |
+//| IndexList_128byte |     0 |     49.097 ns |   0.4557 ns |   0.4263 ns |     49.263 ns |       - |      - |     - |         - |
+//| IndexList_384byte |     0 |     88.861 ns |   1.7986 ns |   3.7145 ns |     90.427 ns |       - |      - |     - |         - |
+//|   IndexList_4byte |     1 |     11.922 ns |   0.0630 ns |   0.0526 ns |     11.911 ns |       - |      - |     - |         - |
+//|  IndexList_32byte |     1 |     22.510 ns |   0.3261 ns |   0.3051 ns |     22.423 ns |       - |      - |     - |         - |
+//| IndexList_128byte |     1 |     74.690 ns |   0.5277 ns |   0.4678 ns |     74.588 ns |       - |      - |     - |         - |
+//| IndexList_384byte |     1 |    136.682 ns |   0.9359 ns |   0.8754 ns |    136.641 ns |       - |      - |     - |         - |
+//|   IndexList_4byte |    10 |    203.043 ns |   1.4271 ns |   1.2651 ns |    202.483 ns |  0.0713 |      - |     - |     448 B |
+//|  IndexList_32byte |    10 |    209.698 ns |   2.1047 ns |   1.9688 ns |    209.033 ns |  0.0904 |      - |     - |     568 B |
+//| IndexList_128byte |    10 |    532.511 ns |   2.9255 ns |   2.7365 ns |    532.692 ns |  0.1669 |      - |     - |    1048 B |
+//| IndexList_384byte |    10 |    900.652 ns |   7.8936 ns |   7.3837 ns |    897.281 ns |  0.3710 |      - |     - |    2328 B |
+//|   IndexList_4byte |   100 |  2,057.142 ns |  11.1465 ns |  10.4264 ns |  2,054.970 ns |  0.7591 |      - |     - |    4768 B |
+//|  IndexList_32byte |   100 |  2,113.725 ns |  32.4277 ns |  30.3329 ns |  2,117.673 ns |  0.9499 |      - |     - |    5968 B |
+//| IndexList_128byte |   100 |  5,233.972 ns |  48.0007 ns |  44.8999 ns |  5,235.715 ns |  1.7090 |      - |     - |   10768 B |
+//| IndexList_384byte |   100 |  8,735.019 ns | 135.8084 ns | 127.0353 ns |  8,702.292 ns |  3.7537 |      - |     - |   23568 B |
+//|   IndexList_4byte |  1000 | 21,614.283 ns | 239.3638 ns | 223.9010 ns | 21,576.672 ns |  7.6294 |      - |     - |   47968 B |
+//|  IndexList_32byte |  1000 | 21,523.706 ns | 245.4555 ns | 217.5899 ns | 21,546.075 ns |  9.5520 |      - |     - |   59968 B |
+//| IndexList_128byte |  1000 | 51,933.494 ns | 490.9562 ns | 435.2199 ns | 51,737.250 ns | 17.1509 |      - |     - |  107968 B |
+//| IndexList_384byte |  1000 | 89,822.576 ns | 985.7413 ns | 873.8340 ns | 90,022.729 ns | 37.5977 | 0.2441 |     - |  235968 B |
+
+// Baseline: ToArray
 //|            Method | Count |          Mean |        Error |       StdDev |        Median |    Gen 0 |    Gen 1 |    Gen 2 | Allocated |
 //|------------------ |------ |--------------:|-------------:|-------------:|--------------:|---------:|---------:|---------:|----------:|
 //|   IndexList_4byte |     0 |      16.63 ns |     0.108 ns |     0.096 ns |      16.62 ns |   0.0038 |        - |        - |      24 B |
@@ -350,6 +398,30 @@ type HashSetEnumeratorBenchmark() =
 //|  IndexList_32byte |  1000 |  11,178.42 ns |    84.479 ns |    79.022 ns |  11,179.39 ns |   6.0883 |        - |        - |   38344 B |
 //| IndexList_128byte |  1000 |  87,514.29 ns |   646.150 ns |   504.471 ns |  87,365.21 ns |  39.9170 |  39.9170 |  39.9170 |  134344 B |
 //| IndexList_384byte |  1000 | 255,008.64 ns | 4,871.563 ns | 4,556.863 ns | 253,265.92 ns | 110.8398 | 110.8398 | 110.8398 |  390345 B |
+
+// Array Buffer with re-use + Inline Stack Head + Single/Large Value Optimization
+//|            Method | Count |         Mean |      Error |     StdDev |   Gen 0 |  Gen 1 | Gen 2 | Allocated |
+//|------------------ |------ |-------------:|-----------:|-----------:|--------:|-------:|------:|----------:|
+//|   IndexList_4byte |     0 |     19.60 ns |   0.080 ns |   0.075 ns |       - |      - |     - |         - |
+//|  IndexList_32byte |     0 |     29.01 ns |   0.130 ns |   0.122 ns |       - |      - |     - |         - |
+//| IndexList_128byte |     0 |     60.40 ns |   1.197 ns |   1.330 ns |       - |      - |     - |         - |
+//| IndexList_384byte |     0 |     94.87 ns |   0.409 ns |   0.383 ns |       - |      - |     - |         - |
+//|   IndexList_4byte |     1 |     27.84 ns |   0.076 ns |   0.064 ns |       - |      - |     - |         - |
+//|  IndexList_32byte |     1 |     37.08 ns |   0.172 ns |   0.153 ns |       - |      - |     - |         - |
+//| IndexList_128byte |     1 |     86.51 ns |   0.220 ns |   0.205 ns |       - |      - |     - |         - |
+//| IndexList_384byte |     1 |    151.75 ns |   0.804 ns |   0.712 ns |       - |      - |     - |         - |
+//|   IndexList_4byte |    10 |    108.85 ns |   0.532 ns |   0.498 ns |  0.0101 |      - |     - |      64 B |
+//|  IndexList_32byte |    10 |    129.01 ns |   1.149 ns |   1.075 ns |  0.0548 |      - |     - |     344 B |
+//| IndexList_128byte |    10 |    552.45 ns |   6.520 ns |   6.099 ns |  0.1669 |      - |     - |    1048 B |
+//| IndexList_384byte |    10 |    922.30 ns |   5.239 ns |   4.644 ns |  0.3710 |      - |     - |    2328 B |
+//|   IndexList_4byte |   100 |  1,076.44 ns |   9.982 ns |   9.337 ns |  0.1049 |      - |     - |     664 B |
+//|  IndexList_32byte |   100 |  1,163.73 ns |   7.669 ns |   6.798 ns |  0.1984 |      - |     - |    1256 B |
+//| IndexList_128byte |   100 |  5,303.43 ns |  42.895 ns |  40.124 ns |  1.7090 |      - |     - |   10768 B |
+//| IndexList_384byte |   100 |  8,700.39 ns |  55.701 ns |  46.513 ns |  3.7537 |      - |     - |   23568 B |
+//|   IndexList_4byte |  1000 | 10,130.44 ns |  74.327 ns |  62.067 ns |  0.9613 |      - |     - |    6040 B |
+//|  IndexList_32byte |  1000 | 10,389.70 ns |  86.601 ns |  81.007 ns |  1.2665 |      - |     - |    7976 B |
+//| IndexList_128byte |  1000 | 52,893.96 ns | 361.517 ns | 338.164 ns | 17.1509 |      - |     - |  107968 B |
+//| IndexList_384byte |  1000 | 90,581.25 ns | 732.793 ns | 685.455 ns | 37.5977 | 0.2441 |     - |  235968 B |
 
 [<PlainExporter; MemoryDiagnoser>]
 type IndexListEnumeratorBenchmark() =
