@@ -62,7 +62,7 @@ module SetReductions =
                         sum <- reader.State |> CountingHashSet.fold reduction.add reduction.seed
                     else
                         let mutable working = true
-                        use e = (ops :> seq<_>).GetEnumerator()
+                        let mutable e = ops.GetEnumerator()
                         while working && e.MoveNext() do
                             let op = e.Current
                             match op with

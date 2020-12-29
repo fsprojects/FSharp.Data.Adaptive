@@ -50,7 +50,7 @@ module internal MapReductions =
                         result <- reduction.view sum
                     else
                         let mutable working = true
-                        use e = (ops :> seq<_>).GetEnumerator()
+                        let mutable e = ops.GetEnumerator()
                         while working && e.MoveNext() do
                             let index, op = e.Current
                             match op with
@@ -478,7 +478,10 @@ module AdaptiveHashMapImplementation =
 
         member x.Dispose() =
             lock x (fun () ->
-                for struct (_, v) in state.ToSeqV() do v.Dispose()
+                let mutable e = state.GetStructEnumerator()
+                while e.MoveNext() do 
+                    let struct(_,v) = e.Current
+                    v.Dispose()
                 disposeDelta <- HashMap.computeDelta state HashMap.empty
                 state <- HashMap.empty
                 reader <- Unchecked.defaultof<_>

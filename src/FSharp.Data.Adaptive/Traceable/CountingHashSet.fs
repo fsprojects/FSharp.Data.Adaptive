@@ -186,7 +186,7 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
     /// Creates a new set by applying the given function to all elements.
     member x.Map(mapping : 'T -> 'B) =
         let mutable res = HashMap.empty
-        for (k,v) in HashMap.toSeq store do
+        for (k,v) in store do
             let k = mapping k
             res <- res.AlterV(k, function ValueSome o -> ValueSome (o + v) | ValueNone -> ValueSome v)
 
@@ -195,7 +195,7 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
     /// Creates a new set by applying the given function to all elements.
     member x.Choose(mapping : 'T -> option<'B>) =
         let mutable res = HashMap.empty
-        for (k,v) in HashMap.toSeq store do
+        for (k,v) in store do
             match mapping k with
                 | Some k ->
                     res <- res.AlterV(k, function ValueSome o -> ValueSome (o + v) | _ -> ValueSome v) 
@@ -211,7 +211,7 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
     /// Creates a new set with all elements from all created sets.  (respecting ref-counts)
     member x.Collect(mapping : 'T -> CountingHashSet<'B>) =
         let mutable res = HashMap<'B, int>.Empty
-        for (k,ro) in store.ToSeq() do
+        for (k,ro) in store do
             let r = mapping k
             let rr, _ =
                 HashMap<'B, int>.ApplyDelta(res, r.Store, fun _ oldRef delta ->

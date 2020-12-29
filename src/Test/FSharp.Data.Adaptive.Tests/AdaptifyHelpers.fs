@@ -120,7 +120,7 @@ let ``[CModelList] update``(m : list<int>) =
             let error =
                 String.concat "\r\n" [
                     yield sprintf "expected %A to be equal to %A but deltas are:" res content
-                    for (k, op) in IndexListDelta.toSeq ops do
+                    for (k, op) in ops do
                         yield sprintf "  %A: %A" k op
                 
                 ]

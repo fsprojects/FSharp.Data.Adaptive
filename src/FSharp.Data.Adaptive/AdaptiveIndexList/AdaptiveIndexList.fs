@@ -50,7 +50,7 @@ module internal Reductions =
                         result <- reduction.view sum
                     else
                         let mutable working = true
-                        use e = (IndexListDelta.toSeq ops).GetEnumerator()
+                        use e = ops.GetEnumerator()
                         while working && e.MoveNext() do
                             let index, op = e.Current
                             match op with
@@ -139,7 +139,7 @@ module internal Reductions =
                         sum <- ValueSome s
                         result <- reduction.view s
                     else
-                        for (index, op) in IndexListDelta.toSeq ops do
+                        for (index, op) in ops do
                             match op with
                             | Set a ->
                                 match IndexList.tryGet index state with
@@ -290,7 +290,7 @@ module internal Reductions =
                         res <- reduction.view s
                     else
                         let mutable dirty = consumeDirty()
-                        for (i, op) in IndexListDelta.toSeq ops do
+                        for (i, op) in ops do
                             dirty <- IndexList.remove i dirty
                             match op with
                             | Set v ->
@@ -305,20 +305,20 @@ module internal Reductions =
                             | Remove ->
                                 removeIndex x i
 
-
-                        for (i, r) in IndexList.toSeqIndexed dirty do
-                            let n = r.GetValue(t)
-                            state <-
-                                state |> IndexList.alter i (fun old ->
-                                    match old with
-                                    | Some (oa, ro, o) -> 
-                                        assert(ro = r)
-                                        sum <- add (sub sum o) n
-                                        Some (oa, r, n)
-                                    | None -> 
-                                        sum <- add sum n
-                                        None
-                                )
+                        dirty.Content |> MapExt.iter (fun i r ->
+                                let n = r.GetValue(t)
+                                state <-
+                                    state |> IndexList.alter i (fun old ->
+                                        match old with
+                                        | Some (oa, ro, o) -> 
+                                            assert(ro = r)
+                                            sum <- add (sub sum o) n
+                                            Some (oa, r, n)
+                                        | None -> 
+                                            sum <- add sum n
+                                            None
+                                    )
+                            )
 
                         match sum with
                         | ValueNone ->
@@ -652,9 +652,10 @@ module internal AdaptiveIndexListImplementation =
                             None
                 )
 
-            for i, d in IndexList.toSeqIndexed dirty do
-                let v = d.GetValue t
-                changes <- IndexListDelta.add i (Set v) changes
+            dirty.Content |> MapExt.iter (fun i d ->
+                    let v = d.GetValue t
+                    changes <- IndexListDelta.add i (Set v) changes
+                )
 
             changes
      
@@ -729,15 +730,16 @@ module internal AdaptiveIndexListImplementation =
                             None
                 )
 
-            for i, d in IndexList.toSeqIndexed dirty do
-                let v = d.GetValue t
-                match v with
-                | Some v -> 
-                    keys.Add i |> ignore
-                    changes <- IndexListDelta.add i (Set v) changes
-                | None ->
-                    if keys.Remove i then
-                        changes <- IndexListDelta.add i Remove changes
+            dirty.Content |> MapExt.iter (fun i d ->
+                    let v = d.GetValue t
+                    match v with
+                    | Some v -> 
+                        keys.Add i |> ignore
+                        changes <- IndexListDelta.add i (Set v) changes
+                    | None ->
+                        if keys.Remove i then
+                            changes <- IndexListDelta.add i Remove changes
+                )
 
             changes
   
@@ -1119,7 +1121,7 @@ module internal AdaptiveIndexListImplementation =
                 l, r
 
             let mutable delta = IndexListDelta.empty
-            for i, op in IndexListDelta.toSeq ops do
+            for i, op in ops do
                 match op with
                 | Remove ->
                     match IndexList.tryGet i o with
