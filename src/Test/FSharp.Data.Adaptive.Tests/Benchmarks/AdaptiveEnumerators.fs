@@ -245,6 +245,32 @@ module BigStruct =
 //| HashSet_128byte | 10000 | 357,065.97 ns | 1,280.317 ns | 1,197.610 ns | 4.8828 |     - |     - |   31449 B |
 //| HashSet_384byte | 10000 | 749,718.22 ns | 1,554.635 ns | 1,298.191 ns | 4.8828 |     - |     - |   35545 B |
 
+//|               Method | Count |           Mean |         Error |        StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+//|--------------------- |------ |---------------:|--------------:|--------------:|-------:|------:|------:|----------:|
+//|   HashSet_4byte_iter |     0 |       7.871 ns |     0.1751 ns |     0.1637 ns | 0.0076 |     - |     - |      48 B |
+//|  HashSet_32byte_iter |     0 |       9.160 ns |     0.2082 ns |     0.3241 ns | 0.0076 |     - |     - |      48 B |
+//| HashSet_128byte_iter |     0 |       8.941 ns |     0.1718 ns |     0.1607 ns | 0.0076 |     - |     - |      48 B |
+//| HashSet_384byte_iter |     0 |       8.826 ns |     0.0852 ns |     0.0797 ns | 0.0076 |     - |     - |      48 B |
+//|   HashSet_4byte_iter |     1 |      10.691 ns |     0.2341 ns |     0.3358 ns | 0.0076 |     - |     - |      48 B |
+//|  HashSet_32byte_iter |     1 |      10.294 ns |     0.2348 ns |     0.3791 ns | 0.0076 |     - |     - |      48 B |
+//| HashSet_128byte_iter |     1 |      12.930 ns |     0.2839 ns |     0.4743 ns | 0.0076 |     - |     - |      48 B |
+//| HashSet_384byte_iter |     1 |      21.127 ns |     0.2199 ns |     0.1949 ns | 0.0076 |     - |     - |      48 B |
+//|   HashSet_4byte_iter |    10 |      35.447 ns |     0.4979 ns |     0.4657 ns | 0.0076 |     - |     - |      48 B |
+//|  HashSet_32byte_iter |    10 |      42.524 ns |     0.4315 ns |     0.3825 ns | 0.0076 |     - |     - |      48 B |
+//| HashSet_128byte_iter |    10 |     135.675 ns |     0.9248 ns |     0.8198 ns | 0.0076 |     - |     - |      48 B |
+//| HashSet_384byte_iter |    10 |     181.059 ns |     1.6915 ns |     1.4995 ns | 0.0076 |     - |     - |      48 B |
+//|   HashSet_4byte_iter |   100 |     435.037 ns |     7.6653 ns |     6.7951 ns | 0.0076 |     - |     - |      48 B |
+//|  HashSet_32byte_iter |   100 |     460.340 ns |     8.0539 ns |     7.5336 ns | 0.0076 |     - |     - |      48 B |
+//| HashSet_128byte_iter |   100 |   1,360.282 ns |    12.7734 ns |    11.3233 ns | 0.0076 |     - |     - |      48 B |
+//| HashSet_384byte_iter |   100 |   2,328.173 ns |    21.2734 ns |    19.8992 ns | 0.0076 |     - |     - |      48 B |
+//|   HashSet_4byte_iter |  1000 |   8,942.912 ns |    78.8151 ns |    73.7237 ns |      - |     - |     - |      48 B |
+//|  HashSet_32byte_iter |  1000 |  10,683.773 ns |    77.8126 ns |    72.7859 ns |      - |     - |     - |      48 B |
+//| HashSet_128byte_iter |  1000 |  17,174.762 ns |    99.9052 ns |    93.4513 ns |      - |     - |     - |      48 B |
+//| HashSet_384byte_iter |  1000 |  33,805.589 ns |   415.7795 ns |   347.1947 ns |      - |     - |     - |      48 B |
+//|   HashSet_4byte_iter | 10000 | 130,367.648 ns |   809.8241 ns |   717.8880 ns |      - |     - |     - |      48 B |
+//|  HashSet_32byte_iter | 10000 | 155,753.701 ns | 1,032.8234 ns |   966.1036 ns |      - |     - |     - |      48 B |
+//| HashSet_128byte_iter | 10000 | 247,249.251 ns | 1,789.9260 ns | 1,674.2979 ns |      - |     - |     - |      48 B |
+//| HashSet_384byte_iter | 10000 | 409,446.966 ns | 6,435.6232 ns | 6,019.8860 ns |      - |     - |     - |      49 B |
 
 [<PlainExporter; MemoryDiagnoser>]
 type HashSetEnumeratorBenchmark() =
@@ -319,6 +345,30 @@ type HashSetEnumeratorBenchmark() =
     member x.HashSet_384byte() =
         let mutable sum = 0.0
         for e in collection384 do sum <- sum + e.s.y.c
+        sum
+
+    [<Benchmark; BenchmarkCategory("4byte")>]
+    member x.HashSet_4byte_iter() =
+        let mutable sum = 0
+        collection4 |> HashSet.iter (fun e -> sum <- sum + e)
+        sum
+
+    [<Benchmark; BenchmarkCategory("32byte")>]
+    member x.HashSet_32byte_iter() =
+        let mutable sum = 0.0
+        collection32 |> HashSet.iter (fun e -> sum <- sum + e.a)
+        sum
+
+    [<Benchmark; BenchmarkCategory("128byte")>]
+    member x.HashSet_128byte_iter() =
+        let mutable sum = 0.0
+        collection128 |> HashSet.iter (fun e -> sum <- sum + e.w.c)
+        sum
+
+    [<Benchmark; BenchmarkCategory("384byte")>]
+    member x.HashSet_384byte_iter() =
+        let mutable sum = 0.0
+        collection384 |> HashSet.iter (fun e -> sum <- sum + e.s.y.c)
         sum
 
 //BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
@@ -423,6 +473,29 @@ type HashSetEnumeratorBenchmark() =
 //| IndexList_128byte |  1000 | 52,893.96 ns | 361.517 ns | 338.164 ns | 17.1509 |      - |     - |  107968 B |
 //| IndexList_384byte |  1000 | 90,581.25 ns | 732.793 ns | 685.455 ns | 37.5977 | 0.2441 |     - |  235968 B |
 
+//|                 Method | Count |          Mean |        Error |       StdDev |        Median |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+//|----------------------- |------ |--------------:|-------------:|-------------:|--------------:|-------:|------:|------:|----------:|
+//|   IndexList_4byte_iter |     0 |      19.08 ns |     0.159 ns |     0.133 ns |      19.09 ns | 0.0115 |     - |     - |      72 B |
+//|  IndexList_32byte_iter |     0 |      20.91 ns |     0.445 ns |     0.920 ns |      21.07 ns | 0.0115 |     - |     - |      72 B |
+//| IndexList_128byte_iter |     0 |      23.87 ns |     0.506 ns |     0.846 ns |      23.48 ns | 0.0115 |     - |     - |      72 B |
+//| IndexList_384byte_iter |     0 |      27.53 ns |     0.315 ns |     0.263 ns |      27.51 ns | 0.0115 |     - |     - |      72 B |
+//|   IndexList_4byte_iter |     1 |      19.18 ns |     0.210 ns |     0.196 ns |      19.13 ns | 0.0115 |     - |     - |      72 B |
+//|  IndexList_32byte_iter |     1 |     274.72 ns |     3.613 ns |     3.017 ns |     274.69 ns | 0.0114 |     - |     - |      72 B |
+//| IndexList_128byte_iter |     1 |     291.33 ns |     2.006 ns |     1.566 ns |     291.00 ns | 0.0114 |     - |     - |      72 B |
+//| IndexList_384byte_iter |     1 |     332.89 ns |     3.396 ns |     3.177 ns |     333.85 ns | 0.0114 |     - |     - |      72 B |
+//|   IndexList_4byte_iter |    10 |      74.16 ns |     0.648 ns |     0.574 ns |      74.20 ns | 0.0114 |     - |     - |      72 B |
+//|  IndexList_32byte_iter |    10 |   2,532.90 ns |    33.640 ns |    31.467 ns |   2,518.75 ns | 0.0114 |     - |     - |      72 B |
+//| IndexList_128byte_iter |    10 |   2,742.00 ns |    21.923 ns |    19.434 ns |   2,732.40 ns | 0.0114 |     - |     - |      72 B |
+//| IndexList_384byte_iter |    10 |   3,071.55 ns |    28.586 ns |    25.341 ns |   3,075.46 ns | 0.0114 |     - |     - |      72 B |
+//|   IndexList_4byte_iter |   100 |     701.39 ns |     6.113 ns |     5.419 ns |     701.27 ns | 0.0114 |     - |     - |      72 B |
+//|  IndexList_32byte_iter |   100 |  25,489.76 ns |   411.084 ns |   403.740 ns |  25,313.35 ns |      - |     - |     - |      72 B |
+//| IndexList_128byte_iter |   100 |  27,488.42 ns |   222.877 ns |   208.479 ns |  27,466.42 ns |      - |     - |     - |      72 B |
+//| IndexList_384byte_iter |   100 |  30,060.68 ns |    98.711 ns |    92.334 ns |  30,032.52 ns |      - |     - |     - |      72 B |
+//|   IndexList_4byte_iter |  1000 |   7,903.95 ns |    64.442 ns |    57.126 ns |   7,895.62 ns |      - |     - |     - |      72 B |
+//|  IndexList_32byte_iter |  1000 | 260,269.83 ns | 4,678.587 ns | 5,387.868 ns | 258,960.69 ns |      - |     - |     - |      72 B |
+//| IndexList_128byte_iter |  1000 | 269,012.94 ns | 1,033.680 ns | 1,578.538 ns | 268,805.03 ns |      - |     - |     - |      72 B |
+//| IndexList_384byte_iter |  1000 | 314,246.72 ns | 6,170.715 ns | 6,858.733 ns | 313,346.39 ns |      - |     - |     - |      72 B |
+
 [<PlainExporter; MemoryDiagnoser>]
 type IndexListEnumeratorBenchmark() =
 
@@ -464,6 +537,30 @@ type IndexListEnumeratorBenchmark() =
     member x.IndexList_384byte() =
         let mutable sum = 0.0
         for e in collection384 do sum <- sum + e.s.y.c
+        sum
+
+    [<Benchmark>]
+    member x.IndexList_4byte_iter() =
+        let mutable sum = 0
+        collection4 |> IndexList.iter (fun e -> sum <- sum + e)
+        sum
+
+    [<Benchmark>]
+    member x.IndexList_32byte_iter() =
+        let mutable sum = 0.0
+        collection32 |> IndexList.iter (fun e -> sum <- sum + e.a)
+        sum
+
+    [<Benchmark>]
+    member x.IndexList_128byte_iter() =
+        let mutable sum = 0.0
+        collection128 |> IndexList.iter (fun e -> sum <- sum + e.w.c)
+        sum
+
+    [<Benchmark>]
+    member x.IndexList_384byte_iter() =
+        let mutable sum = 0.0
+        collection384 |> IndexList.iter (fun e -> sum <- sum + e.s.y.c)
         sum
 
 //BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
@@ -520,6 +617,29 @@ type IndexListEnumeratorBenchmark() =
 //| HashMap_128byte |  1000 |  70,710.24 ns |   682.394 ns |   569.830 ns |  43.7012 |  1.3428 |     - |  274872 B |
 //| HashMap_384byte |  1000 | 158,957.35 ns | 1,504.544 ns | 1,407.352 ns | 125.2441 | 10.0098 |     - |  786936 B |
 
+//|               Method | Count |          Mean |        Error |       StdDev |        Median |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+//|--------------------- |------ |--------------:|-------------:|-------------:|--------------:|---------:|--------:|------:|----------:|
+//|   HashMap_4byte_iter |     0 |      12.27 ns |     0.271 ns |     0.459 ns |      12.29 ns |   0.0076 |       - |     - |      48 B |
+//|  HashMap_32byte_iter |     0 |      11.56 ns |     0.141 ns |     0.110 ns |      11.58 ns |   0.0076 |       - |     - |      48 B |
+//| HashMap_128byte_iter |     0 |      11.88 ns |     0.260 ns |     0.381 ns |      11.82 ns |   0.0076 |       - |     - |      48 B |
+//| HashMap_384byte_iter |     0 |      10.95 ns |     0.081 ns |     0.068 ns |      10.96 ns |   0.0076 |       - |     - |      48 B |
+//|   HashMap_4byte_iter |     1 |      12.17 ns |     0.253 ns |     0.248 ns |      12.15 ns |   0.0076 |       - |     - |      48 B |
+//|  HashMap_32byte_iter |     1 |      12.21 ns |     0.244 ns |     0.216 ns |      12.22 ns |   0.0076 |       - |     - |      48 B |
+//| HashMap_128byte_iter |     1 |      20.72 ns |     0.292 ns |     0.259 ns |      20.69 ns |   0.0076 |       - |     - |      48 B |
+//| HashMap_384byte_iter |     1 |      35.93 ns |     0.444 ns |     0.415 ns |      35.92 ns |   0.0076 |       - |     - |      48 B |
+//|   HashMap_4byte_iter |    10 |      40.44 ns |     0.428 ns |     0.401 ns |      40.45 ns |   0.0076 |       - |     - |      48 B |
+//|  HashMap_32byte_iter |    10 |      50.93 ns |     0.590 ns |     0.523 ns |      50.97 ns |   0.0076 |       - |     - |      48 B |
+//| HashMap_128byte_iter |    10 |     172.29 ns |     2.444 ns |     2.286 ns |     172.14 ns |   0.0076 |       - |     - |      48 B |
+//| HashMap_384byte_iter |    10 |     342.73 ns |     2.641 ns |     2.341 ns |     341.73 ns |   0.0076 |       - |     - |      48 B |
+//|   HashMap_4byte_iter |   100 |     470.73 ns |     6.855 ns |     5.724 ns |     471.11 ns |   0.0076 |       - |     - |      48 B |
+//|  HashMap_32byte_iter |   100 |     534.75 ns |     4.938 ns |     4.377 ns |     535.34 ns |   0.0076 |       - |     - |      48 B |
+//| HashMap_128byte_iter |   100 |   2,158.46 ns |     4.171 ns |     3.257 ns |   2,158.41 ns |   0.0076 |       - |     - |      48 B |
+//| HashMap_384byte_iter |   100 |   3,826.45 ns |    16.730 ns |    13.970 ns |   3,823.40 ns |   0.0076 |       - |     - |      48 B |
+//|   HashMap_4byte_iter |  1000 |   9,541.01 ns |   140.057 ns |   131.009 ns |   9,515.51 ns |        - |       - |     - |      48 B |
+//|  HashMap_32byte_iter |  1000 |  11,570.42 ns |   111.070 ns |   103.895 ns |  11,557.67 ns |        - |       - |     - |      48 B |
+//| HashMap_128byte_iter |  1000 |  26,462.19 ns |   215.937 ns |   191.423 ns |  26,524.16 ns |        - |       - |     - |      48 B |
+//| HashMap_384byte_iter |  1000 |  58,190.76 ns |   842.497 ns |   703.523 ns |  58,124.75 ns |        - |       - |     - |      48 B |
+
 [<PlainExporter; MemoryDiagnoser>]
 type HashMapEnumeratorBenchmark() =
 
@@ -529,7 +649,6 @@ type HashMapEnumeratorBenchmark() =
     let mutable collection384 = HashMap.empty<Struct384,Struct384>
    
     [<Params(0, 1, 10, 100, 1000); DefaultValue>]
-    //[<Params(0, 1, 10); DefaultValue>]
     val mutable public Count : int
 
     [<GlobalSetup>]
@@ -562,6 +681,30 @@ type HashMapEnumeratorBenchmark() =
     member x.HashMap_384byte() =
         let mutable sum = 0.0
         for (k,v) in collection384 do sum <- sum + k.r.z.d + v.r.x.a
+        sum
+
+    [<Benchmark>]
+    member x.HashMap_4byte_iter() =
+        let mutable sum = 0
+        collection4 |> HashMap.iter (fun k v -> sum <- sum + k + v)
+        sum
+
+    [<Benchmark>]
+    member x.HashMap_32byte_iter() =
+        let mutable sum = 0.0
+        collection32 |> HashMap.iter (fun k v -> sum <- sum + k.a + v.b)
+        sum
+
+    [<Benchmark>]
+    member x.HashMap_128byte_iter() =
+        let mutable sum = 0.0
+        collection128 |> HashMap.iter (fun k v -> sum <- sum + k.x.b + v.y.c)
+        sum
+
+    [<Benchmark>]
+    member x.HashMap_384byte_iter() =
+        let mutable sum = 0.0
+        collection384 |> HashMap.iter (fun k v -> sum <- sum + k.r.z.d + v.r.x.a)
         sum
 
 //BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
@@ -642,6 +785,29 @@ type HashMapEnumeratorBenchmark() =
 //| HashMap_128byte |  1000 |  78,504.07 ns |   291.097 ns |   272.292 ns |  78,527.56 ns | 0.9766 |     - |     - |    6840 B |
 //| HashMap_384byte |  1000 | 155,439.85 ns | 1,907.683 ns | 1,784.448 ns | 154,764.11 ns | 2.1973 |     - |     - |   15096 B |
 
+//|               Method | Count |          Mean |        Error |       StdDev |        Median |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+//|--------------------- |------ |--------------:|-------------:|-------------:|--------------:|---------:|--------:|------:|----------:|
+//|   HashMap_4byte_iter |     0 |      12.27 ns |     0.271 ns |     0.459 ns |      12.29 ns |   0.0076 |       - |     - |      48 B |
+//|  HashMap_32byte_iter |     0 |      11.56 ns |     0.141 ns |     0.110 ns |      11.58 ns |   0.0076 |       - |     - |      48 B |
+//| HashMap_128byte_iter |     0 |      11.88 ns |     0.260 ns |     0.381 ns |      11.82 ns |   0.0076 |       - |     - |      48 B |
+//| HashMap_384byte_iter |     0 |      10.95 ns |     0.081 ns |     0.068 ns |      10.96 ns |   0.0076 |       - |     - |      48 B |
+//|   HashMap_4byte_iter |     1 |      12.17 ns |     0.253 ns |     0.248 ns |      12.15 ns |   0.0076 |       - |     - |      48 B |
+//|  HashMap_32byte_iter |     1 |      12.21 ns |     0.244 ns |     0.216 ns |      12.22 ns |   0.0076 |       - |     - |      48 B |
+//| HashMap_128byte_iter |     1 |      20.72 ns |     0.292 ns |     0.259 ns |      20.69 ns |   0.0076 |       - |     - |      48 B |
+//| HashMap_384byte_iter |     1 |      35.93 ns |     0.444 ns |     0.415 ns |      35.92 ns |   0.0076 |       - |     - |      48 B |
+//|   HashMap_4byte_iter |    10 |      40.44 ns |     0.428 ns |     0.401 ns |      40.45 ns |   0.0076 |       - |     - |      48 B |
+//|  HashMap_32byte_iter |    10 |      50.93 ns |     0.590 ns |     0.523 ns |      50.97 ns |   0.0076 |       - |     - |      48 B |
+//| HashMap_128byte_iter |    10 |     172.29 ns |     2.444 ns |     2.286 ns |     172.14 ns |   0.0076 |       - |     - |      48 B |
+//| HashMap_384byte_iter |    10 |     342.73 ns |     2.641 ns |     2.341 ns |     341.73 ns |   0.0076 |       - |     - |      48 B |
+//|   HashMap_4byte_iter |   100 |     470.73 ns |     6.855 ns |     5.724 ns |     471.11 ns |   0.0076 |       - |     - |      48 B |
+//|  HashMap_32byte_iter |   100 |     534.75 ns |     4.938 ns |     4.377 ns |     535.34 ns |   0.0076 |       - |     - |      48 B |
+//| HashMap_128byte_iter |   100 |   2,158.46 ns |     4.171 ns |     3.257 ns |   2,158.41 ns |   0.0076 |       - |     - |      48 B |
+//| HashMap_384byte_iter |   100 |   3,826.45 ns |    16.730 ns |    13.970 ns |   3,823.40 ns |   0.0076 |       - |     - |      48 B |
+//|   HashMap_4byte_iter |  1000 |   9,541.01 ns |   140.057 ns |   131.009 ns |   9,515.51 ns |        - |       - |     - |      48 B |
+//|  HashMap_32byte_iter |  1000 |  11,570.42 ns |   111.070 ns |   103.895 ns |  11,557.67 ns |        - |       - |     - |      48 B |
+//| HashMap_128byte_iter |  1000 |  26,462.19 ns |   215.937 ns |   191.423 ns |  26,524.16 ns |        - |       - |     - |      48 B |
+//| HashMap_384byte_iter |  1000 |  58,190.76 ns |   842.497 ns |   703.523 ns |  58,124.75 ns |        - |       - |     - |      48 B |
+
 [<PlainExporter; MemoryDiagnoser>]
 type HashMapStructEnumeratorBenchmark() =
 
@@ -651,7 +817,6 @@ type HashMapStructEnumeratorBenchmark() =
     let mutable collection384 = HashMap.empty<Struct384,Struct384>
    
     [<Params(0, 1, 10, 100, 1000); DefaultValue>]
-    //[<Params(0, 1, 10); DefaultValue>]
     val mutable public Count : int
 
     [<GlobalSetup>]
@@ -1055,4 +1220,123 @@ type HashMapDeltaEnumeratorBenchmark() =
     member x.HashMapDelta_384byte() =
         let mutable sum = 0
         for (k,v) in collection384 do sum <- sum + 1
+        sum
+
+//BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+//Intel Core i7-8700K CPU 3.70GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+//.NET Core SDK=5.0.101
+//  [Host]     : .NET Core 3.1.10 (CoreCLR 4.700.20.51601, CoreFX 4.700.20.51901), X64 RyuJIT DEBUG
+//  DefaultJob : .NET Core 3.1.10 (CoreCLR 4.700.20.51601, CoreFX 4.700.20.51901), X64 RyuJIT
+
+//|              Method | Count |          Mean |        Error |       StdDev |    Gen 0 |    Gen 1 |    Gen 2 | Allocated |
+//|-------------------- |------ |--------------:|-------------:|-------------:|---------:|---------:|---------:|----------:|
+//|        MapExt_4byte |     0 |      23.51 ns |     0.223 ns |     0.198 ns |   0.0115 |        - |        - |      72 B |
+//|       MapExt_32byte |     0 |      43.69 ns |     0.216 ns |     0.180 ns |   0.0114 |        - |        - |      72 B |
+//|      MapExt_128byte |     0 |      50.82 ns |     0.575 ns |     0.538 ns |   0.0114 |        - |        - |      72 B |
+//|      MapExt_384byte |     0 |      76.16 ns |     0.435 ns |     0.386 ns |   0.0114 |        - |        - |      72 B |
+//|        MapExt_4byte |     1 |      30.25 ns |     0.200 ns |     0.187 ns |   0.0127 |        - |        - |      80 B |
+//|       MapExt_32byte |     1 |      60.06 ns |     0.393 ns |     0.328 ns |   0.0216 |        - |        - |     136 B |
+//|      MapExt_128byte |     1 |     128.62 ns |     0.578 ns |     0.482 ns |   0.0522 |        - |        - |     328 B |
+//|      MapExt_384byte |     1 |     233.63 ns |     2.229 ns |     1.976 ns |   0.1335 |        - |        - |     840 B |
+//|        MapExt_4byte |    10 |     162.87 ns |     0.530 ns |     0.496 ns |   0.0279 |        - |        - |     176 B |
+//|       MapExt_32byte |    10 |     352.81 ns |     1.992 ns |     1.766 ns |   0.1173 |        - |        - |     736 B |
+//|      MapExt_128byte |    10 |     997.32 ns |     4.649 ns |     4.349 ns |   0.4215 |        - |        - |    2656 B |
+//|      MapExt_384byte |    10 |   1,916.92 ns |    28.313 ns |    25.099 ns |   1.2360 |        - |        - |    7776 B |
+//|        MapExt_4byte |   100 |   1,745.67 ns |    23.166 ns |    21.670 ns |   0.2537 |        - |        - |    1592 B |
+//|       MapExt_32byte |   100 |   3,193.77 ns |    46.820 ns |    65.636 ns |   1.1330 |   0.0267 |        - |    7112 B |
+//|      MapExt_128byte |   100 |  10,333.66 ns |   161.492 ns |   151.060 ns |   4.1962 |        - |        - |   26432 B |
+//|      MapExt_384byte |   100 |  19,101.21 ns |   240.584 ns |   225.043 ns |  12.3291 |        - |        - |   77712 B |
+//|        MapExt_4byte |  1000 |  19,895.09 ns |   152.911 ns |   135.551 ns |   2.4414 |   0.0305 |        - |   15432 B |
+//|       MapExt_32byte |  1000 |  34,439.82 ns |   502.863 ns |   470.378 ns |  11.2305 |   1.4648 |        - |   70832 B |
+//|      MapExt_128byte |  1000 | 224,175.82 ns | 3,372.224 ns | 2,989.389 ns |  76.9043 |  76.9043 |  76.9043 |  263592 B |
+//|      MapExt_384byte |  1000 | 533,279.51 ns | 9,258.838 ns | 8,660.723 ns | 199.2188 | 199.2188 | 199.2188 |  775713 B |
+
+//|              Method | Count |          Mean |        Error |       StdDev |    Gen 0 |    Gen 1 |    Gen 2 | Allocated |
+//|-------------------- |------ |--------------:|-------------:|-------------:|---------:|---------:|---------:|----------:|
+//|   MapExt_4byte_iter |     0 |      13.06 ns |     0.173 ns |     0.153 ns |   0.0076 |        - |        - |      48 B |
+//|  MapExt_32byte_iter |     0 |      19.91 ns |     0.187 ns |     0.175 ns |   0.0076 |        - |        - |      48 B |
+//| MapExt_128byte_iter |     0 |      21.60 ns |     0.172 ns |     0.152 ns |   0.0076 |        - |        - |      48 B |
+//| MapExt_384byte_iter |     0 |      23.62 ns |     0.175 ns |     0.164 ns |   0.0076 |        - |        - |      48 B |
+//|   MapExt_4byte_iter |     1 |      13.86 ns |     0.191 ns |     0.179 ns |   0.0076 |        - |        - |      48 B |
+//|  MapExt_32byte_iter |     1 |      20.91 ns |     0.110 ns |     0.098 ns |   0.0076 |        - |        - |      48 B |
+//| MapExt_128byte_iter |     1 |      39.08 ns |     0.237 ns |     0.222 ns |   0.0076 |        - |        - |      48 B |
+//| MapExt_384byte_iter |     1 |      72.12 ns |     0.273 ns |     0.256 ns |   0.0076 |        - |        - |      48 B |
+//|   MapExt_4byte_iter |    10 |      74.14 ns |     0.411 ns |     0.364 ns |   0.0076 |        - |        - |      48 B |
+//|  MapExt_32byte_iter |    10 |     136.49 ns |     1.274 ns |     1.191 ns |   0.0076 |        - |        - |      48 B |
+//| MapExt_128byte_iter |    10 |     334.11 ns |     2.747 ns |     2.435 ns |   0.0076 |        - |        - |      48 B |
+//| MapExt_384byte_iter |    10 |     633.21 ns |     3.563 ns |     3.333 ns |   0.0076 |        - |        - |      48 B |
+//|   MapExt_4byte_iter |   100 |     645.07 ns |     6.064 ns |     5.673 ns |   0.0076 |        - |        - |      48 B |
+//|  MapExt_32byte_iter |   100 |   1,008.03 ns |     9.431 ns |     8.360 ns |   0.0076 |        - |        - |      48 B |
+//| MapExt_128byte_iter |   100 |   3,397.18 ns |    29.835 ns |    27.908 ns |   0.0076 |        - |        - |      48 B |
+//| MapExt_384byte_iter |   100 |   6,513.71 ns |    52.599 ns |    49.201 ns |   0.0076 |        - |        - |      48 B |
+//|   MapExt_4byte_iter |  1000 |   7,948.47 ns |   111.848 ns |   104.623 ns |        - |        - |        - |      48 B |
+//|  MapExt_32byte_iter |  1000 |  12,814.60 ns |   104.300 ns |    97.562 ns |        - |        - |        - |      48 B |
+//| MapExt_128byte_iter |  1000 |  36,012.77 ns |   345.215 ns |   306.024 ns |        - |        - |        - |      48 B |
+//| MapExt_384byte_iter |  1000 |  77,497.61 ns |   835.327 ns |   740.496 ns |        - |        - |        - |      48 B |
+
+[<PlainExporter; MemoryDiagnoser>]
+type MapExtEnumeratorBenchmark() =
+
+    let mutable collection4 = MapExt.empty<int,int>
+    let mutable collection32 = MapExt.empty<Struct32,Struct32>
+    let mutable collection128 = MapExt.empty<Struct128,Struct128>
+    let mutable collection384 = MapExt.empty<Struct384,Struct384>
+   
+    [<Params(0, 1, 10, 100, 1000); DefaultValue>]
+    val mutable public Count : int
+
+    [<GlobalSetup>]
+    member x.Setup() =
+        let rand = Random(123)
+        collection4 <- MapExt.ofArray (Array.init x.Count (fun i -> (rand.Next(), rand.Next()) ))
+        collection32 <- MapExt.ofArray (Array.init x.Count (fun i -> (BigStruct.create32(rand.Next()), BigStruct.create32(rand.Next())) ))
+        collection128 <- MapExt.ofArray (Array.init x.Count (fun i -> (BigStruct.createBig(rand.Next()), BigStruct.createBig(rand.Next())) ))
+        collection384 <- MapExt.ofArray (Array.init x.Count (fun i -> (BigStruct.createBigger(rand.Next()), BigStruct.createBigger(rand.Next()))  ))
+
+    [<Benchmark>]
+    member x.MapExt_4byte() =
+        let mutable sum = 0
+        for KeyValue(k,v) in collection4 do sum <- sum + k + v
+        sum
+
+    [<Benchmark>]
+    member x.MapExt_32byte() =
+        let mutable sum = 0.0
+        for KeyValue(k,v) in collection32 do sum <- sum + k.a + v.b
+        sum
+
+    [<Benchmark>]
+    member x.MapExt_128byte() =
+        let mutable sum = 0.0
+        for KeyValue(k,v) in collection128 do sum <- sum + k.x.b + v.y.c
+        sum
+
+    [<Benchmark>]
+    member x.MapExt_384byte() =
+        let mutable sum = 0.0
+        for KeyValue(k,v) in collection384 do sum <- sum + k.r.z.d + v.r.x.a
+        sum
+
+    [<Benchmark>]
+    member x.MapExt_4byte_iter() =
+        let mutable sum = 0
+        collection4 |> MapExt.iter (fun k v -> sum <- sum + k + v)
+        sum
+
+    [<Benchmark>]
+    member x.MapExt_32byte_iter() =
+        let mutable sum = 0.0
+        collection32 |> MapExt.iter (fun k v -> sum <- sum + k.a + v.b)
+        sum
+
+    [<Benchmark>]
+    member x.MapExt_128byte_iter() =
+        let mutable sum = 0.0
+        collection128 |> MapExt.iter (fun k v -> sum <- sum + k.x.b + v.y.c)
+        sum
+
+    [<Benchmark>]
+    member x.MapExt_384byte_iter() =
+        let mutable sum = 0.0
+        collection384 |> MapExt.iter (fun k v -> sum <- sum + k.r.z.d + v.r.x.a)
         sum
