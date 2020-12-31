@@ -557,7 +557,7 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
     /// Copies the list to the given array (starting at index)
     member x.CopyTo(dst : 'T[], dstIndex : int) = 
         let mutable i = dstIndex
-        content |> MapExt.iter (fun k v -> dst.[i] <- v; i <- i + 1)
+        content |> MapExt.iterV (fun v -> dst.[i] <- v; i <- i + 1)
 
     /// Tries to find the position for the given entry or -1 if the entry does not exist. O(N)
     member x.IndexOf(item : 'T) =
@@ -1345,7 +1345,7 @@ module IndexList =
         
     /// invokes the given action for all list elements in list order.
     let iter (action : 'T -> unit) (l : IndexList<'T>) =
-        l.Content.Tree |> MapExtImplementation.MapTree.iter (fun _ v -> action(v))
+        l.Content.Tree |> MapExtImplementation.MapTree.iterV action
         
     /// invokes the given action for all list elements in list order.
     let iteri (action : Index -> 'T -> unit) (l : IndexList<'T>) =

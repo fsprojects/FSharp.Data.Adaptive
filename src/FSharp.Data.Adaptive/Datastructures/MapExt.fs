@@ -764,6 +764,18 @@ module internal MapExtImplementation =
 
         let iter f m = iterOpt (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
 
+        let rec iterK (f : 'Key -> unit) m =
+            match m with 
+            | MapEmpty -> ()
+            | MapOne(k2,_) -> f(k2)
+            | MapNode(k2,_,l,r,_,_) -> iterK f l; f(k2); iterK f r
+
+        let rec iterV (f : 'Value -> unit) m =
+            match m with 
+            | MapEmpty -> ()
+            | MapOne(_,v2) -> f(v2)
+            | MapNode(_,v2,l,r,_,_) -> iterV f l; f(v2); iterV f r
+
         let rec tryPickOpt (f:OptimizedClosures.FSharpFunc<_,_,_>) m =
             match m with 
             | MapEmpty -> None
@@ -2222,6 +2234,8 @@ type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;Compa
     member m.FoldSection (lo:'Key) (hi:'Key) f (acc:'z) = MapTree.foldSection comparer lo hi f tree acc 
 
     member m.Iterate f = MapTree.iter f tree
+    member m.IterateK f = MapTree.iterK f tree
+    member m.IterateV f = MapTree.iterV f tree
 
     member m.MapRange f  = new MapExt<'Key,'T2>(comparer,MapTree.map f tree)
 
@@ -2528,6 +2542,12 @@ module internal MapExt =
 
     [<CompiledName("Iterate")>]
     let iter f (m:MapExt<_,_>) = m.Iterate(f)
+
+    [<CompiledName("IterateK")>]
+    let iterK f (m:MapExt<_,_>) = m.IterateK(f)
+
+    [<CompiledName("IterateV")>]
+    let iterV f (m:MapExt<_,_>) = m.IterateV(f)
 
     [<CompiledName("TryPick")>]
     let tryPick f (m:MapExt<_,_>) = m.TryPick(f)

@@ -496,6 +496,30 @@ type HashSetEnumeratorBenchmark() =
 //| IndexList_128byte_iter |  1000 | 269,012.94 ns | 1,033.680 ns | 1,578.538 ns | 268,805.03 ns |      - |     - |     - |      72 B |
 //| IndexList_384byte_iter |  1000 | 314,246.72 ns | 6,170.715 ns | 6,858.733 ns | 313,346.39 ns |      - |     - |     - |      72 B |
 
+// using MapExt.iterV
+//|                 Method | Count |         Mean |      Error |     StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+//|----------------------- |------ |-------------:|-----------:|-----------:|-------:|------:|------:|----------:|
+//|   IndexList_4byte_iter |     0 |     11.39 ns |   0.255 ns |   0.238 ns | 0.0076 |     - |     - |      48 B |
+//|  IndexList_32byte_iter |     0 |     11.44 ns |   0.195 ns |   0.191 ns | 0.0076 |     - |     - |      48 B |
+//| IndexList_128byte_iter |     0 |     16.33 ns |   0.303 ns |   0.284 ns | 0.0076 |     - |     - |      48 B |
+//| IndexList_384byte_iter |     0 |     22.97 ns |   0.484 ns |   0.898 ns | 0.0076 |     - |     - |      48 B |
+//|   IndexList_4byte_iter |     1 |     11.53 ns |   0.141 ns |   0.132 ns | 0.0076 |     - |     - |      48 B |
+//|  IndexList_32byte_iter |     1 |     11.97 ns |   0.268 ns |   0.251 ns | 0.0076 |     - |     - |      48 B |
+//| IndexList_128byte_iter |     1 |     20.58 ns |   0.286 ns |   0.268 ns | 0.0076 |     - |     - |      48 B |
+//| IndexList_384byte_iter |     1 |     35.62 ns |   0.583 ns |   0.546 ns | 0.0076 |     - |     - |      48 B |
+//|   IndexList_4byte_iter |    10 |     69.62 ns |   0.341 ns |   0.284 ns | 0.0076 |     - |     - |      48 B |
+//|  IndexList_32byte_iter |    10 |     67.70 ns |   1.009 ns |   0.944 ns | 0.0076 |     - |     - |      48 B |
+//| IndexList_128byte_iter |    10 |    173.24 ns |   0.466 ns |   0.436 ns | 0.0076 |     - |     - |      48 B |
+//| IndexList_384byte_iter |    10 |    314.95 ns |   0.355 ns |   0.297 ns | 0.0076 |     - |     - |      48 B |
+//|   IndexList_4byte_iter |   100 |    674.58 ns |   8.352 ns |   7.813 ns | 0.0076 |     - |     - |      48 B |
+//|  IndexList_32byte_iter |   100 |    668.89 ns |   4.098 ns |   3.833 ns | 0.0076 |     - |     - |      48 B |
+//| IndexList_128byte_iter |   100 |  1,735.54 ns |   6.709 ns |   5.602 ns | 0.0076 |     - |     - |      48 B |
+//| IndexList_384byte_iter |   100 |  2,971.03 ns |   6.529 ns |   6.107 ns | 0.0076 |     - |     - |      48 B |
+//|   IndexList_4byte_iter |  1000 |  6,892.76 ns |  13.451 ns |  11.924 ns | 0.0076 |     - |     - |      48 B |
+//|  IndexList_32byte_iter |  1000 |  7,106.19 ns |  32.649 ns |  28.942 ns | 0.0076 |     - |     - |      48 B |
+//| IndexList_128byte_iter |  1000 | 18,113.95 ns | 147.287 ns | 130.566 ns |      - |     - |     - |      48 B |
+//| IndexList_384byte_iter |  1000 | 33,745.08 ns | 167.130 ns | 156.333 ns |      - |     - |     - |      49 B |
+
 [<PlainExporter; MemoryDiagnoser>]
 type IndexListEnumeratorBenchmark() =
 
