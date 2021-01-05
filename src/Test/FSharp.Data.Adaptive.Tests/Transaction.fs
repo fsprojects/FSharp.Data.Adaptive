@@ -91,7 +91,7 @@ let ``[CSet] no transaction remove``() =
     set.Add(5) |> ignore
 
     set |> ASet.force |> ignore
-    set.Remove(2)
+    set.Remove(2) |> ignore
 
 
 [<Test>]
@@ -112,7 +112,7 @@ let ``[CList] no transaction remove``() =
     list.Append(5) |> ignore
 
     list |> AList.force |> ignore
-    list.RemoveAt(0)
+    list.RemoveAt(0) |> ignore
 
 
 [<Test>]
