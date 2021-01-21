@@ -603,8 +603,7 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
     
     /// Copies the list to the given array (starting at index)
     member x.CopyTo(dst : 'T[], dstIndex : int) = 
-        let mutable i = dstIndex
-        content |> MapExt.iterV (fun v -> dst.[i] <- v; i <- i + 1)
+        content.CopyValuesTo(dst, dstIndex)
 
     /// Tries to find the position for the given entry or -1 if the entry does not exist. O(N)
     member x.IndexOf(item : 'T) =
@@ -642,30 +641,33 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
 /// Enumerator for IndexList.
 and IndexListEnumerator<'Value> =
     struct
-        val mutable internal Root : MapExtImplementation.MapTree<Index, 'Value>
-        val mutable internal Head : MapExtImplementation.MapTree<Index, 'Value>
-        val mutable internal Tail : list<MapExtImplementation.MapTree<Index, 'Value>>
+        val mutable internal Root : MapExtImplementation.Node<Index, 'Value>
+        val mutable internal Head : MapExtImplementation.Node<Index, 'Value>
+        val mutable internal Tail : list<MapExtImplementation.Node<Index, 'Value>>
         val mutable internal Next : 'Value
         val mutable internal Index : int
         val mutable internal BufferValueCount : int
         val mutable internal Buffer : 'Value[]
     
-        member private x.Flatten(start : int, node : MapExtImplementation.MapTree<_,_>) =
-            match node with
-            | MapExtImplementation.MapOne(_,v) ->
-                x.Buffer.[start] <- v
-            | MapExtImplementation.MapNode(_,v,l,r,_,_) ->
-                let sl = MapExtImplementation.MapTree.size l
+        member private x.Flatten(start : int, node : MapExtImplementation.Node<_,_>) =
+            if isNull node then
+                ()
+            elif node.Height = 1uy then
+                x.Buffer.[start] <- node.Value
+            else
+                let node = node :?> MapExtImplementation.Inner<Index, 'Value>
+                let sl = MapExtImplementation.count node.Left
                 let si = start + sl
-                x.Buffer.[si] <- v
-                x.Flatten(start, l)
-                x.Flatten(si + 1, r)
-            | _ -> ()
+                x.Buffer.[si] <- node.Value
+                x.Flatten(start, node.Left)
+                x.Flatten(si + 1, node.Right)
+           
 
         member x.Collect() = 
-            match x.Head with
-            | MapExtImplementation.MapOne(_,v) ->
-                x.Next <- v
+            if isNull x.Head then
+                false
+            elif x.Head.Height = 1uy then
+                x.Next <- x.Head.Value
                 if x.Tail.IsEmpty then
                     x.Head <- Unchecked.defaultof<_>
                     x.Tail <- []
@@ -674,20 +676,21 @@ and IndexListEnumerator<'Value> =
                     x.Tail <- x.Tail.Tail
                 true
 
-            | MapExtImplementation.MapNode(k,v,l,r,_,cnt)  ->
-                if typesize<'Value> <= 64 && cnt <= 16 then
-                    let sl = MapExtImplementation.MapTree.size l
+            else
+                let n = x.Head :?> MapExtImplementation.Inner<Index, 'Value>
+                if typesize<'Value> <= 64 && n.Count <= 16 then
+                    let sl = MapExtImplementation.count n.Left
                     if sl > 0 then
-                        x.Flatten(0, l)
-                        x.Buffer.[sl] <- v
+                        x.Flatten(0, n.Left)
+                        x.Buffer.[sl] <- n.Value
                         x.Next <- x.Buffer.[0]
                     else
-                        x.Next <- v
+                        x.Next <- n.Value
                         
-                    x.Flatten(sl+1, r)
+                    x.Flatten(sl+1, n.Right)
 
                     x.Index <- 1
-                    x.BufferValueCount <- cnt
+                    x.BufferValueCount <- n.Count
 
                     if x.Tail.IsEmpty then
                         x.Head <- Unchecked.defaultof<_>
@@ -697,31 +700,27 @@ and IndexListEnumerator<'Value> =
                         x.Tail <- x.Tail.Tail
                     true
                 else
-                    match l with
-                    | MapExtImplementation.MapEmpty ->
-                        match r with
-                        | MapExtImplementation.MapEmpty ->
+                    if isNull n.Left then
+                        if isNull n.Right then
                             if x.Tail.IsEmpty then
                                 x.Head <- Unchecked.defaultof<_>
                                 x.Tail <- []
                             else
                                 x.Head <- x.Tail.Head
                                 x.Tail <- x.Tail.Tail
-                        | r ->
-                            x.Head <- r
+                        else
+                            x.Head <- n.Right
 
-                        x.Next <- v
+                        x.Next <- n.Value
                         true
-                    | _ ->
-                        x.Head <- l
-                        match r with
-                        | MapExtImplementation.MapEmpty ->
-                            x.Tail <- MapExtImplementation.MapOne(k, v) :: x.Tail
-                        | _ ->
-                            x.Tail <- MapExtImplementation.MapOne(k, v) :: r :: x.Tail
+                    else
+                        x.Head <- n.Left
+                        if isNull n.Right then
+                            x.Tail <- MapExtImplementation.Node(n.Key, n.Value) :: x.Tail
+                        else
+                            x.Tail <- MapExtImplementation.Node(n.Key, n.Value) :: n.Right :: x.Tail
                         x.Collect()
 
-            | _ -> false
 
         member x.MoveNext() =
             if x.Index < x.BufferValueCount then
@@ -754,7 +753,7 @@ and IndexListEnumerator<'Value> =
                 x.Tail <- []
                 x.Next <- Unchecked.defaultof<_>
 
-        internal new(root : MapExtImplementation.MapTree<Index, 'Value>) =
+        internal new(root : MapExtImplementation.Node<Index, 'Value>) =
             {
                 Root = root
                 Head = root
@@ -764,9 +763,10 @@ and IndexListEnumerator<'Value> =
                 Next = Unchecked.defaultof<_>
                 Buffer =
                     if typesize<'Value> <= 64 then
-                        match root with
-                        | MapExtImplementation.MapNode(_,_,_,_,_,cnt) -> Array.zeroCreate (min cnt 16)
-                        | _ -> null
+                        if isNull root || root.Height = 1uy then null
+                        else 
+                            let cnt = (root :?> MapExtImplementation.Inner<Index, 'Value>).Count
+                            Array.zeroCreate (min cnt 16)
                     else 
                         null
             }

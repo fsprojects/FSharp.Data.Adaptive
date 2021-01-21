@@ -3126,6 +3126,18 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
         MapExtImplementation.copyKeysTo arr 0 root |> ignore
         arr
 
+    member x.CopyTo(dst : ('Key * 'Value)[], index : int) =
+        MapExtImplementation.copyTo dst index root |> ignore
+
+    member x.CopyToV(dst : struct('Key * 'Value)[], index : int) =
+        MapExtImplementation.copyToV dst index root |> ignore
+        
+    member x.CopyValuesTo(dst : 'Value[], index : int) =
+        MapExtImplementation.copyValuesTo dst index root |> ignore
+
+    member x.CopyKeysTo(dst : 'Key[], index : int) =
+        MapExtImplementation.copyKeysTo dst index root |> ignore
+
 
     member x.ToArray() =
         let arr = Array.zeroCreate (MapExtImplementation.count root)
@@ -3611,7 +3623,7 @@ and internal MapExtEnumerator<'Key, 'Value> =
 
 
 module internal MapExt =
-    let inline empty<'Key, 'Value when 'Key : comparison> = MapExt<'Key, 'Value>.Empty
+    let empty<'Key, 'Value when 'Key : comparison> = MapExt<'Key, 'Value>.Empty
     
     let singleton (key : 'Key) (value : 'Value) = MapExt<'Key, 'Value>(key, value)
 
