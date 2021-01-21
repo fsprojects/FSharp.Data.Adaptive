@@ -90,7 +90,7 @@ let ``[CSet] no transaction remove``() =
     set.Remove(1) |> ignore
     set.Add(5) |> ignore
 
-    set.Value |> ignore
+    set |> ASet.force |> ignore
     set.Remove(2) |> ignore
 
 

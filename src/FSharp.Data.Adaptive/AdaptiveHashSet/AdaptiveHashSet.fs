@@ -1367,7 +1367,10 @@ module ASet =
     /// Evaluates the given adaptive set and returns its current content.
     /// This should not be used inside the adaptive evaluation
     /// of other AdaptiveObjects since it does not track dependencies.
-    let force (set : aset<'T>) = AVal.force set.Content
+    let force (set : aset<'T>) = 
+        match set.History with
+        | Some h -> h.State |> CountingHashSet.toHashSet
+        | None -> AVal.force set.Content
 
     /// Reduces the set using the given `AdaptiveReduction` and returns
     /// the resulting adaptive value.
