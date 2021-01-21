@@ -9,6 +9,7 @@ open FsCheck.NUnit
 open FSharp.Data.Adaptive
 open FSharp.Data.Traceable
 
+
 [<Property(EndSize = 1024, Verbose = true)>]
 let ``[Index] maintaining order``(lr : list<bool>) =
     let min = Index.zero
@@ -46,6 +47,60 @@ let ``[IndexList] creation`` (l : list<int>) =
 let ``[IndexList] count`` (l : list<int>) =
     let test = l |> IndexList.ofList
     test.Count |> should equal (List.length l)
+    
+[<Property(EndSize = 10000)>]
+let ``[IndexList] GetSlice`` (a : int) (b : int) (c : int) (l : list<int>) =
+    let l = a :: b :: c :: l
+    let test = l |> IndexList.ofList
+
+    test.[1..2] |> IndexList.toList |> should equal l.[1..2]
+    test.[1..] |> IndexList.toList |> should equal l.[1..]
+    test.[..2] |> IndexList.toList |> should equal l.[..2]
+
+    let idx = test.Count / 2
+    test.[idx..idx] |> IndexList.toList |> should equal [l.[idx]]
+        
+[<Property(EndSize = 10000)>]
+let ``[IndexList] GetSliceIndex`` (a : int) (b : int) (c : int) (l : list<int>) =
+    let l = a :: b :: c :: l
+    let test = l |> IndexList.ofList
+
+    let indices = test |> IndexList.toSeqIndexed |> Seq.map fst |> Seq.toArray
+
+    let a = 1
+    let b = 2
+    test.[indices.[a] .. indices.[b]] |> IndexList.toList |> should equal l.[a..b]
+    test.[indices.[a] .. ] |> IndexList.toList |> should equal l.[a..]
+    test.[ .. indices.[b]] |> IndexList.toList |> should equal l.[..b]
+    
+    let idx = test.Count / 2
+    test.[indices.[idx] .. indices.[idx]] |> IndexList.toList |> should equal [l.[idx]]
+
+    
+[<Property(EndSize = 10000)>]
+let ``[IndexList] skip`` (a : int) (b : int) (c : int) (l : list<int>) =
+    let l = a :: b :: c :: l
+    let test = l |> IndexList.ofList
+
+    IndexList.skip 2 test |> IndexList.toList |> should equal (List.skip 2 l)
+    IndexList.skip 0 test |> IndexList.toList |> should equal l
+    IndexList.skip 1 test |> IndexList.toList |> should equal (List.skip 1 l)
+    
+        
+[<Property(EndSize = 10000)>]
+let ``[IndexList] take`` (a : int) (b : int) (c : int) (l : list<int>) =
+    let l = a :: b :: c :: l
+    let test = l |> IndexList.ofList
+
+    let cnt = List.length l / 2
+
+    IndexList.take cnt test |> IndexList.toList |> should equal (List.take cnt l)
+    IndexList.take 0 test |> IndexList.toList |> should equal List.empty<int>
+    IndexList.take 2 test |> IndexList.toList |> should equal (List.take 2 l)
+    
+
+
+
 
 [<Property(EndSize = 10000)>]
 let ``[IndexList] append`` (l : list<int>) (r : list<int>) =

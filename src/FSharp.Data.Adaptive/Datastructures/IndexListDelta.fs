@@ -55,12 +55,12 @@ type IndexListDelta< [<EqualityConditionalOn>] 'T> internal(content : MapExt<Ind
     /// Applies the given mapping function to all deltas in the list and returns a new list containing the 'Some'-results.
     /// Note that the indices need to be monotonic.
     member x.MapMonotonic(mapping : Index -> ElementOperation<'T> -> Index * ElementOperation<'T2>) =
-        IndexListDelta(MapExt.mapMonotonic mapping content)
+        IndexListDelta(content.MapMonotonic mapping)
         
-    /// Applies the given mapping function to all deltas in the list and returns a new list containing the 'Some'-results.
-    /// Note that the indices need to be monotonic.
-    member x.ChooseMonotonic(mapping : Index -> ElementOperation<'T> -> option<Index * ElementOperation<'T2>>) =
-        IndexListDelta(MapExt.chooseMonotonic mapping content)
+    ///// Applies the given mapping function to all deltas in the list and returns a new list containing the 'Some'-results.
+    ///// Note that the indices need to be monotonic.
+    //member x.ChooseMonotonic(mapping : Index -> ElementOperation<'T> -> option<Index * ElementOperation<'T2>>) =
+    //    IndexListDelta(MapExt.chooseMonotonic mapping content)
 
     /// Filters the delta list using the given predicate.
     member x.Filter(mapping : Index -> ElementOperation<'T> -> bool) =
@@ -98,7 +98,7 @@ type IndexListDelta< [<EqualityConditionalOn>] 'T> internal(content : MapExt<Ind
         member x.GetEnumerator() = new IndexListDeltaEnumerator<'T>(x) :> _
 
 and IndexListDeltaEnumerator<'T>(delta : IndexListDelta<'T>) =
-    let mutable e = new MapExtEnumerator<Index, ElementOperation<'T>>(delta.Content.Tree)
+    let mutable e = new MapExtEnumerator<Index, ElementOperation<'T>>(delta.Content.Root)
 
     member x.MoveNext() = e.MoveNext()
     member x.Current = 

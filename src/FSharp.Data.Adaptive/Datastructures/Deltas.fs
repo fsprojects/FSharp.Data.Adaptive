@@ -87,7 +87,7 @@ module DifferentiationExtensions =
                         else struct(ValueSome v, ValueSome (Set v))
                     | ValueNone ->
                         struct(ValueSome v, ValueSome (Set v))
-            let s, d = x.Content.ApplyDelta(deltas.Content, apply)
+            let s, d = x.Content.ApplyDeltaAndGetEffective(deltas.Content, apply)
             IndexList.ofMap s, IndexListDelta.ofMap d
 
         /// Applies the given operations to the list. 
@@ -98,5 +98,5 @@ module DifferentiationExtensions =
             let inline update _ o n =
                 if DefaultEquality.equals o n then ValueNone
                 else ValueSome (Set n)
-            let res = l.Content.ComputeDelta(r.Content, add, update, rem)
+            let res = l.Content.ComputeDeltaTo(r.Content, add, update, rem)
             IndexListDelta res

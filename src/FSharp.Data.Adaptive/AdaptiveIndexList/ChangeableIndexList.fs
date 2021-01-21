@@ -126,10 +126,10 @@ type ChangeableIndexList<'T>(elements: IndexList<'T>) =
         | None ->
             history.Perform (IndexListDelta.single index (Set element)) |> ignore
             index
-        | Some (s, _) ->
+        | Some _ ->
             let index =
                 match r with
-                | Some (r,_) -> Index.between s r
+                | Some (r,_) -> Index.between index r
                 | None -> Index.after index
             history.Perform (IndexListDelta.single index (Set element)) |> ignore
             index
@@ -141,10 +141,10 @@ type ChangeableIndexList<'T>(elements: IndexList<'T>) =
         | None ->
             history.Perform (IndexListDelta.single index (Set element)) |> ignore
             index
-        | Some (s, _) ->
+        | Some _ ->
             let index =
                 match l with
-                | Some (l,_) -> Index.between l s
+                | Some (l,_) -> Index.between l index
                 | None -> Index.before index
             history.Perform (IndexListDelta.single index (Set element)) |> ignore
             index

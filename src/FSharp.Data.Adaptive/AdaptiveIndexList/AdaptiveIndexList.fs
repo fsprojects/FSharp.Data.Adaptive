@@ -460,7 +460,7 @@ module internal AdaptiveIndexListImplementation =
 
         member x.Dispose() =
             lock x (fun () ->
-                for v in MapExt.values state do (v :> System.IDisposable).Dispose()
+                for v in MapExt.toValueList state do (v :> System.IDisposable).Dispose()
                 disposeDelta <- state |> MapExt.map (fun _ _ -> Remove) |> IndexListDelta.ofMap
                 state <- MapExt.empty
                 reader <- Unchecked.defaultof<_>
@@ -484,7 +484,7 @@ module internal AdaptiveIndexListImplementation =
                     | Set v ->
                         let r = mapping k v
                         state <-
-                            state.Alter(k, fun o ->
+                            state.Change(k, fun (o : option<'b>) ->
                                 match o with
                                 | Some o -> o.Dispose(); Some r
                                 | None -> Some r
@@ -492,7 +492,7 @@ module internal AdaptiveIndexListImplementation =
                         Set r
                     | Remove -> 
                         state <-
-                            state.Alter(k, fun o ->
+                            state.Change(k, fun (o : option<'b>) ->
                                 match o with
                                 | Some o -> o.Dispose(); None
                                 | None -> None
@@ -762,8 +762,7 @@ module internal AdaptiveIndexListImplementation =
 
         member x.AddTarget(oi : Index) =
             if targets.Add oi then
-                getReader().State.Content
-                |> MapExt.mapMonotonic (fun ii v -> mapping.Invoke(oi, ii), Set v)
+                getReader().State.Content.MapMonotonic (fun ii v -> mapping.Invoke(oi, ii), Set v)
                 |> IndexListDelta.ofMap
             else
                 IndexListDelta.empty
@@ -1110,12 +1109,12 @@ module internal AdaptiveIndexListImplementation =
 
                 let r =
                     match r with
-                    | None when cyclic -> s.Content.TryMin
+                    | None when cyclic -> s.Content.TryMin()
                     | _ -> r
                     
                 let l =
                     match l with
-                    | None when cyclic -> s.Content.TryMax
+                    | None when cyclic -> s.Content.TryMax()
                     | _ -> l
 
                 l, r

@@ -51,7 +51,7 @@ type ChangeableIndexList<'T> =
     member NewIndexBefore : ref : Index -> Index
     
     /// Gets the neigbour elements and self (if existing) and returns (previous, self, next) as a triple.
-    member Neighbours : ref : Index -> option<Index * 'T> * option<Index * 'T> * option<Index * 'T>
+    member Neighbours : ref : Index -> option<Index * 'T> * option<'T> * option<Index * 'T>
 
     /// Tries to get the (index, value) for element directly after the given ref.
     member TryGetNext : ref : Index -> option<Index * 'T>
