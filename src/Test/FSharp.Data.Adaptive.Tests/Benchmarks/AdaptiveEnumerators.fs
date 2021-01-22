@@ -1347,6 +1347,29 @@ type HashMapDeltaEnumeratorBenchmark() =
 //| MapExt_128byte |  1000 |  75,430.54 ns |   316.716 ns |   280.760 ns |  75,397.19 ns | 5.4932 |     - |     - |   35160 B |
 //| MapExt_384byte |  1000 | 143,500.88 ns | 1,558.978 ns | 1,381.994 ns | 143,476.61 ns | 5.3711 |     - |     - |   35080 B |
 
+// New MapExt + Inline Stack Head + Leaf stack nodes instead of deep bool
+//|         Method | Count |          Mean |        Error |     StdDev |   Gen 0 |  Gen 1 | Gen 2 | Allocated |
+//|--------------- |------ |--------------:|-------------:|-----------:|--------:|-------:|------:|----------:|
+//|   MapExt_4byte |     0 |      11.79 ns |     0.018 ns |   0.015 ns |       - |      - |     - |         - |
+//|  MapExt_32byte |     0 |      11.88 ns |     0.028 ns |   0.026 ns |       - |      - |     - |         - |
+//| MapExt_128byte |     0 |      17.04 ns |     0.363 ns |   0.596 ns |       - |      - |     - |         - |
+//| MapExt_384byte |     0 |      23.10 ns |     0.081 ns |   0.151 ns |       - |      - |     - |         - |
+//|   MapExt_4byte |     1 |      18.95 ns |     0.054 ns |   0.048 ns |       - |      - |     - |         - |
+//|  MapExt_32byte |     1 |      18.80 ns |     0.092 ns |   0.081 ns |       - |      - |     - |         - |
+//| MapExt_128byte |     1 |      64.18 ns |     0.153 ns |   0.135 ns |       - |      - |     - |         - |
+//| MapExt_384byte |     1 |     123.06 ns |     0.962 ns |   0.803 ns |       - |      - |     - |         - |
+//|   MapExt_4byte |    10 |     163.53 ns |     1.184 ns |   1.108 ns |  0.0458 |      - |     - |     288 B |
+//|  MapExt_32byte |    10 |     225.93 ns |     4.515 ns |   8.142 ns |  0.1249 |      - |     - |     784 B |
+//| MapExt_128byte |    10 |     816.94 ns |    15.571 ns |  27.678 ns |  0.2632 |      - |     - |    1656 B |
+//| MapExt_384byte |    10 |   1,468.65 ns |     6.449 ns |   6.033 ns |  0.6714 |      - |     - |    4216 B |
+//|   MapExt_4byte |   100 |   1,885.80 ns |     2.970 ns |   2.633 ns |  0.6313 |      - |     - |    3968 B |
+//|  MapExt_32byte |   100 |   2,478.35 ns |     9.860 ns |   9.223 ns |  1.1253 |      - |     - |    7072 B |
+//| MapExt_128byte |   100 |   7,980.49 ns |    85.554 ns |  80.027 ns |  2.7618 |      - |     - |   17344 B |
+//| MapExt_384byte |   100 |  14,974.04 ns |    76.068 ns |  59.389 ns |  6.6223 | 0.0610 |     - |   41624 B |
+//|   MapExt_4byte |  1000 |  21,395.55 ns |    91.196 ns |  80.843 ns |  7.0801 |      - |     - |   44416 B |
+//|  MapExt_32byte |  1000 |  27,506.16 ns |   238.328 ns | 186.071 ns | 11.4441 | 0.0305 |     - |   71824 B |
+//| MapExt_128byte |  1000 |  83,764.84 ns |   284.037 ns | 237.184 ns | 26.9775 | 0.1221 |     - |  169528 B |
+//| MapExt_384byte |  1000 | 172,949.49 ns | 1,067.596 ns | 946.396 ns | 68.1152 | 0.9766 |     - |  428024 B |
 
 // Old MapExt Iter
 //|              Method | Count |          Mean |        Error |       StdDev |    Gen 0 |    Gen 1 |    Gen 2 | Allocated |
@@ -1439,26 +1462,26 @@ type MapExtEnumeratorBenchmark() =
         for KeyValue(k,v) in collection384 do sum <- sum + k.r.z.d + v.r.x.a
         sum
 
-    [<Benchmark>]
-    member x.MapExt_4byte_iter() =
-        let mutable sum = 0
-        collection4 |> MapExt.iter (fun k v -> sum <- sum + k + v)
-        sum
+    //[<Benchmark>]
+    //member x.MapExt_4byte_iter() =
+    //    let mutable sum = 0
+    //    collection4 |> MapExt.iter (fun k v -> sum <- sum + k + v)
+    //    sum
 
-    [<Benchmark>]
-    member x.MapExt_32byte_iter() =
-        let mutable sum = 0.0
-        collection32 |> MapExt.iter (fun k v -> sum <- sum + k.a + v.b)
-        sum
+    //[<Benchmark>]
+    //member x.MapExt_32byte_iter() =
+    //    let mutable sum = 0.0
+    //    collection32 |> MapExt.iter (fun k v -> sum <- sum + k.a + v.b)
+    //    sum
 
-    [<Benchmark>]
-    member x.MapExt_128byte_iter() =
-        let mutable sum = 0.0
-        collection128 |> MapExt.iter (fun k v -> sum <- sum + k.x.b + v.y.c)
-        sum
+    //[<Benchmark>]
+    //member x.MapExt_128byte_iter() =
+    //    let mutable sum = 0.0
+    //    collection128 |> MapExt.iter (fun k v -> sum <- sum + k.x.b + v.y.c)
+    //    sum
 
-    [<Benchmark>]
-    member x.MapExt_384byte_iter() =
-        let mutable sum = 0.0
-        collection384 |> MapExt.iter (fun k v -> sum <- sum + k.r.z.d + v.r.x.a)
-        sum
+    //[<Benchmark>]
+    //member x.MapExt_384byte_iter() =
+    //    let mutable sum = 0.0
+    //    collection384 |> MapExt.iter (fun k v -> sum <- sum + k.r.z.d + v.r.x.a)
+    //    sum
