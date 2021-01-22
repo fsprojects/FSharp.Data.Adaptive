@@ -56,7 +56,7 @@ module Profile =
 let main _args =
     //Profile.run()
     //BenchmarkRunner.Run<Benchmarks.TransactBenchmark>() |> ignore
-    BenchmarkRunner.Run<Benchmarks.GetValueBenchmark>() |> ignore
+    //BenchmarkRunner.Run<Benchmarks.GetValueBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.MapBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.CollectBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.EnumeratorBenchmark>() |> ignore
@@ -69,5 +69,7 @@ let main _args =
     //BenchmarkRunner.Run<Benchmarks.IndexListDeltaEnumeratorBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.HashSetDeltaEnumeratorBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.HashMapDeltaEnumeratorBenchmark>() |> ignore
+    BenchmarkRunner.Run<Benchmarks.MapExtEnumeratorBenchmark>() |> ignore
+    //BenchmarkRunner.Run<Benchmarks.CollectionUpdate>() |> ignore
 
     0

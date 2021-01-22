@@ -2558,50 +2558,61 @@ module internal MapExtImplementation =
         struct
             val mutable internal Mapping : Node<'Key, 'Value> -> 'T
             val mutable internal Root : Node<'Key, 'Value>
-            val mutable internal Stack : list<struct(Node<'Key, 'Value> * bool)>
+            val mutable internal Head : struct(Node<'Key, 'Value> * bool)
+            val mutable internal Tail : list<struct(Node<'Key, 'Value> * bool)>
             val mutable internal CurrentNode : Node<'Key, 'Value>
             
             member x.MoveNext() =
-                match x.Stack with
-                | struct(n, deep) :: t ->
-                    x.Stack <- t
+                let struct(n, deep) = x.Head
+                if not (isNull n) then
 
-                    if n.Height > 1uy then
-                        if deep then
-                            let inner = n :?> Inner<'Key, 'Value>
+                    if n.Height > 1uy && deep then
+                        let inner = n :?> Inner<'Key, 'Value>
 
-                            if not (isNull inner.Right) then 
-                                x.Stack <- struct(inner.Right, true) :: x.Stack
-                                
-                            if isNull inner.Left then 
-                                x.CurrentNode <- n
-                                true
+                        if isNull inner.Left then
+                            if isNull inner.Right then
+                                if x.Tail.IsEmpty then
+                                    x.Head <- Unchecked.defaultof<_>
+                                    x.Tail <- []
+                                else
+                                    x.Head <- x.Tail.Head
+                                    x.Tail <- x.Tail.Tail
                             else
-                                x.Stack <- struct(inner.Left, true) :: struct(n, false) :: x.Stack
-                                x.MoveNext()
-                        else
+                                x.Head <- struct(inner.Right, true)
+
                             x.CurrentNode <- n
                             true
+                        else
+                            x.Head <- struct(inner.Left, true)
+                            if isNull inner.Right then
+                                x.Tail <- struct(n, false) :: x.Tail
+                            else
+                                x.Tail <- struct(n, false) :: struct(inner.Right, true) :: x.Tail
+                            x.MoveNext()
                     else
                         x.CurrentNode <- n
+                        if x.Tail.IsEmpty then 
+                            x.Head <- Unchecked.defaultof<_>
+                            x.Tail <- []
+                        else
+                            x.Head <- x.Tail.Head
+                            x.Tail <- x.Tail.Tail
                         true
 
-                | [] ->
+                else
                     false
 
 
             member x.Reset() =
-                if isNull x.Root then
-                    x.Stack <- []
-                    x.CurrentNode <- null
-                else
-                    x.Stack <- [struct(x.Root, true)]
-                    x.CurrentNode <- null
+                x.Head <- if isNull x.Root then Unchecked.defaultof<_> else struct(x.Root, true)                
+                x.Tail <- []
+                x.CurrentNode <- null
 
             member x.Dispose() =
                 x.Root <- null
                 x.CurrentNode <- null
-                x.Stack <- []
+                x.Head <- Unchecked.defaultof<_>
+                x.Tail <- []
 
             member x.Current =
                 x.Mapping x.CurrentNode
@@ -2618,7 +2629,8 @@ module internal MapExtImplementation =
             new(root : Node<'Key, 'Value>, mapping : Node<'Key, 'Value> -> 'T) =
                 {
                     Root = root
-                    Stack = if isNull root then [] else [struct(root, true)]
+                    Head = if isNull root then Unchecked.defaultof<_> else struct(root, true)
+                    Tail = []
                     CurrentNode = null
                     Mapping = mapping
                 }
@@ -3554,51 +3566,61 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
 and internal MapExtEnumerator<'Key, 'Value> =
     struct
         val mutable internal Root : MapExtImplementation.Node<'Key, 'Value>
-        val mutable internal Stack : list<struct(MapExtImplementation.Node<'Key, 'Value> * bool)>
+        val mutable internal Head : struct(MapExtImplementation.Node<'Key, 'Value> * bool)
+        val mutable internal Tail : list<struct(MapExtImplementation.Node<'Key, 'Value> * bool)>
         val mutable internal CurrentNode : MapExtImplementation.Node<'Key, 'Value>
-
-
+        
         member x.MoveNext() =
-            match x.Stack with
-            | struct(n, deep) :: t ->
-                x.Stack <- t
+            let struct(n, deep) = x.Head
+            if not (isNull n) then
 
-                if n.Height > 1uy then
-                    if deep then
-                        let inner = n :?> MapExtImplementation.Inner<'Key, 'Value>
+                if n.Height > 1uy && deep then
+                    let inner = n :?> MapExtImplementation.Inner<'Key, 'Value>
 
-                        if not (isNull inner.Right) then 
-                            x.Stack <- struct(inner.Right, true) :: x.Stack
-                                
-                        if isNull inner.Left then 
-                            x.CurrentNode <- n
-                            true
+                    if isNull inner.Left then
+                        if isNull inner.Right then
+                            if x.Tail.IsEmpty then
+                                x.Head <- Unchecked.defaultof<_>
+                                x.Tail <- []
+                            else
+                                x.Head <- x.Tail.Head
+                                x.Tail <- x.Tail.Tail
                         else
-                            x.Stack <- struct(inner.Left, true) :: struct(n, false) :: x.Stack
-                            x.MoveNext()
-                    else
+                            x.Head <- struct(inner.Right, true)
+
                         x.CurrentNode <- n
                         true
+                    else
+                        x.Head <- struct(inner.Left, true)
+                        if isNull inner.Right then
+                            x.Tail <- struct(n, false) :: x.Tail
+                        else
+                            x.Tail <- struct(n, false) :: struct(inner.Right, true) :: x.Tail
+                        x.MoveNext()
                 else
                     x.CurrentNode <- n
+                    if x.Tail.IsEmpty then 
+                        x.Head <- Unchecked.defaultof<_>
+                        x.Tail <- []
+                    else
+                        x.Head <- x.Tail.Head
+                        x.Tail <- x.Tail.Tail
                     true
 
-            | [] ->
+            else
                 false
 
 
         member x.Reset() =
-            if isNull x.Root then
-                x.Stack <- []
-                x.CurrentNode <- null
-            else
-                x.Stack <- [struct(x.Root, true)]
-                x.CurrentNode <- null
+            x.Head <- if isNull x.Root then Unchecked.defaultof<_> else struct(x.Root, true)                
+            x.Tail <- []
+            x.CurrentNode <- null
 
         member x.Dispose() =
             x.Root <- null
             x.CurrentNode <- null
-            x.Stack <- []
+            x.Head <- Unchecked.defaultof<_>
+            x.Tail <- []
 
         member x.Current =
             KeyValuePair(x.CurrentNode.Key, x.CurrentNode.Value)
@@ -3615,10 +3637,10 @@ and internal MapExtEnumerator<'Key, 'Value> =
         new(root : MapExtImplementation.Node<'Key, 'Value>) =
             {
                 Root = root
-                Stack = if isNull root then [] else [struct(root, true)]
+                Head = if isNull root then Unchecked.defaultof<_> else struct(root, true)
+                Tail = []
                 CurrentNode = null
             }
-
     end
 
 
