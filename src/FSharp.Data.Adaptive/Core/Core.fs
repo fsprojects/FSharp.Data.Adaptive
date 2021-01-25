@@ -381,46 +381,50 @@ and internal WeakOutputSet() =
     /// And clears its content.
     member x.Consume(output : ref<IAdaptiveObject[]>): int =
         lock x (fun () ->
-            let n = data
-            data <- Unchecked.defaultof<_>
-            setOps <- 0
-            match n.Tag with
-            | 0 ->  
-                if isNull n.Single then 
-                    0
-                else 
-                    match n.Single.TryGetTarget() with
-                    | (true, v) -> 
-                        output.Value.[0] <- v
-                        1
-                    | _ ->
+            let cnt = 
+                match data.Tag with
+                | 0 ->  
+                    if isNull data.Single then 
                         0
-            | 1 ->  
-                let mutable oi = 0
-                for i in 0 .. n.Array.Length - 1 do
-                    let r = n.Array.[i]
-                    if not (isNull r) then
-                        match r.TryGetTarget() with
+                    else 
+                        match data.Single.TryGetTarget() with
                         | (true, v) -> 
+                            output.Value.[0] <- v
+                            1
+                        | _ ->
+                            0
+                | 1 ->  
+                    let mutable oi = 0
+                    let arr = data.Array
+                    for i in 0 ..arr.Length - 1 do
+                        let r = arr.[i]
+                        if not (isNull r) then
+                            match r.TryGetTarget() with
+                            | (true, v) -> 
+                                if oi >= output.Value.Length then resizeArray output (oi <<< 2)
+                                output.Value.[oi] <- v
+                                oi <- oi + 1
+                            | _ -> ()
+                    oi
+                | _ ->
+                    let mutable oi = 0
+                    let mutable o = Unchecked.defaultof<_>
+                    for r in data.Set do
+                        if r.TryGetTarget(&o) then
                             if oi >= output.Value.Length then resizeArray output (oi <<< 2)
-                            output.Value.[oi] <- v
+                            output.Value.[oi] <- o
                             oi <- oi + 1
-                        | _ -> ()
-                oi
-            | _ ->
-                let mutable oi = 0
-                let mutable o = Unchecked.defaultof<_>
-                for r in n.Set do
-                    if r.TryGetTarget(&o) then
-                        if oi >= output.Value.Length then resizeArray output (oi <<< 2)
-                        output.Value.[oi] <- o
-                        oi <- oi + 1
-                oi
+                    oi
+            data.Single <- null
+            data.Tag <- 0
+            setOps <- 0
+            cnt
         )
 
     member x.Clear() =
         lock x (fun () ->
-            data <- Unchecked.defaultof<_>
+            data.Single <- null
+            data.Tag <- 0
             setOps <- 0
         )
 
