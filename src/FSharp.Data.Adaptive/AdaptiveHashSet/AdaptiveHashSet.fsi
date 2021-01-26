@@ -5,7 +5,7 @@ open FSharp.Data.Traceable
 
 /// An adaptive reader for aset that allows to pull operations and exposes its current state.
 type IHashSetReader<'T> = 
-    IOpReader<CountingHashSet<'T>, HashSetDelta<'T>>
+    IOpReader<CountingHashSet<'T> * HashSet<'T>, HashSetDelta<'T>>
 
 /// Adaptive set datastructure.
 [<Interface>]
@@ -20,7 +20,7 @@ type IAdaptiveHashSet<'T> =
     abstract member GetReader : unit -> IHashSetReader<'T>
 
     /// Gets the underlying History instance for the aset (if any)
-    abstract member History : option<History<CountingHashSet<'T>, HashSetDelta<'T>>>
+    abstract member History : option<History<CountingHashSet<'T> * HashSet<'T>, HashSetDelta<'T>>>
 
 /// Adaptive set datastructure.
 and aset<'T> = IAdaptiveHashSet<'T>

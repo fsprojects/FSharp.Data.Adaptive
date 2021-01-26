@@ -136,7 +136,7 @@ let main argv =
 
     let eval() =
         let ops = r.GetChanges AdaptiveToken.Top
-        let state = r.State
+        let state,_ = r.State
 
         let state = state |> Seq.map (sprintf "%A") |> String.concat "; " |> sprintf "{ %s }"
         let a = a |> ASet.force |> Seq.map (sprintf "%A") |> String.concat "; " |> sprintf "{ %s }"

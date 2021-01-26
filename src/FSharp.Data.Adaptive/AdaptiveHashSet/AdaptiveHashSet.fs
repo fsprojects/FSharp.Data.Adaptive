@@ -4,7 +4,7 @@ open FSharp.Data.Traceable
 open System
 
 /// An adaptive reader for aset that allows to pull operations and exposes its current state.
-type IHashSetReader<'T> = IOpReader<CountingHashSet<'T>, HashSetDelta<'T>>
+type IHashSetReader<'T> = IOpReader<CountingHashSet<'T> * HashSet<'T>, HashSetDelta<'T>>
 
 /// Adaptive set datastructure.
 type IAdaptiveHashSet<'T> =
@@ -18,7 +18,8 @@ type IAdaptiveHashSet<'T> =
     abstract member GetReader : unit -> IHashSetReader<'T>
 
     /// Gets the underlying History instance for the aset (if any)
-    abstract member History : option<History<CountingHashSet<'T>, HashSetDelta<'T>>>
+    abstract member History : option<History<CountingHashSet<'T> * HashSet<'T>, HashSetDelta<'T>>>
+
 
 and aset<'T> = IAdaptiveHashSet<'T>
 
@@ -57,9 +58,10 @@ module SetReductions =
             x.EvaluateAlways token (fun token ->
                 if x.OutOfDate then
                     let ops = reader.GetChanges token
+                    let (state,_) = reader.State
 
-                    if reader.State.Count <= 2 || reader.State.Count <= ops.Count then
-                        sum <- reader.State |> CountingHashSet.fold reduction.add reduction.seed
+                    if state.Count <= 2 || state.Count <= ops.Count then
+                        sum <- state |> CountingHashSet.fold reduction.add reduction.seed
                     else
                         let mutable working = true
                         let mutable e = ops.GetEnumerator()
@@ -75,7 +77,7 @@ module SetReductions =
                                 | ValueNone -> working <- false
 
                         if not working then
-                            sum <- reader.State |> CountingHashSet.fold reduction.add reduction.seed
+                            sum <- state |> CountingHashSet.fold reduction.add reduction.seed
 
                     result <- reduction.view sum
 
@@ -120,10 +122,11 @@ module SetReductions =
             x.EvaluateAlways token (fun token ->
                 if x.OutOfDate then
                     let ops = reader.GetChanges token
+                    let (newState,_) = reader.State
 
-                    if reader.State.Count <= 2 || reader.State.Count <= ops.Count then
+                    if newState.Count <= 2 || newState.Count <= ops.Count then
                         let newState =
-                            reader.State.Store |> HashMap.map (fun a _ ->
+                            newState.Store |> HashMap.map (fun a _ ->
                                 match state.TryFindV a with
                                 | ValueSome b -> b
                                 | ValueNone -> mapping a
@@ -265,7 +268,8 @@ module SetReductions =
                         targets <- HashMap.empty
 
                         let newState =  
-                            reader.State.Store |> HashMap.map (fun k _ ->
+                            let readerState,_ = reader.State
+                            readerState.Store |> HashMap.map (fun k _ ->
                                 match HashMap.tryFindV k state with
                                 | ValueSome(m,_) ->
                                     let v = m.GetValue t
@@ -345,8 +349,8 @@ module AdaptiveHashSetImplementation =
     /// Core implementation for a dependent set.
     [<Sealed>]
     type AdaptiveHashSetImpl<'T>(createReader : unit -> IOpReader<HashSetDelta<'T>>) =
-        let history = History(createReader, CountingHashSet.trace)
-        let content = history |> AVal.map CountingHashSet.toHashSet
+        let history = History(createReader, CountingHashSet.traceTup)
+        let content = history |> AVal.map snd
 
         /// Gets a new reader to the set.
         member x.GetReader() : IHashSetReader<'T> =
@@ -367,7 +371,7 @@ module AdaptiveHashSetImplementation =
     type EmptySet<'T> private() =   
         static let instance = EmptySet<'T>() :> aset<_>
         let content = AVal.constant HashSet.empty
-        let reader = new History.Readers.EmptyReader<CountingHashSet<'T>, HashSetDelta<'T>>(CountingHashSet.trace) :> IHashSetReader<'T>
+        let reader = new History.Readers.EmptyReader<CountingHashSet<'T> * HashSet<'T>, HashSetDelta<'T>>(CountingHashSet.traceTup) :> IHashSetReader<'T>
         static member Instance = instance
         
         member x.Content = content
@@ -388,9 +392,9 @@ module AdaptiveHashSetImplementation =
 
         member x.GetReader() =
             new History.Readers.ConstantReader<_,_>(
-                CountingHashSet.trace,
+                CountingHashSet.traceTup,
                 lazy (HashSet.addAll content.Value),
-                lazy (CountingHashSet.ofHashSet content.Value)
+                lazy (CountingHashSet.ofHashSet content.Value, content.Value)
             ) :> IHashSetReader<_>
 
         interface IAdaptiveHashSet<'T> with
@@ -596,7 +600,7 @@ module AdaptiveHashSetImplementation =
                             // in case r was not dirty we need to explicitly remove ourselves
                             // from its output-set. if it was dirty it can't hurt to do so.
                             r.Outputs.Remove x |> ignore
-                            CountingHashSet.removeAll r.State
+                            CountingHashSet.removeAll (fst r.State)
                         else
                             r.GetChanges token
                                 
@@ -826,7 +830,7 @@ module AdaptiveHashSetImplementation =
                                 // in case r was not dirty we need to explicitly remove ourselves
                                 // from its output-set. if it was dirty it can't hurt to do so.
                                 r.Outputs.Remove x |> ignore
-                                CountingHashSet.removeAll r.State
+                                CountingHashSet.removeAll (fst r.State)
                             else
                                 r.GetChanges token
                         | None -> 
@@ -878,7 +882,7 @@ module AdaptiveHashSetImplementation =
             match cache with
             | Some(oldValue, oldReader) when valChanged && not (cheapEqual oldValue newValue) ->
                 // input changed
-                let rem = CountingHashSet.removeAll oldReader.State
+                let rem = CountingHashSet.removeAll (fst oldReader.State)
                 oldReader.Outputs.Remove x |> ignore
                 let newReader = (mapping newValue).GetReader()
                 let add = newReader.GetChanges token
@@ -1369,7 +1373,7 @@ module ASet =
     /// of other AdaptiveObjects since it does not track dependencies.
     let force (set : aset<'T>) = 
         match set.History with
-        | Some h -> h.State |> CountingHashSet.toHashSet
+        | Some h -> h.State |> snd
         | None -> AVal.force set.Content
 
     /// Reduces the set using the given `AdaptiveReduction` and returns

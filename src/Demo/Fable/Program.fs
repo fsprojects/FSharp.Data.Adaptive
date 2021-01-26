@@ -55,13 +55,13 @@ let example() =
     let dependent = set |> ASet.map (fun v -> v * 2)
     let reader = dependent.GetReader()
 
-    log "%A -> %A" (Seq.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList reader.State)
+    log "%A -> %A" (Seq.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList (fst reader.State))
 
     transact (fun () -> set.Add 4) |> ignore
-    log "%A -> %A" (Seq.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList reader.State)
+    log "%A -> %A" (Seq.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList (fst reader.State))
 
     transact (fun () -> set.Value <- HashSet.ofList [5]) |> ignore
-    log "%A -> %A" (Seq.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList reader.State)
+    log "%A -> %A" (Seq.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList (fst reader.State))
     
     logh3 "AMap"
     let map = cmap [1, "one"; 2, "two"]
@@ -105,20 +105,20 @@ let example() =
     let reader = dependent.GetReader()
 
     logh4 "initial"
-    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList (fst reader.State))
     
     logh4 "Add 5"
     transact (fun () -> b.Add 5) |> ignore
-    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList (fst reader.State))
     
     let c = cset [8;9]
     logh4 "Add [8;9]"
     transact (fun () -> set.Add (c :> aset<_>)) |> ignore
-    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList (fst reader.State))
     
     logh4 "Rem [8;9]"
     transact (fun () -> set.Remove (c :> aset<_>) |> ignore; c.Add 10 |> ignore)
-    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList (fst reader.State))
     
     let f = AVal.init 1
     
@@ -127,12 +127,12 @@ let example() =
     let reader = overkill.GetReader()
     
     logh4 "initial"
-    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList (fst reader.State))
     
     transact (fun () -> f.Value <- 2)
     
     logh4 "f = 2"
-    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList (fst reader.State))
     
 
 

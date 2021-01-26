@@ -140,28 +140,28 @@ let ``[ASet] mapUse``() =
 
     let r = set.GetReader()
     r.GetChanges(AdaptiveToken.Top) |> ignore
-    r.State.Count |> should equal 4
+    (fst r.State).Count |> should equal 4
     !refCount |> should equal 4
 
     transact (fun () -> input.Remove 1 |> ignore)
     r.GetChanges(AdaptiveToken.Top) |> ignore
-    r.State.Count |> should equal 3
+    (fst r.State).Count |> should equal 3
     !refCount |> should equal 3
     
     transact (fun () -> input.Add 7 |> ignore)
     r.GetChanges(AdaptiveToken.Top) |> ignore
-    r.State.Count |> should equal 4
+    (fst r.State).Count |> should equal 4
     !refCount |> should equal 4
 
     disp.Dispose()
     r.GetChanges(AdaptiveToken.Top) |> ignore
-    r.State.Count |> should equal 0
+    (fst r.State).Count |> should equal 0
     !refCount |> should equal 0
     
     // double free resistance
     disp.Dispose()
     r.GetChanges(AdaptiveToken.Top) |> ignore
-    r.State.Count |> should equal 0
+    (fst r.State).Count |> should equal 0
     !refCount |> should equal 0
 
 [<Test>]
@@ -570,7 +570,7 @@ let checkReader (actual: aset<_>) expected =
     let reader = actual.GetReader()
     fun () ->
         reader.GetChanges AdaptiveToken.Top |> ignore
-        let actualValue = reader.State |> CountingHashSet.toList
+        let actualValue = reader.State |> fst |> CountingHashSet.toList
 
         let expectedValue = expected()
         if actualValue <> expectedValue then 

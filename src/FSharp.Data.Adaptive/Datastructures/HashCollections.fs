@@ -386,7 +386,6 @@ module internal HashMapImplementation =
         override x.ToList acc =
             acc
      
-    [<Sealed>]
     type HashSetNoCollisionLeaf<'T>() =
         inherit HashSetLeaf<'T>()
         [<DefaultValue>]
@@ -515,7 +514,6 @@ module internal HashMapImplementation =
         static member New(h : uint32, v : 'T) : HashSetNode<'T> =
             new HashSetNoCollisionLeaf<_>(Hash = h, Value = v) :> HashSetNode<'T>
 
-    [<Sealed>]
     type HashSetCollisionLeaf<'T>() =
         inherit HashSetLeaf<'T>()
 
@@ -740,7 +738,6 @@ module internal HashMapImplementation =
             assert (not (isNull n))
             new HashSetCollisionLeaf<_>(Hash = h, Value = v, Next = n) :> HashSetNode<'T>
  
-    [<Sealed>]
     type HashSetInner<'T>() =
         inherit HashSetNode<'T>()
         [<DefaultValue>]
@@ -979,6 +976,26 @@ module internal HashMapImplementation =
                 if next == n.Next then n
                 else HashMapLinked(n.Key, n.Value, next)
                
+        let rec change (cmp: IEqualityComparer<'K>) (key: 'K) (changed : byref<bool>) (update: voption<'V> -> voption<'V>) (n: HashMapLinked<'K, 'V>) =
+            if isNull n then
+                match update ValueNone with
+                | ValueSome value -> 
+                    changed <- true
+                    HashMapLinked(key, value)
+                | ValueNone ->
+                    null
+            elif cmp.Equals(n.Key, key) then
+                match update (ValueSome n.Value) with
+                | ValueSome value -> 
+                    HashMapLinked(key, value, n.Next)
+                | ValueNone -> 
+                    changed <- true
+                    n.Next
+            else
+                let next = change cmp key &changed update n.Next
+                if next == n.Next then n
+                else HashMapLinked(n.Key, n.Value, next)
+               
         let rec tryFind (cmp: IEqualityComparer<'K>) (key: 'K) (n: HashMapLinked<'K, 'V>) =
             if isNull n then None
             elif cmp.Equals(n.Key, key) then Some n.Value
@@ -1143,6 +1160,8 @@ module internal HashMapImplementation =
         abstract member IsEmpty: bool
         abstract member ComputeHash : unit -> int
 
+        abstract member Change : IEqualityComparer<'K> * uint32 * 'K * changed : byref<bool> * (voption<'V> -> voption<'V>) -> HashMapNode<'K, 'V>
+
         abstract member AddInPlaceUnsafe: IEqualityComparer<'K> * uint32 * 'K * 'V -> HashMapNode<'K, 'V>
         abstract member Add: IEqualityComparer<'K> * uint32 * 'K * 'V -> HashMapNode<'K, 'V>
         abstract member Alter: IEqualityComparer<'K> * uint32 * 'K * (option<'V> -> option<'V>) -> HashMapNode<'K, 'V>
@@ -1235,6 +1254,13 @@ module internal HashMapImplementation =
             | Some value ->
                 HashMapNoCollisionLeaf.New(hash, key, value)
                 
+        override x.Change(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, changed : byref<bool>, update: voption<'V> -> voption<'V>) =
+            match update ValueNone with
+            | ValueNone -> x :> _
+            | ValueSome value ->
+                changed <- true
+                HashMapNoCollisionLeaf.New(hash, key, value)
+
         override x.AlterV(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, update: voption<'V> -> voption<'V>) =
             match update ValueNone with
             | ValueNone -> x:> _
@@ -1477,6 +1503,36 @@ module internal HashMapImplementation =
                 | ValueNone -> x:> _
                 | ValueSome value ->
                     // add
+                    let n = HashMapNoCollisionLeaf.New(hash, key, value)
+                    HashMapInner.Join(hash, n, x.Hash, x)
+                    
+        override x.Change(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, changed : byref<bool>, update: voption<'V> -> voption<'V>) =
+            if x.Hash = hash then
+                if cmp.Equals(key, x.Key) then
+                    match update (ValueSome x.Value) with
+                    | ValueNone ->
+                        // remove
+                        changed <- true
+                        match HashMapLinked.destruct x.Next with
+                        | ValueSome (struct (k, v, rest)) ->
+                            HashMapLeaf.New(x.Hash, k, v, rest)
+                        | ValueNone ->
+                            HashMapEmpty.Instance
+                    | ValueSome value ->
+                        // update
+                        HashMapCollisionLeaf.New(x.Hash, x.Key, value, x.Next) 
+                else
+                    // in linked?
+                    let n = HashMapLinked.change cmp key &changed update x.Next
+                    if n == x.Next then x:> _
+                    else HashMapLeaf.New(x.Hash, x.Key, x.Value, n)
+            else
+                // other hash => not contained
+                match update ValueNone with
+                | ValueNone -> x:> _
+                | ValueSome value ->
+                    // add
+                    changed <- true
                     let n = HashMapNoCollisionLeaf.New(hash, key, value)
                     HashMapInner.Join(hash, n, x.Hash, x)
 
@@ -1751,6 +1807,29 @@ module internal HashMapImplementation =
                     let n = HashMapNoCollisionLeaf.New(hash, key, value)
                     HashMapInner.Join(hash, n, x.Hash, x)
            
+        override x.Change(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, changed : byref<bool>, update: voption<'V> -> voption<'V>) =
+            if x.Hash = hash then
+                if cmp.Equals(key, x.Key) then
+                    match update (ValueSome x.Value) with
+                    | ValueSome value -> 
+                        HashMapNoCollisionLeaf.New(x.Hash, x.Key, value)
+                    | ValueNone -> 
+                        changed <- true
+                        HashMapEmpty.Instance
+                else
+                    match update ValueNone with
+                    | ValueNone -> x:> _
+                    | ValueSome value ->
+                        changed <- true
+                        HashMapCollisionLeaf.New(x.Hash, x.Key, x.Value, HashMapLinked(key, value, null))
+            else
+                match update ValueNone with
+                | ValueNone -> x:> _
+                | ValueSome value ->
+                    changed <- true
+                    let n = HashMapNoCollisionLeaf.New(hash, key, value)
+                    HashMapInner.Join(hash, n, x.Hash, x)
+           
         override x.Map(mapping: OptimizedClosures.FSharpFunc<'K, 'V, 'T>) =
             let t = mapping.Invoke(x.Key, x.Value)
             HashMapNoCollisionLeaf.New(x.Hash, x.Key, t)
@@ -1970,6 +2049,24 @@ module internal HashMapImplementation =
                 match update ValueNone with
                 | ValueNone -> x:> _
                 | ValueSome value ->
+                    let n = HashMapNoCollisionLeaf.New(hash, key, value)
+                    HashMapInner.Join(x.Prefix, x, hash, n)
+                                
+        override x.Change(cmp: IEqualityComparer<'K>, hash: uint32, key: 'K, changed : byref<bool>, update: voption<'V> -> voption<'V>) =
+            let m = matchPrefixAndGetBit hash x.Prefix x.Mask
+            if m = 0u then 
+                let ll = x.Left.Change(cmp, hash, key, &changed, update)
+                if ll == x.Left then x:> _
+                else HashMapInner.Create(x.Prefix, x.Mask, ll, x.Right)
+            elif m = 1u then
+                let rr = x.Right.Change(cmp, hash, key, &changed, update)
+                if rr == x.Right then x:> _
+                else HashMapInner.Create(x.Prefix, x.Mask, x.Left, rr)
+            else
+                match update ValueNone with
+                | ValueNone -> x:> _
+                | ValueSome value ->
+                    changed <- true
                     let n = HashMapNoCollisionLeaf.New(hash, key, value)
                     HashMapInner.Join(x.Prefix, x, hash, n)
                     

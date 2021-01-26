@@ -84,8 +84,8 @@ let ``[AddCallback] surviving GC``() =
         let r = ref HashSet.empty
         let d =
             set.AddCallback(fun state delta ->
-                let s, _ = CountingHashSet.applyDelta state delta
-                r := CountingHashSet.toHashSet s
+                let s, _ = HashSet.applyDelta state delta
+                r := s
             )
         let w = WeakReference<_>(d)
 
@@ -121,8 +121,8 @@ let ``[AddWeakCallback] not surviving GC``() =
         let r = ref HashSet.empty
         let d =
             set.AddWeakCallback(fun state delta ->
-                let s, _ = CountingHashSet.applyDelta state delta
-                r := CountingHashSet.toHashSet s
+                let s, _ = HashSet.applyDelta state delta
+                r := s
             )
         let w = WeakReference<_>(d)
 

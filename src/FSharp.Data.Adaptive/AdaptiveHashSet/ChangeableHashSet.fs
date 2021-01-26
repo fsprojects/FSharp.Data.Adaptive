@@ -7,20 +7,20 @@ open System.Threading
 [<Sealed>]
 type ChangeableHashSet<'T>(initial : HashSet<'T>) =
     let history = 
-        let h = History(CountingHashSet.traceNoRefCount)
+        let h = History(CountingHashSet.traceNoRefCountTup)
         if not initial.IsEmpty then 
             let delta = HashSet.computeDelta HashSet.empty initial
             h.Perform delta |> ignore
         h
 
-    let mutable content = initial
+    //let mutable content = initial
     let mutable adaptiveContentCache = Unchecked.defaultof<aval<HashSet<'T>>> 
 
     let getAdaptiveContent() =
         let c = adaptiveContentCache
         if Unchecked.isNull c then
             // TODO
-            let v = history |> AVal.map (fun _ -> content)
+            let v = history |> AVal.map snd
             let o = Interlocked.CompareExchange(&adaptiveContentCache, v, Unchecked.defaultof<_>)
             if Unchecked.isNull o then v
             else o
@@ -29,55 +29,54 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
 
     /// The number of entries currently in the set.
     member x.Count =
-        content.Count
+        let (_, state) = history.State
+        state.Count
 
     /// Is the set currently empty?
     member x.IsEmpty =
-        content.IsEmpty
+        let (_, state) = history.State
+        state.IsEmpty
 
     /// Checks whether the given value is contained.
     member x.Contains (value : 'T) =
-        HashSet.contains value content
+        let (_, state) = history.State
+        HashSet.contains value state
 
     /// Gets or sets the current state as HashSet.
     member x.Value
         with get() = 
-            content
+            let (_, state) = history.State
+            state
         and set newSet = 
             x.UpdateTo newSet |> ignore
                 
     /// Sets the current state as HashSet.
     member x.UpdateTo(newSet : HashSet<'T>) =
-        let nonCountingSet = content
+        let (_, nonCountingSet) = history.State
         if not (cheapEqual nonCountingSet newSet) then
             let delta = HashSet.computeDelta nonCountingSet newSet
-            content <- newSet
             history.Perform(delta)
         else
             false
     /// Performs the given Operations on the Set.
     member x.Perform(operations : HashSetDelta<'T>) =   
         if not (HashSetDelta.isEmpty operations) then
-            let (newContent, ops) = HashSet.applyDelta content operations
-            content <- newContent
-            history.Perform ops |> ignore
+            history.Perform operations |> ignore
 
     /// Adds a value and returns whether the element was new.
     member x.Add(value : 'T) =
-        content <- HashSet.add value content
         history.Perform (HashSetDelta.single (Add value))
 
     /// Removes a value and returns whether the element was deleted.
     member x.Remove(value : 'T) =
-        content <- HashSet.remove value content
         history.Perform (HashSetDelta.single (Rem value))
 
     /// Clears the set.
     member x.Clear() =
-        if not content.IsEmpty then
-            let ops = CountingHashSet.computeDelta history.State CountingHashSet.empty
+        let (_, nonCountingSet) = history.State
+        if not nonCountingSet.IsEmpty then
+            let ops = HashSet.computeDelta nonCountingSet HashSet.empty
             history.Perform ops |> ignore
-            content <- HashSet.empty
 
     /// Adds all the given values to the set.
     member x.UnionWith (other : seq<'T>) =
@@ -92,7 +91,8 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
     member x.SymmetricExceptWith (other : seq<'T>) : unit =
         let other = CountingHashSet.ofSeq other
         let delta =
-            (history.State.ToHashMap(), other.ToHashMap()) ||> HashMap.choose2V (fun _k l r ->
+            let (state,_) = history.State
+            (state.ToHashMap(), other.ToHashMap()) ||> HashMap.choose2V (fun _k l r ->
                 match l with
                 | ValueSome l ->
                     match r with
@@ -116,7 +116,9 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
             else
                 struct(false, ValueNone)
 
-        let _, opsMap = HashSet.ApplyDelta(otherSet, history.State.ToHashMap(), apply)
+        let _, opsMap = 
+            let (state,_) = history.State
+            HashSet.ApplyDelta(otherSet, state.ToHashMap(), apply)
         let ops = HashSetDelta.ofHashMap opsMap
         x.Perform ops
 
@@ -145,7 +147,9 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
         member x.Clear() = transactIfNecessary (fun () -> x.Clear())
         member x.Add value = transactIfNecessary (fun () -> x.Add value |> ignore)
         member x.Remove value = transactIfNecessary (fun () -> x.Remove value)
-        member x.CopyTo(array: 'T[], idx : int) = content.CopyTo(array, idx)
+        member x.CopyTo(array: 'T[], idx : int) = 
+            let (_, content) = history.State
+            content.CopyTo(array, idx)
 
     #if !FABLE_COMPILER
     interface System.Collections.Generic.ISet<'T> with
@@ -168,7 +172,7 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
             else ""
 
         let content =
-            history.State |> Seq.truncate 5 |> Seq.map (sprintf "%A") |> String.concat "; "
+            history.State |> snd |> Seq.truncate 5 |> Seq.map (sprintf "%A") |> String.concat "; "
 
         "cset [" + content + suffix + "]"
 

@@ -33,7 +33,7 @@ type CollectionUpdate() =
     let mutable mapSet : aset<int> = Unchecked.defaultof<_>
     let mutable mapList : alist<int> = Unchecked.defaultof<_>
 
-    [<Params(0, 1000, 10000, 100000); DefaultValue>]
+    [<Params(1, 1000, 10000, 100000); DefaultValue>]
     val mutable public Count : int
 
     [<IterationSetup>]

@@ -50,6 +50,37 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
             tprune = None
             tsize = fun s -> s.Count
         }
+        
+    /// Traceable instance.
+    static let traceTup =
+        {
+            tmonoid = HashSetDelta.monoid
+            tempty = CountingHashSet<'T>(HashMap.empty), HashSet.empty<'T>
+            tapplyDelta = fun (sc,s) d -> 
+                let sc1, ops = sc.ApplyDelta d
+                let s1,_ = HashSet.applyDelta s ops
+                ((sc1, s1), ops)
+
+            tcomputeDelta = fun (l,_) (r,_) -> l.ComputeDelta r
+            tprune = None
+            tsize = fun s -> s.Count
+        }
+
+        
+    /// Traceable instance without ref-counting.
+    static let traceNoRefCountTup =
+        {
+            tmonoid = HashSetDelta.monoid
+            tempty = CountingHashSet<'T>(HashMap.empty), HashSet.empty<'T>
+            tapplyDelta = fun (sc, s) d -> 
+                let sc1, ops = sc.ApplyDeltaNoRefCount d
+                let s1,_ = HashSet.applyDelta s ops
+                ((sc1, s1), ops)
+
+            tcomputeDelta = fun (l,_) (r,_) -> l.ComputeDelta r
+            tprune = None
+            tsize = fun s -> s.Count
+        }
 
     /// The empty set.
     static member Empty = CountingHashSet<'T>(HashMap.empty)
@@ -59,6 +90,12 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
     /// Traceable instance without ref-counting.
     static member TraceNoRefCount = traceNoRefCount
+    
+    /// Traceable instance.
+    static member TraceTup = traceTup
+
+    /// Traceable instance without ref-counting.
+    static member TraceNoRefCountTup = traceNoRefCountTup
 
     /// Is the set empty?
     member x.IsEmpty = store.IsEmpty
@@ -478,17 +515,8 @@ module CountingHashSet =
     /// A set holding a single value.
     let single v = CountingHashSet (HashMap.single v 1)
 
-    /// Creates a HashMap with all the contained values and ref-counts.
-    let inline toHashMap (set : CountingHashSet<'T>) = set.ToHashMap()
-
-    /// A seq containing all elements from the set. (once)
-    let inline toSeq (set : CountingHashSet<'T>) = set.ToSeq()
-    
     /// A list containing all elements from the set. (once)
     let inline toList (set : CountingHashSet<'T>) = set.ToList()
-    
-    /// An array containing all elements from the set. (once)
-    let inline toArray (set : CountingHashSet<'T>) = set.ToArray()
     
     /// A HashSet containing all elements from the set.
     let inline toHashSet (set : CountingHashSet<'T>) = set.ToHashSet()
@@ -589,6 +617,12 @@ module CountingHashSet =
 
     /// Traceable instance without ref-counting.
     let inline traceNoRefCount<'T> = CountingHashSet<'T>.TraceNoRefCount
+    
+    /// Traceable instance.
+    let inline traceTup<'T> = CountingHashSet<'T>.TraceTup
+
+    /// Traceable instance without ref-counting.
+    let inline traceNoRefCountTup<'T> = CountingHashSet<'T>.TraceNoRefCountTup
 
     /// Differentiates two sets returning a HashSetDelta.
     let inline computeDelta (src : CountingHashSet<'T>) (dst : CountingHashSet<'T>) =
@@ -613,4 +647,5 @@ module CountingHashSet =
     /// Compares two sets.
     let internal compare (l : CountingHashSet<'T>) (r : CountingHashSet<'T>) =
         CountingHashSet.Compare(l,r)
+
 

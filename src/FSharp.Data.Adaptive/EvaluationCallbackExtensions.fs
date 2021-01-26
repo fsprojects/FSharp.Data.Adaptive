@@ -111,16 +111,18 @@ module EvaluationCallbackExtensions =
         /// Adds a disposable callback to the aset that will be executed whenever
         /// changes happen to the aset. The given action will be called with the
         /// asets state prior to the change and all changes applied to that state.
-        member value.AddCallback(action: CountingHashSet<'T> -> HashSetDelta<'T> -> unit) =
+        member value.AddCallback(action: HashSet<'T> -> HashSetDelta<'T> -> unit) =
             let reader = value.GetReader()
-            reader.AddCallback(false, action)
+            let callback (_, state) delta = action state delta
+            reader.AddCallback(false, callback)
 
         /// Adds a disposable callback to the aset that will be executed whenever
         /// changes happen to the aset. The given action will be called with the
         /// asets state prior to the change and all changes applied to that state.
-        member value.AddWeakCallback(action: CountingHashSet<'T> -> HashSetDelta<'T> -> unit) =
+        member value.AddWeakCallback(action: HashSet<'T> -> HashSetDelta<'T> -> unit) =
             let reader = value.GetReader()
-            reader.AddCallback(true, action)
+            let callback (_, state) delta = action state delta
+            reader.AddCallback(true, callback)
 
     type IAdaptiveHashMap<'Key, 'Value> with
         /// Adds a disposable callback to the amap that will be executed whenever
