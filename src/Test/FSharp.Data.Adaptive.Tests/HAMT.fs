@@ -38,7 +38,7 @@ module private HAMTNumberCrunching =
         highestBitMask (p0 ^^^ p1) // big endian
 
 [<AutoOpen>]
-module internal Implementation = 
+module internal HashImplementation = 
     
     [<AllowNullLiteral>]
     type SetLinked<'K> =
@@ -2713,10 +2713,6 @@ module internal Implementation =
                     state <- join s.Prefix state d.Prefix ls
                     ld
                 
-                    
-
-
-       
 
 [<Struct>]
 type HAMTSetEnumerator<'K> =
@@ -3407,7 +3403,7 @@ and [<Struct; CustomEquality; NoComparison>]
     static member Empty = HAMT<'K, 'V>(DefaultEqualityComparer<'K>.Instance, null)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member Singleton(key : 'K, value : 'V) =
+    static member Single(key : 'K, value : 'V) =
         let cmp = DefaultEqualityComparer<'K>.Instance
         let hash = uint32 (cmp.GetHashCode key) &&& 0x7FFFFFFFu
         HAMT(cmp, MapLeaf(hash, key, value, null))
@@ -3717,73 +3713,200 @@ module HAMTSet =
     let inline computeDelta (src : HAMTSet<'K>) (dst : HAMTSet<'K>) = src.ComputeDeltaTo dst
     let inline applyDelta (state : HAMTSet<'K>) (delta : HAMT<'K, int>) = state.ApplyDelta delta
 
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+[<RequireQualifiedAccess>]
 module HAMT =
+    /// the empty map.
     [<GeneralizableValue>]
     let empty<'K, 'V> = HAMT<'K, 'V>.Empty
 
+    /// The number of elements in the map `O(1)`
     let inline count (map : HAMT<'K, 'V>) = map.Count
+    
+    /// Is the map empty? `O(1)`
     let inline isEmpty (map : HAMT<'K, 'V>) = map.IsEmpty
+
+    /// Are the two maps equal? `O(min(N, M))`
     let inline equals (map1 : HAMT<'K, 'V>) (map2 : HAMT<'K, 'V>) = map1.Equals map2
-    let inline singleton (key : 'K) (value : 'V) = HAMT.Singleton(key, value)
+    
+    /// Creates a map with a single entry. `O(1)`
+    let inline single (key : 'K) (value : 'V) = HAMT.Single(key, value)
+    
+    /// Creates a map with all entries from the seq. `O(N)`
     let inline ofSeq (elements : seq<'K * 'V>) = HAMT.FromSeq elements
+    
+    /// Creates a map with all entries from the seq. `O(N)`
     let inline ofSeqV (elements : seq<struct('K * 'V)>) = HAMT.FromSeq elements
+    
+    /// Creates a map with all entries from the list. `O(N)`
     let inline ofList (elements : list<'K * 'V>) = HAMT.FromList elements
+    
+    /// Creates a map with all entries from the list. `O(N)`
     let inline ofListV (elements : list<struct('K * 'V)>) = HAMT.FromList elements
+    
+    /// Creates a map with all entries from the array. `O(N)`
     let inline ofArray (elements : ('K * 'V)[]) = HAMT.FromArray elements
+    
+    /// Creates a map with all entries from the array. `O(N)`
     let inline ofArrayV (elements : struct('K * 'V)[]) = HAMT.FromArray elements
+    
+    /// Creates a map with all entries from the map. `O(N)`
     let inline ofMap (elements : Map<'K, 'V>) = elements |> Map.toSeq |> HAMT.FromSeq
 
+    /// Adds or updates the entry for the given key. `O(1)`
     let inline add k v (m : HAMT<'K, 'V>) = m.Add(k, v)
+
+    /// Removes the entry for the given key. `O(1)`
     let inline remove k (m : HAMT<'K, 'V>) = m.Remove k
+ 
+    /// Tries to remove the entry for the given key from the map and returns its value and the rest of the map.
+    /// `O(1)`
     let inline tryRemove k (m : HAMT<'K, 'V>) = m.TryRemove k
+
+    /// Tries to remove the entry for the given key from the map and returns its value and the rest of the map.
+    /// `O(1)`
     let inline tryRemoveV k (m : HAMT<'K, 'V>) = m.TryRemoveV k
+
+    
+    /// Adds, deletes or updates the entry for the given key.
+    /// The update functions gets the optional old value and may optionally return
+    /// A new value (or None for deleting the entry).
+    /// `O(1)`
     let inline alter k update (m : HAMT<'K, 'V>) = m.Alter(k, update)
+    
+    /// Adds, deletes or updates the entry for the given key.
+    /// The update functions gets the optional old value and may optionally return
+    /// A new value (or None for deleting the entry).
+    /// `O(1)`
     let inline alterV k update (m : HAMT<'K, 'V>) = m.AlterV(k, update)
+    
+    /// Adds or updates the entry for the given key.
+    /// The update functions gets the optional old value and returns a new value for the key.
+    /// `O(1)`
     let inline update k update (m : HAMT<'K, 'V>) = m.Alter(k, update >> Some)
+    
+    /// Adds or updates the entry for the given key.
+    /// The update functions gets the optional old value and returns a new value for the key.
+    /// `O(1)`
     let inline updateV k update (m : HAMT<'K, 'V>) = m.AlterV(k, update >> ValueSome)
     
+    /// Tests if an entry for the given key exists. `O(1)`
     let inline containsKey k (m : HAMT<'K, 'V>) = m.ContainsKey k
+
+    /// Tries to find the value for the given key.
+    /// `O(1)`
     let inline tryFind k (m : HAMT<'K, 'V>) = m.TryFind k
+
+    /// Tries to find the value for the given key.
+    /// `O(1)`
     let inline tryFindV k (m : HAMT<'K, 'V>) = m.TryFindV k
+    
+    /// Finds the value for the given key and raises KeyNotFoundException on failure.
+    /// `O(1)`
     let inline find k (m : HAMT<'K, 'V>) = 
         match m.TryFindV k with
         | ValueSome v -> v
         | ValueNone -> raise <| KeyNotFoundException()
 
-        
+    /// Tests whether all entries fulfil the given predicate.
+    /// `O(N)`
     let inline forall predicate (m : HAMT<'K, 'V>) = m.Forall predicate
+    
+    /// Tests whether an entry making the predicate true exists.
+    /// `O(N)`
     let inline exists predicate (m : HAMT<'K, 'V>) = m.Exists predicate
+    
+    /// Creates a new map (with the same keys) by applying the given function to all entries.
+    /// `O(N)`
     let inline map mapping (m : HAMT<'K, 'V>) = m.Map mapping
+    
+    /// Creates a new map (with the same keys) by applying the given function to all entries.
+    /// `O(N)`
     let inline choose mapping (m : HAMT<'K, 'V>) = m.Choose mapping
+    
+    /// Creates a new map (with the same keys) by applying the given function to all entries.
+    /// `O(N)`
     let inline chooseV mapping (m : HAMT<'K, 'V>) = m.ChooseV mapping
+    
+    /// Creates a new map (with the same keys) that contains all entries for which predicate was true.
+    /// `O(N)`
     let inline filter predicate (m : HAMT<'K, 'V>) = m.Filter predicate
+    
+    /// Applies the iter function to all entries of the map.
+    /// `O(N)`
     let inline iter (action : 'K -> 'V -> unit) (m : HAMT<'K, 'V>) = m.Iter(action)
+    
+    /// Folds over all entries of the map.
+    /// Note that the order for elements is undefined.
+    /// `O(N)`
     let inline fold (folder : 'S -> 'K -> 'V -> 'S) (state : 'S) (m : HAMT<'K, 'V>) = m.Fold(folder, state)
 
+    /// Creates a list holding all tuples contained in the map. `O(N)`
     let inline toList (m : HAMT<'K, 'V>) = m.ToList()
+    
+    /// Creates a list holding all tuples contained in the map. `O(N)`
     let inline toListV (m : HAMT<'K, 'V>) = m.ToListV()
-    let inline toKeyList (m : HAMT<'K, 'V>) = m.ToKeyList()
+
+    /// Creates a list holding all keys contained in the map. `O(N)`
+    let inline toKeyList (m : HAMT<'K, 'V>) = m.ToKeyList()    
+    
+    /// Creates a list holding all values contained in the map. `O(N)`
     let inline toValueList (m : HAMT<'K, 'V>) = m.ToValueList()
+
+    /// Creates an array holding all tuples contained in the map. `O(N)`
     let inline toArray (m : HAMT<'K, 'V>) = m.ToArray()
+
+    /// Creates an array holding all tuples contained in the map. `O(N)`
     let inline toArrayV (m : HAMT<'K, 'V>) = m.ToArrayV()
+
+    /// Creates an array holding all keys contained in the map. `O(N)`
     let inline toKeyArray (m : HAMT<'K, 'V>) = m.ToKeyArray()
+
+    /// Creates an array holding all values contained in the map. `O(N)`
     let inline toValueArray (m : HAMT<'K, 'V>) = m.ToValueArray()
+
+    /// Creates a seq holding all tuples contained in the map. `O(N)`
     let inline toSeq (m : HAMT<'K, 'V>) = m.ToSeq()
+
+    /// Creates a seq holding all tuples contained in the map. `O(N)`
     let inline toSeqV (m : HAMT<'K, 'V>) = m.ToSeqV()
+
+    /// Creates a seq holding all keys contained in the map. `O(N)`
     let inline toKeySeq (m : HAMT<'K, 'V>) = m.ToKeySeq()
+
+    /// Creates a seq holding all values contained in the map. `O(N)`
     let inline toValueSeq (m : HAMT<'K, 'V>) = m.ToValueSeq()
+
+    /// Creates a Map holding all tuples contained in the map. `O(N * log N)`
     let inline toMap (m : HAMT<'K, 'V>) = m.ToSeq() |> Map.ofSeq
+    
+    /// Creates a HashSet holding all keys contained in the map. `O(1)`
     let inline keys (m : HAMT<'K, 'V>) = m.GetKeys()
 
-
+    /// Applies the given mapping function to all elements of the two maps. `O(N + M)`
     let inline choose2V (mapping : 'K -> voption<'T1> -> voption<'T2> -> voption<'R>) (l : HAMT<'K, 'T1>) (r : HAMT<'K, 'T2>) = l.Choose2V(r, mapping)
+    
+    /// Applies the given mapping function to all elements of the two maps. `O(N + M)`
     let inline choose2 (mapping : 'K -> option<'T1> -> option<'T2> -> option<'R>) (l : HAMT<'K, 'T1>) (r : HAMT<'K, 'T2>) = l.Choose2(r, mapping)
+    
+    /// Applies the given mapping function to all elements of the two maps. `O(N + M)`
     let inline map2V (mapping : 'K -> voption<'T1> -> voption<'T2> -> 'R) (l : HAMT<'K, 'T1>) (r : HAMT<'K, 'T2>) = l.Map2V(r, mapping)
+    
+    /// Applies the given mapping function to all elements of the two maps. `O(N + M)`
     let inline map2 (mapping : 'K -> option<'T1> -> option<'T2> -> 'R) (l : HAMT<'K, 'T1>) (r : HAMT<'K, 'T2>) = l.Map2(r, mapping)
 
+    
+    /// Creates a new map containing all elements from l and r.
+    /// Colliding entries are taken from r.
+    /// `O(N + M)`  
     let inline union (map1 : HAMT<'K, 'V>) (map2 : HAMT<'K, 'V>) = map1.UnionWith(map2)
+    
+    /// Creates a new map containing all elements from l and r.
+    /// Colliding entries are resolved using the given function.
+    /// `O(N + M)`  
     let inline unionWith (resolve : 'K -> 'V -> 'V -> 'V) (map1 : HAMT<'K, 'V>) (map2 : HAMT<'K, 'V>) = map1.UnionWith(map2, resolve)
     
+    /// Creates a new map by unioning all the given maps.
     let unionMany (maps : #seq<HAMT<'K, 'V>>) = 
         use e = maps.GetEnumerator()
         if e.MoveNext() then
