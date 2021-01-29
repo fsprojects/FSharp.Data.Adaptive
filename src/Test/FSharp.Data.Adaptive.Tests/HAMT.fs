@@ -101,8 +101,8 @@ module internal Implementation =
         inherit SetNode<'K>
         val mutable public Mask : uint32
         val mutable public Count : int
-        val mutable public SetLeft : SetNode<'K>
-        val mutable public SetRight : SetNode<'K>
+        val mutable public Left : SetNode<'K>
+        val mutable public Right : SetNode<'K>
             
         static member GetCount(node : SetNode<'K>) =
             if isNull node then 0
@@ -127,7 +127,7 @@ module internal Implementation =
 
         new(prefix : uint32, mask : uint32, left : SetNode<'K>, right : SetNode<'K>) =
             let cnt = Inner.GetCount(left) + Inner.GetCount(right)
-            { inherit SetNode<'K>(NodeKind.Inner, prefix); Mask = mask; Count = cnt; SetLeft = left; SetRight = right }
+            { inherit SetNode<'K>(NodeKind.Inner, prefix); Mask = mask; Count = cnt; Left = left; Right = right }
 
     let size (node : SetNode<'K>) =
         Inner.GetCount node
@@ -730,13 +730,13 @@ module internal Implementation =
                 | 0u ->
                     newInner 
                         node.Prefix node.Mask 
-                        (add cmp hash key node.SetLeft) 
-                        node.SetRight
+                        (add cmp hash key node.Left) 
+                        node.Right
                 | 1u ->
                     newInner 
                         node.Prefix node.Mask 
-                        node.SetLeft
-                        (add cmp hash key node.SetRight) 
+                        node.Left
+                        (add cmp hash key node.Right) 
                 | _ ->
                     join node.Prefix node hash (SetLeaf(hash, key, null))
              
@@ -769,13 +769,13 @@ module internal Implementation =
                 | 0u ->
                     newInner 
                         node.Prefix node.Mask 
-                        (alter cmp hash key update node.SetLeft) 
-                        node.SetRight
+                        (alter cmp hash key update node.Left) 
+                        node.Right
                 | 1u ->
                     newInner 
                         node.Prefix node.Mask 
-                        node.SetLeft
-                        (alter cmp hash key update node.SetRight) 
+                        node.Left
+                        (alter cmp hash key update node.Right) 
                 | _ ->
                     if update false then
                         join node.Prefix node hash (SetLeaf(hash, key, null))
@@ -802,9 +802,9 @@ module internal Implementation =
                 let inner : Inner<'K> = downcast node
                 match matchPrefixAndGetBit hash inner.Prefix inner.Mask with
                 | 0u ->
-                    addInPlace cmp hash key &inner.SetLeft
+                    addInPlace cmp hash key &inner.Left
                 | 1u ->
-                    addInPlace cmp hash key &inner.SetRight 
+                    addInPlace cmp hash key &inner.Right 
                 | _ ->
                     node <- join inner.Prefix inner hash (SetLeaf(hash, key, null))
                     true
@@ -833,16 +833,16 @@ module internal Implementation =
                 let n = node :?> Inner<'K>
                 match matchPrefixAndGetBit hash n.Prefix n.Mask with
                 | 0u ->
-                    let mutable l = n.SetLeft
+                    let mutable l = n.Left
                     if tryRemove cmp hash key &l then
-                        node <- newInner n.Prefix n.Mask l n.SetRight
+                        node <- newInner n.Prefix n.Mask l n.Right
                         true
                     else
                         false
                 | 1u ->
-                    let mutable r = n.SetRight
+                    let mutable r = n.Right
                     if tryRemove cmp hash key &r then
-                        node <- newInner n.Prefix n.Mask n.SetLeft r
+                        node <- newInner n.Prefix n.Mask n.Left r
                         true
                     else
                         false
@@ -862,8 +862,8 @@ module internal Implementation =
             else
                 let node = node :?> Inner<'K>
                 match matchPrefixAndGetBit hash node.Prefix node.Mask with
-                | 0u -> contains cmp hash key node.SetLeft
-                | 1u -> contains cmp hash key node.SetRight
+                | 0u -> contains cmp hash key node.Left
+                | 1u -> contains cmp hash key node.Right
                 | _ -> false
 
         let rec equals (cmp : IEqualityComparer<'K>) (a : SetNode<'K>) (b : SetNode<'K>) =
@@ -887,8 +887,8 @@ module internal Implementation =
                 let a = a :?> Inner<'K>
                 let b = b :?> Inner<'K>
                 if a.Prefix = b.Prefix && a.Mask = b.Mask then
-                    equals cmp a.SetLeft b.SetLeft &&
-                    equals cmp a.SetRight b.SetRight
+                    equals cmp a.Left b.Left &&
+                    equals cmp a.Right b.Right
                 else
                     false
 
@@ -905,9 +905,9 @@ module internal Implementation =
                 combineHash acc (combineHash (int a.Hash) cnt)
             else
                 let a = a :?> Inner<'K>
-                let lh = hash acc a.SetLeft
+                let lh = hash acc a.Left
                 let nh = combineHash lh (combineHash (int a.Prefix) (int a.Mask))
-                hash nh a.SetRight
+                hash nh a.Right
                 
         let rec iter (action : 'K -> unit) (node : SetNode<'K>) =
             if isNull node then
@@ -921,8 +921,8 @@ module internal Implementation =
                     c <- c.SetNext
             else
                 let node = node :?> Inner<'K>
-                iter action node.SetLeft
-                iter action node.SetRight
+                iter action node.Left
+                iter action node.Right
                 
         let rec fold (folder : OptimizedClosures.FSharpFunc<'S, 'K, 'S>) (state : 'S) (node : SetNode<'K>) =
             if isNull node then
@@ -938,8 +938,8 @@ module internal Implementation =
                 state
             else
                 let node = node :?> Inner<'K>
-                let state = fold folder state node.SetLeft
-                fold folder state node.SetRight
+                let state = fold folder state node.Left
+                fold folder state node.Right
                 
         let rec exists (predicate : 'K -> bool) (node : SetNode<'K>) =
             if isNull node then
@@ -956,8 +956,8 @@ module internal Implementation =
                     run predicate node.SetNext
             else
                 let node = node :?> Inner<'K>
-                exists predicate node.SetLeft ||
-                exists predicate node.SetRight
+                exists predicate node.Left ||
+                exists predicate node.Right
                
         let rec forall (predicate : 'K -> bool) (node : SetNode<'K>) =
             if isNull node then
@@ -974,8 +974,8 @@ module internal Implementation =
                     false
             else
                 let node = node :?> Inner<'K>
-                forall predicate node.SetLeft &&
-                forall predicate node.SetRight
+                forall predicate node.Left &&
+                forall predicate node.Right
                     
     
         let rec filter (predicate : 'K -> bool) (node : SetNode<'K>) =
@@ -991,8 +991,8 @@ module internal Implementation =
                     else SetLeaf(node.Hash, n.Key, n.SetNext) :> SetNode<_>
             else
                 let node = node :?> Inner<'K>
-                let l = filter predicate node.SetLeft
-                let r = filter predicate node.SetRight
+                let l = filter predicate node.Left
+                let r = filter predicate node.Right
                 newInner node.Prefix node.Mask l r
 
         let rec toList (acc : list<'K>) (node : SetNode<'K>) =
@@ -1003,7 +1003,7 @@ module internal Implementation =
                 node.Key :: SetLinked.toList acc node.SetNext
             else
                 let node = node :?> Inner<'K>
-                toList (toList acc node.SetRight) node.SetLeft
+                toList (toList acc node.Right) node.Left
                     
         let rec copyTo (dst : 'K[]) (index : int) (node : SetNode<'K>) =
             if isNull node then
@@ -1014,8 +1014,8 @@ module internal Implementation =
                 SetLinked.copyTo dst (index + 1) node.SetNext
             else
                 let node = node :?> Inner<'K>
-                let i0 = copyTo dst index node.SetLeft
-                copyTo dst i0 node.SetRight
+                let i0 = copyTo dst index node.Left
+                copyTo dst i0 node.Right
                 
         let rec mapToMap (mapping : 'K -> 'V) (node : SetNode<'K>) =
             if isNull node then
@@ -1026,8 +1026,8 @@ module internal Implementation =
                 MapLeaf(node.Hash, node.Key, v, SetLinked.mapToMap mapping node.SetNext) :> SetNode<_>
             else
                 let node = node :?> Inner<'K>
-                let l = mapToMap mapping node.SetLeft
-                let r = mapToMap mapping node.SetRight
+                let l = mapToMap mapping node.Left
+                let r = mapToMap mapping node.Right
                 Inner(node.Prefix, node.Mask, l, r) :> SetNode<_>
 
         let rec chooseToMapV (mapping : 'K -> voption<'T>) (node : SetNode<'K>) =
@@ -1044,8 +1044,8 @@ module internal Implementation =
                     MapLeaf(node.Hash, node.Key, v, SetLinked.chooseToMapV mapping node.SetNext) :> SetNode<_>
             else
                 let node = node :?> Inner<'K>
-                let l = chooseToMapV mapping node.SetLeft
-                let r = chooseToMapV mapping node.SetRight
+                let l = chooseToMapV mapping node.Left
+                let r = chooseToMapV mapping node.Right
                 newInner node.Prefix node.Mask l r
 
         let rec overlaps 
@@ -1066,15 +1066,15 @@ module internal Implementation =
                 else
                     let b = nb :?> Inner<'K>
                     match matchPrefixAndGetBit a.Hash b.Prefix b.Mask with
-                    | 0u -> overlaps cmp na b.SetLeft
-                    | 1u -> overlaps cmp na b.SetRight
+                    | 0u -> overlaps cmp na b.Left
+                    | 1u -> overlaps cmp na b.Right
                     | _ -> false
             elif nb.IsLeaf then
                 let a = na :?> Inner<'K>
                 let b = nb :?> SetLeaf<'K>
                 match matchPrefixAndGetBit b.Hash a.Prefix a.Mask with
-                | 0u -> overlaps cmp a.SetLeft nb
-                | 1u -> overlaps cmp a.SetRight nb
+                | 0u -> overlaps cmp a.Left nb
+                | 1u -> overlaps cmp a.Right nb
                 | _ -> false
             else
                 let a = na :?> Inner<'K>
@@ -1083,18 +1083,18 @@ module internal Implementation =
                 if cc > 0 then
                     // a in b
                     match matchPrefixAndGetBit a.Prefix b.Prefix b.Mask with
-                    | 0u -> overlaps cmp na b.SetLeft
-                    | 1u -> overlaps cmp na b.SetRight
+                    | 0u -> overlaps cmp na b.Left
+                    | 1u -> overlaps cmp na b.Right
                     | _ -> false
                 elif cc < 0 then
                     // b in a
                     match matchPrefixAndGetBit b.Prefix a.Prefix a.Mask with
-                    | 0u -> overlaps cmp a.SetLeft nb
-                    | 1u -> overlaps cmp a.SetRight nb
+                    | 0u -> overlaps cmp a.Left nb
+                    | 1u -> overlaps cmp a.Right nb
                     | _ -> false
                 elif a.Prefix = b.Prefix then
-                    overlaps cmp a.SetLeft b.SetLeft ||
-                    overlaps cmp a.SetRight b.SetRight
+                    overlaps cmp a.Left b.Left ||
+                    overlaps cmp a.Right b.Right
                 else
                     false
 
@@ -1116,8 +1116,8 @@ module internal Implementation =
                 else
                     let b = nb :?> Inner<'K>
                     match matchPrefixAndGetBit a.Hash b.Prefix b.Mask with
-                    | 0u -> subset cmp na b.SetLeft
-                    | 1u -> subset cmp na b.SetRight
+                    | 0u -> subset cmp na b.Left
+                    | 1u -> subset cmp na b.Right
                     | _ -> false
             elif nb.IsLeaf then
                 false
@@ -1128,15 +1128,15 @@ module internal Implementation =
                 if cc > 0 then
                     // a in b
                     match matchPrefixAndGetBit a.Prefix b.Prefix b.Mask with
-                    | 0u -> subset cmp na b.SetLeft
-                    | 1u -> subset cmp na b.SetRight
+                    | 0u -> subset cmp na b.Left
+                    | 1u -> subset cmp na b.Right
                     | _ -> false
                 elif cc < 0 then
                     // b in a
                     false
                 elif a.Prefix = b.Prefix then
-                    subset cmp a.SetLeft b.SetLeft ||
-                    subset cmp a.SetRight b.SetRight
+                    subset cmp a.Left b.Left ||
+                    subset cmp a.Right b.Right
                 else
                     false
 
@@ -1163,15 +1163,15 @@ module internal Implementation =
                 else
                     let b = nb :?> Inner<'K>
                     match matchPrefixAndGetBit a.Hash b.Prefix b.Mask with
-                    | 0u -> newInner b.Prefix b.Mask (union cmp na b.SetLeft) b.SetRight
-                    | 1u -> newInner b.Prefix b.Mask b.SetLeft (union cmp na b.SetRight)
+                    | 0u -> newInner b.Prefix b.Mask (union cmp na b.Left) b.Right
+                    | 1u -> newInner b.Prefix b.Mask b.Left (union cmp na b.Right)
                     | _ -> join a.Hash na b.Prefix nb
             elif nb.IsLeaf then
                 let a = na :?> Inner<'K>
                 let b = nb :?> SetLeaf<'K>
                 match matchPrefixAndGetBit b.Hash a.Prefix a.Mask with
-                | 0u -> newInner a.Prefix a.Mask (union cmp a.SetLeft nb) a.SetRight
-                | 1u -> newInner a.Prefix a.Mask a.SetLeft (union cmp a.SetRight nb)
+                | 0u -> newInner a.Prefix a.Mask (union cmp a.Left nb) a.Right
+                | 1u -> newInner a.Prefix a.Mask a.Left (union cmp a.Right nb)
                 | _ -> join a.Prefix na b.Hash nb
             else    
                 let a = na :?> Inner<'K>
@@ -1181,17 +1181,17 @@ module internal Implementation =
                 if cc > 0 then 
                     // a in b
                     match matchPrefixAndGetBit a.Prefix b.Prefix b.Mask with
-                    | 0u -> newInner b.Prefix b.Mask (union cmp na b.SetLeft) b.SetRight
-                    | 1u -> newInner b.Prefix b.Mask b.SetLeft (union cmp na b.SetRight)
+                    | 0u -> newInner b.Prefix b.Mask (union cmp na b.Left) b.Right
+                    | 1u -> newInner b.Prefix b.Mask b.Left (union cmp na b.Right)
                     | _ -> join a.Prefix na b.Prefix nb
                 elif cc < 0 then
                     // b in a
                     match matchPrefixAndGetBit b.Prefix a.Prefix a.Mask with
-                    | 0u -> newInner a.Prefix a.Mask (union cmp a.SetLeft nb) a.SetRight
-                    | 1u -> newInner a.Prefix a.Mask a.SetLeft (union cmp a.SetRight nb)
+                    | 0u -> newInner a.Prefix a.Mask (union cmp a.Left nb) a.Right
+                    | 1u -> newInner a.Prefix a.Mask a.Left (union cmp a.Right nb)
                     | _ -> join a.Prefix na b.Prefix nb
                 elif a.Prefix = b.Prefix then
-                    newInner a.Prefix a.Mask (union cmp a.SetLeft b.SetLeft) (union cmp a.SetRight b.SetRight)
+                    newInner a.Prefix a.Mask (union cmp a.Left b.Left) (union cmp a.Right b.Right)
                 else
                     join a.Prefix na b.Prefix nb
 
@@ -1217,15 +1217,15 @@ module internal Implementation =
                 else
                     let b = nb :?> Inner<'K>
                     match matchPrefixAndGetBit a.Hash b.Prefix b.Mask with
-                    | 0u -> intersect cmp na b.SetLeft
-                    | 1u -> intersect cmp na b.SetRight
+                    | 0u -> intersect cmp na b.Left
+                    | 1u -> intersect cmp na b.Right
                     | _ -> null
             elif nb.IsLeaf then
                 let a = na :?> Inner<'K>
                 let b = nb :?> SetLeaf<'K>
                 match matchPrefixAndGetBit b.Hash a.Prefix a.Mask with
-                | 0u -> intersect cmp a.SetLeft nb
-                | 1u -> intersect cmp a.SetRight nb
+                | 0u -> intersect cmp a.Left nb
+                | 1u -> intersect cmp a.Right nb
                 | _ -> null
             else    
                 let a = na :?> Inner<'K>
@@ -1235,17 +1235,17 @@ module internal Implementation =
                 if cc > 0 then 
                     // a in b
                     match matchPrefixAndGetBit a.Prefix b.Prefix b.Mask with
-                    | 0u -> intersect cmp na b.SetLeft
-                    | 1u -> intersect cmp na b.SetRight
+                    | 0u -> intersect cmp na b.Left
+                    | 1u -> intersect cmp na b.Right
                     | _ -> null
                 elif cc < 0 then
                     // b in a
                     match matchPrefixAndGetBit b.Prefix a.Prefix a.Mask with
-                    | 0u -> intersect cmp a.SetLeft nb
-                    | 1u -> intersect cmp a.SetRight nb
+                    | 0u -> intersect cmp a.Left nb
+                    | 1u -> intersect cmp a.Right nb
                     | _ -> null
                 elif a.Prefix = b.Prefix then
-                    newInner a.Prefix a.Mask (intersect cmp a.SetLeft b.SetLeft) (intersect cmp a.SetRight b.SetRight)
+                    newInner a.Prefix a.Mask (intersect cmp a.Left b.Left) (intersect cmp a.Right b.Right)
                 else
                     null
 
@@ -1272,15 +1272,15 @@ module internal Implementation =
                 else
                     let b = nb :?> Inner<'K>
                     match matchPrefixAndGetBit a.Hash b.Prefix b.Mask with
-                    | 0u -> newInner b.Prefix b.Mask (xor cmp na b.SetLeft) b.SetRight
-                    | 1u -> newInner b.Prefix b.Mask b.SetLeft (xor cmp na b.SetRight)
+                    | 0u -> newInner b.Prefix b.Mask (xor cmp na b.Left) b.Right
+                    | 1u -> newInner b.Prefix b.Mask b.Left (xor cmp na b.Right)
                     | _ -> join a.Hash na b.Prefix nb
             elif nb.IsLeaf then
                 let a = na :?> Inner<'K>
                 let b = nb :?> SetLeaf<'K>
                 match matchPrefixAndGetBit b.Hash a.Prefix a.Mask with
-                | 0u -> newInner a.Prefix a.Mask (xor cmp a.SetLeft nb) a.SetRight
-                | 1u -> newInner a.Prefix a.Mask a.SetLeft (xor cmp a.SetRight nb)
+                | 0u -> newInner a.Prefix a.Mask (xor cmp a.Left nb) a.Right
+                | 1u -> newInner a.Prefix a.Mask a.Left (xor cmp a.Right nb)
                 | _ -> join a.Prefix na b.Hash nb
             else    
                 let a = na :?> Inner<'K>
@@ -1290,17 +1290,17 @@ module internal Implementation =
                 if cc > 0 then 
                     // a in b
                     match matchPrefixAndGetBit a.Prefix b.Prefix b.Mask with
-                    | 0u -> newInner b.Prefix b.Mask (xor cmp na b.SetLeft) b.SetRight
-                    | 1u -> newInner b.Prefix b.Mask b.SetLeft (xor cmp na b.SetRight)
+                    | 0u -> newInner b.Prefix b.Mask (xor cmp na b.Left) b.Right
+                    | 1u -> newInner b.Prefix b.Mask b.Left (xor cmp na b.Right)
                     | _ -> join a.Prefix na b.Prefix nb
                 elif cc < 0 then
                     // b in a
                     match matchPrefixAndGetBit b.Prefix a.Prefix a.Mask with
-                    | 0u -> newInner a.Prefix a.Mask (xor cmp a.SetLeft nb) a.SetRight
-                    | 1u -> newInner a.Prefix a.Mask a.SetLeft (xor cmp a.SetRight nb)
+                    | 0u -> newInner a.Prefix a.Mask (xor cmp a.Left nb) a.Right
+                    | 1u -> newInner a.Prefix a.Mask a.Left (xor cmp a.Right nb)
                     | _ -> join a.Prefix na b.Prefix nb
                 elif a.Prefix = b.Prefix then
-                    newInner a.Prefix a.Mask (xor cmp a.SetLeft b.SetLeft) (xor cmp a.SetRight b.SetRight)
+                    newInner a.Prefix a.Mask (xor cmp a.Left b.Left) (xor cmp a.Right b.Right)
                 else
                     join a.Prefix na b.Prefix nb
 
@@ -1327,16 +1327,16 @@ module internal Implementation =
                 else
                     let b = nb :?> Inner<'K>
                     match matchPrefixAndGetBit a.Hash b.Prefix b.Mask with
-                    | 0u -> difference cmp na b.SetLeft
-                    | 1u -> difference cmp na b.SetRight
+                    | 0u -> difference cmp na b.Left
+                    | 1u -> difference cmp na b.Right
                     | _ -> na
 
             elif nb.IsLeaf then
                 let a = na :?> Inner<'K>
                 let b = nb :?> SetLeaf<'K>
                 match matchPrefixAndGetBit b.Hash a.Prefix a.Mask with
-                | 0u -> newInner a.Prefix a.Mask (difference cmp a.SetLeft nb) a.SetRight
-                | 1u -> newInner a.Prefix a.Mask a.SetLeft (difference cmp a.SetRight nb)
+                | 0u -> newInner a.Prefix a.Mask (difference cmp a.Left nb) a.Right
+                | 1u -> newInner a.Prefix a.Mask a.Left (difference cmp a.Right nb)
                 | _ -> na
             else    
                 let a = na :?> Inner<'K>
@@ -1346,17 +1346,17 @@ module internal Implementation =
                 if cc > 0 then 
                     // a in b
                     match matchPrefixAndGetBit a.Prefix b.Prefix b.Mask with
-                    | 0u -> difference cmp na b.SetLeft
-                    | 1u -> difference cmp na b.SetRight
+                    | 0u -> difference cmp na b.Left
+                    | 1u -> difference cmp na b.Right
                     | _ -> na
                 elif cc < 0 then
                     // b in a
                     match matchPrefixAndGetBit b.Prefix a.Prefix a.Mask with
-                    | 0u -> newInner a.Prefix a.Mask (difference cmp a.SetLeft nb) a.SetRight
-                    | 1u -> newInner a.Prefix a.Mask a.SetLeft (difference cmp a.SetRight nb)
+                    | 0u -> newInner a.Prefix a.Mask (difference cmp a.Left nb) a.Right
+                    | 1u -> newInner a.Prefix a.Mask a.Left (difference cmp a.Right nb)
                     | _ -> na
                 elif a.Prefix = b.Prefix then
-                    newInner a.Prefix a.Mask (difference cmp a.SetLeft b.SetLeft) (difference cmp a.SetRight b.SetRight)
+                    newInner a.Prefix a.Mask (difference cmp a.Left b.Left) (difference cmp a.Right b.Right)
                 else
                     na
 
@@ -1398,13 +1398,13 @@ module internal Implementation =
                     | 0u ->
                         newInner 
                             b.Prefix b.Mask 
-                            (computeDelta cmp onlyLeft onlyRight na b.SetLeft)
-                            (chooseToMapV onlyRight b.SetRight)
+                            (computeDelta cmp onlyLeft onlyRight na b.Left)
+                            (chooseToMapV onlyRight b.Right)
                     | 1u ->
                         newInner
                             b.Prefix b.Mask
-                            (chooseToMapV onlyRight b.SetLeft)
-                            (computeDelta cmp onlyLeft onlyRight na b.SetRight)
+                            (chooseToMapV onlyRight b.Left)
+                            (computeDelta cmp onlyLeft onlyRight na b.Right)
                     | _ ->
                         join b.Prefix (chooseToMapV onlyRight nb) a.Hash (chooseToMapV onlyLeft na)
 
@@ -1416,13 +1416,13 @@ module internal Implementation =
                 | 0u ->
                     newInner
                         a.Prefix a.Mask
-                        (computeDelta cmp onlyLeft onlyRight a.SetLeft nb)
-                        (chooseToMapV onlyLeft a.SetRight)
+                        (computeDelta cmp onlyLeft onlyRight a.Left nb)
+                        (chooseToMapV onlyLeft a.Right)
                 | 1u ->
                     newInner
                         a.Prefix a.Mask
-                        (chooseToMapV onlyLeft a.SetLeft)
-                        (computeDelta cmp onlyLeft onlyRight a.SetRight nb)
+                        (chooseToMapV onlyLeft a.Left)
+                        (computeDelta cmp onlyLeft onlyRight a.Right nb)
                 | _ ->
                     join a.Prefix (chooseToMapV onlyLeft na) b.Hash (chooseToMapV onlyRight nb)
 
@@ -1438,13 +1438,13 @@ module internal Implementation =
                     | 0u ->
                         newInner 
                             b.Prefix b.Mask 
-                            (computeDelta cmp onlyLeft onlyRight na b.SetLeft)
-                            (chooseToMapV onlyRight b.SetRight)
+                            (computeDelta cmp onlyLeft onlyRight na b.Left)
+                            (chooseToMapV onlyRight b.Right)
                     | 1u ->
                         newInner
                             b.Prefix b.Mask
-                            (chooseToMapV onlyRight b.SetLeft)
-                            (computeDelta cmp onlyLeft onlyRight na b.SetRight)
+                            (chooseToMapV onlyRight b.Left)
+                            (computeDelta cmp onlyLeft onlyRight na b.Right)
                     | _ ->
                         join b.Prefix (chooseToMapV onlyRight nb) a.Prefix (chooseToMapV onlyLeft na)
 
@@ -1454,21 +1454,21 @@ module internal Implementation =
                     | 0u ->
                         newInner
                             a.Prefix a.Mask
-                            (computeDelta cmp onlyLeft onlyRight a.SetLeft nb)
-                            (chooseToMapV onlyLeft a.SetRight)
+                            (computeDelta cmp onlyLeft onlyRight a.Left nb)
+                            (chooseToMapV onlyLeft a.Right)
                     | 1u ->
                         newInner
                             a.Prefix a.Mask
-                            (chooseToMapV onlyLeft a.SetLeft)
-                            (computeDelta cmp onlyLeft onlyRight a.SetRight nb)
+                            (chooseToMapV onlyLeft a.Left)
+                            (computeDelta cmp onlyLeft onlyRight a.Right nb)
                     | _ ->
                         join a.Prefix (chooseToMapV onlyLeft na) b.Prefix (chooseToMapV onlyRight nb)
 
                 elif a.Prefix = b.Prefix then
                     newInner 
                         a.Prefix a.Mask
-                        (computeDelta cmp onlyLeft onlyRight a.SetLeft b.SetLeft)
-                        (computeDelta cmp onlyLeft onlyRight a.SetRight b.SetRight)
+                        (computeDelta cmp onlyLeft onlyRight a.Left b.Left)
+                        (computeDelta cmp onlyLeft onlyRight a.Right b.Right)
                 else
                     join a.Prefix (chooseToMapV onlyLeft na) b.Prefix (chooseToMapV onlyRight nb)
 
@@ -1508,8 +1508,8 @@ module internal Implementation =
                 let delta = delta :?> Inner<'K>
                 let mutable ls = null
                 let mutable rs = null
-                let l = applyDeltaNoState apply delta.SetLeft &ls
-                let r = applyDeltaNoState apply delta.SetRight &rs
+                let l = applyDeltaNoState apply delta.Left &ls
+                let r = applyDeltaNoState apply delta.Right &rs
                 state <- newInner delta.Prefix delta.Mask ls rs
                 newInner delta.Prefix delta.Mask l r
 
@@ -1550,14 +1550,14 @@ module internal Implementation =
                     let s = state :?> Inner<'K>
                     match matchPrefixAndGetBit d.Hash s.Prefix s.Mask with
                     | 0u ->
-                        let mutable l = s.SetLeft
+                        let mutable l = s.Left
                         let delta = applyDelta cmp apply &l delta
-                        state <- newInner s.Prefix s.Mask l s.SetRight
+                        state <- newInner s.Prefix s.Mask l s.Right
                         delta
                     | 1u ->
-                        let mutable r = s.SetRight
+                        let mutable r = s.Right
                         let delta = applyDelta cmp apply &r delta
-                        state <- newInner s.Prefix s.Mask s.SetLeft r
+                        state <- newInner s.Prefix s.Mask s.Left r
                         delta
                     | _ ->
                         let mutable ls = null
@@ -1574,15 +1574,15 @@ module internal Implementation =
                 | 0u ->
                     let mutable ls = state
                     let mutable rs = null
-                    let ld = applyDelta cmp apply &ls d.SetLeft
-                    let rd = applyDelta cmp apply &rs d.SetRight
+                    let ld = applyDelta cmp apply &ls d.Left
+                    let rd = applyDelta cmp apply &rs d.Right
                     state <- newInner d.Prefix d.Mask ls rs
                     newInner d.Prefix d.Mask ld rd
                 | 1u -> 
                     let mutable ls = null
                     let mutable rs = state
-                    let ld = applyDelta cmp apply &ls d.SetLeft
-                    let rd = applyDelta cmp apply &rs d.SetRight
+                    let ld = applyDelta cmp apply &ls d.Left
+                    let rd = applyDelta cmp apply &rs d.Right
                     state <- newInner d.Prefix d.Mask ls rs
                     newInner d.Prefix d.Mask ld rd
                 | _ ->
@@ -1601,14 +1601,14 @@ module internal Implementation =
                     // delta in state
                     match matchPrefixAndGetBit d.Prefix s.Prefix s.Mask with
                     | 0u ->
-                        let mutable l = s.SetLeft
+                        let mutable l = s.Left
                         let delta = applyDelta cmp apply &l delta
-                        state <- newInner s.Prefix s.Mask l s.SetRight
+                        state <- newInner s.Prefix s.Mask l s.Right
                         delta
                     | 1u ->
-                        let mutable r = s.SetRight
+                        let mutable r = s.Right
                         let delta = applyDelta cmp apply &r delta
-                        state <- newInner s.Prefix s.Mask s.SetLeft r
+                        state <- newInner s.Prefix s.Mask s.Left r
                         delta
                     | _ ->
                         let mutable ls = null
@@ -1622,15 +1622,15 @@ module internal Implementation =
                     | 0u ->
                         let mutable ls = state
                         let mutable rs = null
-                        let ld = applyDelta cmp apply &ls d.SetLeft
-                        let rd = applyDelta cmp apply &rs d.SetRight
+                        let ld = applyDelta cmp apply &ls d.Left
+                        let rd = applyDelta cmp apply &rs d.Right
                         state <- newInner d.Prefix d.Mask ls rs
                         newInner d.Prefix d.Mask ld rd
                     | 1u -> 
                         let mutable ls = null
                         let mutable rs = state
-                        let ld = applyDelta cmp apply &ls d.SetLeft
-                        let rd = applyDelta cmp apply &rs d.SetRight
+                        let ld = applyDelta cmp apply &ls d.Left
+                        let rd = applyDelta cmp apply &rs d.Right
                         state <- newInner d.Prefix d.Mask ls rs
                         newInner d.Prefix d.Mask ld rd
                     | _ ->
@@ -1640,10 +1640,10 @@ module internal Implementation =
                         ld
 
                 elif s.Prefix = d.Prefix then
-                    let mutable ls = s.SetLeft
-                    let mutable rs = s.SetRight
-                    let ld = applyDelta cmp apply &ls d.SetLeft
-                    let rd = applyDelta cmp apply &rs d.SetRight
+                    let mutable ls = s.Left
+                    let mutable rs = s.Right
+                    let ld = applyDelta cmp apply &ls d.Left
+                    let rd = applyDelta cmp apply &rs d.Right
                     state <- newInner s.Prefix s.Mask ls rs
                     newInner d.Prefix d.Mask ld rd
 
@@ -1691,13 +1691,13 @@ module internal Implementation =
                 | 0u ->
                     newInner 
                         node.Prefix node.Mask 
-                        (alterV cmp hash key update node.SetLeft) 
-                        node.SetRight
+                        (alterV cmp hash key update node.Left) 
+                        node.Right
                 | 1u ->
                     newInner 
                         node.Prefix node.Mask 
-                        node.SetLeft
-                        (alterV cmp hash key update node.SetRight) 
+                        node.Left
+                        (alterV cmp hash key update node.Right) 
                 | _ ->
                     match update ValueNone with
                     | ValueSome value -> join node.Prefix node hash (MapLeaf(hash, key, value, null))
@@ -1733,13 +1733,13 @@ module internal Implementation =
                 | 0u ->
                     newInner 
                         node.Prefix node.Mask 
-                        (alter cmp hash key update node.SetLeft) 
-                        node.SetRight
+                        (alter cmp hash key update node.Left) 
+                        node.Right
                 | 1u ->
                     newInner 
                         node.Prefix node.Mask 
-                        node.SetLeft
-                        (alter cmp hash key update node.SetRight) 
+                        node.Left
+                        (alter cmp hash key update node.Right) 
                 | _ ->
                     match update None with
                     | Some value -> join node.Prefix node hash (MapLeaf(hash, key, value, null))
@@ -1764,13 +1764,13 @@ module internal Implementation =
                 | 0u ->
                     newInner 
                         node.Prefix node.Mask 
-                        (add cmp hash key value node.SetLeft) 
-                        node.SetRight
+                        (add cmp hash key value node.Left) 
+                        node.Right
                 | 1u ->
                     newInner 
                         node.Prefix node.Mask 
-                        node.SetLeft
-                        (add cmp hash key value node.SetRight) 
+                        node.Left
+                        (add cmp hash key value node.Right) 
                 | _ ->
                     join node.Prefix node hash (MapLeaf(hash, key, value, null))
                  
@@ -1800,20 +1800,20 @@ module internal Implementation =
                 let n = node :?> Inner<'K>
                 match matchPrefixAndGetBit hash n.Prefix n.Mask with
                 | 0u ->
-                    let mutable l = n.SetLeft
+                    let mutable l = n.Left
                     match tryRemove cmp hash key &l with
                     | ValueNone ->
                         ValueNone
                     | res ->
-                        node <- newInner n.Prefix n.Mask l n.SetRight
+                        node <- newInner n.Prefix n.Mask l n.Right
                         res
                 | 1u ->
-                    let mutable r = n.SetRight
+                    let mutable r = n.Right
                     match tryRemove cmp hash key &r with
                     | ValueNone ->
                         ValueNone
                     | res ->
-                        node <- newInner n.Prefix n.Mask n.SetLeft r
+                        node <- newInner n.Prefix n.Mask n.Left r
                         res
                 | _ ->
                     ValueNone
@@ -1833,8 +1833,8 @@ module internal Implementation =
             else
                 let n = node :?> Inner<'K>
                 match matchPrefixAndGetBit hash n.Prefix n.Mask with
-                | 0u -> tryFindV<'K, 'V> cmp hash key n.SetLeft
-                | 1u -> tryFindV<'K, 'V> cmp hash key n.SetRight
+                | 0u -> tryFindV<'K, 'V> cmp hash key n.Left
+                | 1u -> tryFindV<'K, 'V> cmp hash key n.Right
                 | _ ->
                     ValueNone
   
@@ -1853,8 +1853,8 @@ module internal Implementation =
             else
                 let n = node :?> Inner<'K>
                 match matchPrefixAndGetBit hash n.Prefix n.Mask with
-                | 0u -> tryFind<'K, 'V> cmp hash key n.SetLeft
-                | 1u -> tryFind<'K, 'V> cmp hash key n.SetRight
+                | 0u -> tryFind<'K, 'V> cmp hash key n.Left
+                | 1u -> tryFind<'K, 'V> cmp hash key n.Right
                 | _ ->
                     None
   
@@ -1873,8 +1873,8 @@ module internal Implementation =
             else
                 let n = node :?> Inner<'K>
                 match matchPrefixAndGetBit hash n.Prefix n.Mask with
-                | 0u -> containsKey<'K, 'V> cmp hash key n.SetLeft
-                | 1u -> containsKey<'K, 'V> cmp hash key n.SetRight
+                | 0u -> containsKey<'K, 'V> cmp hash key n.Left
+                | 1u -> containsKey<'K, 'V> cmp hash key n.Right
                 | _ ->
                     false
 
@@ -1898,8 +1898,8 @@ module internal Implementation =
             else
                 let inner = node :?> Inner<'K>
                 match matchPrefixAndGetBit hash inner.Prefix inner.Mask with
-                | 0u -> addInPlace cmp hash key value &inner.SetLeft
-                | 1u -> addInPlace cmp hash key value &inner.SetRight
+                | 0u -> addInPlace cmp hash key value &inner.Left
+                | 1u -> addInPlace cmp hash key value &inner.Right
                 | _ ->
                     node <- join inner.Prefix inner hash (MapLeaf(hash, key, value, null))
                     true
@@ -1915,7 +1915,7 @@ module internal Implementation =
                     leaf.Value :: MapLinked.toValueList acc leaf.MapNext
             else
                 let node = node :?> Inner<'K>
-                toValueList (toValueList acc node.SetRight) node.SetLeft
+                toValueList (toValueList acc node.Right) node.Left
                    
         let rec toList (acc : list<'K * 'V>) (node : SetNode<'K>) =
             if isNull node then acc
@@ -1927,7 +1927,7 @@ module internal Implementation =
                     (leaf.Key, leaf.Value) :: MapLinked.toList acc leaf.MapNext
             else
                 let node = node :?> Inner<'K>
-                toList (toList acc node.SetRight) node.SetLeft
+                toList (toList acc node.Right) node.Left
                    
         let rec toListV (acc : list<struct('K * 'V)>) (node : SetNode<'K>) =
             if isNull node then acc
@@ -1939,7 +1939,7 @@ module internal Implementation =
                     struct(leaf.Key, leaf.Value) :: MapLinked.toListV acc leaf.MapNext
             else
                 let node = node :?> Inner<'K>
-                toListV (toListV acc node.SetRight) node.SetLeft
+                toListV (toListV acc node.Right) node.Left
 
         let rec toListMap (mapping : OptimizedClosures.FSharpFunc<'K, 'V, 'T>) (acc : list<'T>) (node : SetNode<'K>) =  
             if isNull node then
@@ -1949,7 +1949,7 @@ module internal Implementation =
                 mapping.Invoke(node.Key, node.Value) :: MapLinked.toListMap mapping acc node.MapNext
             else
                 let node = node :?> Inner<'K>
-                toListMap mapping (toListMap mapping acc node.SetRight) node.SetLeft
+                toListMap mapping (toListMap mapping acc node.Right) node.Left
 
             
         let rec copyTo (dst : ('K * 'V)[]) (index : int) (node : SetNode<'K>) =
@@ -1961,8 +1961,8 @@ module internal Implementation =
                 MapLinked.copyTo dst (index + 1) node.MapNext
             else
                 let node = node :?> Inner<'K>
-                let i0 = copyTo dst index node.SetLeft
-                copyTo dst i0 node.SetRight
+                let i0 = copyTo dst index node.Left
+                copyTo dst i0 node.Right
                     
         let rec copyValuesTo (dst : 'V[]) (index : int) (node : SetNode<'K>) =
             if isNull node then
@@ -1973,8 +1973,8 @@ module internal Implementation =
                 MapLinked.copyValuesTo dst (index + 1) node.MapNext
             else
                 let node = node :?> Inner<'K>
-                let i0 = copyValuesTo dst index node.SetLeft
-                copyValuesTo dst i0 node.SetRight
+                let i0 = copyValuesTo dst index node.Left
+                copyValuesTo dst i0 node.Right
                 
         let rec copyToV (dst : struct('K * 'V)[]) (index : int) (node : SetNode<'K>) =
             if isNull node then
@@ -1985,8 +1985,8 @@ module internal Implementation =
                 MapLinked.copyToV dst (index + 1) node.MapNext
             else
                 let node = node :?> Inner<'K>
-                let i0 = copyToV dst index node.SetLeft
-                copyToV dst i0 node.SetRight
+                let i0 = copyToV dst index node.Left
+                copyToV dst i0 node.Right
                 
         let rec exists (predicate : OptimizedClosures.FSharpFunc<'K, 'V, bool>) (node : SetNode<'K>) =
             if isNull node then
@@ -1997,8 +1997,8 @@ module internal Implementation =
                 MapLinked.exists predicate node.MapNext
             else
                 let node = node :?> Inner<'K>
-                exists predicate node.SetLeft ||
-                exists predicate node.SetRight
+                exists predicate node.Left ||
+                exists predicate node.Right
                 
         let rec forall (predicate : OptimizedClosures.FSharpFunc<'K, 'V, bool>) (node : SetNode<'K>) =
             if isNull node then
@@ -2009,8 +2009,8 @@ module internal Implementation =
                 MapLinked.forall predicate node.MapNext
             else
                 let node = node :?> Inner<'K>
-                forall predicate node.SetLeft &&
-                forall predicate node.SetRight
+                forall predicate node.Left &&
+                forall predicate node.Right
 
         let rec fold (folder : OptimizedClosures.FSharpFunc<'S, 'K, 'V, 'S>) (state : 'S) (node : SetNode<'K>) =
             if isNull node then
@@ -2021,8 +2021,8 @@ module internal Implementation =
                 MapLinked.fold folder state node.MapNext
             else
                 let node = node :?> Inner<'K>
-                let state = fold folder state node.SetLeft
-                fold folder state node.SetRight
+                let state = fold folder state node.Left
+                fold folder state node.Right
 
         let rec iter (action : OptimizedClosures.FSharpFunc<'K, 'V, unit>) (node : SetNode<'K>) =
             if isNull node then
@@ -2036,8 +2036,8 @@ module internal Implementation =
                     c <- c.MapNext
             else
                 let node = node :?> Inner<'K>
-                iter action node.SetLeft
-                iter action node.SetRight
+                iter action node.Left
+                iter action node.Right
                 
 
         let rec map (mapping : OptimizedClosures.FSharpFunc<'K, 'V, 'T>) (node : SetNode<'K>) =
@@ -2048,7 +2048,7 @@ module internal Implementation =
                 MapLeaf(node.Hash, node.Key, mapping.Invoke(node.Key, node.Value), MapLinked.map mapping node.MapNext) :> SetNode<_>
             else
                 let node = node :?> Inner<'K>
-                Inner(node.Prefix, node.Mask, map mapping node.SetLeft, map mapping node.SetRight) :> SetNode<_>
+                Inner(node.Prefix, node.Mask, map mapping node.Left, map mapping node.Right) :> SetNode<_>
 
         let rec filter (predicate : OptimizedClosures.FSharpFunc<'K, 'V, bool>) (node : SetNode<'K>) =
             if isNull node then
@@ -2065,8 +2065,8 @@ module internal Implementation =
                 let node = node :?> Inner<'K>
                 newInner
                     node.Prefix node.Mask
-                    (filter predicate node.SetLeft)
-                    (filter predicate node.SetRight)
+                    (filter predicate node.Left)
+                    (filter predicate node.Right)
                    
         let rec choose (mapping : OptimizedClosures.FSharpFunc<'K, 'V, option<'OP>>) (node : SetNode<'K>) =
             if isNull node then
@@ -2082,8 +2082,8 @@ module internal Implementation =
                     else MapLeaf(node.Hash, next.Key, next.Value, next.MapNext) :> SetNode<_>
             else
                 let node = node :?> Inner<'K>
-                let l = choose mapping node.SetLeft
-                let r = choose mapping node.SetRight
+                let l = choose mapping node.Left
+                let r = choose mapping node.Right
                 newInner node.Prefix node.Mask l r
 
         let rec chooseV (mapping : OptimizedClosures.FSharpFunc<'K, 'V, voption<'OP>>) (node : SetNode<'K>) =
@@ -2100,8 +2100,8 @@ module internal Implementation =
                     else MapLeaf(node.Hash, next.Key, next.Value, next.MapNext) :> SetNode<_>
             else
                 let node = node :?> Inner<'K>
-                let l = chooseV mapping node.SetLeft
-                let r = chooseV mapping node.SetRight
+                let l = chooseV mapping node.Left
+                let r = chooseV mapping node.Right
                 newInner node.Prefix node.Mask l r
 
         let rec hash<'K, 'V> (acc : int) (a : SetNode<'K>) =
@@ -2117,9 +2117,9 @@ module internal Implementation =
                 combineHash acc (combineHash (int a.Hash) cnt)
             else
                 let a = a :?> Inner<'K>
-                let lh = hash<'K, 'V> acc a.SetLeft
+                let lh = hash<'K, 'V> acc a.Left
                 let nh = combineHash lh (combineHash (int a.Prefix) (int a.Mask))
-                hash<'K, 'V> nh a.SetRight
+                hash<'K, 'V> nh a.Right
                 
         let rec equals<'K, 'V>
             (cmp : IEqualityComparer<'K>)
@@ -2146,8 +2146,8 @@ module internal Implementation =
                 let a = na :?> Inner<'K>
                 let b = nb :?> Inner<'K>
                 if a.Prefix = b.Prefix && a.Mask = b.Mask then
-                    equals<'K, 'V> cmp a.SetLeft b.SetLeft &&
-                    equals<'K, 'V> cmp a.SetRight b.SetRight
+                    equals<'K, 'V> cmp a.Left b.Left &&
+                    equals<'K, 'V> cmp a.Right b.Right
                 else
                     false
                 
@@ -2171,8 +2171,8 @@ module internal Implementation =
                 let a = na :?> Inner<'K>
                 newInner
                     a.Prefix a.Mask
-                    (choose2VRight mapping a.SetLeft)
-                    (choose2VRight mapping a.SetRight)
+                    (choose2VRight mapping a.Left)
+                    (choose2VRight mapping a.Right)
                  
         let rec private choose2VLeft
             (mapping : OptimizedClosures.FSharpFunc<'K, voption<'A>, voption<'B>, voption<'C>>)
@@ -2194,8 +2194,8 @@ module internal Implementation =
                 let a = na :?> Inner<'K>
                 newInner
                     a.Prefix a.Mask
-                    (choose2VLeft mapping a.SetLeft)
-                    (choose2VLeft mapping a.SetRight)
+                    (choose2VLeft mapping a.Left)
+                    (choose2VLeft mapping a.Right)
                  
         let rec choose2V
             (cmp : IEqualityComparer<'K>)
@@ -2223,13 +2223,13 @@ module internal Implementation =
                     | 0u ->
                         newInner
                             b.Prefix b.Mask
-                            (choose2V cmp mapping na b.SetLeft)
-                            (choose2VRight mapping b.SetRight)
+                            (choose2V cmp mapping na b.Left)
+                            (choose2VRight mapping b.Right)
                     | 1u ->
                         newInner
                             b.Prefix b.Mask
-                            (choose2VRight mapping b.SetLeft)
-                            (choose2V cmp mapping na b.SetRight)
+                            (choose2VRight mapping b.Left)
+                            (choose2V cmp mapping na b.Right)
                     | _ ->
                         let va = choose2VLeft mapping na
                         let vb = choose2VRight mapping nb
@@ -2242,13 +2242,13 @@ module internal Implementation =
                 | 0u ->
                     newInner
                         a.Prefix a.Mask
-                        (choose2V cmp mapping a.SetLeft nb)
-                        (choose2VLeft mapping a.SetRight)
+                        (choose2V cmp mapping a.Left nb)
+                        (choose2VLeft mapping a.Right)
                 | 1u ->
                     newInner
                         a.Prefix a.Mask
-                        (choose2VLeft mapping a.SetLeft)
-                        (choose2V cmp mapping a.SetRight nb)
+                        (choose2VLeft mapping a.Left)
+                        (choose2V cmp mapping a.Right nb)
                 | _ -> 
                     let va = choose2VLeft mapping na
                     let vb = choose2VRight mapping nb
@@ -2264,13 +2264,13 @@ module internal Implementation =
                     | 0u ->
                         newInner
                             b.Prefix b.Mask
-                            (choose2V cmp mapping na b.SetLeft)
-                            (choose2VRight mapping b.SetRight)
+                            (choose2V cmp mapping na b.Left)
+                            (choose2VRight mapping b.Right)
                     | 1u ->
                         newInner
                             b.Prefix b.Mask
-                            (choose2VRight mapping b.SetLeft)
-                            (choose2V cmp mapping na b.SetRight)
+                            (choose2VRight mapping b.Left)
+                            (choose2V cmp mapping na b.Right)
                     | _ ->
                         let va = choose2VLeft mapping na
                         let vb = choose2VRight mapping nb
@@ -2281,13 +2281,13 @@ module internal Implementation =
                     | 0u ->
                         newInner
                             a.Prefix a.Mask
-                            (choose2V cmp mapping a.SetLeft nb)
-                            (choose2VLeft mapping a.SetRight)
+                            (choose2V cmp mapping a.Left nb)
+                            (choose2VLeft mapping a.Right)
                     | 1u ->
                         newInner
                             a.Prefix a.Mask
-                            (choose2VLeft mapping a.SetLeft)
-                            (choose2V cmp mapping a.SetRight nb)
+                            (choose2VLeft mapping a.Left)
+                            (choose2V cmp mapping a.Right nb)
                     | _ -> 
                         let va = choose2VLeft mapping na
                         let vb = choose2VRight mapping nb
@@ -2296,8 +2296,8 @@ module internal Implementation =
                 elif a.Prefix = b.Prefix then
                     newInner
                         a.Prefix a.Mask
-                        (choose2V cmp mapping a.SetLeft b.SetLeft)
-                        (choose2V cmp mapping a.SetRight b.SetRight)
+                        (choose2V cmp mapping a.Left b.Left)
+                        (choose2V cmp mapping a.Right b.Right)
 
                 else
                     let va = choose2VLeft mapping na
@@ -2328,15 +2328,15 @@ module internal Implementation =
                 else
                     let b = nb :?> Inner<'K>
                     match matchPrefixAndGetBit a.Hash b.Prefix b.Mask with
-                    | 0u -> newInner b.Prefix b.Mask (union<'K, 'V> cmp na b.SetLeft) b.SetRight
-                    | 1u -> newInner b.Prefix b.Mask b.SetLeft (union<'K, 'V> cmp na b.SetRight)
+                    | 0u -> newInner b.Prefix b.Mask (union<'K, 'V> cmp na b.Left) b.Right
+                    | 1u -> newInner b.Prefix b.Mask b.Left (union<'K, 'V> cmp na b.Right)
                     | _ -> join a.Hash na b.Prefix nb
             elif nb.IsLeaf then
                 let a = na :?> Inner<'K>
                 let b = nb :?> MapLeaf<'K, 'V>
                 match matchPrefixAndGetBit b.Hash a.Prefix a.Mask with
-                | 0u -> newInner a.Prefix a.Mask (union<'K, 'V> cmp a.SetLeft nb) a.SetRight
-                | 1u -> newInner a.Prefix a.Mask a.SetLeft (union<'K, 'V> cmp a.SetRight nb)
+                | 0u -> newInner a.Prefix a.Mask (union<'K, 'V> cmp a.Left nb) a.Right
+                | 1u -> newInner a.Prefix a.Mask a.Left (union<'K, 'V> cmp a.Right nb)
                 | _ -> join a.Prefix na b.Hash nb
             else    
                 let a = na :?> Inner<'K>
@@ -2346,17 +2346,17 @@ module internal Implementation =
                 if cc > 0 then 
                     // a in b
                     match matchPrefixAndGetBit a.Prefix b.Prefix b.Mask with
-                    | 0u -> newInner b.Prefix b.Mask (union<'K, 'V> cmp na b.SetLeft) b.SetRight
-                    | 1u -> newInner b.Prefix b.Mask b.SetLeft (union<'K, 'V> cmp na b.SetRight)
+                    | 0u -> newInner b.Prefix b.Mask (union<'K, 'V> cmp na b.Left) b.Right
+                    | 1u -> newInner b.Prefix b.Mask b.Left (union<'K, 'V> cmp na b.Right)
                     | _ -> join a.Prefix na b.Prefix nb
                 elif cc < 0 then
                     // b in a
                     match matchPrefixAndGetBit b.Prefix a.Prefix a.Mask with
-                    | 0u -> newInner a.Prefix a.Mask (union<'K, 'V> cmp a.SetLeft nb) a.SetRight
-                    | 1u -> newInner a.Prefix a.Mask a.SetLeft (union<'K, 'V> cmp a.SetRight nb)
+                    | 0u -> newInner a.Prefix a.Mask (union<'K, 'V> cmp a.Left nb) a.Right
+                    | 1u -> newInner a.Prefix a.Mask a.Left (union<'K, 'V> cmp a.Right nb)
                     | _ -> join a.Prefix na b.Prefix nb
                 elif a.Prefix = b.Prefix then
-                    newInner a.Prefix a.Mask (union<'K, 'V> cmp a.SetLeft b.SetLeft) (union<'K, 'V> cmp a.SetRight b.SetRight)
+                    newInner a.Prefix a.Mask (union<'K, 'V> cmp a.Left b.Left) (union<'K, 'V> cmp a.Right b.Right)
                 else
                     join a.Prefix na b.Prefix nb
 
@@ -2384,15 +2384,15 @@ module internal Implementation =
                 else
                     let b = nb :?> Inner<'K>
                     match matchPrefixAndGetBit a.Hash b.Prefix b.Mask with
-                    | 0u -> newInner b.Prefix b.Mask (unionWith cmp resolve na b.SetLeft) b.SetRight
-                    | 1u -> newInner b.Prefix b.Mask b.SetLeft (unionWith cmp resolve na b.SetRight)
+                    | 0u -> newInner b.Prefix b.Mask (unionWith cmp resolve na b.Left) b.Right
+                    | 1u -> newInner b.Prefix b.Mask b.Left (unionWith cmp resolve na b.Right)
                     | _ -> join a.Hash na b.Prefix nb
             elif nb.IsLeaf then
                 let a = na :?> Inner<'K>
                 let b = nb :?> MapLeaf<'K, 'V>
                 match matchPrefixAndGetBit b.Hash a.Prefix a.Mask with
-                | 0u -> newInner a.Prefix a.Mask (unionWith cmp resolve a.SetLeft nb) a.SetRight
-                | 1u -> newInner a.Prefix a.Mask a.SetLeft (unionWith cmp resolve a.SetRight nb)
+                | 0u -> newInner a.Prefix a.Mask (unionWith cmp resolve a.Left nb) a.Right
+                | 1u -> newInner a.Prefix a.Mask a.Left (unionWith cmp resolve a.Right nb)
                 | _ -> join a.Prefix na b.Hash nb
             else    
                 let a = na :?> Inner<'K>
@@ -2402,17 +2402,17 @@ module internal Implementation =
                 if cc > 0 then 
                     // a in b
                     match matchPrefixAndGetBit a.Prefix b.Prefix b.Mask with
-                    | 0u -> newInner b.Prefix b.Mask (unionWith cmp resolve na b.SetLeft) b.SetRight
-                    | 1u -> newInner b.Prefix b.Mask b.SetLeft (unionWith cmp resolve na b.SetRight)
+                    | 0u -> newInner b.Prefix b.Mask (unionWith cmp resolve na b.Left) b.Right
+                    | 1u -> newInner b.Prefix b.Mask b.Left (unionWith cmp resolve na b.Right)
                     | _ -> join a.Prefix na b.Prefix nb
                 elif cc < 0 then
                     // b in a
                     match matchPrefixAndGetBit b.Prefix a.Prefix a.Mask with
-                    | 0u -> newInner a.Prefix a.Mask (unionWith cmp resolve a.SetLeft nb) a.SetRight
-                    | 1u -> newInner a.Prefix a.Mask a.SetLeft (unionWith cmp resolve a.SetRight nb)
+                    | 0u -> newInner a.Prefix a.Mask (unionWith cmp resolve a.Left nb) a.Right
+                    | 1u -> newInner a.Prefix a.Mask a.Left (unionWith cmp resolve a.Right nb)
                     | _ -> join a.Prefix na b.Prefix nb
                 elif a.Prefix = b.Prefix then
-                    newInner a.Prefix a.Mask (unionWith cmp resolve a.SetLeft b.SetLeft) (unionWith cmp resolve a.SetRight b.SetRight)
+                    newInner a.Prefix a.Mask (unionWith cmp resolve a.Left b.Left) (unionWith cmp resolve a.Right b.Right)
                 else
                     join a.Prefix na b.Prefix nb
 
@@ -2453,13 +2453,13 @@ module internal Implementation =
                     | 0u ->
                         newInner
                             b.Prefix b.Mask
-                            (computeDelta cmp onlyLeft onlyRight both na b.SetLeft)
-                            (chooseV onlyRight b.SetRight)
+                            (computeDelta cmp onlyLeft onlyRight both na b.Left)
+                            (chooseV onlyRight b.Right)
                     | 1u ->
                         newInner
                             b.Prefix b.Mask
-                            (chooseV onlyRight b.SetLeft)
-                            (computeDelta cmp onlyLeft onlyRight both na b.SetRight)
+                            (chooseV onlyRight b.Left)
+                            (computeDelta cmp onlyLeft onlyRight both na b.Right)
                     | _ ->
                         join a.Hash (chooseV onlyLeft na) b.Prefix (chooseV onlyRight nb)
 
@@ -2472,13 +2472,13 @@ module internal Implementation =
                 | 0u ->
                     newInner
                         a.Prefix a.Mask
-                        (computeDelta cmp onlyLeft onlyRight both a.SetLeft nb)
-                        (chooseV onlyLeft a.SetRight)
+                        (computeDelta cmp onlyLeft onlyRight both a.Left nb)
+                        (chooseV onlyLeft a.Right)
                 | 1u ->
                     newInner
                         a.Prefix a.Mask
-                        (chooseV onlyLeft a.SetLeft)
-                        (computeDelta cmp onlyLeft onlyRight both a.SetRight nb)
+                        (chooseV onlyLeft a.Left)
+                        (computeDelta cmp onlyLeft onlyRight both a.Right nb)
                 | _ ->
                     join a.Prefix (chooseV onlyLeft na) b.Hash (chooseV onlyRight nb)
             else
@@ -2492,13 +2492,13 @@ module internal Implementation =
                     | 0u ->
                         newInner
                             b.Prefix b.Mask
-                            (computeDelta cmp onlyLeft onlyRight both na b.SetLeft)
-                            (chooseV onlyRight b.SetRight)
+                            (computeDelta cmp onlyLeft onlyRight both na b.Left)
+                            (chooseV onlyRight b.Right)
                     | 1u ->
                         newInner
                             b.Prefix b.Mask
-                            (chooseV onlyRight b.SetLeft)
-                            (computeDelta cmp onlyLeft onlyRight both na b.SetRight)
+                            (chooseV onlyRight b.Left)
+                            (computeDelta cmp onlyLeft onlyRight both na b.Right)
                     | _ ->
                         join a.Prefix (chooseV onlyLeft na) b.Prefix (chooseV onlyRight nb)
                 elif cc < 0 then
@@ -2507,20 +2507,20 @@ module internal Implementation =
                     | 0u ->
                         newInner
                             a.Prefix a.Mask
-                            (computeDelta cmp onlyLeft onlyRight both a.SetLeft nb)
-                            (chooseV onlyLeft a.SetRight)
+                            (computeDelta cmp onlyLeft onlyRight both a.Left nb)
+                            (chooseV onlyLeft a.Right)
                     | 1u ->
                         newInner
                             a.Prefix a.Mask
-                            (chooseV onlyLeft a.SetLeft)
-                            (computeDelta cmp onlyLeft onlyRight both a.SetRight nb)
+                            (chooseV onlyLeft a.Left)
+                            (computeDelta cmp onlyLeft onlyRight both a.Right nb)
                     | _ ->
                         join a.Prefix (chooseV onlyLeft na) b.Prefix (chooseV onlyRight nb)
                 elif a.Prefix = b.Prefix then
                     newInner
                         a.Prefix a.Mask
-                        (computeDelta cmp onlyLeft onlyRight both a.SetLeft b.SetLeft)
-                        (computeDelta cmp onlyLeft onlyRight both a.SetRight b.SetRight)
+                        (computeDelta cmp onlyLeft onlyRight both a.Left b.Left)
+                        (computeDelta cmp onlyLeft onlyRight both a.Right b.Right)
                 else
                     join a.Prefix (chooseV onlyLeft na) b.Prefix (chooseV onlyRight nb)
                         
@@ -2568,8 +2568,8 @@ module internal Implementation =
                 let delta = delta :?> Inner<'K>
                 let mutable ls = null
                 let mutable rs = null
-                let l = applyDeltaNoState apply delta.SetLeft &ls
-                let r = applyDeltaNoState apply delta.SetRight &rs
+                let l = applyDeltaNoState apply delta.Left &ls
+                let r = applyDeltaNoState apply delta.Right &rs
                 state <- newInner delta.Prefix delta.Mask ls rs
                 newInner delta.Prefix delta.Mask l r
 
@@ -2610,14 +2610,14 @@ module internal Implementation =
                     let s = state :?> Inner<'K>
                     match matchPrefixAndGetBit d.Hash s.Prefix s.Mask with
                     | 0u ->
-                        let mutable l = s.SetLeft
+                        let mutable l = s.Left
                         let delta = applyDelta cmp apply &l delta
-                        state <- newInner s.Prefix s.Mask l s.SetRight
+                        state <- newInner s.Prefix s.Mask l s.Right
                         delta
                     | 1u ->
-                        let mutable r = s.SetRight
+                        let mutable r = s.Right
                         let delta = applyDelta cmp apply &r delta
-                        state <- newInner s.Prefix s.Mask s.SetLeft r
+                        state <- newInner s.Prefix s.Mask s.Left r
                         delta
                     | _ ->
                         let mutable ls = null
@@ -2634,15 +2634,15 @@ module internal Implementation =
                 | 0u ->
                     let mutable ls = state
                     let mutable rs = null
-                    let ld = applyDelta cmp apply &ls d.SetLeft
-                    let rd = applyDelta cmp apply &rs d.SetRight
+                    let ld = applyDelta cmp apply &ls d.Left
+                    let rd = applyDelta cmp apply &rs d.Right
                     state <- newInner d.Prefix d.Mask ls rs
                     newInner d.Prefix d.Mask ld rd
                 | 1u -> 
                     let mutable ls = null
                     let mutable rs = state
-                    let ld = applyDelta cmp apply &ls d.SetLeft
-                    let rd = applyDelta cmp apply &rs d.SetRight
+                    let ld = applyDelta cmp apply &ls d.Left
+                    let rd = applyDelta cmp apply &rs d.Right
                     state <- newInner d.Prefix d.Mask ls rs
                     newInner d.Prefix d.Mask ld rd
                 | _ ->
@@ -2661,14 +2661,14 @@ module internal Implementation =
                     // delta in state
                     match matchPrefixAndGetBit d.Prefix s.Prefix s.Mask with
                     | 0u ->
-                        let mutable l = s.SetLeft
+                        let mutable l = s.Left
                         let delta = applyDelta cmp apply &l delta
-                        state <- newInner s.Prefix s.Mask l s.SetRight
+                        state <- newInner s.Prefix s.Mask l s.Right
                         delta
                     | 1u ->
-                        let mutable r = s.SetRight
+                        let mutable r = s.Right
                         let delta = applyDelta cmp apply &r delta
-                        state <- newInner s.Prefix s.Mask s.SetLeft r
+                        state <- newInner s.Prefix s.Mask s.Left r
                         delta
                     | _ ->
                         let mutable ls = null
@@ -2682,15 +2682,15 @@ module internal Implementation =
                     | 0u ->
                         let mutable ls = state
                         let mutable rs = null
-                        let ld = applyDelta cmp apply &ls d.SetLeft
-                        let rd = applyDelta cmp apply &rs d.SetRight
+                        let ld = applyDelta cmp apply &ls d.Left
+                        let rd = applyDelta cmp apply &rs d.Right
                         state <- newInner d.Prefix d.Mask ls rs
                         newInner d.Prefix d.Mask ld rd
                     | 1u -> 
                         let mutable ls = null
                         let mutable rs = state
-                        let ld = applyDelta cmp apply &ls d.SetLeft
-                        let rd = applyDelta cmp apply &rs d.SetRight
+                        let ld = applyDelta cmp apply &ls d.Left
+                        let rd = applyDelta cmp apply &rs d.Right
                         state <- newInner d.Prefix d.Mask ls rs
                         newInner d.Prefix d.Mask ld rd
                     | _ ->
@@ -2700,10 +2700,10 @@ module internal Implementation =
                         ld
 
                 elif s.Prefix = d.Prefix then
-                    let mutable ls = s.SetLeft
-                    let mutable rs = s.SetRight
-                    let ld = applyDelta cmp apply &ls d.SetLeft
-                    let rd = applyDelta cmp apply &rs d.SetRight
+                    let mutable ls = s.Left
+                    let mutable rs = s.Right
+                    let ld = applyDelta cmp apply &ls d.Left
+                    let rd = applyDelta cmp apply &rs d.Right
                     state <- newInner s.Prefix s.Mask ls rs
                     newInner d.Prefix d.Mask ld rd
 
@@ -2747,8 +2747,8 @@ type HAMTSetEnumerator<'K> =
             true
         else
             let node = x.Head :?> Inner<'K>
-            x.Head <- node.SetLeft
-            x.Tail <- node.SetRight :: x.Tail
+            x.Head <- node.Left
+            x.Tail <- node.Right :: x.Tail
 
             x.MoveNext()
 
@@ -2817,8 +2817,8 @@ type HAMTEnumerator<'K, 'V, 'T> =
             true
         else
             let node = x.Head :?> Inner<'K>
-            x.Head <- node.SetLeft
-            x.Tail <- node.SetRight :: x.Tail
+            x.Head <- node.Left
+            x.Tail <- node.Right :: x.Tail
 
             x.MoveNext()
 
