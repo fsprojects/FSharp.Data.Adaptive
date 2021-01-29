@@ -382,7 +382,7 @@ let ``[CountingHashSet] basic properties`` (fset1 : Set<int>) (fset2 : Set<int>)
     CountingHashSet.difference (CountingHashSet.difference test set1) set1 
     |> should setequal empty
 
-    // no negatice refcounts!!!
+    // no negative refcounts!!!
     // (0 - A) = 0
     CountingHashSet.difference empty set1 |> should setequal empty
    

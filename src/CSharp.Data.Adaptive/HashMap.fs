@@ -19,7 +19,7 @@ type HashMapBuilder<'Key, 'Value>() =
 
     [<CompiledName("ToFSharpHashMap")>]
     member x.ToHashMap() =
-        HashMap<'Key, 'Value>.OfArrayRangeV(array, 0, cnt)
+        HashMap<'Key, 'Value>.OfArrayRange(array, 0, cnt)
    
 [<AbstractClass; Sealed; Extension; CompiledName("FSharpHashMap")>]
 type HashMap private() =
@@ -39,13 +39,13 @@ type HashMap private() =
     static member ToHashMap(this: ('K * 'V)[]) = HashMap.ofArray this
 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining); CompiledName("ToFSharpHashMap")>]
-    static member ToHashMap(this: seq<struct ('K * 'V)>) = HashMap.OfSeqV this
+    static member ToHashMap(this: seq<struct ('K * 'V)>) = HashMap.OfSeq this
 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining); CompiledName("ToFSharpHashMap")>]
-    static member ToHashMap(this: list<struct ('K * 'V)>) = HashMap.OfSeqV this
+    static member ToHashMap(this: list<struct ('K * 'V)>) = HashMap.OfSeq this
 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining); CompiledName("ToFSharpHashMap")>]
-    static member ToHashMap(this: struct('K * 'V)[]) = HashMap.OfSeqV this
+    static member ToHashMap(this: struct('K * 'V)[]) = HashMap.OfSeq this
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Map(this: HashMap<'Key, 'Value>, mapping: Func<'Key, 'Value, 'T>) =

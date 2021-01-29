@@ -7,85 +7,6 @@ open BenchmarkDotNet.Attributes
 open System.Runtime.CompilerServices
 open BenchmarkDotNet.Configs
 
-type HashSetEnumeratorBaseline<'T> =
-    struct 
-        val mutable private root : HashSetNode<'T>
-        val mutable private head : HashSetNode<'T>
-        val mutable private tail : list<HashSetNode<'T>>
-        val mutable private linked : HashSetLinked<'T>
-        val mutable private current : 'T
-
-        internal new(root: HashSetNode<'T>) = 
-            {
-                root = root
-                head = root
-                tail = []
-                linked = null
-                current = Unchecked.defaultof<'T>    
-            }
-
-        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-        member x.MoveNext() =
-           if isNull x.linked then
-
-                match x.head with
-                | :? HashSetNoCollisionLeaf<'T> as l ->
-                    x.current <- l.Value
-                    if x.tail.IsEmpty then
-                        x.head <- Unchecked.defaultof<_>
-                    else
-                        x.head <- x.tail.Head
-                        x.tail <- x.tail.Tail
-                    true
-                | :? HashSetCollisionLeaf<'T> as l -> 
-                    x.current <- l.Value
-                    x.linked <- l.Next
-                    if x.tail.IsEmpty then
-                        x.head <- Unchecked.defaultof<_>
-                    else
-                        x.head <- x.tail.Head
-                        x.tail <- x.tail.Tail
-                    true
-                | :? HashSetInner<'T> as n ->
-                    x.head <- n.Left
-                    x.tail <- n.Right:: x.tail
-                    x.MoveNext()
-                | _ ->
-                    false
-
-            else
-                x.current <- x.linked.Value
-                x.linked <- x.linked.Next
-                true
-
-        member x.Current
-            with [<MethodImpl(MethodImplOptions.AggressiveInlining)>] get() = x.current
-
-        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-        member x.Reset() =
-            x.head <- x.root
-            x.tail <- []
-            x.linked <- null
-            x.current <- Unchecked.defaultof<_>
-
-        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-        member x.Dispose() =
-            x.root <- Unchecked.defaultof<_>
-            x.tail <- []
-            x.head <- Unchecked.defaultof<_>
-            x.linked <- null
-            x.current <- Unchecked.defaultof<_>
-
-        interface System.Collections.IEnumerator with
-            member x.MoveNext() = x.MoveNext()
-            member x.Current = x.Current:> obj
-            member x.Reset() = x.Reset()
-        
-        interface System.Collections.Generic.IEnumerator<'T> with
-            member x.Dispose() = x.Dispose()
-            member x.Current = x.Current
-    end
-
 [<Struct>]
 type Struct32 =
     {
@@ -291,37 +212,37 @@ type HashSetEnumeratorBenchmark() =
         collection128 <- HashSet.ofArray (Array.init x.Count (fun i -> BigStruct.createBig(rand.Next()) ))
         collection384 <- HashSet.ofArray (Array.init x.Count (fun i -> BigStruct.createBigger(rand.Next()) ))
 
-    [<Benchmark(Baseline = true); BenchmarkCategory("4byte")>]
-    member x.Baseline_4byte() =
-        let mutable e = new HashSetEnumeratorBaseline<_>(collection4.Root)
-        let mutable sum = 0
-        while e.MoveNext() do
-            sum <- sum + e.Current
-        sum
+    //[<Benchmark(Baseline = true); BenchmarkCategory("4byte")>]
+    //member x.Baseline_4byte() =
+    //    let mutable e = new HashSetEnumeratorBaseline<_>(collection4.Root)
+    //    let mutable sum = 0
+    //    while e.MoveNext() do
+    //        sum <- sum + e.Current
+    //    sum
 
-    [<Benchmark(Baseline = true); BenchmarkCategory("32byte")>]
-    member x.Baseline_32byte() =
-        let mutable e = new HashSetEnumeratorBaseline<_>(collection32.Root)
-        let mutable sum = 0.0
-        while e.MoveNext() do
-            sum <- sum + e.Current.a
-        sum
+    //[<Benchmark(Baseline = true); BenchmarkCategory("32byte")>]
+    //member x.Baseline_32byte() =
+    //    let mutable e = new HashSetEnumeratorBaseline<_>(collection32.Root)
+    //    let mutable sum = 0.0
+    //    while e.MoveNext() do
+    //        sum <- sum + e.Current.a
+    //    sum
 
-    [<Benchmark(Baseline = true); BenchmarkCategory("128byte")>]
-    member x.Baseline_128byte() =
-        let mutable e = new HashSetEnumeratorBaseline<_>(collection128.Root)
-        let mutable sum = 0.0
-        while e.MoveNext() do
-            sum <- sum + e.Current.w.c
-        sum
+    //[<Benchmark(Baseline = true); BenchmarkCategory("128byte")>]
+    //member x.Baseline_128byte() =
+    //    let mutable e = new HashSetEnumeratorBaseline<_>(collection128.Root)
+    //    let mutable sum = 0.0
+    //    while e.MoveNext() do
+    //        sum <- sum + e.Current.w.c
+    //    sum
 
-    [<Benchmark(Baseline = true); BenchmarkCategory("384byte")>]
-    member x.Baseline_384byte() =
-        let mutable e = new HashSetEnumeratorBaseline<_>(collection384.Root)
-        let mutable sum = 0.0
-        while e.MoveNext() do
-            sum <- sum + e.Current.s.y.c
-        sum
+    //[<Benchmark(Baseline = true); BenchmarkCategory("384byte")>]
+    //member x.Baseline_384byte() =
+    //    let mutable e = new HashSetEnumeratorBaseline<_>(collection384.Root)
+    //    let mutable sum = 0.0
+    //    while e.MoveNext() do
+    //        sum <- sum + e.Current.s.y.c
+    //    sum
 
     [<Benchmark; BenchmarkCategory("4byte")>]
     member x.HashSet_4byte() =

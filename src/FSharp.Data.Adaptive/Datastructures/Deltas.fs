@@ -10,7 +10,7 @@ module DifferentiationExtensions =
         /// Determines the operations needed to transform l into r.
         /// Returns a HashSetDelta containing these operations.
         let computeDelta (l: HashSet<'T>) (r: HashSet<'T>) =
-            HashSet<'T>.ComputeDelta(l, r, (fun _ -> 1), (fun _ -> -1)) |> HashSetDelta
+            l.ComputeDeltaAsHashMap(r) |> HashSetDelta
 
         /// Same as computeDelta set empty
         let removeAll (set: HashSet<'T>) =
@@ -33,7 +33,11 @@ module DifferentiationExtensions =
                 else
                     struct(o, ValueNone)
                     
-            let set, delta = HashSet<'T>.ApplyDelta(value, delta.Store, apply)
+            let cmp = value.Comparer
+            let mutable value = value.Root
+            let effective = HashImplementation.SetNode.applyDelta cmp (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) &value delta.Store.Root
+            let set = HashSet<'T>(cmp, value)
+            let delta = HashMap<'T, int>(cmp, effective)
             set, HashSetDelta delta
 
     /// Functional programming operators related to the HashMap<_,_> type.
@@ -42,16 +46,25 @@ module DifferentiationExtensions =
         /// Determines the operations needed to transform l into r.
         /// Returns a HashMapDelta containing all the needed operations.
         let computeDelta (l: HashMap<'A, 'B>) (r: HashMap<'A, 'B>): HashMapDelta<'A, 'B> =
-            let inline add _k v = Set v
-            let inline remove _k _v = Remove
-            let inline update _l o n =
+            let inline add (_k : 'A) (v : 'B) = ValueSome (Set v)
+            let inline remove (_k : 'A) (v : 'B) = ValueSome Remove
+            let inline update (_k : 'A) (o : 'B) (n : 'B) =
                 if DefaultEquality.equals o n then ValueNone
                 else ValueSome (Set n)
 
-            HashMap<'A, 'B>.ComputeDelta(l, r, add, update, remove) |> HashMapDelta
+            let delta = 
+                HashImplementation.MapNode.computeDelta 
+                    l.Comparer
+                    (OptimizedClosures.FSharpFunc<_,_,_>.Adapt remove)
+                    (OptimizedClosures.FSharpFunc<_,_,_>.Adapt add)
+                    (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt update)
+                    l.Root
+                    r.Root
+
+            HashMap<'A, ElementOperation<'B>>(l.Comparer, delta) |> HashMapDelta
 
         let applyDelta (l : HashMap<'K, 'V>) (r : HashMapDelta<'K, 'V>) =
-            let inline apply _ o n =
+            let inline apply (_ : 'K) (o : voption<'V>) (n : ElementOperation<'V>) =
                 match n with
                 | Remove ->
                     match o with
@@ -65,7 +78,13 @@ module DifferentiationExtensions =
                     | ValueNone ->
                         struct(ValueSome v, ValueSome (Set v))
 
-            let state, delta = HashMap<'K, 'V>.ApplyDelta(l, r.Store, apply)
+
+            let mutable state = l.Root
+            let delta = HashImplementation.MapNode.applyDelta l.Comparer (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) &state r.Store.Root
+
+            let state = HashMap<'K, 'V>(l.Comparer, state)
+            let delta = HashMap<'K, ElementOperation<'V>>(l.Comparer, delta)
+
             state, HashMapDelta delta
 
     /// Functional programming operators related to the IndexList<_> type.

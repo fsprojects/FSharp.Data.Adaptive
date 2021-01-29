@@ -28,18 +28,10 @@ type HashSetBenchmarks() =
     member x.HashSet_toArray() =
         hashSet.ToArray()
         
-    [<Benchmark; BenchmarkCategory("toArray")>]
-    member x.HashSet_toArrayMatch() =
-        hashSet.ToArrayMatch()
-        
     [<Benchmark; BenchmarkCategory("toList")>]
     member x.HashSet_toList() =
         hashSet.ToList()
         
-    [<Benchmark; BenchmarkCategory("toList")>]
-    member x.HashSet_toListMatch() =
-        hashSet.ToListMatch()
-
     [<Benchmark; BenchmarkCategory("toList")>]
     member x.HashSet_toListViaArray() =
         hashSet.ToArray() |> Array.toList

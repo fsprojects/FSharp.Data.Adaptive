@@ -268,10 +268,21 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
     /// Differentiates two sets returning a HashSetDelta.
     member x.ComputeDelta(other : CountingHashSet<'T>) =
-        let inline add _ _ = 1
-        let inline rem _ _ = -1
-        let inline update _ _ _ = ValueNone
-        HashMap<'T, int>.ComputeDelta(store, other.Store, add, update, rem) |> HashSetDelta
+        let inline add (_ : 'T) (_ : int) = ValueSome 1
+        let inline rem (_ : 'T) (_ : int) = ValueSome -1
+        let inline update (_ : 'T) (_ : int) (_ : int) = ValueNone
+
+
+        let delta = 
+            HashImplementation.MapNode.computeDelta 
+                store.Comparer 
+                (OptimizedClosures.FSharpFunc<_,_,_>.Adapt rem)
+                (OptimizedClosures.FSharpFunc<_,_,_>.Adapt add)
+                (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt update)
+                store.Root
+                other.Store.Root
+
+        HashMap<'T, int>(store.Comparer, delta) |> HashSetDelta
 
     /// Same as x.ComputeDelta(empty)
     member x.RemoveAll() =
@@ -297,8 +308,11 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
                  else ValueSome n
 
             struct(value, delta)
-
-        let (s, d) = HashMap<'T, int>.ApplyDelta(store, deltas.Store, apply)
+            
+        let mutable state = store.Root
+        let d = HashImplementation.MapNode.applyDelta store.Comparer (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) &state deltas.Store.Root
+        let s = HashMap<'T, int>(store.Comparer, state)
+        let d = HashMap<'T, int>(store.Comparer, d)
         CountingHashSet s, HashSetDelta d
 
     
@@ -322,7 +336,11 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
             struct(value, delta)
 
-        let (s, d) = HashMap<'T, int>.ApplyDelta(store, deltas.Store, apply)
+        let mutable state = store.Root
+        let d = HashImplementation.MapNode.applyDelta store.Comparer (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) &state deltas.Store.Root
+
+        let s = HashMap<'T, int>(store.Comparer, state)
+        let d = HashMap<'T, int>(store.Comparer, d)
         CountingHashSet s, HashSetDelta d
 
     /// Compares two sets.
@@ -351,122 +369,13 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
     member private x.AsString = x.ToString()
 
-    member x.GetEnumerator() = new CountingHashSetEnumerator<_>(store)
+    member x.GetEnumerator() = store.GetKeys().GetEnumerator()
 
     interface IEnumerable with
-        member x.GetEnumerator() = new CountingHashSetEnumerator<_>(store) :> _
+        member x.GetEnumerator() = store.GetKeys().GetEnumerator() :> _
 
     interface IEnumerable<'T> with
-        member x.GetEnumerator() = new CountingHashSetEnumerator<_>(store) :> _
-
-/// An enumerator for CountingHashSet.
-and CountingHashSetEnumerator<'T> =
-    struct // Array Buffer (with re-use) + Inline Stack Head
-        val mutable private Root : HashMapNode<'T, int>
-        val mutable private Head : HashMapNode<'T, int>
-        val mutable private Tail : list<HashMapNode<'T, int>>
-        val mutable private BufferValueCount : int
-        val mutable private Values : 'T[]
-        val mutable private Index : int
-        
-        member x.Collect() =
-            match x.Head with
-            | :? HashMapNoCollisionLeaf<'T, int> as h ->
-                x.Values.[0] <- h.Key
-                x.Index <- 0
-                x.BufferValueCount <- 1
-                if x.Tail.IsEmpty then
-                    x.Head <- Unchecked.defaultof<_>
-                    x.Tail <- []
-                else
-                    x.Head <- x.Tail.Head
-                    x.Tail <- x.Tail.Tail    
-                true
-
-            | :? HashMapCollisionLeaf<'T, int> as h ->
-                                    
-                let cnt = h.Count
-                if x.Values.Length < cnt then
-                    x.Values <- Array.zeroCreate cnt
-            
-                x.Values.[0] <- h.Key
-                let mutable c = h.Next
-                let mutable i = 0
-                while not (isNull c) do
-                    x.Values.[i] <- c.Key
-                    c <- c.Next
-                    i <- i + 1
-                x.BufferValueCount <- cnt
-                x.Index <- 0
-                if x.Tail.IsEmpty then
-                    x.Head <- Unchecked.defaultof<_>
-                    x.Tail <- []
-                else
-                    x.Head <- x.Tail.Head
-                    x.Tail <- x.Tail.Tail
-                true
-
-            | :? HashMapInner<'T, int> as h ->
-                if h._Count <= 16 then
-                    h.CopyToKeys(x.Values, 0) |> ignore
-                    x.BufferValueCount <- h._Count
-                    x.Index <- 0
-                    if x.Tail.IsEmpty then
-                        x.Head <- Unchecked.defaultof<_>
-                        x.Tail <- []
-                    else
-                        x.Head <- x.Tail.Head
-                        x.Tail <- x.Tail.Tail
-                    true
-                else
-                    x.Head <- h.Left
-                    x.Tail <- h.Right :: x.Tail
-                    x.Collect()
-                
-            | _ -> false
-
-        member x.MoveNext() =
-            x.Index <- x.Index + 1
-            if x.Index < x.BufferValueCount then
-                true
-            else
-                x.Collect()
-
-        member x.Reset() =
-            x.Index <- -1
-            x.Head <- x.Root
-            x.Tail <- []
-            x.BufferValueCount <- -1
-
-        member x.Dispose() =
-            x.Values <- null
-            x.Index <- -1
-            x.Head <- Unchecked.defaultof<_>
-            x.Tail <- []
-            x.Root <- Unchecked.defaultof<_>
-
-        member x.Current = x.Values.[x.Index]
-
-        interface System.Collections.IEnumerator with
-            member x.MoveNext() = x.MoveNext()
-            member x.Reset() = x.Reset()
-            member x.Current = x.Current :> obj
-            
-        interface System.Collections.Generic.IEnumerator<'T> with
-            member x.Current = x.Current
-            member x.Dispose() = x.Dispose()
-
-        new (map : HashMap<'T, int>) =
-            let cnt = map.Count
-            {
-                Root = map.Root
-                Head = map.Root
-                Tail = []
-                Values = if cnt > 0 then Array.zeroCreate (min cnt 16) else null
-                Index = -1
-                BufferValueCount = -1
-            }
-    end
+        member x.GetEnumerator() = store.GetKeys().GetEnumerator() :> _
 
 /// Functional operators for CountingHashSet.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

@@ -29,6 +29,9 @@ module internal MapExtImplementation =
             let diff = mem() - before - arrayOverhead
             let pseudo = float (Unchecked.hash arr % 2) - 0.5 |> int64
             float (diff + pseudo) / float cnt 
+            
+    let inline combineHash (a: int) (b: int) =
+        uint32 a ^^^ uint32 b + 0x9e3779b9u + ((uint32 a) <<< 6) + ((uint32 a) >>> 2) |> int
 
     [<AllowNullLiteral; NoEquality; NoComparison>]
     type Node<'Key, 'Value> =

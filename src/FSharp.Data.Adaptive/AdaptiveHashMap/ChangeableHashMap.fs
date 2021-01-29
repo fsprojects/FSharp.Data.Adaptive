@@ -111,7 +111,7 @@ type ChangeableHashMap<'Key, 'Value>(initial : HashMap<'Key, 'Value>) =
     
     #if !FABLE_COMPILER
     /// Creates a new cmap containing all the given elements.
-    new(elements : seq<struct('Key * 'Value)>) = ChangeableHashMap(HashMap.OfSeqV elements)
+    new(elements : seq<struct('Key * 'Value)>) = ChangeableHashMap(HashMap.OfSeq elements)
     #endif
 
 
