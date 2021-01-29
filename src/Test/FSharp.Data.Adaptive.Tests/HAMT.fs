@@ -369,6 +369,18 @@ module internal Implementation =
             else
                 MapLinked(n.Key, n.Value, add cmp key value n.MapNext)
                    
+        let rec alter (cmp : IEqualityComparer<'K>) (key : 'K) (update : option<'V> -> option<'V>) (n : MapLinked<'K, 'V>) =
+            if isNull n then
+                match update None with
+                | Some value -> MapLinked(key, value, null)
+                | None -> null
+            elif cmp.Equals(n.Key, key) then
+                match update (Some n.Value) with
+                | Some value -> MapLinked(key, value, n.MapNext)
+                | None -> n.MapNext
+            else
+                MapLinked(n.Key, n.Value, alter cmp key update n.MapNext)
+                   
         let rec addInPlace (cmp : IEqualityComparer<'K>) (key : 'K) (value : 'V) (n : byref<SetLinked<'K>>) =
             if isNull n then
                 n <- MapLinked(key, value, null)
@@ -398,6 +410,30 @@ module internal Implementation =
                     n <- MapLinked(n.Key, n.Value, next)
                     result
 
+        let rec tryFindV (cmp : IEqualityComparer<'K>) (key : 'K) (n : MapLinked<'K, 'V>) =
+            if isNull n then
+                ValueNone
+            elif cmp.Equals(key, n.Key) then
+                ValueSome n.Value
+            else
+                tryFindV cmp key n.MapNext
+                
+        let rec tryFind (cmp : IEqualityComparer<'K>) (key : 'K) (n : MapLinked<'K, 'V>) =
+            if isNull n then
+                None
+            elif cmp.Equals(key, n.Key) then
+                Some n.Value
+            else
+                tryFind cmp key n.MapNext
+                
+        let rec containsKey (cmp : IEqualityComparer<'K>) (key : 'K) (n : MapLinked<'K, 'V>) =
+            if isNull n then
+                false
+            elif cmp.Equals(key, n.Key) then
+                true
+            else
+                containsKey cmp key n.MapNext
+
         let rec toList (acc : list<_>) (n : MapLinked<'K, 'V>) =
             if isNull n then acc
             else (n.Key,n.Value) :: toList acc n.MapNext
@@ -413,8 +449,7 @@ module internal Implementation =
         let rec toListMap (mapping : OptimizedClosures.FSharpFunc<'K, 'V, 'T>) (acc : list<'T>) (n : MapLinked<'K, 'V>) =
             if isNull n then acc
             else mapping.Invoke(n.Key, n.Value) :: toListMap mapping acc n.MapNext
-                    
-                   
+                
         let rec copyTo (dst : ('K * 'V)[]) (index : int) (n : MapLinked<'K, 'V>) =
             if isNull n then    
                 index
@@ -435,7 +470,55 @@ module internal Implementation =
             else
                 dst.[index] <- n.Value
                 copyValuesTo dst (index + 1) n.MapNext
+                      
+        let rec fold (folder : OptimizedClosures.FSharpFunc<'S, 'K, 'V, 'S>) (state : 'S) (node : MapLinked<'K, 'V>) =
+            if isNull node then
+                state
+            else
+                let s1 = folder.Invoke(state, node.Key, node.Value)
+                fold folder s1 node.MapNext
+                       
+        let rec exists (predicate : OptimizedClosures.FSharpFunc<'K, 'V, bool>) (node : MapLinked<'K, 'V>) =
+            if isNull node then
+                false
+            else
+                predicate.Invoke(node.Key, node.Value) ||
+                exists predicate node.MapNext
+                
+        let rec forall (predicate : OptimizedClosures.FSharpFunc<'K, 'V, bool>) (node : MapLinked<'K, 'V>) =
+            if isNull node then
+                true
+            else
+                predicate.Invoke(node.Key, node.Value) &&
+                forall predicate node.MapNext
+
+        let rec equals (cmp : IEqualityComparer<'K>) (a : MapLinked<'K, 'V>) (b : MapLinked<'K, 'V>) =
+            if isNull a then isNull b
+            elif isNull b then false
+            else
+                let mutable b = b
+                match tryRemove cmp a.Key &b with
+                | ValueSome vb ->
+                    DefaultEquality.equals a.Value vb &&
+                    equals cmp a.MapNext b
+                | ValueNone ->
+                    false 
                     
+        let rec map (mapping : OptimizedClosures.FSharpFunc<'K, 'V, 'T>) (node : MapLinked<'K, 'V>) =
+            if isNull node then
+                null
+            else
+                MapLinked(node.Key, mapping.Invoke(node.Key, node.Value), map mapping node.MapNext)
+                 
+        let rec filter (predicate : OptimizedClosures.FSharpFunc<'K, 'V, bool>) (node : MapLinked<'K, 'V>) =
+            if isNull node then
+                null
+            elif predicate.Invoke(node.Key, node.Value) then
+                MapLinked(node.Key, node.Value, filter predicate node.MapNext)
+                
+            else
+                filter predicate node.MapNext
+
         let rec choose (mapping : OptimizedClosures.FSharpFunc<'K, 'V, option<'T>>) (node : MapLinked<'K, 'V>) =
             if isNull node then
                 null
@@ -455,7 +538,81 @@ module internal Implementation =
                     MapLinked(node.Key, v, chooseV mapping node.MapNext)
                 | ValueNone ->
                     chooseV mapping node.MapNext
+                    
+        let rec choose2VLeft
+            (mapping : OptimizedClosures.FSharpFunc<'K, voption<'A>, voption<'B>, voption<'C>>)
+            (a : MapLinked<'K, 'A>)  =
+            if isNull a then
+                null
+            else
+                match mapping.Invoke(a.Key, ValueSome a.Value, ValueNone) with
+                | ValueSome c ->
+                    MapLinked(a.Key, c, choose2VLeft mapping a.MapNext)
+                | ValueNone ->
+                    choose2VLeft mapping a.MapNext
+                      
+        let rec choose2VRight
+            (mapping : OptimizedClosures.FSharpFunc<'K, voption<'A>, voption<'B>, voption<'C>>)
+            (b : MapLinked<'K, 'B>)  =
+            if isNull b then
+                null
+            else
+                match mapping.Invoke(b.Key, ValueNone, ValueSome b.Value) with
+                | ValueSome c ->
+                    MapLinked(b.Key, c, choose2VRight mapping b.MapNext)
+                | ValueNone ->
+                    choose2VRight mapping b.MapNext
 
+        let rec choose2V
+            (cmp : IEqualityComparer<'K>)
+            (mapping : OptimizedClosures.FSharpFunc<'K, voption<'A>, voption<'B>, voption<'C>>)
+            (a : MapLinked<'K, 'A>) (b : MapLinked<'K, 'B>)  =
+            if isNull a then
+                choose2VRight mapping b
+            elif isNull b then
+                choose2VLeft mapping a
+            else
+                let mutable b = b
+                match tryRemove cmp a.Key &b with
+                | ValueSome vb ->
+                    match mapping.Invoke(a.Key, ValueSome a.Value, ValueSome vb) with
+                    | ValueSome c ->
+                        MapLinked(a.Key, c, choose2V cmp mapping a.MapNext b)
+                    | ValueNone ->
+                        choose2V cmp mapping a.MapNext b
+                | ValueNone ->
+                    match mapping.Invoke(a.Key, ValueSome a.Value, ValueNone) with
+                    | ValueSome c ->
+                        MapLinked(a.Key, c, choose2V cmp mapping a.MapNext b)
+                    | ValueNone ->
+                        choose2V cmp mapping a.MapNext b
+                        
+                    
+        let rec union 
+            (cmp : IEqualityComparer<'K>)
+            (a : MapLinked<'K, 'V>) (b : MapLinked<'K, 'V>) =
+            if isNull a then b
+            elif isNull b then a
+            else
+                let mutable a = a
+                tryRemove cmp b.Key &a |> ignore
+                MapLinked(b.Key, b.Value, union cmp a b.MapNext)
+                     
+        let rec unionWith
+            (cmp : IEqualityComparer<'K>)
+            (resolve : OptimizedClosures.FSharpFunc<'K, 'V, 'V, 'V>)
+            (a : MapLinked<'K, 'V>) (b : MapLinked<'K, 'V>) =
+            if isNull a then b
+            elif isNull b then a
+            else
+                let mutable a = a
+                match tryRemove cmp b.Key &a with
+                | ValueSome aValue ->
+                    let v = resolve.Invoke(b.Key, aValue, b.Value)
+                    MapLinked(b.Key, v, unionWith cmp resolve a b.MapNext)
+                | ValueNone -> 
+                    MapLinked(b.Key, b.Value, unionWith cmp resolve a b.MapNext)
+                
         let rec computeDelta 
             (cmp : IEqualityComparer<'K>)
             (onlyLeft : OptimizedClosures.FSharpFunc<'K, 'V, voption<'OP>>) 
@@ -1504,6 +1661,90 @@ module internal Implementation =
         let inline newInner (prefix : uint32) (mask : uint32) (l : SetNode<'K>) (r : SetNode<'K>) =
             SetNode.newInner prefix mask l r
                 
+        let rec alterV (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (update : voption<'V> -> voption<'V>) (node : SetNode<'K>) =
+            if isNull node then
+                match update ValueNone with
+                | ValueSome value -> MapLeaf(hash, key, value, null) :> SetNode<_>
+                | ValueNone -> null
+
+            elif node.IsLeaf then
+                let node = node :?> MapLeaf<'K, 'V>
+                if node.Hash = hash then
+                    if cmp.Equals(node.Key, key) then
+                        match update (ValueSome node.Value) with
+                        | ValueSome value -> MapLeaf(node.Hash, key, value, node.MapNext) :> SetNode<_>
+                        | ValueNone ->
+                            let next = node.MapNext
+                            if isNull next then null
+                            else MapLeaf(node.Hash, next.Key, next.Value, next.MapNext) :> SetNode<_>
+                    else
+                        match update ValueNone with
+                        | ValueSome value -> MapLeaf(node.Hash, node.Key, node.Value, MapLinked.add cmp key value node.MapNext) :> SetNode<_>
+                        | ValueNone -> node :> SetNode<_>
+                else
+                    match update ValueNone with
+                    | ValueSome value -> join node.Hash node hash (MapLeaf(hash, key, value, null))
+                    | ValueNone -> node :> SetNode<_>
+            else
+                let node = node :?> Inner<'K>
+                match matchPrefixAndGetBit hash node.Prefix node.Mask with
+                | 0u ->
+                    newInner 
+                        node.Prefix node.Mask 
+                        (alterV cmp hash key update node.SetLeft) 
+                        node.SetRight
+                | 1u ->
+                    newInner 
+                        node.Prefix node.Mask 
+                        node.SetLeft
+                        (alterV cmp hash key update node.SetRight) 
+                | _ ->
+                    match update ValueNone with
+                    | ValueSome value -> join node.Prefix node hash (MapLeaf(hash, key, value, null))
+                    | ValueNone -> node :> SetNode<_>
+                 
+        let rec alter (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (update : option<'V> -> option<'V>) (node : SetNode<'K>) =
+            if isNull node then
+                match update None with
+                | Some value -> MapLeaf(hash, key, value, null) :> SetNode<_>
+                | None -> null
+
+            elif node.IsLeaf then
+                let node = node :?> MapLeaf<'K, 'V>
+                if node.Hash = hash then
+                    if cmp.Equals(node.Key, key) then
+                        match update (Some node.Value) with
+                        | Some value -> MapLeaf(node.Hash, key, value, node.MapNext) :> SetNode<_>
+                        | None ->
+                            let next = node.MapNext
+                            if isNull next then null
+                            else MapLeaf(node.Hash, next.Key, next.Value, next.MapNext) :> SetNode<_>
+                    else
+                        match update None with
+                        | Some value -> MapLeaf(node.Hash, node.Key, node.Value, MapLinked.add cmp key value node.MapNext) :> SetNode<_>
+                        | None -> node :> SetNode<_>
+                else
+                    match update None with
+                    | Some value -> join node.Hash node hash (MapLeaf(hash, key, value, null))
+                    | None -> node :> SetNode<_>
+            else
+                let node = node :?> Inner<'K>
+                match matchPrefixAndGetBit hash node.Prefix node.Mask with
+                | 0u ->
+                    newInner 
+                        node.Prefix node.Mask 
+                        (alter cmp hash key update node.SetLeft) 
+                        node.SetRight
+                | 1u ->
+                    newInner 
+                        node.Prefix node.Mask 
+                        node.SetLeft
+                        (alter cmp hash key update node.SetRight) 
+                | _ ->
+                    match update None with
+                    | Some value -> join node.Prefix node hash (MapLeaf(hash, key, value, null))
+                    | None -> node :> SetNode<_>
+                 
         let rec add (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (value : 'V) (node : SetNode<'K>) =
             if isNull node then
                 MapLeaf(hash, key, value, null) :> SetNode<_>
@@ -1532,7 +1773,111 @@ module internal Implementation =
                         (add cmp hash key value node.SetRight) 
                 | _ ->
                     join node.Prefix node hash (MapLeaf(hash, key, value, null))
-                    
+                 
+        let rec tryRemove<'K, 'V> (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (node : byref<SetNode<'K>>) =
+            if isNull node then
+                ValueNone
+
+            elif node.IsLeaf then
+                let n = node :?> MapLeaf<'K, 'V>
+                if n.Hash = hash then
+                    if cmp.Equals(n.Key, key) then
+                        let next = n.MapNext
+                        if isNull next then node <- null
+                        else node <- MapLeaf(n.Hash, next.Key, next.Value, next.MapNext)
+                        ValueSome n.Value
+                    else
+                        let mutable next = n.MapNext
+                        match MapLinked.tryRemove cmp key &next with
+                        | ValueNone -> 
+                            ValueNone
+                        | res -> 
+                            node <- MapLeaf(n.Hash, n.Key, n.Value, next)
+                            res
+                else
+                    ValueNone
+            else
+                let n = node :?> Inner<'K>
+                match matchPrefixAndGetBit hash n.Prefix n.Mask with
+                | 0u ->
+                    let mutable l = n.SetLeft
+                    match tryRemove cmp hash key &l with
+                    | ValueNone ->
+                        ValueNone
+                    | res ->
+                        node <- newInner n.Prefix n.Mask l n.SetRight
+                        res
+                | 1u ->
+                    let mutable r = n.SetRight
+                    match tryRemove cmp hash key &r with
+                    | ValueNone ->
+                        ValueNone
+                    | res ->
+                        node <- newInner n.Prefix n.Mask n.SetLeft r
+                        res
+                | _ ->
+                    ValueNone
+                   
+        let rec tryFindV<'K, 'V>  (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (node : SetNode<'K>) =
+            if isNull node then
+                ValueNone
+
+            elif node.IsLeaf then
+                let n = node :?> MapLeaf<'K, 'V>
+                if n.Hash = hash then
+                    if cmp.Equals(n.Key, key) then  ValueSome n.Value
+                    else MapLinked.tryFindV cmp key n.MapNext
+                       
+                else
+                    ValueNone
+            else
+                let n = node :?> Inner<'K>
+                match matchPrefixAndGetBit hash n.Prefix n.Mask with
+                | 0u -> tryFindV<'K, 'V> cmp hash key n.SetLeft
+                | 1u -> tryFindV<'K, 'V> cmp hash key n.SetRight
+                | _ ->
+                    ValueNone
+  
+        let rec tryFind<'K, 'V>  (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (node : SetNode<'K>) =
+            if isNull node then
+                None
+
+            elif node.IsLeaf then
+                let n = node :?> MapLeaf<'K, 'V>
+                if n.Hash = hash then
+                    if cmp.Equals(n.Key, key) then Some n.Value
+                    else MapLinked.tryFind cmp key n.MapNext
+                       
+                else
+                    None
+            else
+                let n = node :?> Inner<'K>
+                match matchPrefixAndGetBit hash n.Prefix n.Mask with
+                | 0u -> tryFind<'K, 'V> cmp hash key n.SetLeft
+                | 1u -> tryFind<'K, 'V> cmp hash key n.SetRight
+                | _ ->
+                    None
+  
+        let rec containsKey<'K, 'V>  (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (node : SetNode<'K>) =
+            if isNull node then
+                false
+
+            elif node.IsLeaf then
+                let n = node :?> MapLeaf<'K, 'V>
+                if n.Hash = hash then
+                    if cmp.Equals(n.Key, key) then true
+                    else MapLinked.containsKey cmp key n.MapNext
+                       
+                else
+                    false
+            else
+                let n = node :?> Inner<'K>
+                match matchPrefixAndGetBit hash n.Prefix n.Mask with
+                | 0u -> containsKey<'K, 'V> cmp hash key n.SetLeft
+                | 1u -> containsKey<'K, 'V> cmp hash key n.SetRight
+                | _ ->
+                    false
+
         let rec addInPlace (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (value : 'V) (node : byref<SetNode<'K>>) =
             if isNull node then
                 node <- MapLeaf(hash, key, value, null)
@@ -1643,6 +1988,103 @@ module internal Implementation =
                 let i0 = copyToV dst index node.SetLeft
                 copyToV dst i0 node.SetRight
                 
+        let rec exists (predicate : OptimizedClosures.FSharpFunc<'K, 'V, bool>) (node : SetNode<'K>) =
+            if isNull node then
+                false
+            elif node.IsLeaf then
+                let node = node :?> MapLeaf<'K, 'V>
+                predicate.Invoke(node.Key, node.Value) || 
+                MapLinked.exists predicate node.MapNext
+            else
+                let node = node :?> Inner<'K>
+                exists predicate node.SetLeft ||
+                exists predicate node.SetRight
+                
+        let rec forall (predicate : OptimizedClosures.FSharpFunc<'K, 'V, bool>) (node : SetNode<'K>) =
+            if isNull node then
+                true
+            elif node.IsLeaf then
+                let node = node :?> MapLeaf<'K, 'V>
+                predicate.Invoke(node.Key, node.Value) &&
+                MapLinked.forall predicate node.MapNext
+            else
+                let node = node :?> Inner<'K>
+                forall predicate node.SetLeft &&
+                forall predicate node.SetRight
+
+        let rec fold (folder : OptimizedClosures.FSharpFunc<'S, 'K, 'V, 'S>) (state : 'S) (node : SetNode<'K>) =
+            if isNull node then
+                state
+            elif node.IsLeaf then
+                let node = node :?> MapLeaf<'K, 'V>
+                let state = folder.Invoke(state, node.Key, node.Value)
+                MapLinked.fold folder state node.MapNext
+            else
+                let node = node :?> Inner<'K>
+                let state = fold folder state node.SetLeft
+                fold folder state node.SetRight
+
+        let rec iter (action : OptimizedClosures.FSharpFunc<'K, 'V, unit>) (node : SetNode<'K>) =
+            if isNull node then
+                ()
+            elif node.IsLeaf then
+                let node = node :?> MapLeaf<'K, 'V>
+                action.Invoke(node.Key, node.Value)
+                let mutable c = node.MapNext
+                while not (isNull c) do 
+                    action.Invoke(c.Key, c.Value)
+                    c <- c.MapNext
+            else
+                let node = node :?> Inner<'K>
+                iter action node.SetLeft
+                iter action node.SetRight
+                
+
+        let rec map (mapping : OptimizedClosures.FSharpFunc<'K, 'V, 'T>) (node : SetNode<'K>) =
+            if isNull node then
+                null
+            elif node.IsLeaf then
+                let node = node :?> MapLeaf<'K, 'V>
+                MapLeaf(node.Hash, node.Key, mapping.Invoke(node.Key, node.Value), MapLinked.map mapping node.MapNext) :> SetNode<_>
+            else
+                let node = node :?> Inner<'K>
+                Inner(node.Prefix, node.Mask, map mapping node.SetLeft, map mapping node.SetRight) :> SetNode<_>
+
+        let rec filter (predicate : OptimizedClosures.FSharpFunc<'K, 'V, bool>) (node : SetNode<'K>) =
+            if isNull node then
+                null
+            elif node.IsLeaf then
+                let node = node :?> MapLeaf<'K, 'V>
+                if predicate.Invoke(node.Key, node.Value) then
+                    MapLeaf(node.Hash, node.Key, node.Value, MapLinked.filter predicate node.MapNext) :> SetNode<_>
+                else
+                    let l = MapLinked.filter predicate node.MapNext
+                    if isNull l then null
+                    else MapLeaf(node.Hash, l.Key, l.Value, l.MapNext) :> SetNode<_>
+            else
+                let node = node :?> Inner<'K>
+                newInner
+                    node.Prefix node.Mask
+                    (filter predicate node.SetLeft)
+                    (filter predicate node.SetRight)
+                   
+        let rec choose (mapping : OptimizedClosures.FSharpFunc<'K, 'V, option<'OP>>) (node : SetNode<'K>) =
+            if isNull node then
+                null
+            elif node.IsLeaf then
+                let node = node :?> MapLeaf<'K, 'V>
+                match mapping.Invoke(node.Key, node.Value) with
+                | Some value ->
+                    MapLeaf(node.Hash, node.Key, value, MapLinked.choose mapping node.MapNext) :> SetNode<_>
+                | None ->
+                    let next = MapLinked.choose mapping node.MapNext
+                    if isNull next then null
+                    else MapLeaf(node.Hash, next.Key, next.Value, next.MapNext) :> SetNode<_>
+            else
+                let node = node :?> Inner<'K>
+                let l = choose mapping node.SetLeft
+                let r = choose mapping node.SetRight
+                newInner node.Prefix node.Mask l r
 
         let rec chooseV (mapping : OptimizedClosures.FSharpFunc<'K, 'V, voption<'OP>>) (node : SetNode<'K>) =
             if isNull node then
@@ -1661,6 +2103,318 @@ module internal Implementation =
                 let l = chooseV mapping node.SetLeft
                 let r = chooseV mapping node.SetRight
                 newInner node.Prefix node.Mask l r
+
+        let rec hash<'K, 'V> (acc : int) (a : SetNode<'K>) =
+            if isNull a then
+                acc
+            elif a.IsLeaf then
+                let a = a :?> MapLeaf<'K, 'V>
+                let cnt =
+                    let mutable c = 1
+                    let mutable n = a.SetNext
+                    while not (isNull n) do c <- c + 1; n <- n.SetNext
+                    c
+                combineHash acc (combineHash (int a.Hash) cnt)
+            else
+                let a = a :?> Inner<'K>
+                let lh = hash<'K, 'V> acc a.SetLeft
+                let nh = combineHash lh (combineHash (int a.Prefix) (int a.Mask))
+                hash<'K, 'V> nh a.SetRight
+                
+        let rec equals<'K, 'V>
+            (cmp : IEqualityComparer<'K>)
+            (na : SetNode<'K>) (nb : SetNode<'K>) =
+
+            if isNull na then isNull nb
+            elif isNull nb then false
+            elif System.Object.ReferenceEquals(na, nb) then true
+            elif na.IsLeaf then
+                let a = na :?> MapLeaf<'K, 'V>
+                if nb.IsLeaf then
+                    let b = nb :?> MapLeaf<'K, 'V>
+                    if a.Hash = b.Hash then
+                        let la = MapLinked(a.Key, a.Value, a.MapNext)
+                        let lb = MapLinked(b.Key, b.Value, b.MapNext)
+                        MapLinked.equals cmp la lb
+                    else
+                        false
+                else
+                    false
+            elif nb.IsLeaf then
+                false
+            else
+                let a = na :?> Inner<'K>
+                let b = nb :?> Inner<'K>
+                if a.Prefix = b.Prefix && a.Mask = b.Mask then
+                    equals<'K, 'V> cmp a.SetLeft b.SetLeft &&
+                    equals<'K, 'V> cmp a.SetRight b.SetRight
+                else
+                    false
+                
+        let rec private choose2VRight
+            (mapping : OptimizedClosures.FSharpFunc<'K, voption<'A>, voption<'B>, voption<'C>>)
+            (na : SetNode<'K>) = 
+
+            if isNull na then 
+                null
+            elif na.IsLeaf then
+                let a = na :?> MapLeaf<'K, 'B>
+                match mapping.Invoke(a.Key, ValueNone, ValueSome a.Value) with
+                | ValueSome c ->
+                    let next = MapLinked.choose2VRight mapping a.MapNext
+                    MapLeaf(a.Hash, a.Key, c, next) :> SetNode<_>
+                | ValueNone ->
+                    let next = MapLinked.choose2VRight mapping a.MapNext
+                    if isNull next then null
+                    else MapLeaf(a.Hash, next.Key, next.Value, next.MapNext) :> SetNode<_>
+            else
+                let a = na :?> Inner<'K>
+                newInner
+                    a.Prefix a.Mask
+                    (choose2VRight mapping a.SetLeft)
+                    (choose2VRight mapping a.SetRight)
+                 
+        let rec private choose2VLeft
+            (mapping : OptimizedClosures.FSharpFunc<'K, voption<'A>, voption<'B>, voption<'C>>)
+            (na : SetNode<'K>) = 
+
+            if isNull na then 
+                null
+            elif na.IsLeaf then
+                let a = na :?> MapLeaf<'K, 'A>
+                match mapping.Invoke(a.Key, ValueSome a.Value, ValueNone) with
+                | ValueSome c ->
+                    let next = MapLinked.choose2VLeft mapping a.MapNext
+                    MapLeaf(a.Hash, a.Key, c, next) :> SetNode<_>
+                | ValueNone ->
+                    let next = MapLinked.choose2VLeft mapping a.MapNext
+                    if isNull next then null
+                    else MapLeaf(a.Hash, next.Key, next.Value, next.MapNext) :> SetNode<_>
+            else
+                let a = na :?> Inner<'K>
+                newInner
+                    a.Prefix a.Mask
+                    (choose2VLeft mapping a.SetLeft)
+                    (choose2VLeft mapping a.SetRight)
+                 
+        let rec choose2V
+            (cmp : IEqualityComparer<'K>)
+            (mapping : OptimizedClosures.FSharpFunc<'K, voption<'A>, voption<'B>, voption<'C>>)
+            (na : SetNode<'K>) (nb : SetNode<'K>) = 
+            if isNull na then choose2VRight mapping nb
+            elif isNull nb then choose2VLeft mapping na
+            elif na.IsLeaf then
+                let a = na :?> MapLeaf<'K, 'A>
+                if nb.IsLeaf then
+                    let b = nb :?> MapLeaf<'K, 'B>
+                    if a.Hash  = b.Hash then
+                        let la = MapLinked(a.Key, a.Value, a.MapNext)
+                        let lb = MapLinked(b.Key, b.Value, b.MapNext)
+                        let res = MapLinked.choose2V cmp mapping la lb
+                        if isNull res then null
+                        else MapLeaf(a.Hash, res.Key, res.Value, res.MapNext) :> SetNode<_>
+                    else
+                        let va = choose2VLeft mapping na
+                        let vb = choose2VRight mapping nb
+                        join a.Hash va b.Hash vb
+                else
+                    let b = nb :?> Inner<'K>
+                    match matchPrefixAndGetBit a.Hash b.Prefix b.Mask with
+                    | 0u ->
+                        newInner
+                            b.Prefix b.Mask
+                            (choose2V cmp mapping na b.SetLeft)
+                            (choose2VRight mapping b.SetRight)
+                    | 1u ->
+                        newInner
+                            b.Prefix b.Mask
+                            (choose2VRight mapping b.SetLeft)
+                            (choose2V cmp mapping na b.SetRight)
+                    | _ ->
+                        let va = choose2VLeft mapping na
+                        let vb = choose2VRight mapping nb
+                        join a.Hash va b.Prefix vb
+
+            elif nb.IsLeaf then
+                let a = na :?> Inner<'K>
+                let b = nb :?> MapLeaf<'K, 'B>
+                match matchPrefixAndGetBit b.Hash a.Prefix a.Mask with
+                | 0u ->
+                    newInner
+                        a.Prefix a.Mask
+                        (choose2V cmp mapping a.SetLeft nb)
+                        (choose2VLeft mapping a.SetRight)
+                | 1u ->
+                    newInner
+                        a.Prefix a.Mask
+                        (choose2VLeft mapping a.SetLeft)
+                        (choose2V cmp mapping a.SetRight nb)
+                | _ -> 
+                    let va = choose2VLeft mapping na
+                    let vb = choose2VRight mapping nb
+                    join a.Prefix va b.Hash vb
+            else
+                let a = na :?> Inner<'K>
+                let b = nb :?> Inner<'K>
+
+                let cc = compareMasks a.Mask b.Mask
+                if cc > 0 then 
+                    // a in b
+                    match matchPrefixAndGetBit a.Prefix b.Prefix b.Mask with
+                    | 0u ->
+                        newInner
+                            b.Prefix b.Mask
+                            (choose2V cmp mapping na b.SetLeft)
+                            (choose2VRight mapping b.SetRight)
+                    | 1u ->
+                        newInner
+                            b.Prefix b.Mask
+                            (choose2VRight mapping b.SetLeft)
+                            (choose2V cmp mapping na b.SetRight)
+                    | _ ->
+                        let va = choose2VLeft mapping na
+                        let vb = choose2VRight mapping nb
+                        join a.Prefix va b.Prefix vb
+
+                elif cc < 0 then
+                    match matchPrefixAndGetBit b.Prefix a.Prefix a.Mask with
+                    | 0u ->
+                        newInner
+                            a.Prefix a.Mask
+                            (choose2V cmp mapping a.SetLeft nb)
+                            (choose2VLeft mapping a.SetRight)
+                    | 1u ->
+                        newInner
+                            a.Prefix a.Mask
+                            (choose2VLeft mapping a.SetLeft)
+                            (choose2V cmp mapping a.SetRight nb)
+                    | _ -> 
+                        let va = choose2VLeft mapping na
+                        let vb = choose2VRight mapping nb
+                        join a.Prefix va b.Prefix vb
+
+                elif a.Prefix = b.Prefix then
+                    newInner
+                        a.Prefix a.Mask
+                        (choose2V cmp mapping a.SetLeft b.SetLeft)
+                        (choose2V cmp mapping a.SetRight b.SetRight)
+
+                else
+                    let va = choose2VLeft mapping na
+                    let vb = choose2VRight mapping nb
+                    join a.Prefix va b.Prefix vb
+               
+
+        let rec union<'K, 'V>
+            (cmp : IEqualityComparer<'K>)
+            (na : SetNode<'K>) (nb : SetNode<'K>) =
+            
+            if isNull na then nb
+            elif isNull nb then na
+            elif System.Object.ReferenceEquals(na, nb) then na
+            elif na.IsLeaf then
+                let a = na :?> MapLeaf<'K, 'V>
+                if nb.IsLeaf then
+                    let b = nb :?> MapLeaf<'K, 'V>
+                    if a.Hash = b.Hash then
+                        // TODO: avoid allocating SetLinkeds
+                        let la = MapLinked(a.Key, a.Value, a.MapNext)
+                        let lb = MapLinked(b.Key, b.Value, b.MapNext)
+                        let res = MapLinked.union cmp la lb
+                        if isNull res then null
+                        else MapLeaf(a.Hash, res.Key, res.Value, res.MapNext) :> SetNode<_>
+                    else
+                        join a.Hash na b.Hash nb
+                else
+                    let b = nb :?> Inner<'K>
+                    match matchPrefixAndGetBit a.Hash b.Prefix b.Mask with
+                    | 0u -> newInner b.Prefix b.Mask (union<'K, 'V> cmp na b.SetLeft) b.SetRight
+                    | 1u -> newInner b.Prefix b.Mask b.SetLeft (union<'K, 'V> cmp na b.SetRight)
+                    | _ -> join a.Hash na b.Prefix nb
+            elif nb.IsLeaf then
+                let a = na :?> Inner<'K>
+                let b = nb :?> MapLeaf<'K, 'V>
+                match matchPrefixAndGetBit b.Hash a.Prefix a.Mask with
+                | 0u -> newInner a.Prefix a.Mask (union<'K, 'V> cmp a.SetLeft nb) a.SetRight
+                | 1u -> newInner a.Prefix a.Mask a.SetLeft (union<'K, 'V> cmp a.SetRight nb)
+                | _ -> join a.Prefix na b.Hash nb
+            else    
+                let a = na :?> Inner<'K>
+                let b = nb :?> Inner<'K>
+
+                let cc = compareMasks a.Mask b.Mask
+                if cc > 0 then 
+                    // a in b
+                    match matchPrefixAndGetBit a.Prefix b.Prefix b.Mask with
+                    | 0u -> newInner b.Prefix b.Mask (union<'K, 'V> cmp na b.SetLeft) b.SetRight
+                    | 1u -> newInner b.Prefix b.Mask b.SetLeft (union<'K, 'V> cmp na b.SetRight)
+                    | _ -> join a.Prefix na b.Prefix nb
+                elif cc < 0 then
+                    // b in a
+                    match matchPrefixAndGetBit b.Prefix a.Prefix a.Mask with
+                    | 0u -> newInner a.Prefix a.Mask (union<'K, 'V> cmp a.SetLeft nb) a.SetRight
+                    | 1u -> newInner a.Prefix a.Mask a.SetLeft (union<'K, 'V> cmp a.SetRight nb)
+                    | _ -> join a.Prefix na b.Prefix nb
+                elif a.Prefix = b.Prefix then
+                    newInner a.Prefix a.Mask (union<'K, 'V> cmp a.SetLeft b.SetLeft) (union<'K, 'V> cmp a.SetRight b.SetRight)
+                else
+                    join a.Prefix na b.Prefix nb
+
+        let rec unionWith<'K, 'V>
+            (cmp : IEqualityComparer<'K>)
+            (resolve : OptimizedClosures.FSharpFunc<'K, 'V, 'V, 'V>)
+            (na : SetNode<'K>) (nb : SetNode<'K>) =
+            
+            if isNull na then nb
+            elif isNull nb then na
+            elif System.Object.ReferenceEquals(na, nb) then na
+            elif na.IsLeaf then
+                let a = na :?> MapLeaf<'K, 'V>
+                if nb.IsLeaf then
+                    let b = nb :?> MapLeaf<'K, 'V>
+                    if a.Hash = b.Hash then
+                        // TODO: avoid allocating SetLinkeds
+                        let la = MapLinked(a.Key, a.Value, a.MapNext)
+                        let lb = MapLinked(b.Key, b.Value, b.MapNext)
+                        let res = MapLinked.unionWith cmp resolve la lb
+                        if isNull res then null
+                        else MapLeaf(a.Hash, res.Key, res.Value, res.MapNext) :> SetNode<_>
+                    else
+                        join a.Hash na b.Hash nb
+                else
+                    let b = nb :?> Inner<'K>
+                    match matchPrefixAndGetBit a.Hash b.Prefix b.Mask with
+                    | 0u -> newInner b.Prefix b.Mask (unionWith cmp resolve na b.SetLeft) b.SetRight
+                    | 1u -> newInner b.Prefix b.Mask b.SetLeft (unionWith cmp resolve na b.SetRight)
+                    | _ -> join a.Hash na b.Prefix nb
+            elif nb.IsLeaf then
+                let a = na :?> Inner<'K>
+                let b = nb :?> MapLeaf<'K, 'V>
+                match matchPrefixAndGetBit b.Hash a.Prefix a.Mask with
+                | 0u -> newInner a.Prefix a.Mask (unionWith cmp resolve a.SetLeft nb) a.SetRight
+                | 1u -> newInner a.Prefix a.Mask a.SetLeft (unionWith cmp resolve a.SetRight nb)
+                | _ -> join a.Prefix na b.Hash nb
+            else    
+                let a = na :?> Inner<'K>
+                let b = nb :?> Inner<'K>
+
+                let cc = compareMasks a.Mask b.Mask
+                if cc > 0 then 
+                    // a in b
+                    match matchPrefixAndGetBit a.Prefix b.Prefix b.Mask with
+                    | 0u -> newInner b.Prefix b.Mask (unionWith cmp resolve na b.SetLeft) b.SetRight
+                    | 1u -> newInner b.Prefix b.Mask b.SetLeft (unionWith cmp resolve na b.SetRight)
+                    | _ -> join a.Prefix na b.Prefix nb
+                elif cc < 0 then
+                    // b in a
+                    match matchPrefixAndGetBit b.Prefix a.Prefix a.Mask with
+                    | 0u -> newInner a.Prefix a.Mask (unionWith cmp resolve a.SetLeft nb) a.SetRight
+                    | 1u -> newInner a.Prefix a.Mask a.SetLeft (unionWith cmp resolve a.SetRight nb)
+                    | _ -> join a.Prefix na b.Prefix nb
+                elif a.Prefix = b.Prefix then
+                    newInner a.Prefix a.Mask (unionWith cmp resolve a.SetLeft b.SetLeft) (unionWith cmp resolve a.SetRight b.SetRight)
+                else
+                    join a.Prefix na b.Prefix nb
 
         let rec computeDelta
             (cmp : IEqualityComparer<'K>)
@@ -2125,8 +2879,6 @@ type HAMTSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
                     else struct(false, ValueNone)
         )
 
-    static let empty = HAMTSet<'K>(DefaultEqualityComparer<'K>.Instance, null)
-        
     // ====================================================================================
     // Properties: Count/IsEmpty/etc.
     // ====================================================================================
@@ -2265,19 +3017,22 @@ type HAMTSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         HAMTSet(comparer, SetNode.filter predicate root)
 
     // ====================================================================================
-    // Binary Operations: union/computeDelta/etc.
+    // Binary Operations: overlaps/union/computeDelta/etc.
     // ====================================================================================
 
     member x.Overlaps(other : HAMTSet<'K>) =
         SetNode.overlaps comparer root other.Root
 
     member x.SetEquals(other : HAMTSet<'K>) =
+        x.Count = other.Count &&
         SetNode.equals comparer root other.Root
 
     member x.IsSubsetOf(other : HAMTSet<'K>) =
+        x.Count <= other.Count &&
         SetNode.subset comparer root other.Root
 
     member x.IsSupersetOf(other : HAMTSet<'K>) =
+        x.Count >= other.Count &&
         SetNode.subset comparer other.Root root
 
     member x.IsProperSubsetOf(other : HAMTSet<'K>) =
@@ -2356,7 +3111,7 @@ type HAMTSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
     // ====================================================================================
     // Creators: Empty/Singleton/FromList/FromSeq/etc.
     // ====================================================================================
-    static member Empty = empty
+    static member Empty = HAMTSet<'K>(DefaultEqualityComparer<'K>.Instance, null)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Single(key : 'K) =
@@ -2454,10 +3209,8 @@ type HAMTSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         member x.IsSupersetOf (other : seq<'K>) = x.IsSupersetOf other
         member x.IsProperSupersetOf (other : seq<'K>) = x.IsProperSupersetOf other
 
-and [<Sealed>] 
-    HAMT<'K, 'V> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) =
-    static let empty = HAMT<'K, 'V>(DefaultEqualityComparer<'K>.Instance, null)
-
+and [<Struct; CustomEquality; NoComparison>] 
+    HAMT<'K, [<EqualityConditionalOn>] 'V> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) =
     static let tupleGetter = OptimizedClosures.FSharpFunc<'K, 'V, _>.Adapt(fun k v -> (k,v))
     static let valueTupleGetter = OptimizedClosures.FSharpFunc<'K, 'V, _>.Adapt(fun k v -> struct(k,v))
     static let keyGetter = OptimizedClosures.FSharpFunc<'K, 'V, _>.Adapt(fun k _ -> k)
@@ -2491,6 +3244,16 @@ and [<Sealed>]
     member x.Count = size root
     member x.IsEmpty = isNull root
         
+    override x.GetHashCode() =
+        MapNode.hash<'K, 'V> 0 root
+
+    override x.Equals(o : obj) =
+        match o with
+        | :? HAMT<'K, 'V> as o -> MapNode.equals<'K, 'V> comparer root o.Root
+        | _ -> false
+        
+    member x.Equals(o : HAMT<'K, 'V>) =
+        MapNode.equals<'K, 'V> comparer root o.Root
         
     // ====================================================================================
     // Modifications: add/remove/etc.
@@ -2501,10 +3264,134 @@ and [<Sealed>]
         let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
         HAMT<'K, 'V>(comparer, MapNode.add comparer hash key value root)
             
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.Alter(key : 'K, update : option<'V> -> option<'V>) = 
+        let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
+        HAMT<'K, 'V>(comparer, MapNode.alter comparer hash key update root)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.AlterV(key : 'K, update : voption<'V> -> voption<'V>) = 
+        let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
+        HAMT<'K, 'V>(comparer, MapNode.alterV comparer hash key update root)
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.Remove(key : 'K) = 
+        let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
+        let mutable root = root
+        match MapNode.tryRemove<'K, 'V> comparer hash key &root with
+        | ValueNone -> x
+        | ValueSome _ -> HAMT<'K, 'V>(comparer, root)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.TryRemove(key : 'K) = 
+        let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
+        let mutable root = root
+        match MapNode.tryRemove<'K, 'V> comparer hash key &root with
+        | ValueNone -> None
+        | ValueSome v -> Some (v, HAMT<'K, 'V>(comparer, root))
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.TryRemoveV(key : 'K) = 
+        let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
+        let mutable root = root
+        match MapNode.tryRemove<'K, 'V> comparer hash key &root with
+        | ValueNone -> ValueNone
+        | ValueSome v -> ValueSome struct (v, HAMT<'K, 'V>(comparer, root))
+
+
+    // ====================================================================================
+    // Unary Operations: map/choose/filter/etc.
+    // ====================================================================================
+    
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.ContainsKey(key : 'K) = 
+        let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
+        MapNode.containsKey<'K, 'V> comparer hash key root
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.TryFindV(key : 'K) = 
+        let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
+        MapNode.tryFindV<'K, 'V> comparer hash key root
             
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.TryFind(key : 'K) = 
+        let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
+        MapNode.tryFind<'K, 'V> comparer hash key root
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.Fold(folder : 'S -> 'K -> 'V -> 'S, state : 'S) =
+        let folder = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt folder
+        MapNode.fold folder state root
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.Exists(predicate : 'K -> 'V -> bool) =
+        let predicate = OptimizedClosures.FSharpFunc<_,_,_>.Adapt predicate
+        MapNode.exists predicate root
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.Forall(predicate : 'K -> 'V -> bool) =
+        let predicate = OptimizedClosures.FSharpFunc<_,_,_>.Adapt predicate
+        MapNode.forall predicate root
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.Iter(action : 'K -> 'V -> unit) =
+        let action = OptimizedClosures.FSharpFunc<_,_,_>.Adapt action
+        MapNode.iter action root
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.Map(mapping : 'K -> 'V -> 'T) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
+        HAMT<'K, 'T>(comparer, MapNode.map mapping root)
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.Choose(mapping : 'K -> 'V -> option<'T>) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
+        HAMT<'K, 'T>(comparer, MapNode.choose mapping root)
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.ChooseV(mapping : 'K -> 'V -> voption<'T>) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
+        HAMT<'K, 'T>(comparer, MapNode.chooseV mapping root)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.Filter(predicate : 'K -> 'V -> bool) =
+        let predicate = OptimizedClosures.FSharpFunc<_,_,_>.Adapt predicate
+        HAMT<'K, 'V>(comparer, MapNode.filter predicate root)
+
     // ====================================================================================
     // Binary Operations: computeDelta/etc.
     // ====================================================================================
+    
+    member x.Choose2V(other : HAMT<'K, 'T>, mapping : 'K -> voption<'V> -> voption<'T> -> voption<'U>) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
+        HAMT<'K, 'U>(comparer, MapNode.choose2V comparer mapping root other.Root)
+        
+    member x.Choose2(other : HAMT<'K, 'T>, mapping : 'K -> option<'V> -> option<'T> -> option<'U>) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
+        let inline o v = match v with | ValueSome v -> Some v | ValueNone -> None
+        let inline vo v = match v with | Some v -> ValueSome v | None -> ValueNone
+        let realMapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(fun k l r -> mapping.Invoke(k, o l, o r) |> vo)
+        HAMT<'K, 'U>(comparer, MapNode.choose2V comparer realMapping root other.Root)
+        
+    member x.Map2V(other : HAMT<'K, 'T>, mapping : 'K -> voption<'V> -> voption<'T> -> 'U) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
+        let realMapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(fun k l r -> mapping.Invoke(k, l, r) |> ValueSome)
+        HAMT<'K, 'U>(comparer, MapNode.choose2V comparer realMapping root other.Root)
+        
+    member x.Map2(other : HAMT<'K, 'T>, mapping : 'K -> option<'V> -> option<'T> -> 'U) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
+        let inline o v = match v with | ValueSome v -> Some v | ValueNone -> None
+        let inline vo v = match v with | Some v -> ValueSome v | None -> ValueNone
+        let realMapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(fun k l r -> mapping.Invoke(k, o l, o r) |> ValueSome)
+        HAMT<'K, 'U>(comparer, MapNode.choose2V comparer realMapping root other.Root)
+
+    member x.UnionWith(other : HAMT<'K, 'V>) =
+        HAMT<'K, 'V>(comparer, MapNode.union<'K, 'V> comparer root other.Root)
+        
+    member x.UnionWith(other : HAMT<'K, 'V>, resolve : 'K -> 'V -> 'V -> 'V) =
+        let resolve = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt resolve
+        HAMT<'K, 'V>(comparer, MapNode.unionWith<'K, 'V> comparer resolve root other.Root)
+
     member x.ComputeDeltaTo(other : HAMT<'K, 'V>) =
         let delta = MapNode.computeDelta comparer remOp addOp updateOp root other.Root
         HAMT<'K, ElementOperation<'V>>(comparer, delta)
@@ -2517,7 +3404,7 @@ and [<Sealed>]
     // ====================================================================================
     // Creators: Empty/Singleton/FromList/FromSeq/etc.
     // ====================================================================================
-    static member Empty = empty
+    static member Empty = HAMT<'K, 'V>(DefaultEqualityComparer<'K>.Instance, null)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Singleton(key : 'K, value : 'V) =
@@ -2663,34 +3550,89 @@ and [<Sealed>]
     interface System.Collections.Generic.IEnumerable<'K * 'V> with
         member x.GetEnumerator() = x.GetEnumerator() :> _
 
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+[<RequireQualifiedAccess>]
 module HAMTSet =
+    
+    /// The empty set.
     [<GeneralizableValue>]
     let empty<'T> = HAMTSet<'T>.Empty
 
-    let inline isEmpty (m : HAMTSet<'T>) = m.IsEmpty
-    let inline count (m : HAMTSet<'T>) = m.Count
-
-    let inline single (value : 'T) = HAMTSet.Single(value)
+    /// The number of elements in the set `O(1)`
+    let inline count (set : HAMTSet<'T>) = set.Count
+    
+    /// Is the set empty? `O(1)`
+    let inline isEmpty (set : HAMTSet<'T>) = set.IsEmpty
+    
+    /// Creates a set with a single entry.
+    /// `O(1)`
+    let inline single (element : 'T) = HAMTSet.Single(element)
+    
+    /// Creates a set with all entries from the seq.
+    /// `O(N)`
     let inline ofSeq (elements : seq<'T>) = HAMTSet.FromSeq elements
+    
+    /// Creates a set with all entries from the Set.
+    /// `O(N)`
+    let inline ofSet (set: Set<'T>) = HAMTSet.FromSeq set
+    
+    /// Creates a set with all entries from the list.
+    /// `O(N)`
     let inline ofList (elements : list<'T>) = HAMTSet.FromList elements
+    
+    /// Creates a set with all entries from the array.
+    /// `O(N)`
     let inline ofArray (elements : 'T[]) = HAMTSet.FromArray elements
-
-    let inline add k (m : HAMTSet<'T>) = m.Add(k)
-    let inline remove k (m : HAMTSet<'T>) = m.Remove k
-    let inline tryRemove k (m : HAMTSet<'T>) = m.TryRemove k
-    let inline tryRemoveV k (m : HAMTSet<'T>) = m.TryRemoveV k
-    let inline alter k update (m : HAMTSet<'T>) = m.Alter(k, update)
+    
+    /// Adds the given value. `O(1)`
+    let inline add (value : 'T) (set : HAMTSet<'T>) = set.Add(value)
+    
+    /// Removes the given value. `O(1)`
+    let inline remove (value : 'T) (set : HAMTSet<'T>) = set.Remove value
+    
+    /// Tries to remove the given value from the set and returns the rest of the set.
+    /// `O(1)`       
+    let inline tryRemove (value : 'T) (set : HAMTSet<'T>) = set.TryRemove value
+    let inline tryRemoveV (value : 'T) (set : HAMTSet<'T>) = set.TryRemoveV value
+    let inline alter (value : 'T) (update : bool -> bool) (m : HAMTSet<'T>) = m.Alter(value, update)
         
-    let inline iter (action : 'T -> unit) (m : HAMTSet<'T>) = m.Iter action
-    let inline fold (folder : 'S -> 'T -> 'S) (state : 'S) (m : HAMTSet<'T>) = m.Fold(folder, state)
-    let inline exists (predicate : 'T -> bool) (m : HAMTSet<'T>) = m.Exists predicate
-    let inline forall (predicate : 'T -> bool) (m : HAMTSet<'T>) = m.Forall predicate
-    let inline map (mapping : 'T -> 'U) (m : HAMTSet<'T>) = m.Map mapping
-    let inline choose (mapping : 'T -> option<'U>) (m : HAMTSet<'T>) = m.Choose mapping
-    let inline chooseV (mapping : 'T -> voption<'U>) (m : HAMTSet<'T>) = m.ChooseV mapping
-    let inline filter (predicate : 'T -> bool) (m : HAMTSet<'T>) = m.Filter predicate
-    let collect (mapping : 'T -> HAMTSet<'U>) (m : HAMTSet<'T>) =
-        let mutable e = m.GetEnumerator()
+        
+    /// Applies the iter function to all entries of the set.
+    /// `O(N)`
+    let inline iter (action : 'T -> unit) (set : HAMTSet<'T>) = set.Iter action
+
+    /// Folds over all entries of the set.
+    /// Note that the order for elements is undefined.
+    /// `O(N)`
+    let inline fold (folder : 'S -> 'T -> 'S) (state : 'S) (set : HAMTSet<'T>) = set.Fold(folder, state)
+    
+    /// Tests whether an entry making the predicate true exists.
+    /// `O(N)`
+    let inline exists (predicate : 'T -> bool) (set : HAMTSet<'T>) = set.Exists predicate
+
+    /// Tests whether all entries fulfil the given predicate.
+    /// `O(N)`
+    let inline forall (predicate : 'T -> bool) (set : HAMTSet<'T>) = set.Forall predicate
+    
+    /// Creates a new set by applying the given function to all entries.
+    /// `O(N)`
+    let inline map (mapping : 'T -> 'U) (set : HAMTSet<'T>) = set.Map mapping
+
+    /// Creates a new set by applying the given function to all entries.
+    /// `O(N)`
+    let inline choose (mapping : 'T -> option<'U>) (set : HAMTSet<'T>) = set.Choose mapping
+    
+    /// Creates a new set by applying the given function to all entries.
+    /// `O(N)`
+    let inline chooseV (mapping : 'T -> voption<'U>) (set : HAMTSet<'T>) = set.ChooseV mapping
+    
+    /// Creates a new set that contains all entries for which predicate was true.
+    /// `O(N)`
+    let inline filter (predicate : 'T -> bool) (set : HAMTSet<'T>) = set.Filter predicate
+
+    /// Creates a new set by applying the given function to all entries and unions the results.
+    let collect (mapping : 'T -> HAMTSet<'U>) (set : HAMTSet<'T>) =
+        let mutable e = set.GetEnumerator()
         if e.MoveNext() then
             let mutable res = mapping e.Current
             while e.MoveNext() do res <- res.UnionWith(mapping e.Current)
@@ -2698,17 +3640,45 @@ module HAMTSet =
         else
             empty
 
-    let inline toList (m : HAMTSet<'K>) = m.ToList()
-    let inline toArray (m : HAMTSet<'K>) = m.ToArray()
-    let inline toSeq (m : HAMTSet<'K>) = m :> seq<_>
+    /// Tests if an entry for the given key exists. `O(1)`
+    let inline contains (value : 'T) (set : HAMTSet<'T>) = set.Contains value
+            
+    /// Creates a seq holding all values.
+    /// `O(N)`
+    let inline toSeq (set : HAMTSet<'K>) = set :> seq<_>
+    
+    /// Creates a list holding all values.
+    /// `O(N)`
+    let inline toList (set : HAMTSet<'K>) = set.ToList()
+    
+    /// Creates an array holding all values.
+    /// `O(N)`
+    let inline toArray (set : HAMTSet<'K>) = set.ToArray()
         
-    let inline union (a : HAMTSet<'T>) (b : HAMTSet<'T>) = a.UnionWith b
-    let inline intersect (a : HAMTSet<'T>) (b : HAMTSet<'T>) = a.IntersectWith b
-    let inline xor (a : HAMTSet<'T>) (b : HAMTSet<'T>) = a.SymmetricExceptWith b
-    let inline difference (a : HAMTSet<'T>) (b : HAMTSet<'T>) = a.ExceptWith b
+    /// Creates a Set holding all entries contained in the HashSet.
+    /// `O(N)`
+    let inline toSet (set: HAMTSet<'T>) =
+        set |> Set.ofSeq
 
-    let unionMany (maps : #seq<HAMTSet<'T>>) =
-        use e = maps.GetEnumerator()
+    /// Creates a new set containing all elements from set1 and set2.
+    /// `O(N + M)`  
+    let inline union (set1 : HAMTSet<'T>) (set2 : HAMTSet<'T>) = set1.UnionWith set2
+ 
+    /// Creates a new set containing all elements that are in set1 AND set2.
+    /// `O(N + M)`  
+    let inline intersect (set1 : HAMTSet<'T>) (set2 : HAMTSet<'T>) = set1.IntersectWith set2
+    
+    /// Creates a new set containing all elements that are either in set1 or set2 (but not in both)
+    /// `O(N + M)`  
+    let inline xor (set1 : HAMTSet<'T>) (set2 : HAMTSet<'T>) = set1.SymmetricExceptWith set2
+    
+    /// Creates a new set containing all elements from set1 that are not int set2.
+    /// `O(N + M)`  
+    let inline difference (set1 : HAMTSet<'T>) (set2 : HAMTSet<'T>) = set1.ExceptWith set2
+    
+    /// Creates a new set containing all elements that are in at least one of the given sets.
+    let unionMany (sets : #seq<HAMTSet<'T>>) =
+        use e = sets.GetEnumerator()
         if e.MoveNext() then
             let mutable s = e.Current
             while e.MoveNext() do s <- union s e.Current
@@ -2716,8 +3686,9 @@ module HAMTSet =
         else
             empty
             
-    let intersectMany (maps : #seq<HAMTSet<'T>>) =
-        use e = maps.GetEnumerator()
+    /// Creates a new set containing all elements that are in all the given sets.
+    let intersectMany (sets : #seq<HAMTSet<'T>>) =
+        use e = sets.GetEnumerator()
         if e.MoveNext() then
             let mutable s = e.Current
             while e.MoveNext() do s <- intersect s e.Current
@@ -2725,40 +3696,103 @@ module HAMTSet =
         else
             empty
 
-    let inline computeDelta (a : HAMTSet<'K>) (b : HAMTSet<'K>) = a.ComputeDeltaTo b
+    /// Checks if the two sets are equal. `O(N)`
+    let inline equals (set1 : HAMTSet<'T>) (set2 : HAMTSet<'T>) = set1.SetEquals set2
+    
+    /// Checks if the two sets have at least one element in common. `O(N)`
+    let inline overlaps (set1 : HAMTSet<'T>) (set2 : HAMTSet<'T>) = set1.Overlaps set2
+
+    /// Checks if all elements from `set1` are in `set2`. `O(N)`
+    let inline isSubset (set1 : HAMTSet<'T>) (set2 : HAMTSet<'T>) = set1.IsSubsetOf set2
+
+    /// Checks if all elements from `set1` are in `set2` and `set2` contains at least one element that is not in `set1`. `O(N)`
+    let inline isProperSubset (set1 : HAMTSet<'T>) (set2 : HAMTSet<'T>) = set1.IsProperSubsetOf set2
+
+    /// Checks if all elements from `set2` are in `set1`. `O(N)`
+    let inline isSuperset (set1 : HAMTSet<'T>) (set2 : HAMTSet<'T>) = set1.IsSupersetOf set2
+
+    /// Checks if all elements from `set2` are in `set1` and `set1` contains at least one element that is not in `set3`. `O(N)`
+    let inline isProperSuperset (set1 : HAMTSet<'T>) (set2 : HAMTSet<'T>) = set1.IsProperSupersetOf set2
+
+    let inline computeDelta (src : HAMTSet<'K>) (dst : HAMTSet<'K>) = src.ComputeDeltaTo dst
     let inline applyDelta (state : HAMTSet<'K>) (delta : HAMT<'K, int>) = state.ApplyDelta delta
 
 module HAMT =
     [<GeneralizableValue>]
     let empty<'K, 'V> = HAMT<'K, 'V>.Empty
 
+    let inline count (map : HAMT<'K, 'V>) = map.Count
+    let inline isEmpty (map : HAMT<'K, 'V>) = map.IsEmpty
+    let inline equals (map1 : HAMT<'K, 'V>) (map2 : HAMT<'K, 'V>) = map1.Equals map2
     let inline singleton (key : 'K) (value : 'V) = HAMT.Singleton(key, value)
-
     let inline ofSeq (elements : seq<'K * 'V>) = HAMT.FromSeq elements
     let inline ofSeqV (elements : seq<struct('K * 'V)>) = HAMT.FromSeq elements
     let inline ofList (elements : list<'K * 'V>) = HAMT.FromList elements
     let inline ofListV (elements : list<struct('K * 'V)>) = HAMT.FromList elements
     let inline ofArray (elements : ('K * 'V)[]) = HAMT.FromArray elements
     let inline ofArrayV (elements : struct('K * 'V)[]) = HAMT.FromArray elements
+    let inline ofMap (elements : Map<'K, 'V>) = elements |> Map.toSeq |> HAMT.FromSeq
 
     let inline add k v (m : HAMT<'K, 'V>) = m.Add(k, v)
+    let inline remove k (m : HAMT<'K, 'V>) = m.Remove k
+    let inline tryRemove k (m : HAMT<'K, 'V>) = m.TryRemove k
+    let inline tryRemoveV k (m : HAMT<'K, 'V>) = m.TryRemoveV k
+    let inline alter k update (m : HAMT<'K, 'V>) = m.Alter(k, update)
+    let inline alterV k update (m : HAMT<'K, 'V>) = m.AlterV(k, update)
+    let inline update k update (m : HAMT<'K, 'V>) = m.Alter(k, update >> Some)
+    let inline updateV k update (m : HAMT<'K, 'V>) = m.AlterV(k, update >> ValueSome)
+    
+    let inline containsKey k (m : HAMT<'K, 'V>) = m.ContainsKey k
+    let inline tryFind k (m : HAMT<'K, 'V>) = m.TryFind k
+    let inline tryFindV k (m : HAMT<'K, 'V>) = m.TryFindV k
+    let inline find k (m : HAMT<'K, 'V>) = 
+        match m.TryFindV k with
+        | ValueSome v -> v
+        | ValueNone -> raise <| KeyNotFoundException()
+
+        
+    let inline forall predicate (m : HAMT<'K, 'V>) = m.Forall predicate
+    let inline exists predicate (m : HAMT<'K, 'V>) = m.Exists predicate
+    let inline map mapping (m : HAMT<'K, 'V>) = m.Map mapping
+    let inline choose mapping (m : HAMT<'K, 'V>) = m.Choose mapping
+    let inline chooseV mapping (m : HAMT<'K, 'V>) = m.ChooseV mapping
+    let inline filter predicate (m : HAMT<'K, 'V>) = m.Filter predicate
+    let inline iter (action : 'K -> 'V -> unit) (m : HAMT<'K, 'V>) = m.Iter(action)
+    let inline fold (folder : 'S -> 'K -> 'V -> 'S) (state : 'S) (m : HAMT<'K, 'V>) = m.Fold(folder, state)
 
     let inline toList (m : HAMT<'K, 'V>) = m.ToList()
     let inline toListV (m : HAMT<'K, 'V>) = m.ToListV()
     let inline toKeyList (m : HAMT<'K, 'V>) = m.ToKeyList()
     let inline toValueList (m : HAMT<'K, 'V>) = m.ToValueList()
-
     let inline toArray (m : HAMT<'K, 'V>) = m.ToArray()
     let inline toArrayV (m : HAMT<'K, 'V>) = m.ToArrayV()
     let inline toKeyArray (m : HAMT<'K, 'V>) = m.ToKeyArray()
     let inline toValueArray (m : HAMT<'K, 'V>) = m.ToValueArray()
-
     let inline toSeq (m : HAMT<'K, 'V>) = m.ToSeq()
     let inline toSeqV (m : HAMT<'K, 'V>) = m.ToSeqV()
     let inline toKeySeq (m : HAMT<'K, 'V>) = m.ToKeySeq()
     let inline toValueSeq (m : HAMT<'K, 'V>) = m.ToValueSeq()
-
+    let inline toMap (m : HAMT<'K, 'V>) = m.ToSeq() |> Map.ofSeq
     let inline keys (m : HAMT<'K, 'V>) = m.GetKeys()
+
+
+    let inline choose2V (mapping : 'K -> voption<'T1> -> voption<'T2> -> voption<'R>) (l : HAMT<'K, 'T1>) (r : HAMT<'K, 'T2>) = l.Choose2V(r, mapping)
+    let inline choose2 (mapping : 'K -> option<'T1> -> option<'T2> -> option<'R>) (l : HAMT<'K, 'T1>) (r : HAMT<'K, 'T2>) = l.Choose2(r, mapping)
+    let inline map2V (mapping : 'K -> voption<'T1> -> voption<'T2> -> 'R) (l : HAMT<'K, 'T1>) (r : HAMT<'K, 'T2>) = l.Map2V(r, mapping)
+    let inline map2 (mapping : 'K -> option<'T1> -> option<'T2> -> 'R) (l : HAMT<'K, 'T1>) (r : HAMT<'K, 'T2>) = l.Map2(r, mapping)
+
+    let inline union (map1 : HAMT<'K, 'V>) (map2 : HAMT<'K, 'V>) = map1.UnionWith(map2)
+    let inline unionWith (resolve : 'K -> 'V -> 'V -> 'V) (map1 : HAMT<'K, 'V>) (map2 : HAMT<'K, 'V>) = map1.UnionWith(map2, resolve)
+    
+    let unionMany (maps : #seq<HAMT<'K, 'V>>) = 
+        use e = maps.GetEnumerator()
+        if e.MoveNext() then
+            let mutable res = e.Current
+            while e.MoveNext() do res <- union res e.Current
+            res
+        else
+            empty
+
 
     let inline computeDelta (a : HAMT<'K, 'V>) (b : HAMT<'K, 'V>) = a.ComputeDeltaTo b
     let inline applyDelta (state : HAMT<'K, 'V>) (delta : HAMT<'K, ElementOperation<'V>>) = state.ApplyDelta delta
