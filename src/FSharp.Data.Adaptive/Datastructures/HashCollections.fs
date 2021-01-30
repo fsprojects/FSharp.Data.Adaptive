@@ -1090,6 +1090,56 @@ module internal HashImplementation =
                 let r = chooseToMapV mapping node.Right
                 newInner node.Prefix node.Mask l r
 
+                
+        let rec subset 
+            (cmp : IEqualityComparer<'K>)
+            (na : SetNode<'K>) (nb : SetNode<'K>) =
+            if isNull na then 
+                // empty contained everywhere
+                true
+            elif isNull nb then 
+                // non-empty cannot be contained in empty
+                false
+            elif System.Object.ReferenceEquals(na, nb) then true
+            elif na.IsLeaf then
+                let a = na :?> SetLeaf<'K>
+                if nb.IsLeaf then
+                    let b = nb :?> SetLeaf<'K>
+                    if a.Hash = b.Hash then
+                        let la = SetLinked(a.Key, a.SetNext)
+                        let lb = SetLinked(b.Key, b.SetNext)
+                        SetLinked.subset cmp la lb
+                    else
+                        false
+                else
+                    let b = nb :?> Inner<'K>
+                    match matchPrefixAndGetBit a.Hash b.Prefix b.Mask with
+                    | 0u -> subset cmp na b.Left
+                    | 1u -> subset cmp na b.Right
+                    | _ -> false
+            elif nb.IsLeaf then
+                // Inner not contained in Leaf
+                false
+            else
+                let a = na :?> Inner<'K>
+                let b = nb :?> Inner<'K>
+                let cc = compareMasks a.Mask b.Mask
+                if cc > 0 then
+                    // a in b
+                    match matchPrefixAndGetBit a.Prefix b.Prefix b.Mask with
+                    | 0u -> subset cmp na b.Left
+                    | 1u -> subset cmp na b.Right
+                    | _ -> false
+                elif cc < 0 then
+                    // b in a => not a subset
+                    false
+                elif a.Prefix = b.Prefix then
+                    subset cmp a.Left b.Left &&
+                    subset cmp a.Right b.Right
+                else
+                    false
+
+
         let rec overlaps 
             (cmp : IEqualityComparer<'K>)
             (na : SetNode<'K>) (nb : SetNode<'K>) =
@@ -1137,48 +1187,6 @@ module internal HashImplementation =
                 elif a.Prefix = b.Prefix then
                     overlaps cmp a.Left b.Left ||
                     overlaps cmp a.Right b.Right
-                else
-                    false
-
-        let rec subset 
-            (cmp : IEqualityComparer<'K>)
-            (na : SetNode<'K>) (nb : SetNode<'K>) =
-            if isNull na then true
-            elif isNull nb then false
-            elif na.IsLeaf then
-                let a = na :?> SetLeaf<'K>
-                if nb.IsLeaf then
-                    let b = nb :?> SetLeaf<'K>
-                    if a.Hash = b.Hash then
-                        let la = SetLinked(a.Key, a.SetNext)
-                        let lb = SetLinked(b.Key, b.SetNext)
-                        SetLinked.subset cmp la lb
-                    else
-                        false
-                else
-                    let b = nb :?> Inner<'K>
-                    match matchPrefixAndGetBit a.Hash b.Prefix b.Mask with
-                    | 0u -> subset cmp na b.Left
-                    | 1u -> subset cmp na b.Right
-                    | _ -> false
-            elif nb.IsLeaf then
-                false
-            else
-                let a = na :?> Inner<'K>
-                let b = nb :?> Inner<'K>
-                let cc = compareMasks a.Mask b.Mask
-                if cc > 0 then
-                    // a in b
-                    match matchPrefixAndGetBit a.Prefix b.Prefix b.Mask with
-                    | 0u -> subset cmp na b.Left
-                    | 1u -> subset cmp na b.Right
-                    | _ -> false
-                elif cc < 0 then
-                    // b in a
-                    false
-                elif a.Prefix = b.Prefix then
-                    subset cmp a.Left b.Left ||
-                    subset cmp a.Right b.Right
                 else
                     false
 
@@ -2120,7 +2128,7 @@ module internal HashImplementation =
                     (filter predicate node.Left)
                     (filter predicate node.Right)
                    
-        let rec choose (mapping : OptimizedClosures.FSharpFunc<'K, 'V, option<'OP>>) (node : SetNode<'K>) =
+        let rec choose (mapping : OptimizedClosures.FSharpFunc<'K, 'V, option<'T>>) (node : SetNode<'K>) =
             if isNull node then
                 null
             elif node.IsLeaf then

@@ -1,6 +1,7 @@
 ﻿module HashSet
 
 open System
+open NUnit.Framework
 open FsUnit
 open FsCheck
 open FsCheck.NUnit
@@ -62,9 +63,59 @@ let ``[CountingHashSet] ref counts`` (input : Set<int>) =
     s |> should setequal HashSet.empty<int>
 
     ()
+    
+[<Property(EndSize = 10000)>]
+let ``[HashSetDelta] combine`` (map1 : Map<int, int>) (map2 : Map<int, int>) =
+    let md1 = map1 |> Map.filter (fun _ v -> v <> 0)
+    let md2 = map2 |> Map.filter (fun _ v -> v <> 0)
+     
+    let mutable md = md1
+    for (KeyValue(k, d)) in md2 do
+        match Map.tryFind k md with
+        | Some o ->
+            let n = o + d
+            if n <> 0 then md <- Map.add k n md
+            else md <- Map.remove k md
+        | None ->
+            md <- Map.add k d md
 
+    let hd1 = HashSetDelta.ofHashMap (HashMap.ofSeq (Map.toSeq md1))
+    let hd2 = HashSetDelta.ofHashMap (HashMap.ofSeq (Map.toSeq md2))
+    let hd = HashSetDelta.combine hd1 hd2
+    
+    let check (m : Map<'K, int>) (h : HashSetDelta<'K>) =
+        let lh = h |> HashSetDelta.toHashMap |> HashMap.toList |> List.sortBy fst
+        let lm = m |> Map.toList
+        lh |> should equal lm
+
+    check md hd
 
 [<Property(EndSize = 10000)>]
+let ``[CountingHashSet] union`` (list1 : list<int>) (list2 : list<int>) =
+    let mutable map = Map.empty
+    for e in list1 do
+        match Map.tryFind e map with
+        | Some o -> map <- Map.add e (o+1) map
+        | None -> map <- Map.add e 1 map
+    for e in list2 do
+        match Map.tryFind e map with
+        | Some o -> map <- Map.add e (o+1) map
+        | None -> map <- Map.add e 1 map
+
+    let h1 = CountingHashSet.ofList list1
+    let h2 = CountingHashSet.ofList list2
+    let hamt = CountingHashSet.union h1 h2
+    
+    let checkState (m : Map<'K, int>) (h : CountingHashSet<'K>) =
+        let lh = h |> CountingHashSet.toHashMap |> HashMap.toList |> List.sortBy fst
+        let lm = m |> Map.toList
+        lh |> should equal lm
+
+    checkState map hamt
+    ()
+
+
+[<Test>]
 let ``[HashSet] applyDelta drops useless removes``() =
 
     // value empty
@@ -108,7 +159,7 @@ let ``[HashSet] applyDelta drops useless removes``() =
     eff |> should setequal emptyDelta
     
 
-[<Property(EndSize = 10000)>]
+[<Test>]
 let ``[HashSet] applyDelta drops useless adds``() =
     // applyDelta({1}, {Add 1}) = ({1}, {})
     let set = HashSet.single 1
@@ -131,7 +182,7 @@ let ``[HashSet] applyDelta drops useless adds``() =
     res |> should setequal set
     eff |> should setequal emptyDelta
 
-[<Property(EndSize = 10000)>]
+[<Test>]
 let ``[HashSet] applyDelta basic``() =  
     // applyDelta({1..19}, {Add 20}) = ({1..20}, {Add 20})
     let delta = HashSetDelta.ofList [Add 20]
@@ -244,7 +295,7 @@ let ``[CountingHashSet] computeDelta/applyDelta`` (set1 : Set<int>) (set2 : Set<
     HashSetDelta.combine d12 d23 |> should setequal d31.Inverse
 
 
-[<Property(EndSize = 10000)>]
+[<Test>]
 let ``[CountingHashSet] applyDelta drops useless removes``() =
 
     // value empty
@@ -287,7 +338,7 @@ let ``[CountingHashSet] applyDelta drops useless removes``() =
     res |> should setequal set
     eff |> should setequal emptyDelta
 
-[<Property(EndSize = 10000)>]
+[<Test>]
 let ``[CountingHashSet] applyDelta drops useless adds``() =
     // applyDelta({1}, {Add 1}) = ({1}, {})
     let set = CountingHashSet.single 1
@@ -310,7 +361,7 @@ let ``[CountingHashSet] applyDelta drops useless adds``() =
     res |> should setequal set
     eff |> should setequal emptyDelta
 
-[<Property(EndSize = 10000)>]
+[<Test>]
 let ``[CountingHashSet] applyDelta basic``() =  
     // applyDelta({1..19}, {Add 20}) = ({1..20}, {Add 20})
     let delta = HashSetDelta.ofList [Add 20]
@@ -325,7 +376,258 @@ let ``[CountingHashSet] applyDelta basic``() =
     eff |> should setequal (HashSetDelta.ofList ([2..20] |> List.map Add))
 
 
+[<Property(EndSize = 10000)>]
+let ``[CountingHashSet] computeDelta``(list1 : list<int>) (list2 : list<int>) = 
+    let ofList (l : list<int>) =
+        let mutable res = Map.empty
+        for e in l do
+            let old =
+                match Map.tryFind e res with
+                | Some o -> o
+                | None -> 0
+            res <- Map.add e (old + 1) res
+        res
+
+    let computeDelta (a : Map<'K, int>) (b : Map<'K, int>) =
+        let mutable result : Map<'K, int> = Map.empty
+        for (KeyValue(kb, rb)) in b do
+            if not (Map.containsKey kb a) then
+                result <- Map.add kb 1 result
+        for (KeyValue(ka, rb)) in a do
+            if not (Map.containsKey ka b) then
+                result <- Map.add ka -1 result
+        result
+
+    let check (m : Map<'K, int>) (h : HashSetDelta<'K>) =
+        let lh = h |> HashSetDelta.toHashMap |> HashMap.toList |> List.sortBy fst
+        let lm = m |> Map.toList
+        lh |> should equal lm
+
+    let m1 = ofList list1
+    let m2 = ofList list2
+    let h1 = CountingHashSet.ofList list1
+    let h2 = CountingHashSet.ofList list2
+
+    let m12 = computeDelta m1 m2
+    let h12 = CountingHashSet.computeDelta h1 h2
+    check m12 h12
     
+    let m21 = computeDelta m2 m1
+    let h21 = CountingHashSet.computeDelta h2 h1
+    check m21 h21
+
+[<Property(EndSize = 10000)>]
+let ``[CountingHashSet] applyDelta``(list1 : list<int>) (delta : Map<int, int>) = 
+    let delta = delta |> Map.filter (fun _ v -> v <> 0)
+
+    let ofList (l : list<int>) =
+        let mutable res = Map.empty
+        for e in l do
+            let old =
+                match Map.tryFind e res with
+                | Some o -> o
+                | None -> 0
+            res <- Map.add e (old + 1) res
+        res
+
+    let applyDelta (state : Map<'K, int>) (delta : Map<'K, int>) =
+        let mutable state = state
+        let mutable res = Map.empty
+
+        for (KeyValue(k, d)) in delta do
+            match Map.tryFind k state with
+            | Some o ->
+                let n = o + d
+                if n <= 0 then 
+                    state <- Map.remove k state
+                    res <- Map.add k -1 res
+                else
+                    state <- Map.add k n state
+            | None ->
+                let n = d
+                if n > 0 then
+                    state <- Map.add k n state
+                    res <- Map.add k 1 res
+        state, res
+
+    let checkState (m : Map<'K, int>) (h : CountingHashSet<'K>) =
+        let lh = h |> CountingHashSet.toHashMap |> HashMap.toList |> List.sortBy fst
+        let lm = m |> Map.toList
+        lh |> should equal lm
+
+    let checkDelta (m : Map<'K, int>) (h : HashSetDelta<'K>) =
+        let lh = h |> HashSetDelta.toHashMap |> HashMap.toList |> List.sortBy fst
+        let lm = m |> Map.toList
+        lh |> should equal lm
+
+    let m1 = ofList list1
+    let h1 = CountingHashSet.ofList list1
+    let md = delta
+    let hd = HashSetDelta.ofHashMap (HashMap.ofList (Map.toList delta))
+
+    let ms, me = applyDelta m1 md
+    let hs, he = CountingHashSet.applyDelta h1 hd
+
+    checkState ms hs
+    checkDelta me he
+
+    
+[<Property(EndSize = 10000)>]
+let ``[HashSet] computeDelta``(list1 : list<int>) (list2 : list<int>) = 
+
+
+    let computeDelta (m1 : Set<'K>) (m2 : Set<'K>) =
+        let mutable result : Map<'K, int> = Map.empty
+        for kb in m2 do
+            if not (Set.contains kb m1) then
+                result <- Map.add kb 1 result
+        for ka in m1 do
+            if not (Set.contains ka m2) then
+                result <- Map.add ka -1 result
+        result
+
+    let check (m : Map<'K, int>) (h : HashSetDelta<'K>) =
+        let lh = h |> HashSetDelta.toHashMap |> HashMap.toList |> List.sortBy fst
+        let lm = m |> Map.toList
+        lh |> should equal lm
+
+    let m1 = Set.ofList list1
+    let m2 = Set.ofList list2
+    let h1 = HashSet.ofSeq list1
+    let h2 = HashSet.ofSeq list2
+
+    let m12 = computeDelta m1 m2
+    let h12 = HashSet.computeDelta h1 h2
+    check m12 h12
+    
+    let m21 = computeDelta m2 m1
+    let h21 = HashSet.computeDelta h2 h1
+    check m21 h21
+    
+[<Property(EndSize = 10000)>]
+let ``[HashSet] map`` (s0 : Set<int>) (mapping : int -> int) =
+    
+    let checkState (m : Set<'K>) (h : HashSet<'K>) =
+        let lh = h |> HashSet.toList |> List.sort
+        let lm = m |> Set.toList
+        lh |> should equal lm
+
+    let h0 = HashSet.ofSet s0
+    
+    checkState s0 h0
+
+    let m1 = s0 |> Set.map mapping
+    let h1 = h0 |> HashSet.map mapping
+    checkState m1 h1
+
+[<Property(EndSize = 10000)>]
+let ``[HashSet] choose`` (s0 : Set<int>) (mapping : int -> option<int>) =
+    
+    let checkState (m : Set<'K>) (h : HashSet<'K>) =
+        let lh = h |> HashSet.toList |> List.sort
+        let lm = m |> Set.toList
+        lh |> should equal lm
+
+    let h0 = HashSet.ofSet s0
+    
+    checkState s0 h0
+
+    let m1 = s0 |> Seq.choose mapping |> Set.ofSeq
+    let h1 = h0 |> HashSet.choose mapping
+    checkState m1 h1
+    
+[<Property(EndSize = 10000)>]
+let ``[HashSet] filter`` (s0 : Set<int>) (predicate : int -> bool) =
+    
+    let checkState (m : Set<'K>) (h : HashSet<'K>) =
+        let lh = h |> HashSet.toList |> List.sort
+        let lm = m |> Set.toList
+        lh |> should equal lm
+
+    let h0 = HashSet.ofSet s0
+    
+    checkState s0 h0
+
+    let m1 = s0 |> Set.filter predicate
+    let h1 = h0 |> HashSet.filter predicate
+    checkState m1 h1
+    
+[<Property(EndSize = 10000)>]
+let ``[CountingHashSet] map`` (list0 : list<int>) (mapping : int -> int) =
+    let ofList (l : list<int>) =
+        let mutable res = Map.empty
+        for e in l do
+            let old =
+                match Map.tryFind e res with
+                | Some o -> o
+                | None -> 0
+            res <- Map.add e (old + 1) res
+        res
+
+    let m0 = ofList list0
+    let h0 = CountingHashSet.ofList list0
+    
+    let m1 =
+        let mutable r = Map.empty
+        for (KeyValue(e, d)) in m0 do
+            let e = mapping e
+            match Map.tryFind e r with
+            | Some o ->
+                r <- Map.add e (d + o) r
+            | None ->
+                r <- Map.add e d r
+        r
+        
+    let checkState (m : Map<'K, int>) (h : CountingHashSet<'K>) =
+        let lh = h |> CountingHashSet.toHashMap |> HashMap.toList |> List.sortBy fst
+        let lm = m |> Map.toList
+        lh |> should equal lm
+
+    let h1 = h0 |> CountingHashSet.map mapping
+    checkState m1 h1
+
+
+[<Property(EndSize = 10000)>]
+let ``[HashSet] applyDelta``(list1 : list<int>) (delta : Map<int, int>) = 
+    let delta = delta |> Map.filter (fun _ v -> v <> 0)
+
+
+    let applyDelta (state : Set<'K>) (delta : Map<'K, int>) =
+        let mutable state = state
+        let mutable res = Map.empty
+        for (KeyValue(k, d)) in delta do
+            if Set.contains k state then
+                if d < 0 then 
+                    state <- Set.remove k state
+                    res <- Map.add k -1 res
+            else
+                if d > 0 then
+                    state <- Set.add k state
+                    res <- Map.add k 1 res
+        state, res
+
+    let checkState (m : Set<'K>) (h : HashSet<'K>) =
+        let lh = h |> HashSet.toList |> List.sort
+        let lm = m |> Set.toList
+        lh |> should equal lm
+
+    let checkDelta (m : Map<'K, int>) (h : HashSetDelta<'K>) =
+        let lh = h |> HashSetDelta.toHashMap |> HashMap.toList |> List.sortBy fst
+        let lm = m |> Map.toList
+        lh |> should equal lm
+
+    let m1 = Set.ofList list1
+    let h1 = HashSet.ofSeq list1
+    let md = delta
+    let hd = HashSetDelta.ofHashMap (HashMap.ofList (Map.toList delta))
+
+    let ms, me = applyDelta m1 md
+    let hs, he = HashSet.applyDelta h1 hd
+
+    checkState ms hs
+    checkDelta me he
+
+
 [<Property(EndSize = 10000)>]
 let ``[CountingHashSet] basic properties`` (fset1 : Set<int>) (fset2 : Set<int>) =
     let empty : CountingHashSet<int> = CountingHashSet.empty

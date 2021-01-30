@@ -299,8 +299,8 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
             let n = d + o
 
             let delta = 
-                if o = 0 && n > 0 then ValueSome 1
-                elif o > 0 && n = 0 then ValueSome -1
+                if o <= 0 && n > 0 then ValueSome 1
+                elif o > 0 && n <= 0 then ValueSome -1
                 else ValueNone
              
             let value = 
@@ -309,10 +309,7 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
             struct(value, delta)
             
-        let mutable state = store.Root
-        let d = HashImplementation.MapNode.applyDelta store.Comparer (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) &state deltas.Store.Root
-        let s = HashMap<'T, int>(store.Comparer, state)
-        let d = HashMap<'T, int>(store.Comparer, d)
+        let s, d = HashMap.ApplyDelta(store, deltas.Store, apply)
         CountingHashSet s, HashSetDelta d
 
     
@@ -335,12 +332,8 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
                  else ValueSome n
 
             struct(value, delta)
-
-        let mutable state = store.Root
-        let d = HashImplementation.MapNode.applyDelta store.Comparer (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) &state deltas.Store.Root
-
-        let s = HashMap<'T, int>(store.Comparer, state)
-        let d = HashMap<'T, int>(store.Comparer, d)
+            
+        let s, d = HashMap.ApplyDelta(store, deltas.Store, apply)
         CountingHashSet s, HashSetDelta d
 
     /// Compares two sets.
