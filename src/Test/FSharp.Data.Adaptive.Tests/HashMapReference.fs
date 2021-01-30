@@ -26,6 +26,22 @@ type StupidHash = { value : int } with
         | :? StupidHash as o -> x.value = o.value
         | _ -> false
     
+module Set =
+
+    let check (set : Set<'A>) (hashSet : HashSet<'A>) =
+        if Set.count set <> hashSet.Count then 
+            failwithf "inconsistent count %A vs %A" (Set.count set) hashSet.Count
+
+        let lh = HashSet.toList hashSet |> List.sort
+        let ah = HashSet.toArray hashSet |> Array.toList |> List.sort
+        let sh = HashSet.toSeq hashSet |> Seq.toList |> List.sort
+        let ref = Set.toList set
+
+        lh |> should equal ref
+        ah |> should equal ref
+        sh |> should equal ref
+
+
 module Map =
 
     let single (key : 'A) (value : 'B) = Map.ofList [key, value]
@@ -109,7 +125,7 @@ module Map =
     let toArrayV (m : Map<'A, 'B>) =
         m |> Map.toArray |> Array.map (fun (a,b) -> struct(a,b))
         
-    let toKeySey (m : Map<'A, 'B>) =
+    let toKeySeq (m : Map<'A, 'B>) =
         m |> Map.toSeq |> Seq.map (fun (a,b) -> a)
         
     let toKeyList (m : Map<'A, 'B>) =
@@ -126,6 +142,73 @@ module Map =
         
     let toValueArray (m : Map<'A, 'B>) =
         m |> Map.toArray |> Array.map (fun (a,b) -> b)
+
+    let choose2 (mapping : 'K -> option<'A> -> option<'B> -> option<'C>) (a : Map<'K, 'A>) (b : Map<'K, 'B>) =
+        let mutable b = b
+        let mutable res = Map.empty
+        for (KeyValue(k, va)) in a do
+            match tryRemove k b with
+            | Some (vb, nb) ->
+                match mapping k (Some va) (Some vb) with
+                | Some c -> res <- Map.add k c res
+                | None -> ()
+                b <- nb
+            | None ->
+                match mapping k (Some va) None with
+                | Some c -> res <- Map.add k c res
+                | None -> ()
+                
+        for (KeyValue(k, vb)) in b do
+            match mapping k None (Some vb) with
+            | Some c -> res <- Map.add k c res
+            | None -> ()
+
+        res
+
+    let choose2V (mapping : 'K -> voption<'A> -> voption<'B> -> voption<'C>) (a : Map<'K, 'A>) (b : Map<'K, 'B>) =
+        (a,b) ||> choose2 (fun k a b ->
+            let a = match a with | Some a -> ValueSome a | None -> ValueNone
+            let b = match b with | Some a -> ValueSome a | None -> ValueNone
+            match mapping k a b with
+            | ValueSome c -> Some c
+            | ValueNone -> None
+        )
+
+    let map2 (mapping : 'K -> option<'A> -> option<'B> -> 'C) (a : Map<'K, 'A>) (b : Map<'K, 'B>) =
+        (a,b) ||> choose2 (fun k a b -> mapping k a b |> Some)
+        
+    let map2V (mapping : 'K -> voption<'A> -> voption<'B> -> 'C) (a : Map<'K, 'A>) (b : Map<'K, 'B>) =
+        (a,b) ||> choose2V (fun k a b -> mapping k a b |> ValueSome)
+
+    let union (a : Map<'K, 'A>) (b : Map<'K, 'A>) =
+        let mutable res = a
+        for (KeyValue(k, v)) in b do
+            res <- Map.add k v res
+        res
+        
+    let unionWith (resolve : 'K -> 'A -> 'A -> 'A) (a : Map<'K, 'A>) (b : Map<'K, 'A>) =
+        let mutable res = a
+        for (KeyValue(k, v)) in b do
+            let newValue = 
+                match Map.tryFind k res with
+                | Some o -> resolve k o v
+                | None -> v
+            res <- Map.add k newValue res
+        res
+        
+    let unionWithV (resolve : 'K -> 'A -> 'A -> voption<'A>) (a : Map<'K, 'A>) (b : Map<'K, 'A>) =
+        let mutable res = a
+        for (KeyValue(k, v)) in b do
+            let newValue = 
+                match Map.tryFind k res with
+                | Some o -> resolve k o v
+                | None -> ValueSome v
+            match newValue with
+            | ValueSome newValue -> 
+                res <- Map.add k newValue res
+            | ValueNone ->
+                res <- Map.remove k res
+        res
     let check (m : Map<'A, 'B>) (h : HashMap<'A, 'B>) =
         let lh = h |> HashMap.toList |> List.sortBy fst
         let ah = h |> HashMap.toArray |> Array.toList |> List.sortBy fst
@@ -140,7 +223,7 @@ module Map =
 
 
 type TestType = StupidHash
-type ValueType = NormalFloat
+type ValueType = string
 type ValueType2 = string
 
 [<Test>]
@@ -496,3 +579,81 @@ let toValueSeq (m : Map<TestType, ValueType>)  =
     let mr = m |> Map.toValueList |> List.sort
     let hr = h |> HashMap.toValueSeq |> Seq.toList |> List.sort
     hr |> should equal mr
+    
+[<Property(EndSize = 10000)>]
+let keys (m : Map<TestType, ValueType>)  =
+    let h = HashMap.ofMap m
+
+    let mr = m |> Map.toKeyList |> Set.ofList
+    let hr = h |> HashMap.keys
+    Set.check mr hr
+
+[<Property(EndSize = 10000)>]
+let choose2 (m1 : Map<TestType, ValueType>) (m2 : Map<TestType, ValueType>) (mapping : TestType -> option<ValueType> -> option<ValueType> -> option<ValueType2>)  =
+    let h1 = HashMap.ofMap m1
+    let h2 = HashMap.ofMap m2
+
+    let mr = (m1, m2) ||> Map.choose2 mapping
+    let hr = (h1, h2) ||> HashMap.choose2 mapping
+
+    Map.check mr hr
+
+[<Property(EndSize = 10000)>]
+let choose2V (m1 : Map<TestType, ValueType>) (m2 : Map<TestType, ValueType>) (mapping : TestType -> voption<ValueType> -> voption<ValueType> -> voption<ValueType2>)  =
+    let h1 = HashMap.ofMap m1
+    let h2 = HashMap.ofMap m2
+
+    let mr = (m1, m2) ||> Map.choose2V mapping
+    let hr = (h1, h2) ||> HashMap.choose2V mapping
+
+    Map.check mr hr
+
+[<Property(EndSize = 10000)>]
+let map2 (m1 : Map<TestType, ValueType>) (m2 : Map<TestType, ValueType>) (mapping : TestType -> option<ValueType> -> option<ValueType> -> ValueType2)  =
+    let h1 = HashMap.ofMap m1
+    let h2 = HashMap.ofMap m2
+
+    let mr = (m1, m2) ||> Map.map2 mapping
+    let hr = (h1, h2) ||> HashMap.map2 mapping
+
+    Map.check mr hr
+
+[<Property(EndSize = 10000)>]
+let map2V (m1 : Map<TestType, ValueType>) (m2 : Map<TestType, ValueType>) (mapping : TestType -> voption<ValueType> -> voption<ValueType> -> ValueType2)  =
+    let h1 = HashMap.ofMap m1
+    let h2 = HashMap.ofMap m2
+
+    let mr = (m1, m2) ||> Map.map2V mapping
+    let hr = (h1, h2) ||> HashMap.map2V mapping
+
+    Map.check mr hr
+
+[<Property(EndSize = 10000)>]
+let union (m1 : Map<TestType, ValueType>) (m2 : Map<TestType, ValueType>) =
+    let h1 = HashMap.ofMap m1
+    let h2 = HashMap.ofMap m2
+
+    let mr = (m1, m2) ||> Map.union
+    let hr = (h1, h2) ||> HashMap.union
+
+    Map.check mr hr
+
+[<Property(EndSize = 10000)>]
+let unionWith (m1 : Map<TestType, ValueType>) (m2 : Map<TestType, ValueType>) =
+    let h1 = HashMap.ofMap m1
+    let h2 = HashMap.ofMap m2
+
+    let mr = (m1, m2) ||> Map.unionWith (fun _ a b -> a + b)
+    let hr = (h1, h2) ||> HashMap.unionWith (fun _ a b -> a + b)
+
+    Map.check mr hr
+
+[<Property(EndSize = 10000)>]
+let unionWithV (m1 : Map<TestType, ValueType>) (m2 : Map<TestType, ValueType>) (resolve : TestType -> ValueType -> ValueType -> voption<ValueType>) =
+    let h1 = HashMap.ofMap m1
+    let h2 = HashMap.ofMap m2
+
+    let mr = (m1, m2) ||> Map.unionWithV resolve
+    let hr = h1.UnionWithV(h2, resolve)
+
+    Map.check mr hr

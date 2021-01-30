@@ -380,6 +380,18 @@ module internal HashImplementation =
             else
                 MapLinked(n.Key, n.Value, alter cmp key update n.MapNext)
                    
+        let rec alterV (cmp : IEqualityComparer<'K>) (key : 'K) (update : voption<'V> -> voption<'V>) (n : MapLinked<'K, 'V>) =
+            if isNull n then
+                match update ValueNone with
+                | ValueSome value -> MapLinked(key, value, null)
+                | ValueNone -> null
+            elif cmp.Equals(n.Key, key) then
+                match update (ValueSome n.Value) with
+                | ValueSome value -> MapLinked(key, value, n.MapNext)
+                | ValueNone -> n.MapNext
+            else
+                MapLinked(n.Key, n.Value, alterV cmp key update n.MapNext)
+                   
         let rec addInPlace (cmp : IEqualityComparer<'K>) (key : 'K) (value : 'V) (n : byref<SetLinked<'K>>) =
             if isNull n then
                 n <- MapLinked(key, value, null)
@@ -1728,9 +1740,8 @@ module internal HashImplementation =
                             if isNull next then null
                             else MapLeaf(node.Hash, next.Key, next.Value, next.MapNext) :> SetNode<_>
                     else
-                        match update ValueNone with
-                        | ValueSome value -> MapLeaf(node.Hash, node.Key, node.Value, MapLinked.add cmp key value node.MapNext) :> SetNode<_>
-                        | ValueNone -> node :> SetNode<_>
+                        MapLeaf(node.Hash, node.Key, node.Value, MapLinked.alterV cmp key update node.MapNext) :> SetNode<_>
+
                 else
                     match update ValueNone with
                     | ValueSome value -> join node.Hash node hash (MapLeaf(hash, key, value, null))
@@ -1770,9 +1781,8 @@ module internal HashImplementation =
                             if isNull next then null
                             else MapLeaf(node.Hash, next.Key, next.Value, next.MapNext) :> SetNode<_>
                     else
-                        match update None with
-                        | Some value -> MapLeaf(node.Hash, node.Key, node.Value, MapLinked.add cmp key value node.MapNext) :> SetNode<_>
-                        | None -> node :> SetNode<_>
+                        MapLeaf(node.Hash, node.Key, node.Value, MapLinked.alter cmp key update node.MapNext) :> SetNode<_>
+
                 else
                     match update None with
                     | Some value -> join node.Hash node hash (MapLeaf(hash, key, value, null))
