@@ -3,6 +3,29 @@
 open FSharp.Data.Traceable
 open System.Threading
 
+type MapFastVal<'a, 'b>(mapping : 'a -> 'b, input : aval<'a>) =
+    interface IAdaptiveObject with
+        member x.AllInputsProcessed(a) = input.AllInputsProcessed(a)
+        member x.InputChanged(a,b) = input.InputChanged(a,b)
+        member x.Mark() = input.Mark()
+        member x.IsConstant = input.IsConstant
+        member x.Level
+            with get() = input.Level
+            and set v = input.Level <- v
+        member x.OutOfDate
+            with get() = input.OutOfDate
+            and set v = input.OutOfDate <- v
+        member x.Outputs = input.Outputs
+        member x.Tag 
+            with get() = input.Tag
+            and set t = input.Tag <- t
+        member x.Weak = input.Weak
+
+    interface aval<'b> with
+        member x.ContentType = typeof<'b>
+        member x.GetValueUntyped(t) = input.GetValue(t) |> mapping :> obj
+        member x.GetValue(t) = input.GetValue(t) |> mapping
+
 /// Changeable adaptive set that allows mutation by user-code and implements aset.
 [<Sealed>]
 type ChangeableHashSet<'T>(initial : HashSet<'T>) =
@@ -13,71 +36,53 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
             h.Perform delta |> ignore
         h
 
-    let mutable content = initial
-    let mutable adaptiveContentCache = Unchecked.defaultof<aval<HashSet<'T>>> 
-
-    let getAdaptiveContent() =
-        let c = adaptiveContentCache
-        if Unchecked.isNull c then
-            // TODO
-            let v = history |> AVal.map (fun _ -> content)
-            let o = Interlocked.CompareExchange(&adaptiveContentCache, v, Unchecked.defaultof<_>)
-            if Unchecked.isNull o then v
-            else o
-        else
-            c
+    let content = MapFastVal(CountingHashSet.toHashSet, history) :> aval<_>
 
     /// The number of entries currently in the set.
     member x.Count =
-        content.Count
+        history.State.Count
 
     /// Is the set currently empty?
     member x.IsEmpty =
-        content.IsEmpty
+        history.State.IsEmpty
 
     /// Checks whether the given value is contained.
     member x.Contains (value : 'T) =
-        HashSet.contains value content
+        CountingHashSet.contains value history.State
 
     /// Gets or sets the current state as HashSet.
     member x.Value
         with get() = 
-            content
+            CountingHashSet.toHashSet history.State
         and set newSet = 
             x.UpdateTo newSet |> ignore
                 
     /// Sets the current state as HashSet.
     member x.UpdateTo(newSet : HashSet<'T>) =
-        let nonCountingSet = content
+        let nonCountingSet = CountingHashSet.toHashSet history.State
         if not (cheapEqual nonCountingSet newSet) then
             let delta = HashSet.computeDelta nonCountingSet newSet
-            content <- newSet
             history.Perform(delta)
         else
             false
     /// Performs the given Operations on the Set.
     member x.Perform(operations : HashSetDelta<'T>) =   
         if not (HashSetDelta.isEmpty operations) then
-            let (newContent, ops) = HashSet.applyDelta content operations
-            content <- newContent
-            history.Perform ops |> ignore
+            history.Perform operations |> ignore
 
     /// Adds a value and returns whether the element was new.
     member x.Add(value : 'T) =
-        content <- HashSet.add value content
         history.Perform (HashSetDelta.single (Add value))
 
     /// Removes a value and returns whether the element was deleted.
     member x.Remove(value : 'T) =
-        content <- HashSet.remove value content
         history.Perform (HashSetDelta.single (Rem value))
 
     /// Clears the set.
     member x.Clear() =
-        if not content.IsEmpty then
+        if not history.State.IsEmpty then
             let ops = CountingHashSet.computeDelta history.State CountingHashSet.empty
             history.Perform ops |> ignore
-            content <- HashSet.empty
 
     /// Adds all the given values to the set.
     member x.UnionWith (other : seq<'T>) =
@@ -129,7 +134,7 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
     interface IAdaptiveHashSet<'T> with
         member x.IsConstant = false
         member x.GetReader() = x.GetReader()
-        member x.Content = getAdaptiveContent()
+        member x.Content = content
         member x.History = Some history
         
     interface System.Collections.IEnumerable with
@@ -145,7 +150,7 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
         member x.Clear() = transactIfNecessary (fun () -> x.Clear())
         member x.Add value = transactIfNecessary (fun () -> x.Add value |> ignore)
         member x.Remove value = transactIfNecessary (fun () -> x.Remove value)
-        member x.CopyTo(array: 'T[], idx : int) = content.CopyTo(array, idx)
+        member x.CopyTo(array: 'T[], idx : int) = x.Value.CopyTo(array, idx)
 
     #if !FABLE_COMPILER
     interface System.Collections.Generic.ISet<'T> with
