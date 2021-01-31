@@ -33,6 +33,7 @@ type ConstantValue<'T>(value : 'T) =
         sprintf "%A" value
 
     interface IAdaptiveValue with
+        member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
         member x.ContentType = x.ContentType
         member x.GetValueUntyped t = x.GetValueUntyped t
 

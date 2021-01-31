@@ -13,17 +13,23 @@ type IAdaptiveValue =
     /// The (statically known) type of the returned value.
     abstract member ContentType : System.Type
 
+    /// Visits the IAdaptiveValue using the given visitor.
+    /// This is useful for "magically" summoning the generic argument in an existential way.
+    abstract member Accept : IAdaptiveValueVisitor<'R> -> 'R
 
 /// Represents a dependency-aware value that may change as changes are fed into the system.
 /// An AdaptiveValue cannot be changed directly but gets updated by the dependency graph. 
 /// For changeable inputs see cval<'T>
-[<Interface>]
-type IAdaptiveValue<'T> =
+and [<Interface>] IAdaptiveValue<'T> =
     inherit IAdaptiveValue
 
     /// Evaluates the AdaptiveValue<'T> using the given token and returns the current value.
     /// Dependencies will be tracked automatically when the token is correctly passed to all inner evaluation-calls.
     abstract member GetValue : token : AdaptiveToken -> 'T
+
+/// Visitor for "magically" summoning a type-argument.
+and [<Interface>] IAdaptiveValueVisitor<'R> =
+    abstract member Visit<'T> : aval<'T> -> 'R
 
 /// An abbreviation for AdaptiveValue
 and aval<'T> = IAdaptiveValue<'T>
@@ -84,6 +90,15 @@ module AVal =
     /// Returns a new adaptive value that adaptively applies the mapping function to the given 
     /// adaptive inputs.
     val map : mapping : ('T1 -> 'T2) -> value : aval<'T1> -> aval<'T2>
+    
+    /// Returns a new adaptive value that applies the mapping function whenever a value is demanded. 
+    /// This is useful when applying very cheap mapping functions (like unbox, fst, etc.)
+    /// WARNING: the mapping function will also be called for unchanged inputs.
+    val mapNonAdaptive : mapping : ('T1 -> 'T2) -> value : aval<'T1> -> aval<'T2>
+
+    /// Casts the given adaptive value to the specified type. Raises InvalidCastException *immediately*
+    /// when the specified cast is not valid (similar to Seq.cast).
+    val cast<'T> : value : IAdaptiveValue -> aval<'T>
 
     /// Returns a new adaptive value that adaptively applies the mapping function to the given 
     /// adaptive inputs.

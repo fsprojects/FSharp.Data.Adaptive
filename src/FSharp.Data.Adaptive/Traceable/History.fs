@@ -421,6 +421,7 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
         reader :> IOpReader<'ViewState, 'ViewDelta>
                    
     interface IAdaptiveValue with
+        member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
         member x.GetValueUntyped t = x.GetValue t :> obj
         member x.ContentType = 
             #if FABLE_COMPILER

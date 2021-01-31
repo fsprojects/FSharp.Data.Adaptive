@@ -86,6 +86,7 @@ module internal MapReductions =
             )
 
         interface IAdaptiveValue with
+            member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
             member x.GetValueUntyped t = 
                 x.GetValue t :> obj
             member x.ContentType =
@@ -175,6 +176,7 @@ module internal MapReductions =
             )
 
         interface IAdaptiveValue with
+            member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
             member x.GetValueUntyped t = 
                 x.GetValue t :> obj
             member x.ContentType =
@@ -331,6 +333,7 @@ module internal MapReductions =
             )
 
         interface IAdaptiveValue with
+            member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
             member x.GetValueUntyped t = x.GetValue t :> obj
             member x.ContentType =
                 #if FABLE_COMPILER

@@ -7,6 +7,18 @@ open FSharp.Data.Adaptive
 [<EntryPoint>]
 let main _args =
 
+    let a = cval [1;2;3;4]
+    let b = AVal.cast<seq<int>> a
+
+    AVal.force b |> printfn "%0A"
+
+    
+    let c = AVal.cast<float> a
+    AVal.force c |> printfn "%0A"
+
+
+    exit 0
+
     //let b = HAMTBench()
 
 

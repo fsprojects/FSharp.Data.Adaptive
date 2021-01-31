@@ -141,6 +141,7 @@ type EagerVal<'T>(input : aval<'T>) =
         )
         
     interface IAdaptiveValue with
+        member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
         member x.GetValueUntyped(t) = x.GetValue t :> obj
         member x.ContentType = typeof<'T>
 
