@@ -28,5 +28,6 @@ let main _args =
     //BenchmarkRunner.Run<Benchmarks.IndexListDeltaEnumeratorBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.HashSetDeltaEnumeratorBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.HashMapDeltaEnumeratorBenchmark>() |> ignore
+    //BenchmarkRunner.Run<Benchmarks.MapExtEnumeratorBenchmark>() |> ignore
 
     0
