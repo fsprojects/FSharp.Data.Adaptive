@@ -3,6 +3,7 @@
 open FSharp.Data.Adaptive
 open System.Runtime.CompilerServices
 open System.Collections.Generic
+open System.Diagnostics
 
 module private HashNumberCrunching =
     type Mask = uint32
@@ -3018,7 +3019,7 @@ type internal HashMapEnumerable<'K, 'V, 'T>(root : SetNode<'K>, mapping : Optimi
     interface System.Collections.Generic.IEnumerable<'T> with member x.GetEnumerator() = x.GetEnumerator() :> _
         
 
-[<Struct; CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}"); CompiledName("FSharpHashSet`1")>]
+[<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<HashSetProxy<_>>); CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}"); CompiledName("FSharpHashSet`1");>]
 type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) =
         
     static let addOp = fun (v : 'K) -> ValueSome 1
@@ -3382,32 +3383,21 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         member x.IsSupersetOf (other : seq<'K>) = x.IsSupersetOf other
         member x.IsProperSupersetOf (other : seq<'K>) = x.IsProperSupersetOf other
 
-and [<Struct; CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}"); CompiledName("FSharpHashMap`2")>] 
+
+and internal HashSetProxy<'K>(set : HashSet<'K>) =
+    let items = set |> Seq.truncate 10000 |> Seq.toArray
+
+    [<DebuggerBrowsable(DebuggerBrowsableState.RootHidden)>]
+    member x.Items = items
+
+and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<HashMapProxy<_, _>>); CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}"); CompiledName("FSharpHashMap`2")>] 
     HashMap<'K, [<EqualityConditionalOn>] 'V> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) =
     static let tupleGetter = OptimizedClosures.FSharpFunc<'K, 'V, _>.Adapt(fun k v -> (k,v))
     static let valueTupleGetter = OptimizedClosures.FSharpFunc<'K, 'V, _>.Adapt(fun k v -> struct(k,v))
     static let keyGetter = OptimizedClosures.FSharpFunc<'K, 'V, _>.Adapt(fun k _ -> k)
     static let valueGetter = OptimizedClosures.FSharpFunc<'K, 'V, _>.Adapt(fun _ v -> v)
 
-    //static let addOp = OptimizedClosures.FSharpFunc<'K, 'V, voption<ElementOperation<'V>>>.Adapt(fun k v -> ValueSome (Set v))
-    //static let remOp = OptimizedClosures.FSharpFunc<'K, 'V, voption<ElementOperation<'V>>>.Adapt(fun k v -> ValueSome Remove)
-    //static let updateOp = OptimizedClosures.FSharpFunc<'K, 'V, 'V, voption<ElementOperation<'V>>>.Adapt(fun k v0 v1 -> if DefaultEquality.equals v0 v1 then ValueNone else ValueSome (Set v1))
-    //static let applyOp = 
-    //    OptimizedClosures.FSharpFunc<'K, voption<'V>, ElementOperation<'V>, struct(voption<'V> * voption<ElementOperation<'V>>)>.Adapt(
-    //        fun k s d ->
-    //            match s with
-    //            | ValueSome o ->
-    //                match d with
-    //                | Set n -> 
-    //                    if DefaultEquality.equals o n then struct(ValueSome n, ValueNone)
-    //                    else struct(ValueSome n, ValueSome (Set n))
-    //                | Remove ->
-    //                    struct(ValueNone, ValueSome Remove)
-    //            | ValueNone ->
-    //                match d with
-    //                | Set n -> struct(ValueSome n, ValueSome d)
-    //                | Remove -> struct(ValueNone, ValueNone)
-    //    )
+
 
     // ====================================================================================
     // Properties: Count/IsEmpty/etc.
@@ -3428,6 +3418,12 @@ and [<Struct; CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}"
     member x.Equals(o : HashMap<'K, 'V>) =
         MapNode.equals<'K, 'V> comparer root o.Root
         
+    override x.ToString() =
+        if x.Count > 8 then
+            x |> Seq.take 8 |> Seq.map (sprintf "%A") |> String.concat "; " |> sprintf "HashMap [%s; ...]"
+        else
+            x |> Seq.map (sprintf "%A") |> String.concat "; " |> sprintf "HashMap [%s]"
+
     // ====================================================================================
     // Modifications: add/remove/etc.
     // ====================================================================================
@@ -3771,6 +3767,22 @@ and [<Struct; CustomEquality; NoComparison; StructuredFormatDisplay("{AsString}"
             
     interface System.Collections.Generic.IEnumerable<'K * 'V> with
         member x.GetEnumerator() = x.GetEnumerator() :> _
+
+
+and [<Sealed>] internal HashMapProxy<'K, 'V>(map : HashMap<'K, 'V>) =
+    [<DebuggerBrowsable(DebuggerBrowsableState.RootHidden)>]
+    member x.Items = 
+        map.ToSeqV() 
+        |> Seq.map (fun struct(k,v) -> KeyValuePairDebugFriendly(KeyValuePair(k, v))) 
+        |> Seq.truncate 10000 
+        |> Seq.toArray
+
+and 
+    [<Sealed; DebuggerDisplay("{keyValue.Value}", Name = "[{keyValue.Key}]", Type = "")>]
+    internal KeyValuePairDebugFriendly<'K, 'V>(keyValue : KeyValuePair<'K, 'V>) =
+
+        [<DebuggerBrowsable(DebuggerBrowsableState.RootHidden)>]
+        member x.KeyValue = keyValue
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 [<RequireQualifiedAccess>]
