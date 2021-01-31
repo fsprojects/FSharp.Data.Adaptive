@@ -1395,7 +1395,7 @@ module IndexList =
         
     /// invokes the given action for all list elements in list order.
     let iter (action : 'T -> unit) (l : IndexList<'T>) =
-        l.Content |> MapExt.iter (fun _ v -> action(v))
+        l.Content |> MapExt.iterValue action
         
     /// invokes the given action for all list elements in list order.
     let iteri (action : Index -> 'T -> unit) (l : IndexList<'T>) =

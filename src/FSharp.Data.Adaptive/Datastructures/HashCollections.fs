@@ -3073,6 +3073,7 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
     // ====================================================================================
     // Queries: contains/etc.
     // ====================================================================================
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Contains(key : 'K) =
         if isNull root then
             false
@@ -3092,7 +3093,6 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
     member x.Alter(key : 'K, update : bool -> bool) = 
         let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
         HashSet<'K>(comparer, SetNode.alter comparer hash key update root)
-
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Remove(key) = 
@@ -3124,23 +3124,28 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
     // ====================================================================================
     // Unary Operations: map/choose/filter/etc.
     // ====================================================================================
-
+    
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Iter(action : 'K -> unit) =
         SetNode.iter action root
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Fold(folder : 'S -> 'K -> 'S, state : 'S) =
         if isNull root then
             state
         else
             let folder = OptimizedClosures.FSharpFunc<_,_,_>.Adapt folder
             SetNode.fold folder state root
-
+            
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Exists(predicate : 'K -> bool) =
         SetNode.exists predicate root
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Forall(predicate : 'K -> bool) =
         SetNode.forall predicate root
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Map(mapping : 'K -> 'T) =
         let cmp = DefaultEqualityComparer<'T>.Instance
         let mutable root = null
@@ -3151,10 +3156,12 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
 
         HashSet<'T>(cmp, root)
         
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.MapToMap(mapping : 'K -> 'V) =
         let root = SetNode.mapToMap mapping root
         HashMap<'K, 'V>(comparer, root)
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ChooseV(mapping : 'K -> voption<'T>) =
         let cmp = DefaultEqualityComparer<'T>.Instance
         let mutable root = null
@@ -3166,7 +3173,8 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
             | ValueNone ->
                 ()
         HashSet<'T>(cmp, root)
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Choose(mapping : 'K -> option<'T>) =
         let cmp = DefaultEqualityComparer<'T>.Instance
         let mutable root = null
@@ -3179,7 +3187,8 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
             | None ->
                 ()
         HashSet<'T>(cmp, root)
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Filter(predicate : 'K -> bool) =
         HashSet(comparer, SetNode.filter predicate root)
 
@@ -3187,36 +3196,44 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
     // Binary Operations: overlaps/union/computeDelta/etc.
     // ====================================================================================
     
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ApplyDelta(a : HashSet<'K>, b : HashMap<'K, 'D>, apply : 'K -> bool -> 'D -> struct(bool * voption<'DOut>)) =
         let mutable state = a.Root
         let delta = SetNode.applyDelta a.Comparer (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) &state b.Root
         let state = HashSet<'K>(a.Comparer, state)
         let delta = HashMap<'K, 'DOut>(a.Comparer, delta)
         state, delta
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Overlaps(other : HashSet<'K>) =
         SetNode.overlaps comparer root other.Root
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.SetEquals(other : HashSet<'K>) =
         x.Count = other.Count &&
         SetNode.equals comparer root other.Root
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.IsSubsetOf(other : HashSet<'K>) =
         x.Count <= other.Count &&
         SetNode.subset comparer root other.Root
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.IsSupersetOf(other : HashSet<'K>) =
         x.Count >= other.Count &&
         SetNode.subset comparer other.Root root
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.IsProperSubsetOf(other : HashSet<'K>) =
         x.Count < other.Count &&
         SetNode.subset comparer root other.Root
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.IsProperSupersetOf(other : HashSet<'K>) =
         other.Count < x.Count &&
         SetNode.subset comparer other.Root root
         
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Overlaps(other : seq<'K>) =
         match other with
         | :? HashSet<'K> as o -> x.Overlaps o
@@ -3225,6 +3242,7 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         | :? list<'K> as o -> o |> List.exists x.Contains
         | o -> o |> Seq.exists x.Contains
             
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.SetEquals(other : seq<'K>) =
         match other with
         | :? HashSet<'K> as o -> x.SetEquals o
@@ -3232,6 +3250,7 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         | :? list<'K> as o -> x.SetEquals (HashSet.OfList o)
         | o -> x.SetEquals (HashSet.OfSeq o)
             
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.IsSubsetOf (other : seq<'K>) =
         match other with
         | :? HashSet<'K> as o -> x.IsSubsetOf o
@@ -3239,44 +3258,53 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         | :? array<'K> as o -> x.IsSubsetOf (HashSet.OfArray o)
         | :? list<'K> as o -> x.IsSubsetOf (HashSet.OfList o)
         | o -> x.IsSubsetOf (HashSet.OfSeq o)
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.IsProperSubsetOf (other : seq<'K>) =
         match other with
         | :? HashSet<'K> as o -> x.IsProperSubsetOf o
         | :? array<'K> as o -> x.IsProperSubsetOf (HashSet.OfArray o)
         | :? list<'K> as o -> x.IsProperSubsetOf (HashSet.OfList o)
         | o -> x.IsProperSubsetOf (HashSet.OfSeq o)
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.IsSupersetOf (other : seq<'K>) =
         match other with
         | :? HashSet<'K> as o -> x.IsSupersetOf o
         | :? array<'K> as o -> o |> Array.forall x.Contains
         | :? list<'K> as o -> o |> List.forall x.Contains
         | o -> o |> Seq.forall x.Contains
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.IsProperSupersetOf (other : seq<'K>) =
         match other with
         | :? HashSet<'K> as o -> x.IsProperSupersetOf o
         | :? array<'K> as o -> x.IsProperSupersetOf (HashSet.OfArray o)
         | :? list<'K> as o -> x.IsProperSupersetOf (HashSet.OfList o)
         | o -> x.IsProperSupersetOf (HashSet.OfSeq o)
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.UnionWith(other : HashSet<'K>) =
         HashSet<'K>(comparer, SetNode.union comparer root other.Root)
         
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.SymmetricExceptWith(other : HashSet<'K>) =
         HashSet<'K>(comparer, SetNode.xor comparer root other.Root)
         
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ExceptWith(other : HashSet<'K>) =
         HashSet<'K>(comparer, SetNode.difference comparer root other.Root)
         
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.IntersectWith(other : HashSet<'K>) =
         HashSet<'K>(comparer, SetNode.intersect comparer root other.Root)
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ComputeDeltaAsHashMap(other : HashSet<'K>) =
         let delta = SetNode.computeDelta comparer remOp addOp root other.Root
         HashMap<'K, int>(comparer, delta)
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ApplyDeltaAsHashMap(delta : HashMap<'K, int>) =
         let mutable state = root
         let delta = SetNode.applyDelta comparer applyOp &state delta.Root
@@ -3396,6 +3424,7 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
     static let valueTupleGetter = OptimizedClosures.FSharpFunc<'K, 'V, _>.Adapt(fun k v -> struct(k,v))
     static let keyGetter = OptimizedClosures.FSharpFunc<'K, 'V, _>.Adapt(fun k _ -> k)
     static let valueGetter = OptimizedClosures.FSharpFunc<'K, 'V, _>.Adapt(fun _ v -> v)
+    static let kvpGetter = OptimizedClosures.FSharpFunc<'K, 'V, _>.Adapt(fun k v -> KeyValuePair(k, v))
 
 
 
@@ -3427,7 +3456,6 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
     // ====================================================================================
     // Modifications: add/remove/etc.
     // ====================================================================================
-
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Add(key : 'K, value : 'V) = 
         let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
@@ -3487,7 +3515,6 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
         MapNode.tryFind<'K, 'V> comparer hash key root
 
-        
     member x.Item
         with get(key : 'K) : 'V = 
             let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
@@ -3539,17 +3566,20 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
     // Binary Operations: computeDelta/etc.
     // ====================================================================================
     
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ApplyDelta(a : HashMap<'K, 'V>, b : HashMap<'K, 'T>, apply : 'K -> voption<'V> -> 'T -> struct(voption<'V> * voption<'U>)) =
         let mutable state = a.Root
         let delta = MapNode.applyDelta a.Comparer (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) &state b.Root
         let state = HashMap<'K, 'V>(a.Comparer, state)
         let delta = HashMap<'K, 'U>(a.Comparer, delta)
         state, delta
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Choose2V(other : HashMap<'K, 'T>, mapping : 'K -> voption<'V> -> voption<'T> -> voption<'U>) =
         let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
         HashMap<'K, 'U>(comparer, MapNode.choose2V comparer mapping root other.Root)
         
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Choose2(other : HashMap<'K, 'T>, mapping : 'K -> option<'V> -> option<'T> -> option<'U>) =
         let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
         let inline o v = match v with | ValueSome v -> Some v | ValueNone -> None
@@ -3557,38 +3587,34 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let realMapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(fun k l r -> mapping.Invoke(k, o l, o r) |> vo)
         HashMap<'K, 'U>(comparer, MapNode.choose2V comparer realMapping root other.Root)
         
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Map2V(other : HashMap<'K, 'T>, mapping : 'K -> voption<'V> -> voption<'T> -> 'U) =
         let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
         let realMapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(fun k l r -> mapping.Invoke(k, l, r) |> ValueSome)
         HashMap<'K, 'U>(comparer, MapNode.choose2V comparer realMapping root other.Root)
         
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Map2(other : HashMap<'K, 'T>, mapping : 'K -> option<'V> -> option<'T> -> 'U) =
         let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
         let inline o v = match v with | ValueSome v -> Some v | ValueNone -> None
         let inline vo v = match v with | Some v -> ValueSome v | None -> ValueNone
         let realMapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(fun k l r -> mapping.Invoke(k, o l, o r) |> ValueSome)
         HashMap<'K, 'U>(comparer, MapNode.choose2V comparer realMapping root other.Root)
-
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.UnionWith(other : HashMap<'K, 'V>) =
         HashMap<'K, 'V>(comparer, MapNode.union<'K, 'V> comparer root other.Root)
         
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.UnionWith(other : HashMap<'K, 'V>, resolve : 'K -> 'V -> 'V -> 'V) =
         let resolve = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt resolve
         HashMap<'K, 'V>(comparer, MapNode.unionWith<'K, 'V> comparer resolve root other.Root)
         
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.UnionWithV(other : HashMap<'K, 'V>, resolve : 'K -> 'V -> 'V -> voption<'V>) =
         let resolve = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt resolve
         HashMap<'K, 'V>(comparer, MapNode.unionWithV<'K, 'V> comparer resolve root other.Root)
 
-    //member x.ComputeDeltaTo(other : HashMap<'K, 'V>) =
-    //    let delta = MapNode.computeDelta comparer remOp addOp updateOp root other.Root
-    //    HashMap<'K, ElementOperation<'V>>(comparer, delta)
-
-    //member x.ApplyDelta(delta : HashMap<'K, ElementOperation<'V>>) =
-    //    let mutable state = root
-    //    let delta = MapNode.applyDelta comparer applyOp &state delta.Root
-    //    HashMap<'K, 'V>(comparer, state), HashMap<'K, ElementOperation<'V>>(comparer, delta)
-        
     // ====================================================================================
     // Creators: Empty/Singleton/OfList/OfSeq/etc.
     // ====================================================================================
@@ -3741,7 +3767,7 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
             
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ToSeq() =
-        x :> seq<_>
+        HashMapEnumerable(root, tupleGetter) :> seq<_>
             
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ToSeqV() =
@@ -3755,7 +3781,10 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
     member x.ToKeySeq() =
         HashMapEnumerable(root, keyGetter) :> seq<_>
             
-
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.ToKeyValueSeq() =
+        HashMapEnumerable(root, kvpGetter) :> seq<_>
+         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.GetEnumerator() = new HashMapEnumerator<'K, 'V, _>(root, tupleGetter)
     
@@ -3767,7 +3796,21 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
             
     interface System.Collections.Generic.IEnumerable<'K * 'V> with
         member x.GetEnumerator() = x.GetEnumerator() :> _
-
+        
+    interface System.Collections.Generic.IReadOnlyCollection<'K * 'V> with
+        member x.Count = x.Count
+        
+    interface System.Collections.Generic.ICollection<'K * 'V> with
+        member x.IsReadOnly = true
+        member x.Add(_) = failwith "readonly"
+        member x.Remove(_) = failwith "readonly"
+        member x.Clear() = failwith "readonly"
+        member x.Contains((k, v)) =
+            match x.TryFindV k with
+            | ValueSome vv -> DefaultEquality.equals vv v
+            | ValueNone -> false
+        member x.Count = x.Count
+        member x.CopyTo(dst : ('K * 'V)[], index : int) = x.CopyTo(dst, index)
 
 and [<Sealed>] internal HashMapProxy<'K, 'V>(map : HashMap<'K, 'V>) =
     [<DebuggerBrowsable(DebuggerBrowsableState.RootHidden)>]

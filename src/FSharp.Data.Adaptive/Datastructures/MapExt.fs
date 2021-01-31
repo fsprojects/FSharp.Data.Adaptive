@@ -973,6 +973,17 @@ module internal MapExtImplementation =
             iter action node.Left
             action.Invoke(node.Key, node.Value)
             iter action node.Right
+            
+    let rec iterValue (action : 'Value -> unit) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            ()
+        elif node.Height = 1uy then
+            action node.Value
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            iterValue action node.Left
+            action node.Value
+            iterValue action node.Right
 
     let rec map (mapping : OptimizedClosures.FSharpFunc<'Key, 'Value, 'T>) (node : Node<'Key, 'Value>) =
         if isNull node then
@@ -3178,6 +3189,9 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
         let action = OptimizedClosures.FSharpFunc<_,_,_>.Adapt(action)
         MapExtImplementation.iter action root
         
+    member x.IterValue(action : 'Value -> unit) =
+        MapExtImplementation.iterValue action root
+        
     member x.Fold(state : 'State, folder : 'State -> 'Key -> 'Value -> 'State) =
         let folder = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(folder)
         MapExtImplementation.fold state folder root
@@ -3698,6 +3712,7 @@ module internal MapExt =
     let tryMaxKeyV (map : MapExt<'Key, 'Value>) = map.TryMaxKeyV()
 
     let iter (action : 'Key -> 'Value -> unit) (map : MapExt<'Key, 'Value>) = map.Iter action
+    let iterValue (action : 'Value -> unit) (map : MapExt<'Key, 'Value>) = map.IterValue action
     let fold (folder : 'State -> 'Key -> 'Value -> 'State) (state : 'State) (map : MapExt<'Key, 'Value>) = map.Fold(state, folder)
     let foldBack (folder : 'Key -> 'Value -> 'State -> 'State) (map : MapExt<'Key, 'Value>) (state : 'State) =  map.FoldBack(state, folder)
     
