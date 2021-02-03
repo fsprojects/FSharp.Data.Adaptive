@@ -493,10 +493,10 @@ Target.create "ReleaseDocs" (fun _ ->
 "CheckPush" ?=> "Compile"
 "Compile" ?=> "RunTest"
 "RunTest" ?=> "Pack"
-"Compile" ?=> "CompileFable"
+//"Compile" ?=> "CompileFable"
 
 "Compile" ==> "Pack"
-"CompileFable" ==> "Pack"
+//"CompileFable" ==> "Pack"
 
 "Pack" ==> "Push"
 "RunTest" ==> "Push"

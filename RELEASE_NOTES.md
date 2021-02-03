@@ -1,3 +1,11 @@
+### 1.1.0
+* major upgrade with improved performance
+* several new combinators `ASet.xor`, `AVal.cast`, etc.
+* public enumerators for all datastructures.
+* AdaptiveSynchronizationContext
+* added several interfaces to clist, cset, etc.
+* UpdateTo returning boolean
+
 ### 1.0.1
 * exposed ThreadStatic fields
 
