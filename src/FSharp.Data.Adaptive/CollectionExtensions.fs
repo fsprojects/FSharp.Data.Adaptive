@@ -9,6 +9,7 @@ module CollectionExtensions =
     [<AutoOpen>]
     module internal Readers =
         /// Reader for ASet.sortBy
+        [<Sealed>]
         type SetSortByReader<'T1, 'T2 when 'T2 : comparison>(set: aset<'T1>, projection: 'T1 -> 'T2) =
             inherit AbstractReader<IndexListDelta<'T1>>(IndexListDelta.empty)
 
@@ -32,6 +33,7 @@ module CollectionExtensions =
                 |> IndexListDelta.ofSeq
         
         /// Reader for ASet.sortWith
+        [<Sealed>]
         type SetSortWithReader<'T>(set: aset<'T>, compare: 'T -> 'T -> int) =
             inherit AbstractReader<IndexListDelta<'T>>(IndexListDelta.empty)
 
@@ -52,6 +54,7 @@ module CollectionExtensions =
                 |> IndexListDelta.ofSeq
 
         /// Reader for AMap.keys
+        [<Sealed>]
         type MapKeysReader<'Key, 'Value>(map: amap<'Key, 'Value>) =
             inherit AbstractReader<HashSetDelta<'Key>>(HashSetDelta.empty)
 
@@ -73,6 +76,7 @@ module CollectionExtensions =
                 HashSetDelta(ops)
 
         /// Reader for AList.toASet
+        [<Sealed>]
         type ListSetReader<'T>(list: alist<'T>) =
             inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.empty)
             
@@ -97,6 +101,7 @@ module CollectionExtensions =
                 |> HashSetDelta.ofSeq
 
         /// Reader for AList.toIndexedASet
+        [<Sealed>]
         type IndexedListSetReader<'T>(list: alist<'T>) =
             inherit AbstractReader<HashSetDelta<Index * 'T>>(HashSetDelta.empty)
             
@@ -121,6 +126,7 @@ module CollectionExtensions =
                 |> HashSetDelta.ofSeq
 
         /// Reader for AList.ofASet
+        [<Sealed>]
         type ToListReader<'a>(input : aset<'a>) =
             inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
 
@@ -148,7 +154,8 @@ module CollectionExtensions =
                             unexpected()
                     )
                     |> IndexListDelta.ofSeq
-
+                    
+        [<Sealed>]
         type MapToListReader<'T>(input : amap<Index, 'T>) =
             inherit AbstractReader<IndexList<'T>, IndexListDelta<'T>>(IndexList.trace)
             let reader = input.GetReader()
@@ -156,7 +163,8 @@ module CollectionExtensions =
                 reader.GetChanges token 
                 |> HashMapDelta.toSeq
                 |> IndexListDelta.ofSeq
-
+                
+        [<Sealed>]
         type ListToMapReader<'T>(input : alist<'T>) =
             inherit AbstractReader<HashMap<Index, 'T>, HashMapDelta<Index, 'T>>(HashMap.trace)
             let reader = input.GetReader()
@@ -318,6 +326,7 @@ module CollectionExtensions =
 
 
     module private BooleanOperators =
+        [<Sealed>]
         type AdaptiveOr(values : list<aval<bool>>) =
             inherit AbstractVal<bool>()
 
@@ -359,6 +368,7 @@ module CollectionExtensions =
                     | None ->
                         false
 
+        [<Sealed>]
         type AdaptiveAnd(values : list<aval<bool>>) =
             inherit AbstractVal<bool>()
 

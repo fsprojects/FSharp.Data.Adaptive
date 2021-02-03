@@ -30,6 +30,7 @@ and alist<'T> = IAdaptiveIndexList<'T>
 module internal Reductions =
 
     /// aval for reduce operations.
+    [<Sealed>]
     type ReduceValue<'a, 's, 'v>(reduction : AdaptiveReduction<'a, 's, 'v>, input : alist<'a>) =
         inherit AdaptiveObject()
 
@@ -49,7 +50,7 @@ module internal Reductions =
                         result <- reduction.view sum
                     else
                         let mutable working = true
-                        use e = (IndexListDelta.toSeq ops).GetEnumerator()
+                        use e = ops.GetEnumerator()
                         while working && e.MoveNext() do
                             let index, op = e.Current
                             match op with
@@ -85,6 +86,7 @@ module internal Reductions =
             )
 
         interface IAdaptiveValue with
+            member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
             member x.GetValueUntyped t = 
                 x.GetValue t :> obj
             member x.ContentType =
@@ -98,6 +100,7 @@ module internal Reductions =
             member x.GetValue t = x.GetValue t
             
     /// aval for reduceBy operations.
+    [<Sealed>]
     type ReduceByValue<'a, 'b, 's, 'v>(reduction : AdaptiveReduction<'b, 's, 'v>, mapping : Index -> 'a -> 'b, input : alist<'a>) =
         inherit AdaptiveObject()
 
@@ -137,7 +140,7 @@ module internal Reductions =
                         sum <- ValueSome s
                         result <- reduction.view s
                     else
-                        for (index, op) in IndexListDelta.toSeq ops do
+                        for (index, op) in ops do
                             match op with
                             | Set a ->
                                 match IndexList.tryGet index state with
@@ -173,6 +176,7 @@ module internal Reductions =
             )
 
         interface IAdaptiveValue with
+            member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
             member x.GetValueUntyped t = 
                 x.GetValue t :> obj
             member x.ContentType =
@@ -186,6 +190,7 @@ module internal Reductions =
             member x.GetValue t = x.GetValue t
 
     /// aval for reduceByA operations.
+    [<Sealed>]
     type AdaptiveReduceByValue<'a, 'b, 's, 'v>(reduction : AdaptiveReduction<'b, 's, 'v>, mapping : Index -> 'a -> aval<'b>, l : alist<'a>) =
         inherit AdaptiveObject()
 
@@ -287,7 +292,7 @@ module internal Reductions =
                         res <- reduction.view s
                     else
                         let mutable dirty = consumeDirty()
-                        for (i, op) in IndexListDelta.toSeq ops do
+                        for (i, op) in ops do
                             dirty <- IndexList.remove i dirty
                             match op with
                             | Set v ->
@@ -302,20 +307,20 @@ module internal Reductions =
                             | Remove ->
                                 removeIndex x i
 
-
-                        for (i, r) in IndexList.toSeqIndexed dirty do
-                            let n = r.GetValue(t)
-                            state <-
-                                state |> IndexList.alter i (fun old ->
-                                    match old with
-                                    | Some (oa, ro, o) -> 
-                                        assert(ro = r)
-                                        sum <- add (sub sum o) n
-                                        Some (oa, r, n)
-                                    | None -> 
-                                        sum <- add sum n
-                                        None
-                                )
+                        dirty.Content |> MapExt.iter (fun i r ->
+                                let n = r.GetValue(t)
+                                state <-
+                                    state |> IndexList.alter i (fun old ->
+                                        match old with
+                                        | Some (oa, ro, o) -> 
+                                            assert(ro = r)
+                                            sum <- add (sub sum o) n
+                                            Some (oa, r, n)
+                                        | None -> 
+                                            sum <- add sum n
+                                            None
+                                    )
+                            )
 
                         match sum with
                         | ValueNone ->
@@ -329,6 +334,7 @@ module internal Reductions =
             )
 
         interface IAdaptiveValue with
+            member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
             member x.GetValueUntyped t = x.GetValue t :> obj
             member x.ContentType =
                 #if FABLE_COMPILER
@@ -347,6 +353,7 @@ module internal AdaptiveIndexListImplementation =
     let inline checkTag (value : 'a) (real : obj) = DefaultEquality.equals (value :> obj) real
     
     /// Core implementation for a dependent list.
+    [<Sealed>]
     type AdaptiveIndexListImpl<'T>(ofReaderReader : unit -> IOpReader<IndexListDelta<'T>>) =
         let history = History(ofReaderReader, IndexList.trace)
 
@@ -365,6 +372,7 @@ module internal AdaptiveIndexListImplementation =
             member x.History = Some history
 
     /// Efficient implementation for an empty adaptive list.
+    [<Sealed>]
     type EmptyList<'T> private() =   
         static let instance = EmptyList<'T>() :> alist<_>
         let content = AVal.constant IndexList.empty
@@ -381,6 +389,7 @@ module internal AdaptiveIndexListImplementation =
             member x.History = None
 
     /// Efficient implementation for a constant adaptive list.
+    [<Sealed>]
     type ConstantList<'T>(content : Lazy<IndexList<'T>>) =
         let value = AVal.delay (fun () -> content.Value)
 
@@ -401,6 +410,7 @@ module internal AdaptiveIndexListImplementation =
 
 
     /// Reader for init operation
+    [<Sealed>]
     type InitReader<'T>(input : aval<int>, mapping : int -> 'T) =
         inherit AbstractReader<IndexListDelta<'T>>(IndexListDelta.empty)
         let mutable lastLength = 0
@@ -422,6 +432,7 @@ module internal AdaptiveIndexListImplementation =
             delta
 
     /// Reader for map operations.
+    [<Sealed>]
     type MapReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> 'b) =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
@@ -442,6 +453,7 @@ module internal AdaptiveIndexListImplementation =
             )
 
     /// Reader for mapUse operations.
+    [<Sealed>]
     type MapUseReader<'a, 'b when 'b :> System.IDisposable>(input : alist<'a>, mapping : Index -> 'a -> 'b) =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
@@ -451,7 +463,7 @@ module internal AdaptiveIndexListImplementation =
 
         member x.Dispose() =
             lock x (fun () ->
-                for v in MapExt.values state do (v :> System.IDisposable).Dispose()
+                for v in MapExt.toValueList state do (v :> System.IDisposable).Dispose()
                 disposeDelta <- state |> MapExt.map (fun _ _ -> Remove) |> IndexListDelta.ofMap
                 state <- MapExt.empty
                 reader <- Unchecked.defaultof<_>
@@ -475,7 +487,7 @@ module internal AdaptiveIndexListImplementation =
                     | Set v ->
                         let r = mapping k v
                         state <-
-                            state.Alter(k, fun o ->
+                            state.Change(k, fun (o : option<'b>) ->
                                 match o with
                                 | Some o -> o.Dispose(); Some r
                                 | None -> Some r
@@ -483,7 +495,7 @@ module internal AdaptiveIndexListImplementation =
                         Set r
                     | Remove -> 
                         state <-
-                            state.Alter(k, fun o ->
+                            state.Change(k, fun (o : option<'b>) ->
                                 match o with
                                 | Some o -> o.Dispose(); None
                                 | None -> None
@@ -493,6 +505,7 @@ module internal AdaptiveIndexListImplementation =
                 )
 
     /// Reader for choose operations.
+    [<Sealed>]
     type ChooseReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> option<'b>) =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
@@ -536,6 +549,7 @@ module internal AdaptiveIndexListImplementation =
         )
 
     /// Reader for filter operations.
+    [<Sealed>]
     type FilterReader<'a>(input : alist<'a>, predicate : Index -> 'a -> bool) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
 
@@ -580,6 +594,7 @@ module internal AdaptiveIndexListImplementation =
             )
             
     /// Reader for mapA operations.
+    [<Sealed>]
     type MapAReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> aval<'b>) =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
@@ -640,13 +655,15 @@ module internal AdaptiveIndexListImplementation =
                             None
                 )
 
-            for i, d in IndexList.toSeqIndexed dirty do
-                let v = d.GetValue t
-                changes <- IndexListDelta.add i (Set v) changes
+            dirty.Content |> MapExt.iter (fun i d ->
+                    let v = d.GetValue t
+                    changes <- IndexListDelta.add i (Set v) changes
+                )
 
             changes
      
     /// Reader for chooseA operations.
+    [<Sealed>]
     type ChooseAReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> aval<Option<'b>>) =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
@@ -716,19 +733,21 @@ module internal AdaptiveIndexListImplementation =
                             None
                 )
 
-            for i, d in IndexList.toSeqIndexed dirty do
-                let v = d.GetValue t
-                match v with
-                | Some v -> 
-                    keys.Add i |> ignore
-                    changes <- IndexListDelta.add i (Set v) changes
-                | None ->
-                    if keys.Remove i then
-                        changes <- IndexListDelta.add i Remove changes
+            dirty.Content |> MapExt.iter (fun i d ->
+                    let v = d.GetValue t
+                    match v with
+                    | Some v -> 
+                        keys.Add i |> ignore
+                        changes <- IndexListDelta.add i (Set v) changes
+                    | None ->
+                        if keys.Remove i then
+                            changes <- IndexListDelta.add i Remove changes
+                )
 
             changes
   
     /// Ulitity used by CollectReader.
+    [<Sealed>]
     type MultiReader<'a>(mapping : IndexMapping<Index * Index>, list : alist<'a>, release : alist<'a> -> unit) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
             
@@ -746,8 +765,7 @@ module internal AdaptiveIndexListImplementation =
 
         member x.AddTarget(oi : Index) =
             if targets.Add oi then
-                getReader().State.Content
-                |> MapExt.mapMonotonic (fun ii v -> mapping.Invoke(oi, ii), Set v)
+                getReader().State.Content.MapMonotonic (fun ii v -> mapping.Invoke(oi, ii), Set v)
                 |> IndexListDelta.ofMap
             else
                 IndexListDelta.empty
@@ -814,6 +832,7 @@ module internal AdaptiveIndexListImplementation =
                 IndexListDelta.empty
 
     /// Reader for collect operations.
+    [<Sealed>]
     type CollectReader<'a, 'b>(input : alist<'a>, f : Index -> 'a -> alist<'b>) =
         inherit AbstractDirtyReader<MultiReader<'b>, IndexListDelta<'b>>(IndexListDelta.monoid, checkTag "MultiReader")
             
@@ -891,6 +910,7 @@ module internal AdaptiveIndexListImplementation =
             result
 
     /// Helper for ConcatReader.
+    [<Sealed>]
     type IndexedReader<'a>(mapping : IndexMapping<Index * Index>, index : Index, input : alist<'a>) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty) 
 
@@ -913,6 +933,7 @@ module internal AdaptiveIndexListImplementation =
             )
 
     /// Reader for concat operations.
+    [<Sealed>]
     type ConcatReader<'a>(inputs : IndexList<alist<'a>>) =
         inherit AbstractDirtyReader<IndexedReader<'a>, IndexListDelta<'a>>(IndexListDelta.monoid, checkTag "InnerReader")
 
@@ -940,6 +961,7 @@ module internal AdaptiveIndexListImplementation =
                 result
 
     /// Reader for bind operations.
+    [<Sealed>]
     type BindReader<'a, 'b>(input : aval<'a>, mapping : 'a -> alist<'b>) =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
@@ -975,6 +997,7 @@ module internal AdaptiveIndexListImplementation =
                 deltas
 
     /// Reader for sortBy operations
+    [<Sealed>]
     type SortByReader<'a, 'b when 'b : comparison>(input : alist<'a>, mapping : Index -> 'a -> 'b) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
 
@@ -1014,6 +1037,7 @@ module internal AdaptiveIndexListImplementation =
             |> IndexListDelta.ofSeq
 
     /// Reader for sortWith operations
+    [<Sealed>]
     type SortWithReader<'a>(input : alist<'a>, compare : 'a -> 'a -> int) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
 
@@ -1059,6 +1083,7 @@ module internal AdaptiveIndexListImplementation =
             |> IndexListDelta.ofSeq
 
     /// Reader for ofAVal operations
+    [<Sealed>]
     type AValReader<'s, 'a when 's :> seq<'a>>(input: aval<'s>) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
 
@@ -1071,6 +1096,7 @@ module internal AdaptiveIndexListImplementation =
             ops
     
     /// Reader for pairwise operations
+    [<Sealed>]
     type PairwiseReader<'a>(input : alist<'a>, cyclic : bool) =
         inherit AbstractReader<IndexList<'a * 'a>, IndexListDelta<'a * 'a>>(IndexList.trace)
         
@@ -1086,18 +1112,18 @@ module internal AdaptiveIndexListImplementation =
 
                 let r =
                     match r with
-                    | None when cyclic -> s.Content.TryMin
+                    | None when cyclic -> s.Content.TryMin()
                     | _ -> r
                     
                 let l =
                     match l with
-                    | None when cyclic -> s.Content.TryMax
+                    | None when cyclic -> s.Content.TryMax()
                     | _ -> l
 
                 l, r
 
             let mutable delta = IndexListDelta.empty
-            for i, op in IndexListDelta.toSeq ops do
+            for i, op in ops do
                 match op with
                 | Remove ->
                     match IndexList.tryGet i o with
@@ -1161,11 +1187,11 @@ module AList =
 
         
     /// Creates an alist using the given compute function
-    let custom (f : AdaptiveToken -> IndexList<'a> -> IndexListDelta<'a>) : alist<'a> = 
+    let custom (compute : AdaptiveToken -> IndexList<'a> -> IndexListDelta<'a>) : alist<'a> = 
         ofReader (fun () -> 
             { new AbstractReader<IndexList<'a>,IndexListDelta<'a>>(IndexList.trace) with
                 override x.Compute(t) = 
-                    f t x.State
+                    compute t x.State
             }
         )
 
@@ -1176,24 +1202,24 @@ module AList =
         EmptyList<'T>.Instance
 
     /// Creates an alist holding the given values.
-    let constant (f : unit -> IndexList<'T>) =
-        lazy f() |> ConstantList :> alist<_>
+    let constant (value : unit -> IndexList<'T>) =
+        lazy value() |> ConstantList :> alist<_>
         
     /// A constant alist holding a single value.
     let single (value : 'T) =
         constant (fun () -> IndexList.single value)
         
     /// Creates an alist holding the given values.
-    let ofSeq (s : seq<'T>) = 
-        constant (fun () -> IndexList.ofSeq s)
+    let ofSeq (elements : seq<'T>) = 
+        constant (fun () -> IndexList.ofSeq elements)
         
     /// Creates an alist holding the given values.
-    let ofList (s : list<'T>) =
-        constant (fun () -> IndexList.ofList s)
+    let ofList (elements : list<'T>) =
+        constant (fun () -> IndexList.ofList elements)
         
     /// Creates an alist holding the given values.
-    let ofArray (s : 'T[]) =
-        constant (fun () -> IndexList.ofArray s)
+    let ofArray (elements : 'T[]) =
+        constant (fun () -> IndexList.ofArray elements)
         
     /// Creates an alist holding the given values. `O(1)`
     let ofIndexList (elements : IndexList<'T>) =
@@ -1412,36 +1438,36 @@ module AList =
 
     /// Sorts the list using the keys given by projection.
     /// Note that the sorting is stable.
-    let sortByi (projection : Index -> 'T1 -> 'T2) (list : alist<'T1>) =
+    let sortByi (mapping : Index -> 'T1 -> 'T2) (list : alist<'T1>) =
         if list.IsConstant then
-            constant (fun () -> force list |> IndexList.sortByi projection)
+            constant (fun () -> force list |> IndexList.sortByi mapping)
         else
-            ofReader (fun () -> SortByReader(list, projection))
+            ofReader (fun () -> SortByReader(list, mapping))
             
     /// Sorts the list using the keys given by projection.
     /// Note that the sorting is stable.
-    let sortBy (projection : 'T1 -> 'T2) (list : alist<'T1>) =
+    let sortBy (mapping : 'T1 -> 'T2) (list : alist<'T1>) =
         if list.IsConstant then
-            constant (fun () -> force list |> IndexList.sortBy projection)
+            constant (fun () -> force list |> IndexList.sortBy mapping)
         else
-            ofReader (fun () -> SortByReader(list, fun _ v -> projection v))
+            ofReader (fun () -> SortByReader(list, fun _ v -> mapping v))
 
     /// Sorts the list using the keys given by projection in descending order.
     /// Note that the sorting is stable.
-    let sortByDescendingi (projection : Index -> 'T1 -> 'T2) (list : alist<'T1>) =
+    let sortByDescendingi (mapping : Index -> 'T1 -> 'T2) (list : alist<'T1>) =
         if list.IsConstant then
-            constant (fun () -> force list |> IndexList.sortByDescendingi projection)
+            constant (fun () -> force list |> IndexList.sortByDescendingi mapping)
         else
-            let inline projection i v = ReversedCompare(projection i v)
+            let inline projection i v = ReversedCompare(mapping i v)
             ofReader (fun () -> SortByReader(list, projection))
             
     /// Sorts the list using the keys given by projection in descending order.
     /// Note that the sorting is stable.
-    let sortByDescending (projection : 'T1 -> 'T2) (list : alist<'T1>) =
+    let sortByDescending (mapping : 'T1 -> 'T2) (list : alist<'T1>) =
         if list.IsConstant then
-            constant (fun () -> force list |> IndexList.sortByDescending projection)
+            constant (fun () -> force list |> IndexList.sortByDescending mapping)
         else
-            let inline projection _ v = ReversedCompare(projection v)
+            let inline projection _ v = ReversedCompare(mapping v)
             ofReader (fun () -> SortByReader(list, projection))
 
     /// Sorts the list using the given compare function.
@@ -1508,40 +1534,40 @@ module AList =
 
     /// Reduces the list using the given `AdaptiveReduction` and returns
     /// the resulting adaptive value.
-    let reduce (r : AdaptiveReduction<'a, 's, 'v>) (list: alist<'a>) =
-        Reductions.ReduceValue(r, list) :> aval<'v>
+    let reduce (reduction : AdaptiveReduction<'a, 's, 'v>) (list: alist<'a>) =
+        Reductions.ReduceValue(reduction, list) :> aval<'v>
         
     /// Applies the mapping function to all elements of the list and reduces the results
     /// using the given `AdaptiveReduction`.
     /// Returns the resulting adaptive value.
-    let reduceBy (r : AdaptiveReduction<'b, 's, 'v>) (mapping: Index -> 'a -> 'b) (list: alist<'a>) =
-        Reductions.ReduceByValue(r, mapping, list) :> aval<'v>
+    let reduceBy (reduction : AdaptiveReduction<'b, 's, 'v>) (mapping: Index -> 'a -> 'b) (list: alist<'a>) =
+        Reductions.ReduceByValue(reduction, mapping, list) :> aval<'v>
         
     /// Applies the mapping function to all elements of the list and reduces the results
     /// using the given `AdaptiveReduction`.
     /// Returns the resulting adaptive value.
-    let reduceByA (r : AdaptiveReduction<'b, 's, 'v>) (mapping: Index -> 'a -> aval<'b>) (list: alist<'a>) =
-        Reductions.AdaptiveReduceByValue(r, mapping, list) :> aval<'v>
+    let reduceByA (reduction : AdaptiveReduction<'b, 's, 'v>) (mapping: Index -> 'a -> aval<'b>) (list: alist<'a>) =
+        Reductions.AdaptiveReduceByValue(reduction, mapping, list) :> aval<'v>
 
     /// Adaptively folds over the list using add for additions and trySubtract for removals.
     /// Note the trySubtract may return None indicating that the result needs to be recomputed.
     /// Also note that the order of elements given to add/trySubtract is undefined.
-    let foldHalfGroup (add : 's -> 'a -> 's) (trySub : 's -> 'a -> Option<'s>) (zero : 's) (l : alist<'a>) =
+    let foldHalfGroup (add : 's -> 'a -> 's) (trySubtract : 's -> 'a -> Option<'s>) (zero : 's) (list : alist<'a>) =
         let trySub s a =
-            match trySub s a with
+            match trySubtract s a with
             | Some v -> ValueSome v
             | None -> ValueNone
-        reduce (AdaptiveReduction.halfGroup zero add trySub) l
+        reduce (AdaptiveReduction.halfGroup zero add trySub) list
 
     /// Adaptively folds over the list using add for additions and subtract for removals.
     /// Note that the order of elements given to add/subtract is undefined.
-    let foldGroup (add : 's -> 'a -> 's) (sub : 's -> 'a -> 's) (zero : 's) (l : alist<'a>) =
-        reduce (AdaptiveReduction.group zero add sub) l
+    let foldGroup (add : 's -> 'a -> 's) (subtract : 's -> 'a -> 's) (zero : 's) (list : alist<'a>) =
+        reduce (AdaptiveReduction.group zero add subtract) list
 
     /// Adaptively folds over the list using add for additions and recomputes the value on every removal.
     /// Note that the order of elements given to add is undefined.
-    let fold (f : 's -> 'a -> 's) (seed : 's) (l : alist<'a>) = 
-        reduce (AdaptiveReduction.fold seed f) l
+    let fold (add : 's -> 'a -> 's) (zero : 's) (list : alist<'a>) = 
+        reduce (AdaptiveReduction.fold zero add) list
         
     /// Adaptively tests if the list is empty.
     let isEmpty (l: alist<'a>) =
@@ -1567,11 +1593,11 @@ module AList =
         let r = AdaptiveReduction.countPositive |> AdaptiveReduction.mapOut (fun v -> v <> 0)
         reduceByA r (fun _ v -> predicate v) list
 
-    let init (len: aval<int>) (initializer: int -> 'T) =
-        if len.IsConstant then
-            constant (fun () -> IndexList.init (AVal.force len) initializer)
+    let init (length: aval<int>) (initializer: int -> 'T) =
+        if length.IsConstant then
+            constant (fun () -> IndexList.init (AVal.force length) initializer)
         else
-            ofReader (fun () -> InitReader(len, initializer))
+            ofReader (fun () -> InitReader(length, initializer))
         
     let inline range (lowerBound: aval< ^T >) (upperBound: aval< ^T >) =
         if lowerBound.IsConstant && upperBound.IsConstant then
@@ -1633,21 +1659,21 @@ module AList =
     let countByA (predicate: 'a -> aval<bool>) (list: alist<'a>) =
         reduceByA AdaptiveReduction.countPositive (fun _ v -> predicate v) list 
 
-    let inline tryMin (l : alist<'a>) =
+    let inline tryMin (list : alist<'a>) =
         let reduction = 
             AdaptiveReduction.tryMin
             |> AdaptiveReduction.mapOut (function ValueSome v -> Some v | ValueNone -> None)
-        reduce reduction l
+        reduce reduction list
 
-    let inline tryMax (l : alist<'a>) =
+    let inline tryMax (list : alist<'a>) =
         let reduction = 
             AdaptiveReduction.tryMax
             |> AdaptiveReduction.mapOut (function ValueSome v -> Some v | ValueNone -> None)
-        reduce reduction l
+        reduce reduction list
 
     /// Adaptively computes the sum all entries in the list.
-    let inline sum (s : alist<'a>) = 
-        reduce (AdaptiveReduction.sum()) s
+    let inline sum (list : alist<'a>) = 
+        reduce (AdaptiveReduction.sum()) list
     
     let inline sumBy (mapping : 'T1 -> 'T2) (list : alist<'T1>) =
         reduceBy (AdaptiveReduction.sum()) (fun _ v -> mapping v) list
@@ -1655,8 +1681,8 @@ module AList =
     let inline sumByA (mapping : 'T1 -> aval<'T2>) (list : alist<'T1>) =
         reduceByA (AdaptiveReduction.sum()) (fun _ v -> mapping v) list
 
-    let inline average (s : alist<'a>) =
-        reduce (AdaptiveReduction.average()) s
+    let inline average (list : alist<'a>) =
+        reduce (AdaptiveReduction.average()) list
         
     let inline averageBy (mapping : 'T1 -> 'T2) (list : alist<'T1>) =
         reduceBy (AdaptiveReduction.average()) (fun _ v -> mapping v) list

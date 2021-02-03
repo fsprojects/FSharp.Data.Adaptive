@@ -55,12 +55,12 @@ type IndexListDelta< [<EqualityConditionalOn>] 'T> internal(content : MapExt<Ind
     /// Applies the given mapping function to all deltas in the list and returns a new list containing the 'Some'-results.
     /// Note that the indices need to be monotonic.
     member x.MapMonotonic(mapping : Index -> ElementOperation<'T> -> Index * ElementOperation<'T2>) =
-        IndexListDelta(MapExt.mapMonotonic mapping content)
+        IndexListDelta(content.MapMonotonic mapping)
         
-    /// Applies the given mapping function to all deltas in the list and returns a new list containing the 'Some'-results.
-    /// Note that the indices need to be monotonic.
-    member x.ChooseMonotonic(mapping : Index -> ElementOperation<'T> -> option<Index * ElementOperation<'T2>>) =
-        IndexListDelta(MapExt.chooseMonotonic mapping content)
+    ///// Applies the given mapping function to all deltas in the list and returns a new list containing the 'Some'-results.
+    ///// Note that the indices need to be monotonic.
+    //member x.ChooseMonotonic(mapping : Index -> ElementOperation<'T> -> option<Index * ElementOperation<'T2>>) =
+    //    IndexListDelta(MapExt.chooseMonotonic mapping content)
 
     /// Filters the delta list using the given predicate.
     member x.Filter(mapping : Index -> ElementOperation<'T> -> bool) =
@@ -88,6 +88,34 @@ type IndexListDelta< [<EqualityConditionalOn>] 'T> internal(content : MapExt<Ind
         for (KeyValue(i,v)) in content do
             res <- res.Combine(mapping i v)
         res
+
+    member x.GetEnumerator() = new IndexListDeltaEnumerator<'T>(x)
+
+    interface System.Collections.IEnumerable with
+        member x.GetEnumerator() = new IndexListDeltaEnumerator<'T>(x) :> _
+
+    interface System.Collections.Generic.IEnumerable<Index * ElementOperation<'T>> with
+        member x.GetEnumerator() = new IndexListDeltaEnumerator<'T>(x) :> _
+
+and IndexListDeltaEnumerator<'T>(delta : IndexListDelta<'T>) =
+    let mutable e = new MapExtEnumerator<Index, ElementOperation<'T>>(delta.Content.Root)
+
+    member x.MoveNext() = e.MoveNext()
+    member x.Current = 
+        let kvp = e.Current
+        kvp.Key, kvp.Value
+
+    member x.Reset() = e.Reset()
+    member x.Dispose() = ()
+
+    interface System.Collections.IEnumerator with
+        member x.MoveNext() = x.MoveNext()
+        member x.Current = x.Current :> obj
+        member x.Reset() = x.Reset()
+
+    interface System.Collections.Generic.IEnumerator<Index * ElementOperation<'T>> with
+        member x.Current = x.Current
+        member x.Dispose() = x.Dispose()
 
 /// Functional operators for IndexListDelta.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

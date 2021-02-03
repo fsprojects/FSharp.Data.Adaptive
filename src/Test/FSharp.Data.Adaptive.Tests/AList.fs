@@ -52,7 +52,7 @@ let ``[AList] reference impl``() ({ lreal = real; lref = ref; lexpression = str;
                     //yield! beforeChangeStr.Split("\r\n") |> Array.map Generators.indent
                     
                     yield "CURRENT"
-                    yield! (str true).Split("\r\n") |> Array.map Generators.indent
+                    yield! (str true).Split([|"\r\n"|], System.StringSplitOptions.None) |> Array.map Generators.indent
 
                     yield sprintf "real:  %s" real
                     yield sprintf "ref:   %s" ref
@@ -660,14 +660,14 @@ let ``[MapExt] neighbours``() =
 
             l |> should equal el
             r |> should equal er
-            s |> should equal (Some (i,i))
+            s |> should equal (Some i)
         else
             let (l, s, r) = MapExt.neighbours i m
             let el = if i > 0 then Some (i-1, i-1) else None
             let er = if i < 1998 then Some (i+1, i+1) else None
             l |> should equal el
             r |> should equal er
-            s |> should equal None
+            s |> should equal Option<int>.None
 
 
 

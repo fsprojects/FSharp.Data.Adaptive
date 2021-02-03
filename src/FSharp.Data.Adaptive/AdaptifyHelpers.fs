@@ -90,7 +90,8 @@ type ChangeableModelList<'T, 'C, 'A>(list : IndexList<'T>, init : 'T -> 'C, upda
                     | Remove ->
                         struct (ValueNone, ValueNone)
 
-            let s, ops = history.State.Content.ApplyDelta(ops.Content, apply)
+            let s, ops = history.State.Content.ApplyDeltaAndGetEffective(ops.Content, apply)
+
             history.PerformUnsafe(IndexList.ofMap s, IndexListDelta ops) |> ignore
 
     member x.GetReader() =

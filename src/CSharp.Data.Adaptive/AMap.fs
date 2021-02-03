@@ -15,7 +15,7 @@ type AdaptiveHashMapBuilder<'Key, 'Value>() =
         member x.GetEnumerator() = (store :> System.Collections.IEnumerable).GetEnumerator()
 
     member x.ToAdaptiveHashSet() =
-        AMap.ofHashMap (HashMap.OfSeqV store)
+        AMap.ofHashMap (HashMap.OfSeq store)
 
 module private AdaptiveMapHelpers =
 
@@ -56,13 +56,13 @@ type AdaptiveHashMap private() =
     
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member ToAdaptiveHashMap(this: seq<struct ('K * 'V)>) = AMap.ofHashMap (HashMap.OfSeqV this)
+    static member ToAdaptiveHashMap(this: seq<struct ('K * 'V)>) = AMap.ofHashMap (HashMap.ofSeqV this)
 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member ToAdaptiveHashMap(this: list<struct ('K * 'V)>) = AMap.ofHashMap (HashMap.OfSeqV this)
+    static member ToAdaptiveHashMap(this: list<struct ('K * 'V)>) = AMap.ofHashMap (HashMap.ofListV this)
 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member ToAdaptiveHashMap(this: struct('K * 'V)[]) = AMap.ofHashMap (HashMap.OfSeqV this)
+    static member ToAdaptiveHashMap(this: struct('K * 'V)[]) = AMap.ofHashMap (HashMap.ofArrayV this)
 
 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]

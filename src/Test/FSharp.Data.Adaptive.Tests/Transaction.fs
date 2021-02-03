@@ -73,5 +73,53 @@ let ``[AVal] callbacks``() =
     ()
 
 
+[<Test>]
+let ``[CSet] no transaction add``() =
+    let set = cset [1;2;3;4]
+
+    set.Add(5) |> ignore
+    set.Remove(1) |> ignore
+
+    set.Value |> ignore
+    set.Add(10) |> ignore
+
+[<Test>]
+let ``[CSet] no transaction remove``() =  
+    let set = cset [1;2;3;4]
+
+    set.Remove(1) |> ignore
+    set.Add(5) |> ignore
+
+    set |> ASet.force |> ignore
+    set.Remove(2) |> ignore
 
 
+[<Test>]
+let ``[CList] no transaction append``() =
+    let list = clist [1;2;3;4]
+
+    list.Append(5) |> ignore
+    list.RemoveAt(0) |> ignore
+
+    list |> AList.force |> ignore
+    list.Append(10) |> ignore
+
+[<Test>]
+let ``[CList] no transaction remove``() =
+    let list = clist [1;2;3;4]
+
+    list.RemoveAt(0) |> ignore
+    list.Append(5) |> ignore
+
+    list |> AList.force |> ignore
+    list.RemoveAt(0) |> ignore
+
+
+[<Test>]
+let ``[CVal] no transaction change``() =
+    let cval = cval 5
+
+    cval.Value <- 1
+
+    cval |> AVal.force |> ignore
+    cval.Value <- 2

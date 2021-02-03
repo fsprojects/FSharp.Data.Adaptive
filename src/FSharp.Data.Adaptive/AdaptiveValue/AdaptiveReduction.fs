@@ -11,34 +11,34 @@ type AdaptiveReduction<'a, 's, 'v> =
 
 module AdaptiveReduction =
 
-    let par (l : AdaptiveReduction<'a, 's, 'v>) (r : AdaptiveReduction<'a, 't, 'w>) =
+    let par (left : AdaptiveReduction<'a, 's, 'v>) (right : AdaptiveReduction<'a, 't, 'w>) =
         {
-            seed = (l.seed, r.seed)
-            add = fun (s, t) a -> (l.add s a, r.add t a)
+            seed = (left.seed, right.seed)
+            add = fun (s, t) a -> (left.add s a, right.add t a)
             sub = fun (s, t) a ->
-                match l.sub s a with
+                match left.sub s a with
                 | ValueSome s ->
-                    match r.sub t a with
+                    match right.sub t a with
                     | ValueSome t -> ValueSome(s,t)
                     | _ -> ValueNone
                 | ValueNone ->
                     ValueNone
-            view = fun (s,t) -> (l.view s, r.view t)
+            view = fun (s,t) -> (left.view s, right.view t)
         }
 
-    let structpar (l : AdaptiveReduction<'a, 's, 'v>) (r : AdaptiveReduction<'a, 't, 'w>) =
+    let structpar (left : AdaptiveReduction<'a, 's, 'v>) (right : AdaptiveReduction<'a, 't, 'w>) =
         {
-            seed = struct(l.seed, r.seed)
-            add = fun struct (s, t) a -> struct(l.add s a, r.add t a)
+            seed = struct(left.seed, right.seed)
+            add = fun struct (s, t) a -> struct(left.add s a, right.add t a)
             sub = fun struct (s, t) a ->
-                match l.sub s a with
+                match left.sub s a with
                 | ValueSome s ->
-                    match r.sub t a with
+                    match right.sub t a with
                     | ValueSome t -> ValueSome(struct (s,t))
                     | _ -> ValueNone
                 | ValueNone ->
                     ValueNone
-            view = fun struct (s,t) -> struct (l.view s, r.view t)
+            view = fun struct (s,t) -> struct (left.view s, right.view t)
         }
 
     let mapIn (mapping : 'a -> 'b) (reduction : AdaptiveReduction<'b, 's, 'v>) =

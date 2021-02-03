@@ -57,10 +57,10 @@ let ``[ASet] reference impl``() ({ sreal = real; sref = ref; sexpression = str; 
                 String.concat "\r\n" [
                     yield "ERROR"
                     yield "BEFORE"
-                    yield! beforeChangeStr.Split("\r\n") |> Array.map Generators.indent
+                    yield! beforeChangeStr.Split([|"\r\n"|], System.StringSplitOptions.None) |> Array.map Generators.indent
                     
                     yield "CURRENT"
-                    yield! (str true).Split("\r\n") |> Array.map Generators.indent
+                    yield! (str true).Split([|"\r\n"|], System.StringSplitOptions.None) |> Array.map Generators.indent
 
                     yield sprintf "real:  %s" real
                     yield sprintf "ref:   %s" ref

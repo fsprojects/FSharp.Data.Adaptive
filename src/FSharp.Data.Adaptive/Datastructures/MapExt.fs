@@ -1,2448 +1,3815 @@
-﻿// THIS IS A MODIFIED VERSION OF F#'s Map<'Key, 'Value> !!!!
-// THE ORIGINAL CAN BE FOUND AT https://github.com/fsharp/fsharp/blob/master/src/fsharp/FSharp.Core/map.fs
+﻿namespace FSharp.Data.Adaptive
 
-// Copyright (c) Microsoft Corporation.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
-
-namespace FSharp.Data.Adaptive
-
-open System
 open System.Collections.Generic
-open System.Diagnostics
-open Microsoft.FSharp.Core
-open Microsoft.FSharp.Core.LanguagePrimitives.IntrinsicOperators
-
-module internal MapExtImplementation = 
-    [<CompilationRepresentation(CompilationRepresentationFlags.UseNullAsTrueValue)>]
-    [<NoEquality; NoComparison>]
-    type MapTree<'Key,'Value> = 
-        | MapEmpty 
-        | MapOne of 'Key * 'Value
-        | MapNode of 'Key * 'Value * MapTree<'Key,'Value> *  MapTree<'Key,'Value> * int * int
-            // REVIEW: performance rumour has it that the data held in MapNode and MapOne should be
-            // exactly one cache line. It is currently ~7 and 4 words respectively. 
-
-    type MapExtReference<'v> =
-        | NonExisting of index : int
-        | Existing of index : int * value : 'v
+open System.Runtime.InteropServices
 
 
-    type internal EnumeratorEnumerable<'T>(get : unit -> IEnumerator<'T>) =
-        interface System.Collections.IEnumerable with
-            member x.GetEnumerator() = get() :> System.Collections.IEnumerator
+module internal MapExtImplementation =
+    module private Memory = 
+        let mem() =
+            let garbage() = 
+                Array.init 10000 (fun i -> System.Guid.NewGuid()) |> ignore
 
-        interface IEnumerable<'T> with
-            member x.GetEnumerator() = get()
+            for i in 1 .. 10 do garbage()
+            System.GC.Collect(3, System.GCCollectionMode.Forced, true, true)
+            System.GC.WaitForFullGCComplete() |> ignore
+            System.GC.GetTotalMemory(true)
 
-    
+        let bla(create : int -> 'A) =
+            let cnt = 1000
+            let arrayOverhead = 
+                if typeof<'A>.IsValueType then 2L * int64 sizeof<nativeint>
+                else (int64 cnt + 2L) * int64 sizeof<nativeint>
 
-    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-    module MapTree = 
+            let warmup() = Array.init cnt create |> ignore
+            warmup()
 
-        let empty = MapEmpty 
-
-        let height = function
-            | MapEmpty -> 0
-            | MapOne _ -> 1
-            | MapNode(_,_,_,_,h,_) -> h
-
-        let size = function
-            | MapEmpty -> 0
-            | MapOne _ -> 1
-            | MapNode(_,_,_,_,_,s) -> s
-
-        let isEmpty m = 
-            match m with 
-            | MapEmpty -> true
-            | _ -> false
-
-        let mk l k v r = 
-            match l,r with 
-            | MapEmpty,MapEmpty -> MapOne(k,v)
-            | _ -> 
-                let hl = height l 
-                let hr = height r 
-                let m = if hl < hr then hr else hl 
-                let res = MapNode(k,v,l,r,m+1, 1 + size l + size r)
-                res
-
-        let rec rebalance t1 k v t2 =
-            let t1h = height t1 
-            let t2h = height t2 
-            if  t2h > t1h + 2 then (* right is heavier than left *)
-                match t2 with 
-                | MapNode(t2k,t2v,t2l,t2r,_,_) -> 
-                    (* one of the nodes must have height > height t1 + 1 *)
-                   if height t2l > t1h + 1 then  (* balance left: combination *)
-                       match t2l with 
-                       | MapNode(t2lk,t2lv,t2ll,t2lr,_,_) ->
-                           mk (mk t1 k v t2ll) t2lk t2lv (rebalance t2lr t2k t2v t2r) 
-                       | _ -> failwith "rebalance"
-                   else (* rotate left *)
-                       mk (mk t1 k v t2l) t2k t2v t2r
-                | _ -> failwith "rebalance"
-            else
-                if  t1h > t2h + 2 then (* left is heavier than right *)
-                    match t1 with 
-                    | MapNode(t1k,t1v,t1l,t1r,_,_) -> 
-                        (* one of the nodes must have height > height t2 + 1 *)
-                        if height t1r > t2h + 1 then 
-                            (* balance right: combination *)
-                            match t1r with 
-                            | MapNode(t1rk,t1rv,t1rl,t1rr,_,_) ->
-                                mk (rebalance t1l t1k t1v t1rl) t1rk t1rv (mk t1rr k v t2)
-                            | _ -> failwith "rebalance"
-                        else
-                            mk t1l t1k t1v (mk t1r k v t2)
-                    | _ -> failwith "rebalance"
-                else mk t1 k v t2
-
-        let rec add (comparer: IComparer<'Value>) k v m = 
-            match m with 
-            | MapEmpty -> MapOne(k,v)
-            | MapOne(k2,_) -> 
-                let c = comparer.Compare(k,k2) 
-                if c < 0   then MapNode (k,v,MapEmpty,m,2, 2)
-                elif c = 0 then MapOne(k,v)
-                else            MapNode (k,v,m,MapEmpty,2, 2)
-            | MapNode(k2,v2,l,r,h,s) -> 
-                let c = comparer.Compare(k,k2) 
-                if c < 0 then rebalance (add comparer k v l) k2 v2 r
-                elif c = 0 then MapNode(k,v,l,r,h,s)
-                else rebalance l k2 v2 (add comparer k v r) 
-
-        let rec find (comparer: IComparer<'Value>) k m = 
-            match m with 
-            | MapEmpty -> raise (KeyNotFoundException())
-            | MapOne(k2,v2) -> 
-                let c = comparer.Compare(k,k2) 
-                if c = 0 then v2
-                else raise (KeyNotFoundException())
-            | MapNode(k2,v2,l,r,_,_) -> 
-                let c = comparer.Compare(k,k2) 
-                if c < 0 then find comparer k l
-                elif c = 0 then v2
-                else find comparer k r
-
-        let rec tryFind (comparer: IComparer<'Value>) k m = 
-            match m with 
-            | MapEmpty -> None
-            | MapOne(k2,v2) -> 
-                let c = comparer.Compare(k,k2) 
-                if c = 0 then Some v2
-                else None
-            | MapNode(k2,v2,l,r,_,_) -> 
-                let c = comparer.Compare(k,k2) 
-                if c < 0 then tryFind comparer k l
-                elif c = 0 then Some v2
-                else tryFind comparer k r
-                
-        let rec tryFindV (comparer: IComparer<'Value>) k m = 
-            match m with 
-            | MapEmpty -> ValueNone
-            | MapOne(k2,v2) -> 
-                let c = comparer.Compare(k,k2) 
-                if c = 0 then ValueSome v2
-                else ValueNone
-            | MapNode(k2,v2,l,r,_,_) -> 
-                let c = comparer.Compare(k,k2) 
-                if c < 0 then tryFindV comparer k l
-                elif c = 0 then ValueSome v2
-                else tryFindV comparer k r
-
-        let partition1 (comparer: IComparer<'Value>) (f:OptimizedClosures.FSharpFunc<_,_,_>) k v (acc1,acc2) = 
-            if f.Invoke(k, v) then (add comparer k v acc1,acc2) else (acc1,add comparer k v acc2) 
-        
-        let rec partitionAux (comparer: IComparer<'Value>) (f:OptimizedClosures.FSharpFunc<_,_,_>) s acc = 
-            match s with 
-            | MapEmpty -> acc
-            | MapOne(k,v) -> partition1 comparer f k v acc
-            | MapNode(k,v,l,r,_,_) -> 
-                let acc = partitionAux comparer f r acc 
-                let acc = partition1 comparer f k v acc
-                partitionAux comparer f l acc
-
-        let partition (comparer: IComparer<'Value>) f s = partitionAux comparer (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) s (empty,empty)
-
-        let filter1 (comparer: IComparer<'Value>) (f:OptimizedClosures.FSharpFunc<_,_,_>) k v acc = if f.Invoke(k, v) then add comparer k v acc else acc 
-
-        let rec filterAux (comparer: IComparer<'Value>) (f:OptimizedClosures.FSharpFunc<_,_,_>) s acc = 
-            match s with 
-            | MapEmpty -> acc
-            | MapOne(k,v) -> filter1 comparer f k v acc
-            | MapNode(k,v,l,r,_,_) ->
-                let acc = filterAux comparer f l acc
-                let acc = filter1 comparer f k v acc
-                filterAux comparer f r acc
-
-        let filter (comparer: IComparer<'Value>) f s = filterAux comparer (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) s empty
-
-        let rec spliceOutSuccessor m = 
-            match m with 
-            | MapEmpty -> failwith "internal error: MapExt.spliceOutSuccessor"
-            | MapOne(k2,v2) -> k2,v2,MapEmpty
-            | MapNode(k2,v2,l,r,_,_) ->
-                match l with 
-                | MapEmpty -> k2,v2,r
-                | _ -> let k3,v3,l' = spliceOutSuccessor l in k3,v3,rebalance l' k2 v2 r
-
-        let rec remove (comparer: IComparer<'Value>) k m = 
-            match m with 
-            | MapEmpty -> empty
-            | MapOne(k2,_) -> 
-                let c = comparer.Compare(k,k2) 
-                if c = 0 then MapEmpty else m
-            | MapNode(k2,v2,l,r,_,_) -> 
-                let c = comparer.Compare(k,k2) 
-                if c < 0 then rebalance (remove comparer k l) k2 v2 r
-                elif c = 0 then 
-                    match l with
-                    | MapEmpty -> r
-                    | _ ->
-                        match r with
-                        | MapEmpty -> l
-                        | _ -> 
-                        let sk,sv,r' = spliceOutSuccessor r 
-                        rebalance l sk sv r'
-                else 
-                    rebalance l k2 v2 (remove comparer k r) 
-
-
-        let rec tryRemove (comparer: IComparer<'Value>) k m = 
-            match m with 
-            | MapEmpty -> None
-            | MapOne(k2,v) -> 
-                let c = comparer.Compare(k,k2) 
-                if c = 0 then Some (v, MapEmpty) else None
-            | MapNode(k2,v2,l,r,_,_) -> 
-                let c = comparer.Compare(k,k2) 
-                if c < 0 then 
-                    match tryRemove comparer k l with
-                    | Some (v,l) ->
-                        Some (v, rebalance l k2 v2 r)
-                    | None ->
-                        None
-                elif c = 0 then 
-                    match l with
-                    | MapEmpty -> Some(v2, r)
-                    | _ ->
-                        match r with
-                        | MapEmpty -> Some(v2, l)
-                        | _ -> 
-                            let sk,sv,r' = spliceOutSuccessor r 
-                            Some(v2, rebalance l sk sv r')
-                else 
-                    match tryRemove comparer k r with
-                    | Some (v,r) ->
-                        Some (v, rebalance l k2 v2 r)
-                    | None ->
-                        None
-
-        let rec tryRemoveV (comparer: IComparer<'Value>) k m = 
-            match m with 
-            | MapEmpty -> ValueNone
-            | MapOne(k2,v) -> 
-                let c = comparer.Compare(k,k2) 
-                if c = 0 then ValueSome (struct(v, MapEmpty)) else ValueNone
-            | MapNode(k2,v2,l,r,_,_) -> 
-                let c = comparer.Compare(k,k2) 
-                if c < 0 then 
-                    match tryRemoveV comparer k l with
-                    | ValueSome (v,l) ->
-                        ValueSome (struct (v, rebalance l k2 v2 r))
-                    | ValueNone ->
-                        ValueNone
-                elif c = 0 then 
-                    match l with
-                    | MapEmpty -> ValueSome(struct(v2, r))
-                    | _ ->
-                        match r with
-                        | MapEmpty -> ValueSome(struct(v2, l))
-                        | _ -> 
-                            let sk,sv,r' = spliceOutSuccessor r 
-                            ValueSome(struct(v2, rebalance l sk sv r'))
-                else 
-                    match tryRemoveV comparer k r with
-                    | ValueSome (v,r) ->
-                        ValueSome (struct(v, rebalance l k2 v2 r))
-                    | ValueNone ->
-                        ValueNone
-
-
-
-        let rec tryRemoveMin cmp m = 
-            match m with 
-            | MapEmpty -> 
-                None
-
-            | MapOne(k2,v) ->
-                Some (k2, v, MapEmpty)
-
-            | MapNode(k2,v2,l,r,_,_) -> 
-                match tryRemoveMin cmp l with
-                | Some (k,v,rest) ->
-                    match rest with
-                    | MapEmpty -> Some (k, v, add cmp k2 v2 r)
-                    | _ -> Some (k, v, rebalance rest k2 v2 r)
-                | None ->
-                    Some(k2, v2, r)
-
-        let rec tryRemoveMax cmp m = 
-            match m with 
-            | MapEmpty -> 
-                None
-
-            | MapOne(k2,v) ->
-                Some (k2, v, MapEmpty)
-
-            | MapNode(k2,v2,l,r,_,_) -> 
-                match tryRemoveMax cmp r with
-                | Some (k,v,rest) ->
-                    match rest with
-                    | MapEmpty -> Some (k, v, add cmp k2 v2 l)
-                    | _ -> Some (k, v, rebalance l k2 v2 rest)
-                | None ->
-                    Some(k2, v2, l)
-
-
-        
-        let rec tryMinKeyV n =
-            match n with
-            | MapEmpty ->
-                ValueNone
-            | MapOne(k,_) ->
-                ValueSome k
-            | MapNode(k, _, l, _, _, _) ->
-                match tryMinKeyV l with
-                | ValueSome m -> ValueSome m
-                | ValueNone -> ValueSome k
-                
-        let rec tryMaxKeyV n =
-            match n with
-            | MapEmpty ->
-                ValueNone
-            | MapOne(k,_) ->
-                ValueSome k
-            | MapNode(k, _, _, r, _, _) ->
-                match tryMaxKeyV r with
-                | ValueSome m -> ValueSome m
-                | ValueNone -> ValueSome k
-
-        let rec tryRemoveMinV cmp next m = 
-            match m with 
-            | MapEmpty -> 
-                ValueNone
-
-            | MapOne(k2,v) ->
-                ValueSome (struct (k2, v, next, MapEmpty))
-
-            | MapNode(k2,v2,l,r,_,_) -> 
-                match tryRemoveMinV cmp (ValueSome k2) l with
-                | ValueSome (k,v,next,rest) ->
-                    match rest with
-                    | MapEmpty -> ValueSome (struct(k, v, next, add cmp k2 v2 r))
-                    | _ -> ValueSome (struct(k, v, next, rebalance rest k2 v2 r))
-                | ValueNone ->
-                    let next = tryMinKeyV r
-                    ValueSome(struct(k2, v2, next, r))
-
-
-        let rec tryRemoveMaxV cmp prev m = 
-            match m with 
-            | MapEmpty -> 
-                ValueNone
-
-            | MapOne(k2,v) ->
-                ValueSome (struct(k2, v, prev, MapEmpty))
-
-            | MapNode(k2,v2,l,r,_,_) -> 
-                match tryRemoveMaxV cmp (ValueSome k2) r with
-                | ValueSome (struct(k, v, prev, rest)) ->
-                    match rest with
-                    | MapEmpty -> ValueSome (struct(k, v, prev, add cmp k2 v2 l))
-                    | _ -> ValueSome (struct(k, v, prev, rebalance l k2 v2 rest))
-                | ValueNone ->
-                    let prev = tryMaxKeyV l
-                    ValueSome(k2, v2, prev, l)
-
-
-        
-        let rec alter (comparer : IComparer<'Value>) k f m =
-            match m with   
-            | MapEmpty ->
-                match f None with
-                    | Some v -> MapOne(k,v)
-                    | None -> MapEmpty
-
-            | MapOne(k2, v2) ->
-                let c = comparer.Compare(k,k2) 
-                if c = 0 then
-                    match f (Some v2) with
-                        | Some v3 -> MapOne(k2, v3)
-                        | None -> MapEmpty
-                else
-                    match f None with
-                        | None -> 
-                            MapOne(k2, v2)
-
-                        | Some v3 -> 
-                            if c > 0 then MapNode (k2,v2,MapEmpty,MapOne(k, v3),2, 2)
-                            else MapNode(k2, v2, MapOne(k, v3), MapEmpty, 2, 2)
-            | MapNode(k2, v2, l, r, h, cnt) ->
+            let before = mem()
+            let arr = Array.init cnt create
+            let diff = mem() - before - arrayOverhead
+            let pseudo = float (Unchecked.hash arr % 2) - 0.5 |> int64
+            float (diff + pseudo) / float cnt 
             
-                let c = comparer.Compare(k, k2)
+    let inline combineHash (a: int) (b: int) =
+        uint32 a ^^^ uint32 b + 0x9e3779b9u + ((uint32 a) <<< 6) + ((uint32 a) >>> 2) |> int
 
-                if c = 0 then
-                    match f (Some v2) with
-                        | Some v3 -> 
-                            MapNode(k2, v3, l, r, h, cnt)
+    [<AllowNullLiteral; NoEquality; NoComparison>]
+    type Node<'Key, 'Value> =
+        val mutable public Height : byte
+        val mutable public Key : 'Key
+        val mutable public Value : 'Value
+        new(k, v, h) = { Key = k; Value = v; Height = h }
+        new(k, v) = { Key = k; Value = v; Height = 1uy }
+        
+    [<Sealed; AllowNullLiteral; NoEquality; NoComparison>]
+    type Inner<'Key, 'Value> =
+        inherit Node<'Key, 'Value>
+        val mutable public Count : int
+        val mutable public Left : Node<'Key, 'Value>
+        val mutable public Right : Node<'Key, 'Value>
+       
+        static member inline GetCount(node : Node<'Key, 'Value>) =
+            if isNull node then 0
+            elif node.Height = 1uy then 1
+            else (node :?> Inner<'Key, 'Value>).Count
 
-                        | None ->
-                            match l with
-                            | MapEmpty -> r
-                            | _ ->
-                                match r with
-                                | MapEmpty -> l
-                                | _ -> 
-                                    let sk,sv,r' = spliceOutSuccessor r 
-                                    rebalance l sk sv r'
-                elif c > 0 then
-                    rebalance l k2 v2 (alter comparer k f r) 
-                else
-                    rebalance (alter comparer k f l)  k2 v2 r
+        static member inline GetHeight(node : Node<'Key, 'Value>) =
+            if isNull node then 0uy
+            else node.Height
+
+        static member inline FixHeightAndCount(inner : Inner<'Key, 'Value>) =
+            let lc = Inner.GetCount inner.Left
+            let rc = Inner.GetCount inner.Right
+            let lh = if lc > 0 then inner.Left.Height else 0uy
+            let rh = if rc > 0 then inner.Right.Height else 0uy
+            inner.Count <- 1 + lc + rc
+            inner.Height <- 1uy + max lh rh
+
+        new(l : Node<'Key, 'Value>, k : 'Key, v : 'Value, r : Node<'Key, 'Value>, h : byte, cnt : int) =
+            { inherit  Node<'Key, 'Value>(k, v, h); Left = l; Right = r; Count = cnt }
+
+        static member Create(l : Node<'Key, 'Value>, k : 'Key, v : 'Value, r : Node<'Key, 'Value>) =
+            if isNull l && isNull r then Node(k, v)
+            else 
+                let lc = Inner.GetCount l
+                let rc = Inner.GetCount r
+                let lh = if lc > 0 then l.Height else 0uy
+                let rh = if rc > 0 then r.Height else 0uy
+                Inner(l, k, v, r, 1uy + max lh rh, 1 + lc + rc) :> Node<_,_>
                
-        let rec join left k v right =
-            let lh = height left
-            let rh = height right
-            if lh > rh + 2 then
-                match left with
-                    | MapNode(k2,v2,l,r,_,_) ->
-                        // the join-result can at most be one level higher than r
-                        // therefore rebalance is sufficient here
-                        rebalance l k2 v2 (join r k v right)
-                    | _ ->
-                        failwith "join"
-            elif rh > lh + 2 then
-                match right with
-                    | MapNode(k2,v2,l,r,_,_) ->
-                        // the join-result can at most be one level higher than l
-                        // therefore rebalance is sufficient here
-                        rebalance (join left k v l) k2 v2 r
-                    | _ ->
-                        failwith "join"
-            else
-                mk left k v right
-
-
-        let inline merge l r =
-            match r with
-            | MapEmpty -> l
-            | _ ->
-                match l with
-                | MapEmpty -> r
-                | _ ->
-                    let (k,v,r) = spliceOutSuccessor r
-                    join l k v r
-
-        let inline joinV left k v right =
-            match v with
-            | ValueSome v -> join left k v right
-            | ValueNone -> merge left right
-
-        let rec split (comparer: IComparer<'Value>) k m =
-            match m with
-            | MapEmpty -> 
-                MapEmpty, None, MapEmpty
-
-            | MapOne(k2,v2) ->
-                let c = comparer.Compare(k, k2)
-                if c < 0 then MapEmpty, None, MapOne(k2,v2)
-                elif c = 0 then MapEmpty, Some(v2), MapEmpty
-                else MapOne(k2,v2), None, MapEmpty
-
-            | MapNode(k2,v2,l,r,_,_) ->
-                let c = comparer.Compare(k, k2)
-                if c > 0 then
-                    let rl, res, rr = split comparer k r
-                    join l k2 v2 rl, res, rr
-
-                elif c = 0 then 
-                    l, Some(v2), r
-
-                else
-                    let ll, res, lr = split comparer k l
-                    ll, res, join lr k2 v2 r
-
-
-        let rec tryMinAux acc m =
-            match m with
-            | MapEmpty -> acc
-            | MapOne(k,v) -> Some (k,v)
-            | MapNode(k,v,l,_,_,_) -> tryMinAux (Some (k,v)) l
-
-        let rec tryMin m = tryMinAux None m
-    
-        let rec tryMinVAux acc m =
-            match m with
-            | MapEmpty -> acc
-            | MapOne(k,v) -> ValueSome (struct(k,v))
-            | MapNode(k,v,l,_,_,_) -> tryMinVAux (ValueSome (struct(k,v))) l
-
-        let rec tryMinV m = tryMinVAux ValueNone m
-    
-        let rec tryMaxAux acc m =
-            match m with
-            | MapEmpty -> acc
-            | MapOne(k,v) -> Some (k,v)
-            | MapNode(k,v,_,r,_,_) -> tryMaxAux (Some (k,v)) r
-
-        let rec tryMax m = tryMaxAux None m
         
-        let rec tryMaxVAux acc m =
-            match m with
-            | MapEmpty -> acc
-            | MapOne(k,v) -> ValueSome (struct(k,v))
-            | MapNode(k,v,_,r,_,_) -> tryMaxVAux (ValueSome (struct(k,v))) r
-
-        let rec tryMaxV m = tryMaxVAux ValueNone m
-
-        let rec splitV (comparer: IComparer<'Value>) k m =
-            match m with
-            | MapEmpty -> 
-                struct (MapEmpty, ValueNone, ValueNone, ValueNone, MapEmpty)
-
-            | MapOne(k2,v2) ->
-                let c = comparer.Compare(k, k2)
-                if c < 0 then struct (MapEmpty, ValueNone, ValueNone, ValueSome k2, MapOne(k2,v2))
-                elif c = 0 then struct (MapEmpty, ValueNone, ValueSome(v2), ValueNone, MapEmpty)
-                else struct (MapOne(k2,v2), ValueSome k2, ValueNone, ValueNone, MapEmpty)
-
-            | MapNode(k2,v2,l,r,_,_) ->
-                let c = comparer.Compare(k, k2)
-                if c > 0 then
-                    let struct (rl, lmax, res, rmin, rr) = splitV comparer k r
-                    struct (join l k2 v2 rl, lmax, res, rmin, rr)
-
-                elif c = 0 then 
-                    let lmax = tryMaxV l |> ValueOption.map (fun struct(k,_) -> k)
-                    let rmin = tryMinV r |> ValueOption.map (fun struct(k,_) -> k)
-                    struct (l, lmax, ValueSome(v2), rmin, r)
-
-                else
-                    let struct (ll, lmax, res, rmin, lr) = splitV comparer k l
-                    struct (ll, lmax, res, rmin, join lr k2 v2 r)
-
-        let rec getReference (comparer: IComparer<'Value>) (current : int) k m =
-            match m with
-                | MapEmpty -> 
-                    NonExisting current
-
-                | MapOne(key,v) ->
-                    let c = comparer.Compare(k, key)
-                    
-                    if c > 0 then NonExisting (current + 1)
-                    elif c < 0 then NonExisting current
-                    else Existing(current, v)
-
-                | MapNode(key,v,l,r,_,s) ->
-                    let c = comparer.Compare(k, key)
-                    if c > 0 then getReference comparer (current + size l + 1) k r
-                    elif c < 0 then getReference comparer current k l
-                    else Existing(current+size l, v)
-
-
-                    
-        let rec union (comparer: IComparer<'Key>) l r =
-            match struct (l, r) with
-            | struct (MapEmpty, r) -> r
-            | struct (l, MapEmpty) -> l
-            | struct (MapOne(lk, _lv), MapOne(rk, rv)) ->
-                if Object.ReferenceEquals(l, r) then 
-                    r
-                else 
-                    let c = comparer.Compare(lk, rk)
-                    if c = 0 then r
-                    elif c > 0 then mk MapEmpty rk rv l
-                    else mk l rk rv MapEmpty
-                    
-            | struct (MapOne(lk, _), MapNode(rk, rv, rl, rr, rh, rc)) ->
-                let c = comparer.Compare(lk, rk)
-                if c = 0 then r
-                elif c < 0 then join (union comparer l rl) rk rv rr
-                else join rl rk rv (union comparer l rr)
-
-            | struct (MapNode(lk, lv, ll, lr, lh, lc), MapOne(rk, rv)) ->
-                let c = comparer.Compare(lk, rk)
-                if c = 0 then MapNode(lk, rv, ll, lr, lh, lc)
-                elif c < 0 then join ll lk lv (union comparer lr r)
-                else join (union comparer ll r) lk lv lr
-
-            | struct (MapNode(lk, lv, ll, lr, lh, lc), MapNode(rk, rv, rl, rr, rh, rc)) ->
-                if Object.ReferenceEquals(l, r) then 
-                    r
-                else
-                    let c = comparer.Compare(lk, rk)
-                    if c = 0 then 
-                        let l = union comparer ll rl
-                        let r = union comparer lr rr
-                        join l rk rv r
-                    elif lh > rh then
-                        let struct (rl, _lmax, rv, _rmin, rr) = splitV comparer lk r
-                        let key = lk
-                        let l = union comparer ll rl
-                        let r = union comparer lr rr
-
-                        match rv with
-                        | ValueSome rv -> join l key rv r
-                        | ValueNone -> join l key lv r
-                    else
-                        let struct (ll, _lmax, _, _rmin, lr) = splitV comparer rk l
-                        let key = rk
-                        let l = union comparer ll rl
-                        let r = union comparer lr rr
-                        join l key rv r
-
-        let rec unionWithOpt (comparer: IComparer<'Value>) (f : OptimizedClosures.FSharpFunc<_,_,_>) l r =
-            match struct (l, r) with
-            | struct (MapEmpty, r) -> r
-            | struct (l, MapEmpty) -> l
-            | struct (MapOne(lk, lv), MapOne(rk, rv)) ->
-                let c = comparer.Compare(lk, rk)
-                if c = 0 then MapOne(rk, f.Invoke(lv, rv))
-                elif c > 0 then mk MapEmpty rk rv l
-                else mk l rk rv MapEmpty
-                    
-            | struct (MapOne(lk, lv), MapNode(rk, rv, rl, rr, rh, rc)) ->
-                let c = comparer.Compare(lk, rk)
-                if c = 0 then MapNode(rk, f.Invoke(lv, rv), rl, rr, rh, rc)
-                elif c < 0 then join (unionWithOpt comparer f l rl) rk rv rr
-                else join rl rk rv (unionWithOpt comparer f l rr)
-
-            | struct (MapNode(lk, lv, ll, lr, lh, lc), MapOne(rk, rv)) ->
-                let c = comparer.Compare(lk, rk)
-                if c = 0 then MapNode(lk, f.Invoke(lv, rv), ll, lr, lh, lc)
-                elif c < 0 then join ll lk lv (unionWithOpt comparer f lr r)
-                else join (unionWithOpt comparer f ll r) lk lv lr
-
-            | struct (MapNode(lk, lv, ll, lr, lh, lc), MapNode(rk, rv, rl, rr, rh, rc)) ->
-                let c = comparer.Compare(lk, rk)
-                if c = 0 then 
-                    let l = unionWithOpt comparer f ll rl
-                    let r = unionWithOpt comparer f lr rr
-                    join l rk (f.Invoke(lv, rv)) r
-                elif lh > rh then
-                    let struct (rl, _lmax, rv, _rmin, rr) = splitV comparer lk r
-                    let key = lk
-                    let l = unionWithOpt comparer f ll rl
-                    let r = unionWithOpt comparer f lr rr
-
-                    match rv with
-                    | ValueSome rv -> join l key (f.Invoke(lv, rv)) r
-                    | ValueNone -> join l key lv r
-                else
-                    let struct (ll, _lmax, lv, _rmin, lr) = splitV comparer rk l
-                    let key = rk
-                    let l = unionWithOpt comparer f ll rl
-                    let r = unionWithOpt comparer f lr rr
-                    match lv with
-                    | ValueSome lv -> join l key (f.Invoke(lv, rv)) r
-                    | ValueNone -> join l key rv r
-  
-        let unionWith(comparer: IComparer<'Value>) f l r =
-            unionWithOpt comparer (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) l r
-
-
-
-        let rec stupidHeight m =
-            match m with
-                | MapEmpty -> 0
-                | MapOne _ -> 1
-                | MapNode(_,_,l,r,_,_) -> max (stupidHeight l) (stupidHeight r) + 1
-
-        let rec stupidCount m =
-            match m with
-                | MapEmpty -> 0
-                | MapOne _ -> 1
-                | MapNode(_,_,l,r,_,_) ->
-                    1 + stupidCount l + stupidCount r
-
-        let rec validateAux (comparer: IComparer<'Value>) (min : option<_>) (max : option<_>) m =
-            match m with
-                | MapNode(k,v,l,r,h,c) ->
-                    let lh = height l
-                    let rh = height r
-
-                    if Option.isSome min && comparer.Compare(k, min.Value) <= 0 then failwith "invalid order"
-                    if Option.isSome max && comparer.Compare(k, max.Value) >= 0 then failwith "invalid order"
-                    if stupidCount m <> c then failwith "invalid count"
-                    if stupidHeight l <> lh then failwith "invalid height"
-                    if stupidHeight r <> rh then failwith "invalid height"
-                    if abs (lh - rh) > 2 then failwith "imbalanced"   
-                    
-                    validateAux comparer min (Some k) l
-                    validateAux comparer (Some k) max r
-
-                | MapOne(k,v) ->
-                    if Option.isSome min && comparer.Compare(k, min.Value) <= 0 then failwith "invalid order"
-                    if Option.isSome max && comparer.Compare(k, max.Value) >= 0 then failwith "invalid order"
-
-                | MapEmpty ->
-                    ()
-
-        let validate (comparer: IComparer<'Value>) m =
-            validateAux comparer None None m
-
-
-        let rec mem (comparer: IComparer<'Value>) k m = 
-            match m with 
-            | MapEmpty -> false
-            | MapOne(k2,_) -> (comparer.Compare(k,k2) = 0)
-            | MapNode(k2,_,l,r,_,_) -> 
-                let c = comparer.Compare(k,k2) 
-                if c < 0 then mem comparer k l
-                else (c = 0 || mem comparer k r)
-
-        let rec iterOpt (f:OptimizedClosures.FSharpFunc<_,_,_>) m =
-            match m with 
-            | MapEmpty -> ()
-            | MapOne(k2,v2) -> f.Invoke(k2, v2)
-            | MapNode(k2,v2,l,r,_,_) -> iterOpt f l; f.Invoke(k2, v2); iterOpt f r
-
-        let iter f m = iterOpt (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
-
-        let rec tryPickOpt (f:OptimizedClosures.FSharpFunc<_,_,_>) m =
-            match m with 
-            | MapEmpty -> None
-            | MapOne(k2,v2) -> f.Invoke(k2, v2) 
-            | MapNode(k2,v2,l,r,_,_) -> 
-                match tryPickOpt f l with 
-                | Some _ as res -> res 
-                | None -> 
-                match f.Invoke(k2, v2) with 
-                | Some _ as res -> res 
-                | None -> 
-                tryPickOpt f r
-
-        let tryPick f m = tryPickOpt (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
-
-        let rec tryPickOptBack (f:OptimizedClosures.FSharpFunc<_,_,_>) m =
-            match m with 
-            | MapEmpty -> None
-            | MapOne(k2,v2) -> f.Invoke(k2, v2) 
-            | MapNode(k2,v2,l,r,_,_) -> 
-                match tryPickOptBack f r with 
-                | Some _ as res -> res 
-                | None -> 
-                match f.Invoke(k2, v2) with 
-                | Some _ as res -> res 
-                | None -> 
-                tryPickOptBack f l
-
-        let tryPickBack f m = tryPickOptBack (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
-
-
-        let rec existsOpt (f:OptimizedClosures.FSharpFunc<_,_,_>) m = 
-            match m with 
-            | MapEmpty -> false
-            | MapOne(k2,v2) -> f.Invoke(k2, v2)
-            | MapNode(k2,v2,l,r,_,_) -> existsOpt f l || f.Invoke(k2, v2) || existsOpt f r
-
-        let exists f m = existsOpt (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
-
-        let rec forallOpt (f:OptimizedClosures.FSharpFunc<_,_,_>) m = 
-            match m with 
-            | MapEmpty -> true
-            | MapOne(k2,v2) -> f.Invoke(k2, v2)
-            | MapNode(k2,v2,l,r,_,_) -> forallOpt f l && f.Invoke(k2, v2) && forallOpt f r
-
-        let forall f m = forallOpt (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
-
-        let rec map f m = 
-            match m with 
-            | MapEmpty -> empty
-            | MapOne(k,v) -> MapOne(k,f v)
-            | MapNode(k,v,l,r,h,c) -> 
-                let l2 = map f l 
-                let v2 = f v 
-                let r2 = map f r 
-                MapNode(k,v2,l2, r2,h,c)
-
-        let rec mapiOpt (f:OptimizedClosures.FSharpFunc<_,_,_>) m = 
-            match m with
-            | MapEmpty -> empty
-            | MapOne(k,v) -> MapOne(k, f.Invoke(k, v))
-            | MapNode(k,v,l,r,h,c) -> 
-                let l2 = mapiOpt f l 
-                let v2 = f.Invoke(k, v) 
-                let r2 = mapiOpt f r 
-                MapNode(k,v2, l2, r2,h,c)
-
-        let mapi f m = mapiOpt (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
-
-        let rec mapiMonotonicAux (f:OptimizedClosures.FSharpFunc<_,_,_>) m =
-            match m with
-            | MapEmpty -> empty
-            | MapOne(k,v) -> 
-                let (k2, v2) = f.Invoke(k, v)
-                MapOne(k2, v2)
-            | MapNode(k,v,l,r,h,c) -> 
-                let l2 = mapiMonotonicAux f l 
-                let k2, v2 = f.Invoke(k, v) 
-                let r2 = mapiMonotonicAux f r 
-                MapNode(k2,v2, l2, r2,h,c)
-
-        let mapiMonotonic f m = mapiMonotonicAux (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
-    
-
-        let rec chooseiMonotonicAux (f:OptimizedClosures.FSharpFunc<_,_,_>) m =
-            match m with
-            | MapEmpty -> empty
-            | MapOne(k,v) -> 
-                match f.Invoke(k, v) with
-                | Some (k2, v2) ->
-                    MapOne(k2, v2)
-                | None ->
-                    MapEmpty
-            | MapNode(k,v,l,r,h,c) -> 
-                let l2 = chooseiMonotonicAux f l 
-                let self = f.Invoke(k, v) 
-                let r2 = chooseiMonotonicAux f r 
-                match self with
-                | Some (k2, v2) ->
-                    join l2 k2 v2 r2
-                | None ->
-                    match l2 with
-                    | MapEmpty -> r2
-                    | _ ->
-                        match r2 with
-                        | MapEmpty -> l2
-                        | _ ->
-                            let k,v,r2 = spliceOutSuccessor r2
-                            join l2 k v r2
-
-        let chooseiMonotonic f m = chooseiMonotonicAux (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
-    
-        let rec chooseiOpt (f:OptimizedClosures.FSharpFunc<'Key,'T1,option<'T2>>) m =
-            match m with
-            | MapEmpty -> empty
-            | MapOne(k,v) ->
-                match f.Invoke(k,v) with
-                | Some v -> MapOne(k,v)
-                | None -> MapEmpty
-
-            | MapNode(k,v,l,r,h,c) ->
-                let l' = chooseiOpt f l
-                let s' = f.Invoke(k,v)
-                let r' = chooseiOpt f r
-                match s' with
-                | None -> merge l' r'
-                | Some v -> join l' k v r'
-
-        let choosei f m = chooseiOpt (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(f)) m
-    
-        let rec chooseiOptV (f:OptimizedClosures.FSharpFunc<'Key,'T1,voption<'T2>>) m =
-            match m with
-            | MapEmpty -> empty
-            | MapOne(k,v) ->
-                match f.Invoke(k,v) with
-                | ValueSome v -> MapOne(k,v)
-                | ValueNone -> MapEmpty
-
-            | MapNode(k,v,l,r,h,c) ->
-                let l' = chooseiOptV f l
-                let s' = f.Invoke(k,v)
-                let r' = chooseiOptV f r
-                match s' with
-                | ValueNone -> merge l' r'
-                | ValueSome v -> join l' k v r'
-
-        let rec chooseiOptV2 (f:OptimizedClosures.FSharpFunc<'Key,'T1,struct (voption<'T2> * voption<'T3>)>) m =
-            match m with
-                | MapEmpty -> 
-                    struct(MapEmpty, MapEmpty)
-
-                | MapOne(k,v) ->
-                    let struct (a, b) = f.Invoke(k,v)
-                    let a = match a with | ValueSome v -> MapOne(k,v) | ValueNone -> MapEmpty
-                    let b = match b with | ValueSome v -> MapOne(k,v) | ValueNone -> MapEmpty
-                    struct (a, b)
-
-                | MapNode(k,v,l,r,h,c) ->
-                    let struct(la', lb') = chooseiOptV2 f l
-                    let struct (sa', sb') = f.Invoke(k,v)
-                    let struct (ra', rb') = chooseiOptV2 f r
-
-                    let a = joinV la' k sa' ra'
-                    let b = joinV lb' k sb' rb'
-                    struct (a, b)
-
-
-        let rec neighboursAux (comparer: IComparer<'Value>) k l r m =
-            match m with
-                | MapEmpty -> l, None, r
-                | MapOne(k2,v2) -> 
-                    let c = comparer.Compare(k, k2)
-                    if c > 0 then Some(k2,v2), None, r
-                    elif c = 0 then l, Some(k2,v2), r
-                    else l, None, Some(k2,v2)
-
-                | MapNode(k2,v2,l2,r2,_,_) ->
-                    let c = comparer.Compare(k, k2)
-                    if c > 0 then 
-                        let l = Some(k2, v2)
-                        neighboursAux comparer k l r r2
-
-                    elif c = 0 then
-                        let l =
-                            match tryMax l2 with
-                                | None -> l
-                                | l -> l
-
-                        let r =
-                            match tryMin r2 with
-                                | None -> r
-                                | r -> r
-
-                        l,Some(k2, v2),r
-
-                    else
-                        let r = Some(k2, v2)
-                        neighboursAux comparer k l r l2
-
-        let neighbours (comparer: IComparer<'Value>) k m =
-            neighboursAux comparer k None None m
-    
-        let rec neighboursiAux idx l r m =
-            match m with
-                | MapEmpty -> 
-                    l, None, r
-
-                | MapOne(k2,v2) -> 
-                    if idx > 0 then Some(k2,v2), None, r
-                    elif idx = 0 then l, Some(k2,v2), r
-                    else l, None, Some(k2,v2)
-
-                | MapNode(k2,v2,l2,r2,_,cnt) ->
-                    if idx < 0 then
-                        None, None, tryMin m
-                    elif idx >= cnt then
-                        tryMax m, None, None
-                    else
-                        let lc = size l2
-                        if idx < lc then 
-                            let r = Some(k2, v2)
-                            neighboursiAux idx l r l2
-
-                        elif idx = lc then
-                            let l =
-                                match tryMax l2 with
-                                    | None -> l
-                                    | l -> l
-
-                            let r =
-                                match tryMin r2 with
-                                    | None -> r
-                                    | r -> r
-
-                            l, Some(k2, v2), r
-                        else
-                            let l = Some(k2, v2)
-                            neighboursiAux (idx-lc-1) l r r2
-
-        let neighboursi idx m =
-            neighboursiAux idx None None m
-    
-
-    
-        let rec neighboursVAux (comparer: IComparer<'Value>) k l r m =
-            match m with
-                | MapEmpty -> struct(l, ValueNone, r)
-                | MapOne(k2,v2) -> 
-                    let c = comparer.Compare(k, k2)
-                    if c > 0 then struct(ValueSome(struct(k2,v2)), ValueNone, r)
-                    elif c = 0 then struct(l, ValueSome(struct(k2,v2)), r)
-                    else struct(l, ValueNone, ValueSome(struct(k2,v2)))
-
-                | MapNode(k2,v2,l2,r2,_,_) ->
-                    let c = comparer.Compare(k, k2)
-                    if c > 0 then 
-                        let l = ValueSome(struct(k2, v2))
-                        neighboursVAux comparer k l r r2
-
-                    elif c = 0 then
-                        let l =
-                            match tryMaxV l2 with
-                            | ValueNone -> l
-                            | l -> l
-
-                        let r =
-                            match tryMinV r2 with
-                            | ValueNone -> r
-                            | r -> r
-
-                        struct(l,ValueSome(struct(k2, v2)),r)
-
-                    else
-                        let r = ValueSome(struct(k2, v2))
-                        neighboursVAux comparer k l r l2
-
-        let neighboursV (comparer: IComparer<'Value>) k m =
-            neighboursVAux comparer k ValueNone ValueNone m
-    
-    
-        let rec neighboursViAux idx l r m =
-            match m with
-                | MapEmpty -> 
-                    struct(l, ValueNone, r)
-
-                | MapOne(k2,v2) -> 
-                    if idx > 0 then struct(ValueSome(struct(k2,v2)), ValueNone, r)
-                    elif idx = 0 then struct(l, ValueSome(struct(k2,v2)), r)
-                    else struct(l, ValueNone, ValueSome(struct(k2,v2)))
-
-                | MapNode(k2,v2,l2,r2,_,cnt) ->
-                    if idx < 0 then
-                        struct(ValueNone, ValueNone, tryMinV m)
-                    elif idx >= cnt then
-                        struct(tryMaxV m, ValueNone, ValueNone)
-                    else
-                        let lc = size l2
-                        if idx < lc then 
-                            let r = ValueSome(struct(k2, v2))
-                            neighboursViAux idx l r l2
-
-                        elif idx = lc then
-                            let l =
-                                match tryMaxV l2 with
-                                | ValueNone -> l
-                                | l -> l
-
-                            let r =
-                                match tryMinV r2 with
-                                | ValueNone -> r
-                                | r -> r
-
-                            struct(l, ValueSome(struct(k2, v2)), r)
-                        else
-                            let l = ValueSome(struct(k2, v2))
-                            neighboursViAux (idx-lc-1) l r r2
-
-        let neighboursVi idx m =
-            neighboursViAux idx ValueNone ValueNone m
-    
-
-
-        let rec tryAt i m =
-            match m with
-            | MapEmpty -> 
-                None
-
-            | MapOne(k,v) -> 
-                if i = 0 then Some (k,v)
-                else None
-
-            | MapNode(k,v,l,r,_,c) ->
-                if i < 0 || i >= c then
-                    None
-                else
-                    let ls = size l
-                    if i = ls then
-                        Some (k,v)
-                    elif i < ls then
-                        tryAt i l
-                    else
-                        tryAt (i - ls - 1) r
-
-        let rec tryAtV i m =
-            match m with
-            | MapEmpty -> 
-                ValueNone
-
-            | MapOne(k,v) -> 
-                if i = 0 then ValueSome (struct(k,v))
-                else ValueNone
-
-            | MapNode(k,v,l,r,_,c) ->
-                if i < 0 || i >= c then
-                    ValueNone
-                else
-                    let ls = size l
-                    if i = ls then
-                        ValueSome (struct(k,v))
-                    elif i < ls then
-                        tryAtV i l
-                    else
-                        tryAtV (i - ls - 1) r
-
-        let rec private tryGetIndexAux (comparer: IComparer<'Key>) (i : int) (key : 'Key) (m : MapTree<'Key, 'Value>) =
-            match m with
-            | MapEmpty -> 
-                None
-            | MapOne(k,_value) -> 
-                if comparer.Compare(key, k) = 0 then Some i
-                else None
-            | MapNode(k,_value,left,right,_,_) ->
-                let cmp = comparer.Compare(key, k)
-                if cmp > 0 then
-                    tryGetIndexAux comparer (i + size left + 1) key right
-                elif cmp < 0 then
-                    tryGetIndexAux comparer i key left
-                else
-                    Some (i + size left)
-                
-        let tryGetIndex (comparer: IComparer<'Key>) (key : 'Key) (m : MapTree<'Key, 'Value>) =
-            tryGetIndexAux comparer 0 key m
+    let inline height (n : Node<'Key, 'Value>) =
+        if isNull n then 0uy
+        else n.Height
             
-        let rec private tryGetIndexVAux (comparer: IComparer<'Key>) (i : int) (key : 'Key) (m : MapTree<'Key, 'Value>) =
-            match m with
-            | MapEmpty -> 
-                ValueNone
-            | MapOne(k,_value) -> 
-                if comparer.Compare(key, k) = 0 then ValueSome i
-                else ValueNone
-            | MapNode(k,_value,left,right,_,_) ->
-                let cmp = comparer.Compare(key, k)
-                if cmp > 0 then
-                    tryGetIndexVAux comparer (i + size left + 1) key right
-                elif cmp < 0 then
-                    tryGetIndexVAux comparer i key left
+    let rec count (n : Node<'Key, 'Value>) =
+        if isNull n then 0
+        elif n.Height = 1uy then 1
+        else (n :?> Inner<'Key, 'Value>).Count
+            
+    let inline balance (n : Inner<'Key, 'Value>) =
+        int (height n.Right) - int (height n.Left)
+
+    let unsafeBinary (l : Node<'Key, 'Value>) (k : 'Key) (v : 'Value) (r : Node<'Key, 'Value>) =
+        let lc = Inner.GetCount l
+        let rc = Inner.GetCount r
+        let lh = if lc > 0 then l.Height else 0uy
+        let rh = if rc > 0 then r.Height else 0uy
+
+        let b = int rh - int lh
+        if b > 2 then
+            // rh > lh + 2
+            let r = r :?> Inner<'Key, 'Value>
+            let rb = balance r
+            if rb > 0 then
+                // right right 
+                Inner.Create( 
+                    Inner.Create(l, k, v, r.Left),
+                    r.Key, r.Value,
+                    r.Right
+                )
+            else
+                // right left
+                let rl = r.Left :?> Inner<'Key, 'Value>
+                Inner.Create( 
+                    Inner.Create(l, k, v, rl.Left),
+                    rl.Key, rl.Value,
+                    Inner.Create(rl.Right, r.Key, r.Value, r.Right)
+                )
+
+        elif b < -2 then
+            // lh > rh + 2
+            let l = l :?> Inner<'Key, 'Value>
+            let lb = balance l
+            if lb < 0 then
+                // left left
+                Inner.Create(
+                    l.Left,
+                    l.Key, l.Value,
+                    Inner.Create(l.Right, k, v, r)
+                )
+            else
+                // left right
+                let lr = l.Right :?> Inner<'Key, 'Value>
+                Inner.Create(
+                    Inner.Create(l.Left, l.Key, l.Value, lr.Left),
+                    lr.Key, lr.Value,
+                    Inner.Create(lr.Right, k, v, r)
+                )
+
+        elif lh = 0uy && rh = 0uy then Node(k, v)
+        else Inner(l, k, v, r, 1uy + max lh rh, 1 + lc + rc) :> Node<_,_>
+
+    let rec unsafeRemoveMin (key : byref<'Key>) (value : byref<'Value>) (n : Node<'Key, 'Value>) =
+        if n.Height = 1uy then
+            key <- n.Key
+            value <- n.Value
+            null
+        else
+            let n = n :?> Inner<'Key, 'Value>
+            if isNull n.Left then
+                key <- n.Key
+                value <- n.Value
+                n.Right
+            else
+                let newLeft = unsafeRemoveMin &key &value n.Left
+                unsafeBinary newLeft n.Key n.Value n.Right
+                    
+    let rec unsafeRemoveMax (key : byref<'Key>) (value : byref<'Value>) (n : Node<'Key, 'Value>) =
+        if n.Height = 1uy then
+            key <- n.Key
+            value <- n.Value
+            null
+        else
+            let n = n :?> Inner<'Key, 'Value>
+            if isNull n.Right then
+                key <- n.Key
+                value <- n.Value
+                n.Left
+            else
+                let newRight = unsafeRemoveMax &key &value n.Right
+                unsafeBinary n.Left n.Key n.Value newRight
+
+
+    let rebalanceUnsafe (node : Inner<'Key, 'Value>) =
+        let lh = height node.Left
+        let rh = height node.Right
+        let b = int rh - int lh
+        if b > 2 then
+            let r = node.Right :?> Inner<'Key, 'Value>
+            let br = balance r
+            if br >= 0 then
+                // right right
+                //     (k01, v01)                           (k12,v12)
+                //    t0        (k12,v12)      =>      (k01, v01)    t2
+                //             t1       t2            t0        t1
+
+                let t0 = node.Left
+                let k01 = node.Key
+                let v01 = node.Value
+                let t1 = r.Left
+                let k12 = r.Key
+                let v12 = r.Value
+                let t2 = r.Right
+
+                r.Key <- k01
+                r.Value <- v01
+                r.Left <- t0
+                r.Right <- t1
+                Inner.FixHeightAndCount r
+
+                node.Key <- k12
+                node.Value <- v12
+                node.Left <- r
+                node.Right <- t2
+                node.Count <- 1 + r.Count + (count t2)
+                node.Height <- 1uy + max r.Height (height t2)
+
+            else
+                let rl = r.Left :?> Inner<'Key, 'Value>
+                // right left
+                //     (k01, v01)                             (k12,v12)
+                //    t0        (k23,v23)      =>      (k01,v01)     (k23,v23)
+                //        (k12,v12)       t3         t0        t1   t2       t3
+                //       t1       t2
+
+                let t0 = node.Left
+                let k01 = node.Key
+                let v01 = node.Value
+                let t1 = rl.Left
+                let k12 = rl.Key
+                let v12 = rl.Value
+                let t2 = rl.Right
+                let k23 = r.Key
+                let v23 = r.Value
+                let t3 = r.Right
+
+                let a = rl
+                let b = r
+
+                a.Key <- k01
+                a.Value <- v01
+                a.Left <- t0
+                a.Right <- t1
+                Inner.FixHeightAndCount a
+
+                b.Key <- k23
+                b.Value <- v23
+                b.Left <- t2
+                b.Right <- t3
+                Inner.FixHeightAndCount b
+                
+                node.Key <- k12
+                node.Value <- v12
+                node.Left <- a
+                node.Right <- b
+                node.Count <- 1 + a.Count + b.Count
+                node.Height <- 1uy + max a.Height b.Height
+
+        elif b < -2 then
+            let l = node.Left :?> Inner<'Key, 'Value>
+            let bl = balance l
+            if bl <= 0 then
+                // left left
+                //         (k12, v12)                   (k01,v01)
+                //    (k01,v01)       t2    =>         t0       (k12,v12)
+                //  t0        t1                               t1       t2
+
+                let t0 = l.Left
+                let k01 = l.Key
+                let v01 = l.Value
+                let t1 = l.Right
+                let k12 = node.Key
+                let v12 = node.Value
+                let t2 = node.Right
+
+                let a = l
+
+                a.Key <- k12
+                a.Value <- v12
+                a.Left <- t1
+                a.Right <- t2
+                Inner.FixHeightAndCount a
+
+                node.Key <- k01
+                node.Value <- v01
+                node.Left <- t0
+                node.Right <- a
+                node.Count <- 1 + (count t0) + a.Count
+                node.Height <- 1uy + max (height t0) a.Height
+
+            else
+                let lr = l.Right :?> Inner<'Key, 'Value>
+                // left right
+                //            (k23, v23)                         (k12,v12)
+                //    (k01,v01)         t3    =>         (k01,v01)       (k23,v23)
+                //  t0      (k12,v12)                   t0       t1     t2      t3
+                //         t1       t2
+
+                let t0 = l.Left
+                let k01 = l.Key
+                let v01 = l.Value
+                let t1 = lr.Left
+                let k12 = lr.Key
+                let v12 = lr.Value
+                let t2 = lr.Right
+                let k23 = node.Key
+                let v23 = node.Value
+                let t3 = node.Right
+
+                let a = l
+                let b = lr
+
+                a.Key <- k01
+                a.Value <- v01
+                a.Left <- t0
+                a.Right <- t1
+                Inner.FixHeightAndCount a
+
+                b.Key <- k23
+                b.Value <- v23
+                b.Left <- t2
+                b.Right <- t3
+                Inner.FixHeightAndCount b
+
+
+                node.Key <- k12
+                node.Value <- v12
+                node.Left <- a
+                node.Right <- b
+                node.Count <- 1 + a.Count + b.Count
+                node.Height <- 1uy + max a.Height b.Height
+        else
+            Inner.FixHeightAndCount node
+            
+
+
+    // abs (balance l r) <= 3 (as caused by add/remove)
+    let unsafeJoin (l : Node<'Key, 'Value>) (r : Node<'Key, 'Value>) : Node<'Key, 'Value> =
+        if isNull l then r
+        elif isNull r then l
+        else
+            let lc = l.Height
+            let rc = r.Height
+            let mutable k = Unchecked.defaultof<_>
+            let mutable v = Unchecked.defaultof<_>
+            if lc > rc then
+                let ln = unsafeRemoveMax &k &v l
+                unsafeBinary ln k v r
+            else
+                let rn = unsafeRemoveMin &k &v r
+                unsafeBinary l k v rn
+                
+    let rec binary (l : Node<'Key, 'Value>) (k : 'Key) (v : 'Value) (r : Node<'Key, 'Value>) =
+        let lc = Inner.GetCount l
+        let rc = Inner.GetCount r
+        let lh = if lc > 0 then l.Height else 0uy
+        let rh = if rc > 0 then r.Height else 0uy
+
+        let b = int rh - int lh
+        if b > 2 then
+            // rh > lh + 2
+            let r = r :?> Inner<'Key, 'Value>
+            let rb = balance r
+            if rb > 0 then
+                // right right 
+                binary 
+                    (binary l k v r.Left)
+                    r.Key r.Value
+                    r.Right
+            else
+                // right left
+                let rl = r.Left :?> Inner<'Key, 'Value>
+                binary
+                    (binary l k v rl.Left)
+                    rl.Key rl.Value
+                    (binary rl.Right r.Key r.Value r.Right)
+
+        elif b < -2 then
+            // lh > rh + 2
+            let l = l :?> Inner<'Key, 'Value>
+            let lb = balance l
+            if lb < 0 then
+                // left left
+                binary 
+                    l.Left
+                    l.Key l.Value
+                    (binary l.Right k v r)
+            else
+                // left right
+                let lr = l.Right :?> Inner<'Key, 'Value>
+                binary 
+                    (binary l.Left l.Key l.Value lr.Left)
+                    lr.Key lr.Value
+                    (binary lr.Right k v r)
+
+        elif lh = 0uy && rh = 0uy then Node(k, v)
+        else Inner(l, k, v, r, 1uy + max lh rh, 1 + lc + rc) :> Node<_,_>
+        
+    let rec join (l : Node<'Key, 'Value>) (r : Node<'Key, 'Value>) : Node<'Key, 'Value> =
+        if isNull l then r
+        elif isNull r then l
+        else
+            let lh = l.Height
+            let rh = r.Height
+            let mutable k = Unchecked.defaultof<_>
+            let mutable v = Unchecked.defaultof<_>
+            if lh > rh then
+                let ln = unsafeRemoveMax &k &v l
+                binary ln k v r
+            else
+                let rn = unsafeRemoveMin &k &v r
+                binary l k v rn
+
+    let rec find (cmp : IComparer<'Key>) (key : 'Key) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            raise <| KeyNotFoundException()
+        elif node.Height = 1uy then
+            if cmp.Compare(key, node.Key) = 0 then node.Value
+            else raise <| KeyNotFoundException()
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then find cmp key node.Right
+            elif c < 0 then find cmp key node.Left
+            else node.Value
+            
+    let rec tryGetValue (cmp : IComparer<'Key>) (key : 'Key) (result : outref<'Value>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            false
+        elif node.Height = 1uy then
+            if cmp.Compare(key, node.Key) = 0 then 
+                result <- node.Value
+                true
+            else 
+                false
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then tryGetValue cmp key &result node.Right
+            elif c < 0 then tryGetValue cmp key &result node.Left
+            else 
+                result <- node.Value
+                true
+
+    let rec tryFind (cmp : IComparer<'Key>) (key : 'Key) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            None
+        elif node.Height = 1uy then
+            if cmp.Compare(key, node.Key) = 0 then Some node.Value
+            else None
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then tryFind cmp key node.Right
+            elif c < 0 then tryFind cmp key node.Left
+            else Some node.Value
+            
+    let rec tryGetItem (index : int) (key : byref<'Key>) (value : byref<'Value>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            false
+        elif node.Height = 1uy then
+            if index = 0 then 
+                key <- node.Key
+                value <- node.Value
+                true
+            else
+                false
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let id = index - count node.Left
+            if id > 0 then
+                tryGetItem (id - 1) &key &value node.Right
+            elif id < 0 then
+                tryGetItem index &key &value node.Left
+            else
+                key <- node.Key
+                value <- node.Value
+                true
+
+    let rec tryGetIndex (cmp : IComparer<'Key>) (key : 'Key) (offset : int) (node : Node<'Key, 'Value>) =
+        if isNull node then 
+            -1
+        elif node.Height = 1uy then
+            let c = cmp.Compare(key, node.Key)
+            if c = 0 then offset
+            else -1
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then
+                tryGetIndex cmp key (offset + count node.Left + 1) node.Right
+            elif c < 0 then
+                tryGetIndex cmp key offset node.Left
+            else
+                offset + count node.Left
+
+    let rec tryGetMin (minKey : byref<'Key>) (minValue : byref<'Value>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            false
+        elif node.Height = 1uy then
+            minKey <- node.Key
+            minValue <- node.Value
+            true
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            if isNull node.Left then 
+                minKey <- node.Key
+                minValue <- node.Value
+                true
+            else
+                tryGetMin &minKey &minValue node.Left
+
+    let rec tryGetMax (maxKey : byref<'Key>) (maxValue : byref<'Value>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            false
+        elif node.Height = 1uy then
+            maxKey <- node.Key
+            maxValue <- node.Value
+            true
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            if isNull node.Right then
+                maxKey <- node.Key
+                maxValue <- node.Value
+                true
+            else
+                tryGetMax &maxKey &maxValue node.Right
+
+
+    let rec containsKey (cmp : IComparer<'Key>) (key : 'Key) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            false
+        elif node.Height = 1uy then
+            cmp.Compare(key, node.Key) = 0
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then containsKey cmp key node.Right
+            elif c < 0 then containsKey cmp key node.Left
+            else true
+
+    let rec addIfNotPresent (cmp : IComparer<'Key>) (key : 'Key) (value : 'Value) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            // empty
+            Node(key, value)
+
+        elif node.Height = 1uy then
+            // leaf
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then Inner(node, key, value, null, 2uy, 2) :> Node<_,_>
+            elif c < 0 then Inner(null, key, value, node, 2uy, 2) :> Node<_,_>
+            else node
+
+        else
+            // inner
+            let n = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(key, n.Key)
+            if c > 0 then
+                unsafeBinary n.Left n.Key n.Value (addIfNotPresent cmp key value n.Right)
+            elif c < 0 then
+                unsafeBinary (addIfNotPresent cmp key value n.Left) n.Key n.Value n.Right
+            else    
+                node
+
+    let rec add (cmp : IComparer<'Key>) (key : 'Key) (value : 'Value) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            // empty
+            Node(key, value)
+
+        elif node.Height = 1uy then
+            // leaf
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then Inner(node, key, value, null, 2uy, 2) :> Node<_,_>
+            elif c < 0 then Inner(null, key, value, node, 2uy, 2) :> Node<_,_>
+            else Node(key, value)
+
+        else
+            // inner
+            let n = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(key, n.Key)
+            if c > 0 then
+                unsafeBinary n.Left n.Key n.Value (add cmp key value n.Right)
+            elif c < 0 then
+                unsafeBinary (add cmp key value n.Left) n.Key n.Value n.Right
+            else    
+                Inner(n.Left, key, value, n.Right, n.Height, n.Count) :> Node<_,_>
+          
+    let rec unsafeAddMinimum (key : 'Key) (value : 'Value) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            // empty
+            Node(key, value)
+
+        elif node.Height = 1uy then
+            // leaf
+            Inner(null, key, value, node, 2uy, 2) :> Node<_,_>
+
+        else
+            // inner
+            let n = node :?> Inner<'Key, 'Value>
+            unsafeBinary (unsafeAddMinimum key value n.Left) n.Key n.Value n.Right
+          
+    let rec unsafeAddMaximum (key : 'Key) (value : 'Value) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            // empty
+            Node(key, value)
+
+        elif node.Height = 1uy then
+            // leaf
+            Inner(node, key, value, null, 2uy, 2) :> Node<_,_>
+
+        else
+            // inner
+            let n = node :?> Inner<'Key, 'Value>
+            unsafeBinary n.Left n.Key n.Value (unsafeAddMaximum key value n.Right)
+          
+          
+    let rec addInPlace (cmp : IComparer<'Key>) (key : 'Key) (value : 'Value) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            // empty
+            Node(key, value)
+
+        elif node.Height = 1uy then
+            // leaf
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then Inner(node, key, value, null, 2uy, 2) :> Node<_,_>
+            elif c < 0 then Inner(null, key, value, node, 2uy, 2) :> Node<_,_>
+            else 
+                node.Key <- key
+                node.Value <- value
+                node
+
+        else
+            // inner
+            let n = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(key, n.Key)
+            if c > 0 then
+                n.Right <- addInPlace cmp key value n.Right
+                rebalanceUnsafe n
+                node
+
+            elif c < 0 then
+                n.Left <- addInPlace cmp key value n.Left
+                rebalanceUnsafe n
+                node
+
+            else
+                n.Key <- key
+                n.Value <- value
+                node
+     
+             
+    let rec tryRemove' (cmp : IComparer<'Key>) (key : 'Key)  (result : byref<Node<'Key, 'Value>>) (node : Node<'Key, 'Value>) =
+        if isNull node then 
+            false
+        elif node.Height = 1uy then
+            let c = cmp.Compare(key, node.Key)
+            if c = 0 then 
+                result <- null
+                true
+            else
+                false
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then 
+                if tryRemove' cmp key &result node.Right then
+                    result <- unsafeBinary node.Left node.Key node.Value result
+                    true
                 else
-                    ValueSome (i + size left)
+                    false
+            elif c < 0 then 
+                if tryRemove' cmp key &result node.Left then
+                    result <- unsafeBinary result node.Key node.Value node.Right
+                    true
+                else
+                    false
+            else 
+                result <- unsafeJoin node.Left node.Right
+                true
+       
+    let rec tryRemove (cmp : IComparer<'Key>) (key : 'Key) (removedValue : byref<'Value>) (result : byref<Node<'Key, 'Value>>) (node : Node<'Key, 'Value>) =
+        if isNull node then 
+            false
+        elif node.Height = 1uy then
+            let c = cmp.Compare(key, node.Key)
+            if c = 0 then 
+                removedValue <- node.Value
+                result <- null
+                true
+            else
+                false
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then 
+                if tryRemove cmp key &removedValue &result node.Right then
+                    result <- unsafeBinary node.Left node.Key node.Value result
+                    true
+                else
+                    false
+            elif c < 0 then 
+                if tryRemove cmp key &removedValue &result node.Left then
+                    result <- unsafeBinary result node.Key node.Value node.Right
+                    true
+                else
+                    false
+            else 
+                result <- unsafeJoin node.Left node.Right
+                removedValue <- node.Value
+                true
+     
+     
+    let rec removeAt (index : int) (removedKey : byref<'Key>) (removedValue : byref<'Value>) (node : Node<'Key, 'Value>) =
+        if isNull node then 
+            null
+        elif node.Height = 1uy then
+            if index = 0 then
+                removedKey <- node.Key
+                removedValue <- node.Value
+                null
+            else
+                node
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let id = index - count node.Left
+            if id > 0 then 
+                let result = removeAt (id - 1) &removedKey &removedValue node.Right
+                unsafeBinary node.Left node.Key node.Value result
+            elif id < 0 then 
+                let result = removeAt index &removedKey &removedValue node.Left
+                unsafeBinary result node.Key node.Value node.Right
+            else 
+                removedKey <- node.Key
+                removedValue <- node.Value
+                unsafeJoin node.Left node.Right
+     
+
+    let rec changeV (cmp : IComparer<'Key>) (key : 'Key) (update : voption<'Value> -> voption<'Value>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            match update ValueNone with
+            | ValueNone -> null
+            | ValueSome v -> Node(key, v)
+
+        elif node.Height = 1uy then
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then
+                match update ValueNone with
+                | ValueNone -> node
+                | ValueSome n ->
+                    Inner(node, key, n, null, 2uy, 2) :> Node<_,_>
+            elif c < 0 then
+                match update ValueNone with
+                | ValueNone -> node
+                | ValueSome n ->
+                    Inner(null, key, n, node, 2uy, 2) :> Node<_,_>
+            else
+                match update (ValueSome node.Value) with
+                | ValueNone -> null
+                | ValueSome v -> Node(key, v)
+        else    
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then
+                unsafeBinary node.Left node.Key node.Value (changeV cmp key update node.Right)
+            elif c < 0 then
+                unsafeBinary (changeV cmp key update node.Left) node.Key node.Value node.Right
+            else
+                match update (ValueSome node.Value) with
+                | ValueSome n ->
+                    Inner(node.Left, key, n, node.Right, node.Height, node.Count) :> Node<_,_>
+                | ValueNone ->
+                    unsafeJoin node.Left node.Right
+
+    let rec change (cmp : IComparer<'Key>) (key : 'Key) (update : option<'Value> -> option<'Value>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            match update None with
+            | None -> null
+            | Some v -> Node(key, v)
+
+        elif node.Height = 1uy then
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then
+                match update None with
+                | None -> node
+                | Some n ->
+                    Inner(node, key, n, null, 2uy, 2) :> Node<_,_>
+            elif c < 0 then
+                match update None with
+                | None -> node
+                | Some n ->
+                    Inner(null, key, n, node, 2uy, 2) :> Node<_,_>
+            else
+                match update (Some node.Value) with
+                | None -> null
+                | Some v -> Node(key, v)
+        else    
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then
+                unsafeBinary node.Left node.Key node.Value (change cmp key update node.Right)
+            elif c < 0 then
+                unsafeBinary (change cmp key update node.Left) node.Key node.Value node.Right
+            else
+                match update (Some node.Value) with
+                | Some n ->
+                    Inner(node.Left, key, n, node.Right, node.Height, node.Count) :> Node<_,_>
+                | None ->
+                    unsafeJoin node.Left node.Right
+
+
+    let rec copyToV (array : struct('Key * 'Value)[]) (index : int) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            index
+        elif node.Height = 1uy then
+            array.[index] <- struct(node.Key, node.Value)
+            index + 1
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let i1 = copyToV array index node.Left
+            array.[i1] <- struct(node.Key, node.Value)
+            copyToV array (i1 + 1) node.Right
+            
+    let rec copyTo (array : ('Key * 'Value)[]) (index : int) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            index
+        elif node.Height = 1uy then
+            array.[index] <- (node.Key, node.Value)
+            index + 1
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let i1 = copyTo array index node.Left
+            array.[i1] <- (node.Key, node.Value)
+            copyTo array (i1 + 1) node.Right
+            
+    let rec copyValuesTo (array : 'Value[]) (index : int) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            index
+        elif node.Height = 1uy then
+            array.[index] <- node.Value
+            index + 1
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let i1 = copyValuesTo array index node.Left
+            array.[i1] <- node.Value
+            copyValuesTo array (i1 + 1) node.Right
+            
+    let rec copyKeysTo (array : 'Key[]) (index : int) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            index
+        elif node.Height = 1uy then
+            array.[index] <- node.Key
+            index + 1
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let i1 = copyKeysTo array index node.Left
+            array.[i1] <- node.Key
+            copyKeysTo array (i1 + 1) node.Right
+
+    let rec toListV (acc : list<struct('Key * 'Value)>) (node : Node<'Key, 'Value>) =
+        if isNull node then acc
+        elif node.Height = 1uy then
+            struct(node.Key, node.Value) :: acc
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            toListV (struct(node.Key, node.Value) :: toListV acc node.Right) node.Left
                 
-        let tryGetIndexV (comparer: IComparer<'Key>) (key : 'Key) (m : MapTree<'Key, 'Value>) =
-            tryGetIndexVAux comparer 0 key m
+    let rec toList (acc : list<'Key * 'Value>) (node : Node<'Key, 'Value>) =
+        if isNull node then acc
+        elif node.Height = 1uy then
+            (node.Key, node.Value) :: acc
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            toList ((node.Key, node.Value) :: toList acc node.Right) node.Left
+            
+    let rec toValueList (acc : list<'Value>) (node : Node<'Key, 'Value>) =
+        if isNull node then acc
+        elif node.Height = 1uy then
+            node.Value :: acc
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            toValueList (node.Value :: toValueList acc node.Right) node.Left
+            
+    let rec toKeyList (acc : list<'Key>) (node : Node<'Key, 'Value>) =
+        if isNull node then acc
+        elif node.Height = 1uy then
+            node.Key :: acc
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            toKeyList (node.Key :: toKeyList acc node.Right) node.Left
+  
 
-        let rec map2 (comparer: IComparer<'Value>) f l r =
-            match l, r with
-                | MapEmpty, r -> mapi (fun i rv -> f i None (Some rv)) r
-                | l, MapEmpty -> mapi (fun i lv -> f i (Some lv) None) l
-                | MapOne(k,v), r ->
-                    let mutable found = false
-                    let res = 
-                        r |> mapi (fun i rv -> 
-                            if i = k then 
-                                found <- true
-                                f i (Some v) (Some rv)
-                            else 
-                                f i None (Some rv)
-                        )
-                    if found then res 
-                    else res |> add comparer k (f k (Some v) None)
 
-                | l, MapOne(k,v) ->
-                    let mutable found = false
-                    let res = 
-                        l |> mapi (fun i lv -> 
-                            if i = k then 
-                                found <- true
-                                f i (Some lv) (Some v)
-                            else 
-                                f i None (Some v)
-                        )
-                    if found then res 
-                    else res |> add comparer k (f k None (Some v))
+    let rec copyToBackwardV (array : struct('Key * 'Value)[]) (index : int) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            index
+        elif node.Height = 1uy then
+            array.[index] <- struct(node.Key, node.Value)
+            index + 1
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let i1 = copyToBackwardV array index node.Right
+            array.[i1] <- struct(node.Key, node.Value)
+            copyToBackwardV array (i1 + 1) node.Left
+            
+    let rec copyToBackward (array : ('Key * 'Value)[]) (index : int) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            index
+        elif node.Height = 1uy then
+            array.[index] <- (node.Key, node.Value)
+            index + 1
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let i1 = copyToBackward array index node.Right
+            array.[i1] <- (node.Key, node.Value)
+            copyToBackward array (i1 + 1) node.Left
+            
+    let rec copyValuesBackwardTo (array : 'Value[]) (index : int) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            index
+        elif node.Height = 1uy then
+            array.[index] <- node.Value
+            index + 1
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let i1 = copyValuesBackwardTo array index node.Right
+            array.[i1] <- node.Value
+            copyValuesBackwardTo array (i1 + 1) node.Left
+            
+    let rec copyKeysBackwardTo (array : 'Key[]) (index : int) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            index
+        elif node.Height = 1uy then
+            array.[index] <- node.Key
+            index + 1
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let i1 = copyKeysBackwardTo array index node.Right
+            array.[i1] <- node.Key
+            copyKeysBackwardTo array (i1 + 1) node.Left
 
-                | MapNode(k,v,ll,lr,_,_),r ->
-                    let rs, self, rg = split comparer k r
-                    
-                    let v = 
-                        match self with
-                            | Some rv -> f k (Some v) (Some rv)
-                            | None -> f k (Some v) None
-                    join (map2 comparer f ll rs) k v (map2 comparer f lr rg)
 
-        let rec choose2VOpt 
-            (comparer: IComparer<'Key>) 
-            (f : OptimizedClosures.FSharpFunc<'Key, voption<'T1>, voption<'T2>, voption<'T3>>) 
-            (lo : OptimizedClosures.FSharpFunc<'Key, 'T1, voption<'T3>>) 
-            (ro : OptimizedClosures.FSharpFunc<'Key, 'T2, voption<'T3>>)
-            l r =
-            match l, r with
-                | MapEmpty, r -> chooseiOptV ro r
-                | l, MapEmpty -> chooseiOptV lo l
-                | MapOne(lk, lv), MapOne(rk, rv) ->
-                    let c = comparer.Compare(lk, rk)
-                    if c = 0 then
-                        match f.Invoke(lk, ValueSome lv, ValueSome rv) with
-                        | ValueSome r -> MapOne(lk, r)
-                        | ValueNone -> MapEmpty
+
+    let rec toListBackV (acc : list<struct('Key * 'Value)>) (node : Node<'Key, 'Value>) =
+        if isNull node then acc
+        elif node.Height = 1uy then
+            struct(node.Key, node.Value) :: acc
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            toListBackV (struct(node.Key, node.Value) :: toListBackV acc node.Left) node.Right
+                
+    let rec toListBack (acc : list<'Key * 'Value>) (node : Node<'Key, 'Value>) =
+        if isNull node then acc
+        elif node.Height = 1uy then
+            (node.Key, node.Value) :: acc
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            toListBack ((node.Key, node.Value) :: toListBack acc node.Left) node.Right
+            
+    let rec toValueListBack (acc : list<'Value>) (node : Node<'Key, 'Value>) =
+        if isNull node then acc
+        elif node.Height = 1uy then
+            node.Value :: acc
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            toValueListBack (node.Value :: toValueListBack acc node.Left) node.Right
+            
+    let rec toKeyListBack (acc : list<'Key>) (node : Node<'Key, 'Value>) =
+        if isNull node then acc
+        elif node.Height = 1uy then
+            node.Key :: acc
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            toKeyListBack (node.Key :: toKeyListBack acc node.Left) node.Right
+
+
+    let rec iter (action : OptimizedClosures.FSharpFunc<'Key, 'Value, unit>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            ()
+        elif node.Height = 1uy then
+            action.Invoke(node.Key, node.Value)
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            iter action node.Left
+            action.Invoke(node.Key, node.Value)
+            iter action node.Right
+            
+    let rec iterValue (action : 'Value -> unit) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            ()
+        elif node.Height = 1uy then
+            action node.Value
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            iterValue action node.Left
+            action node.Value
+            iterValue action node.Right
+
+    let rec map (mapping : OptimizedClosures.FSharpFunc<'Key, 'Value, 'T>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            null
+        elif node.Height = 1uy then
+            Node(node.Key, mapping.Invoke(node.Key, node.Value))
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let l = map mapping node.Left
+            let s = mapping.Invoke(node.Key, node.Value)
+            let r = map mapping node.Right
+            Inner(l, node.Key, s, r, node.Height, node.Count) :> Node<_,_>
+            
+    let rec mapMonotonic (mapping : OptimizedClosures.FSharpFunc<'Key, 'Value, struct('K * 'T)>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            null
+        elif node.Height = 1uy then
+            let struct(k, v) = mapping.Invoke(node.Key, node.Value)
+            Node(k, v)
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let l = mapMonotonic mapping node.Left
+            let struct(k, v) = mapping.Invoke(node.Key, node.Value)
+            let r = mapMonotonic mapping node.Right
+            Inner(l, k, v, r, node.Height, node.Count) :> Node<_,_>
+            
+    let rec chooseV (mapping : OptimizedClosures.FSharpFunc<'Key, 'Value, voption<'T>>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            null
+        elif node.Height = 1uy then
+            match mapping.Invoke(node.Key, node.Value) with
+            | ValueSome v -> Node(node.Key, v)
+            | ValueNone -> null
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let l = chooseV mapping node.Left
+            let s = mapping.Invoke(node.Key, node.Value)
+            let r = chooseV mapping node.Right
+            match s with
+            | ValueSome s -> binary l node.Key s r
+            | ValueNone -> join l r
+
+    let rec choose (mapping : OptimizedClosures.FSharpFunc<'Key, 'Value, option<'T>>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            null
+        elif node.Height = 1uy then
+            match mapping.Invoke(node.Key, node.Value) with
+            | Some v -> Node(node.Key, v)
+            | None -> null
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let l = choose mapping node.Left
+            let s = mapping.Invoke(node.Key, node.Value)
+            let r = choose mapping node.Right
+            match s with
+            | Some s -> binary l node.Key s r
+            | None -> join l r
+
+    let rec filter (predicate : OptimizedClosures.FSharpFunc<'Key, 'Value, bool>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            null
+        elif node.Height = 1uy then
+            if predicate.Invoke(node.Key, node.Value) then
+                node
+            else
+                null
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let l = filter predicate node.Left
+            let s = predicate.Invoke(node.Key, node.Value)
+            let r = filter predicate node.Right
+            if s then binary l node.Key node.Value r
+            else join l r
+            
+    let rec tryPickBack (mapping : OptimizedClosures.FSharpFunc<'Key, 'Value, option<'T>>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            None
+        elif node.Height = 1uy then
+            mapping.Invoke(node.Key, node.Value)
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            match tryPickBack mapping node.Right with
+            | None ->
+                match mapping.Invoke(node.Key, node.Value) with
+                | None -> tryPickBack mapping node.Left
+                | res -> res
+            | res -> res
+            
+    let rec tryPickBackV (mapping : OptimizedClosures.FSharpFunc<'Key, 'Value, voption<'T>>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            ValueNone
+        elif node.Height = 1uy then
+            mapping.Invoke(node.Key, node.Value)
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            match tryPickBackV mapping node.Right with
+            | ValueNone ->
+                match mapping.Invoke(node.Key, node.Value) with
+                | ValueNone -> tryPickBackV mapping node.Left
+                | res -> res
+            | res -> res
+
+
+    let rec tryPick (mapping : OptimizedClosures.FSharpFunc<'Key, 'Value, option<'T>>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            None
+        elif node.Height = 1uy then
+            mapping.Invoke(node.Key, node.Value)
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            match tryPick mapping node.Left with
+            | None ->
+                match mapping.Invoke(node.Key, node.Value) with
+                | None -> tryPick mapping node.Right
+                | res -> res
+            | res -> res
+            
+    let rec tryPickV (mapping : OptimizedClosures.FSharpFunc<'Key, 'Value, voption<'T>>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            ValueNone
+        elif node.Height = 1uy then
+            mapping.Invoke(node.Key, node.Value)
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            match tryPickV mapping node.Left with
+            | ValueNone ->
+                match mapping.Invoke(node.Key, node.Value) with
+                | ValueNone -> tryPickV mapping node.Right
+                | res -> res
+            | res -> res
+
+                
+
+
+
+    let rec fold (state : 'State) (folder : OptimizedClosures.FSharpFunc<'State, 'Key, 'Value, 'State>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            state
+        elif node.Height = 1uy then
+            folder.Invoke(state, node.Key, node.Value)
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let s1 = fold state folder node.Left
+            let s2 = folder.Invoke(s1, node.Key, node.Value)
+            fold s2 folder node.Right
+
+    let rec foldBack (state : 'State) (folder : OptimizedClosures.FSharpFunc<'Key, 'Value, 'State, 'State>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            state
+        elif node.Height = 1uy then
+            folder.Invoke(node.Key, node.Value, state)
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let s1 = foldBack state folder node.Right
+            let s2 = folder.Invoke(node.Key, node.Value, s1)
+            foldBack s2 folder node.Left
+    
+    let rec exists (predicate : OptimizedClosures.FSharpFunc<'Key, 'Value, bool>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            false
+        elif node.Height = 1uy then
+            predicate.Invoke(node.Key, node.Value)
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            exists predicate node.Left ||
+            predicate.Invoke(node.Key, node.Value) ||
+            exists predicate node.Right
+            
+    let rec forall (predicate : OptimizedClosures.FSharpFunc<'Key, 'Value, bool>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            true
+        elif node.Height = 1uy then
+            predicate.Invoke(node.Key, node.Value)
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            forall predicate node.Left &&
+            predicate.Invoke(node.Key, node.Value) &&
+            forall predicate node.Right
+
+    let rec partition (predicate : OptimizedClosures.FSharpFunc<'Key, 'Value, bool>) (t : byref<Node<'Key, 'Value>>) (f : byref<Node<'Key, 'Value>>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            t <- null
+            f <- null
+        elif node.Height = 1uy then
+            if predicate.Invoke(node.Key, node.Value) then 
+                t <- node
+                f <- null
+            else 
+                t <- null
+                f <- node
+        else
+            let node = node :?> Inner<'Key, 'Value>
+
+            let mutable lt = null
+            let mutable lf = null
+
+            partition predicate &lt &lf node.Left
+            let c = predicate.Invoke(node.Key, node.Value)
+            partition predicate &t &f node.Right
+
+            if c then
+                t <- binary lt node.Key node.Value t
+                f <- join lf f
+            else
+                t <- join lt t
+                f <- binary lf node.Key node.Value f
+
+
+    let rec split 
+        (cmp : IComparer<'Key>) (key : 'Key) 
+        (left : byref<Node<'Key, 'Value>>) (self : byref<'Value>) (right : byref<Node<'Key, 'Value>>) 
+        (node : Node<'Key, 'Value>) =
+        
+        if isNull node then
+            left <- null
+            right <- null
+            false
+        elif node.Height = 1uy then
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then
+                left <- node
+                right <- null
+                false
+            elif c < 0 then
+                left <- null
+                right <- node
+                false
+            else
+                left <- null
+                right <- null
+                self <- node.Value
+                true
+        else
+            let node = node :?> Inner<'Key,'Value>
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then
+                let res = split cmp key &left &self &right node.Right
+                left <- binary node.Left node.Key node.Value left
+                res
+            elif c < 0 then
+                let res = split cmp key &left &self &right node.Left
+                right <- binary right node.Key node.Value node.Right
+                res
+            else
+                left <- node.Left
+                right <- node.Right
+                self <- node.Value
+                true
+
+
+    let rec private changeWithLeft
+        (cmp : IComparer<'Key>)
+        (key : 'Key)
+        (value : 'Value)
+        (resolve : OptimizedClosures.FSharpFunc<'Key, 'Value, 'Value, 'Value>) 
+        (node : Node<'Key, 'Value>) =
+        if isNull node then
+            Node(key, value)
+        elif node.Height = 1uy then
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then
+                Inner(node, key, value, null, 2uy, 2) :> Node<_,_>
+            elif c < 0 then
+                Inner(null, key, value, node, 2uy, 2) :> Node<_,_>
+            else
+                let value = resolve.Invoke(key, value, node.Value)
+                Node(key, value)
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then
+                unsafeBinary node.Left node.Key node.Value (changeWithLeft cmp key value resolve node.Right)
+            elif c < 0 then
+                unsafeBinary (changeWithLeft cmp key value resolve node.Left) node.Key node.Value node.Right
+            else
+                let value = resolve.Invoke(key, value, node.Value)
+                Inner(node.Left, node.Key, value, node.Right, node.Height, node.Count) :> Node<_,_>
+                
+    let rec private changeWithRight
+        (cmp : IComparer<'Key>)
+        (key : 'Key)
+        (value : 'Value)
+        (resolve : OptimizedClosures.FSharpFunc<'Key, 'Value, 'Value, 'Value>) 
+        (node : Node<'Key, 'Value>) =
+        if isNull node then
+            Node(key, value)
+        elif node.Height = 1uy then
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then
+                Inner(node, key, value, null, 2uy, 2) :> Node<_,_>
+            elif c < 0 then
+                Inner(null, key, value, node, 2uy, 2) :> Node<_,_>
+            else
+                let value = resolve.Invoke(key, node.Value, value)
+                Node(key, value)
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then
+                unsafeBinary node.Left node.Key node.Value (changeWithRight cmp key value resolve node.Right)
+            elif c < 0 then
+                unsafeBinary (changeWithRight cmp key value resolve node.Left) node.Key node.Value node.Right
+            else
+                let value = resolve.Invoke(key, node.Value, value)
+                Inner(node.Left, node.Key, value, node.Right, node.Height, node.Count) :> Node<_,_>
+                
+            
+        
+
+    let rec unionWith (cmp : IComparer<'Key>) (resolve : OptimizedClosures.FSharpFunc<'Key, 'Value, 'Value, 'Value>) (l : Node<'Key, 'Value>) (r : Node<'Key, 'Value>) =
+        if isNull l then r
+        elif isNull r then l
+
+        elif l.Height = 1uy then
+            // left leaf
+            changeWithLeft cmp l.Key l.Value resolve r
+
+        elif r.Height = 1uy then
+            // right leaf
+            changeWithRight cmp r.Key r.Value resolve l
+
+        else
+            // both inner
+            let l = l :?> Inner<'Key, 'Value>
+            let r = r :?> Inner<'Key, 'Value>
+
+            if l.Height < r.Height then
+                let key = r.Key
+                let mutable ll = null
+                let mutable lv = Unchecked.defaultof<_>
+                let mutable lr = null
+                let hasValue = split cmp key &ll &lv &lr (l :> Node<_,_>)
+                //let struct(ll, lv, lr) = splitV cmp key l
+
+                let newLeft = unionWith cmp resolve ll r.Left
+
+                let value =
+                    if hasValue then resolve.Invoke(key, lv, r.Value)
+                    else r.Value
+                let newRight = unionWith cmp resolve lr r.Right
+
+                binary newLeft key value newRight
+            else
+                let key = l.Key
+                let mutable rl = null
+                let mutable rv = Unchecked.defaultof<_>
+                let mutable rr = null
+                let hasValue = split cmp key &rl &rv &rr (r :> Node<_,_>)
+
+                let newLeft = unionWith cmp resolve l.Left rl
+
+                let value =
+                    if hasValue then resolve.Invoke(key, l.Value, rv)
+                    else l.Value
+
+                let newRight = unionWith cmp resolve l.Right rr
+                
+                binary newLeft key value newRight
+      
+
+    let rec union (cmp : IComparer<'Key>) (map1 : Node<'Key, 'Value>) (map2 : Node<'Key, 'Value>) =
+        if System.Object.ReferenceEquals(map1, map2) then map1
+
+        elif isNull map1 then map2
+        elif isNull map2 then map1
+
+        elif map1.Height = 1uy then
+            // map1 leaf
+            map2 |> addIfNotPresent cmp map1.Key map1.Value
+        elif map2.Height = 1uy then
+            // map2 leaf
+            map1 |> add cmp map2.Key map2.Value
+
+        else
+            // both inner
+            let map1 = map1 :?> Inner<'Key, 'Value>
+            let map2 = map2 :?> Inner<'Key, 'Value>
+
+            if map1.Height < map2.Height then
+                let key = map2.Key
+                let mutable l1 = null
+                let mutable v1 = Unchecked.defaultof<_>
+                let mutable r1 = null
+                split cmp key &l1 &v1 &r1 (map1 :> Node<_,_>) |> ignore
+                let newLeft = union cmp l1 map2.Left
+                let value = map2.Value
+                let newRight = union cmp r1 map2.Right
+
+                binary newLeft key value newRight
+            else
+                let key = map1.Key
+                let mutable l2 = null
+                let mutable v2 = Unchecked.defaultof<_>
+                let mutable r2 = null
+                let hasValue = split cmp key &l2 &v2 &r2 (map2 :> Node<_,_>)
+                let newLeft = union cmp map1.Left l2
+                let value = if hasValue then v2 else map1.Value
+                let newRight = union cmp map1.Right r2
+                binary newLeft key value newRight
+
+    [<System.Flags>]
+    type NeighbourFlags =
+        | None = 0
+        | Left = 1
+        | Self = 2
+        | Right = 4
+
+    let rec getNeighbours 
+        (cmp : IComparer<'Key>) (key : 'Key) 
+        (flags : NeighbourFlags)
+        (leftKey : byref<'Key>) (leftValue : byref<'Value>)
+        (selfValue : byref<'Value>)
+        (rightKey : byref<'Key>) (rightValue : byref<'Value>)
+        (node : Node<'Key, 'Value>) =
+
+        if isNull node then
+            flags
+
+        elif node.Height = 1uy then
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then
+                leftKey <- node.Key
+                leftValue <- node.Value
+                flags ||| NeighbourFlags.Left
+            elif c < 0 then
+                rightKey <- node.Key
+                rightValue <- node.Value
+                flags ||| NeighbourFlags.Right
+            else
+                selfValue <- node.Value
+                flags ||| NeighbourFlags.Self
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then
+                leftKey <- node.Key
+                leftValue <- node.Value
+                getNeighbours cmp key (flags ||| NeighbourFlags.Left) &leftKey &leftValue &selfValue &rightKey &rightValue node.Right
+            elif c < 0 then
+                rightKey <- node.Key
+                rightValue <- node.Value
+                getNeighbours cmp key (flags ||| NeighbourFlags.Right) &leftKey &leftValue &selfValue &rightKey &rightValue node.Left
+            else    
+                selfValue <- node.Value
+                let mutable flags = flags 
+                if tryGetMin &rightKey &rightValue node.Right then flags <- flags ||| NeighbourFlags.Right
+                if tryGetMax &leftKey &leftValue node.Left then flags <- flags ||| NeighbourFlags.Left
+                flags ||| NeighbourFlags.Self
+
+    let rec getNeighboursAt
+        (index : int) 
+        (flags : NeighbourFlags)
+        (leftKey : byref<'Key>) (leftValue : byref<'Value>)
+        (selfKey : byref<'Key>) (selfValue : byref<'Value>)
+        (rightKey : byref<'Key>) (rightValue : byref<'Value>)
+        (node : Node<'Key, 'Value>) =
+
+        if isNull node then
+            flags
+
+        elif node.Height = 1uy then
+            if index > 0 then
+                leftKey <- node.Key
+                leftValue <- node.Value
+                flags ||| NeighbourFlags.Left
+            elif index < 0 then
+                rightKey <- node.Key
+                rightValue <- node.Value
+                flags ||| NeighbourFlags.Right
+            else
+                selfKey <- node.Key
+                selfValue <- node.Value
+                flags ||| NeighbourFlags.Self
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let id = index - count node.Left
+            if id > 0 then
+                leftKey <- node.Key
+                leftValue <- node.Value
+                getNeighboursAt (id - 1) (flags ||| NeighbourFlags.Left) &leftKey &leftValue &selfKey &selfValue &rightKey &rightValue node.Right
+            elif id < 0 then
+                rightKey <- node.Key
+                rightValue <- node.Value
+                getNeighboursAt index (flags ||| NeighbourFlags.Right) &leftKey &leftValue &selfKey &selfValue &rightKey &rightValue node.Left
+            else    
+                selfKey <- node.Key
+                selfValue <- node.Value
+                let mutable flags = flags 
+                if tryGetMin &rightKey &rightValue node.Right then flags <- flags ||| NeighbourFlags.Right
+                if tryGetMax &leftKey &leftValue node.Left then flags <- flags ||| NeighbourFlags.Left
+                flags ||| NeighbourFlags.Self
+
+
+
+    let rec withMin (cmp : IComparer<'Key>) (minKey : 'Key) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            node
+        elif node.Height = 1uy then
+            let c = cmp.Compare(node.Key, minKey)
+            if c >= 0 then node
+            else null
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(node.Key, minKey)
+            if c > 0 then
+                binary (withMin cmp minKey node.Left) node.Key node.Value node.Right
+            elif c < 0 then
+                withMin cmp minKey node.Right
+            else
+                withMin cmp minKey node.Right |> add cmp node.Key node.Value
+                
+    let rec withMax (cmp : IComparer<'Key>) (maxKey : 'Key) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            node
+        elif node.Height = 1uy then
+            let c = cmp.Compare(node.Key, maxKey)
+            if c <= 0 then node
+            else null
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(node.Key, maxKey)
+
+            if c > 0 then
+                withMax cmp maxKey node.Left
+            elif c < 0 then
+                binary node.Left node.Key node.Value (withMax cmp maxKey node.Right)
+            else
+                withMax cmp maxKey node.Left |> add cmp node.Key node.Value
+  
+    let rec withMinExclusiveN 
+        (cmp : IComparer<'Key>) (minKey : 'Key) 
+        (firstKey : byref<'Key>) (firstValue : byref<'Value>)
+        (node : Node<'Key, 'Value>) =
+        if isNull node then
+            node
+        elif node.Height = 1uy then
+            let c = cmp.Compare(node.Key, minKey)
+            if c > 0 then 
+                firstKey <- node.Key
+                firstValue <- node.Value
+                node
+            else 
+                null
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(node.Key, minKey)
+            if c > 0 then
+                let newLeft = withMinExclusiveN cmp minKey &firstKey &firstValue node.Left
+                if isNull newLeft then
+                    firstKey <- node.Key
+                    firstValue <- node.Value
+                binary newLeft node.Key node.Value node.Right
+            else
+                withMinExclusiveN cmp minKey &firstKey &firstValue node.Right
+ 
+    let rec withMaxExclusiveN 
+        (cmp : IComparer<'Key>) (maxKey : 'Key) 
+        (lastKey : byref<'Key>) (lastValue : byref<'Value>)
+        (node : Node<'Key, 'Value>) =
+        if isNull node then
+            node
+        elif node.Height = 1uy then
+            let c = cmp.Compare(node.Key, maxKey)
+            if c < 0 then 
+                lastKey <- node.Key
+                lastValue <- node.Value
+                node
+            else 
+                null
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(node.Key, maxKey)
+            if c < 0 then
+                let newRight = withMaxExclusiveN cmp maxKey &lastKey &lastValue node.Right
+                if isNull newRight then
+                    lastKey <- node.Key
+                    lastValue <- node.Value
+                binary node.Left node.Key node.Value newRight
+            else
+                withMaxExclusiveN cmp maxKey &lastKey &lastValue node.Left
+
+
+    let rec slice (cmp : IComparer<'Key>) (minKey : 'Key) (maxKey : 'Key) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            node
+        elif node.Height = 1uy then
+            let cMin = cmp.Compare(minKey, node.Key)
+            if cMin <= 0 then
+                let cMax = cmp.Compare(maxKey, node.Key)
+                if cMax >= 0 then
+                    node
+                else
+                    null
+            else
+                null
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let cMin = cmp.Compare(minKey, node.Key)
+            let cMax = cmp.Compare(maxKey, node.Key)
+
+            if cMin <= 0 && cMax >= 0 then
+                // split-key contained
+                binary (withMin cmp minKey node.Left) node.Key node.Value (withMax cmp maxKey node.Right)
+            elif cMin > 0 then  
+                // min larger than split-key
+                slice cmp minKey maxKey node.Right
+            else (* cMax < 0 *)
+                // max smaller than split-key
+                slice cmp minKey maxKey node.Left
+
+    let rec take (n : int) (node : Node<'Key, 'Value>) =
+        if n <= 0 || isNull node then
+            null
+        elif node.Height = 1uy then
+            node
+        else
+            let inner = node :?> Inner<'Key, 'Value>
+            if inner.Count <= n then 
+                node
+            else
+                let lc = count inner.Left
+                if lc < n then
+                    let newRight = take (n - 1 - lc) inner.Right
+                    binary inner.Left inner.Key inner.Value newRight
+                elif lc = n then
+                    inner.Left
+                else    
+                    take n inner.Left
+            
+
+    let rec skip (n : int) (node : Node<'Key, 'Value>) =
+        if n <= 0 || isNull node then
+            node
+        elif node.Height = 1uy then
+            null
+        else
+            let inner = node :?> Inner<'Key, 'Value>
+            if inner.Count <= n then
+                null
+            else
+                let lc = count inner.Left
+                if n > lc then
+                    skip (n - 1 - lc) inner.Right
+                elif n = lc then
+                    unsafeAddMinimum inner.Key inner.Value inner.Right
+                else
+                    binary (skip n inner.Left) inner.Key inner.Value inner.Right
+     
+
+    let rec sliceAt (minIndex : int) (maxIndex : int) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            node
+
+        elif node.Height = 1uy then
+            if minIndex <= 0 && maxIndex >= 0 then node
+            else null
+
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let lc = count node.Left
+
+            if minIndex > lc then
+                // only right
+                let newMin = minIndex - lc - 1
+                let newMax = maxIndex - lc - 1
+                sliceAt newMin newMax node.Right
+
+            elif maxIndex < lc then
+                // only left
+                let newMin = minIndex
+                let newMax = maxIndex
+                sliceAt newMin newMax node.Left
+
+            else
+                // contained
+
+                let skipLeft = minIndex
+                let takeRight = maxIndex - lc
+
+                let l = 
+                    if skipLeft <= 0 then node.Left
+                    else skip skipLeft node.Left
+
+                let r = 
+                    if takeRight >= count node.Right then node.Right
+                    else take takeRight node.Right
+
+                binary l node.Key node.Value r
+
+
+
+
+
+    let inline private ofTwoOption (min : 'Key) (max : 'Key) (minValue : voption<'Value>) (maxValue : voption<'Value>) =
+        match minValue with
+        | ValueSome va ->
+            match maxValue with
+            | ValueSome vb ->
+                Inner(null, min, va, Node(max, vb), 2uy, 2) :> Node<_,_>
+
+            | ValueNone ->
+                Node(min, va)
+        | ValueNone ->
+            match maxValue with
+            | ValueSome vb ->
+                Node(max, vb)
+            | ValueNone ->
+                null
+
+    let rec changeWithNeighbours
+        (cmp : IComparer<'Key>) 
+        (key : 'Key)
+        (l : voption<struct('Key * 'Value)>)
+        (r : voption<struct('Key * 'Value)>)
+        (replacement : voption<struct('Key * 'Value)> -> voption<'Value> -> voption<struct('Key * 'Value)> -> voption<'Value>)
+        (node : Node<'Key, 'Value>) =
+
+        if isNull node then
+            let newValue = replacement l ValueNone r
+            match newValue with
+            | ValueSome b -> Node(key, b)
+            | ValueNone -> null
+
+        elif node.Height = 1uy then
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then
+                let newValue = replacement (ValueSome struct(node.Key, node.Value)) ValueNone r
+                match newValue with
+                | ValueSome newValue ->
+                    Inner(node, key, newValue, null, 2uy, 2) :> Node<_,_>
+                | ValueNone ->
+                    node
+            elif c < 0 then
+                let newValue = replacement l ValueNone (ValueSome struct(node.Key, node.Value))
+                match newValue with
+                | ValueSome newValue ->
+                    Inner(null, key, newValue, node, 2uy, 2) :> Node<_,_>
+                | ValueNone ->
+                    node
+            else
+                let newValue = replacement l (ValueSome node.Value) r
+                match newValue with
+                | ValueSome newValue ->
+                    Node(key, newValue)
+                | ValueNone ->
+                    null
+                
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let c = cmp.Compare(key, node.Key)
+            if c > 0 then
+                binary node.Left node.Key node.Value (changeWithNeighbours cmp key (ValueSome struct(node.Key, node.Value)) r replacement node.Right)
+            elif c < 0 then 
+                binary (changeWithNeighbours cmp key l (ValueSome struct(node.Key, node.Value)) replacement node.Left) node.Key node.Value node.Right
+            else
+                let rNeighbour =
+                    let mutable k = Unchecked.defaultof<_>
+                    let mutable v = Unchecked.defaultof<_>
+                    if tryGetMin &k &v node.Right then
+                        ValueSome struct(k,v)
                     else
-                        let l = match f.Invoke(lk, ValueSome lv, ValueNone) with | ValueSome r -> MapOne(lk, r) | ValueNone -> MapEmpty
-                        let r = match f.Invoke(rk, ValueNone, ValueSome rv) with | ValueSome r -> MapOne(rk, r) | ValueNone -> MapEmpty
-                        merge l r
+                        r
 
-                | MapNode(lk, lv, ll, lr, lh, lc), MapOne(rk, rv) ->
-                    let c = comparer.Compare(lk, rk)
-                    if c = 0 then
-                        let ll = chooseiOptV lo ll
-                        let lr = chooseiOptV lo lr
-                        match f.Invoke(lk, ValueSome lv, ValueSome rv) with
-                        | ValueSome v -> join ll lk v lr
-                        | ValueNone -> merge ll lr
-                    elif c > 0 then
-                        joinV (choose2VOpt comparer f lo ro ll r) lk (lo.Invoke(lk, lv)) (chooseiOptV lo lr)
+                let lNeighbour =
+                    let mutable k = Unchecked.defaultof<_>
+                    let mutable v = Unchecked.defaultof<_>
+                    if tryGetMax &k &v node.Right then
+                        ValueSome struct(k,v)
                     else
-                        joinV (chooseiOptV lo ll) lk (lo.Invoke(lk, lv)) (choose2VOpt comparer f lo ro lr r)
+                        l
+
+                let newValue = replacement lNeighbour (ValueSome node.Value) rNeighbour
+                match newValue with
+                | ValueSome newValue ->
+                    Inner(node.Left, key, newValue, node.Right, node.Height, node.Count) :> Node<_,_>
+                | ValueNone ->
+                    unsafeJoin node.Left node.Right
+           
+    let rec replaceRange 
+        (cmp : IComparer<'Key>) 
+        (min : 'Key) (max : 'Key) 
+        (l : voption<struct('Key * 'Value)>)
+        (r : voption<struct('Key * 'Value)>)
+        (replacement : voption<struct('Key * 'Value)> -> voption<struct('Key * 'Value)> -> struct(voption<'Value> * voption<'Value>))
+        (node : Node<'Key, 'Value>) =
+        
+        if isNull node then
+            let struct (a, b) = replacement l r
+            ofTwoOption min max a b
+
+        elif node.Height = 1uy then
+            let cMin = cmp.Compare(node.Key, min)
+            let cMax = cmp.Compare(node.Key, max)
+            if cMin >= 0 && cMax <= 0 then
+                let struct(a, b) = replacement l r
+                ofTwoOption min max a b
+            elif cMin < 0 then
+                // node is left
+                let struct(a, b) = replacement (ValueSome struct(node.Key, node.Value)) r
+
+                match a with
+                | ValueSome va ->
+                    match b with
+                    | ValueSome vb ->
+                        Inner(node, min, va, Node(max, vb), 2uy, 3) :> Node<_,_>
+                    | ValueNone ->
+                        Inner(node, min, va, null, 2uy, 2) :> Node<_,_>
+                | ValueNone ->
+                    match b with
+                    | ValueSome vb ->
+                        Inner(node, max, vb, null, 2uy, 2) :> Node<_,_>
+                    | ValueNone ->
+                        node
+            else
+                // node is right
+                let struct(a, b) = replacement l (ValueSome struct(node.Key, node.Value))
+
+                match a with
+                | ValueSome va ->
+                    match b with
+                    | ValueSome vb ->
+                        Inner(Node(min, va), max, vb, node, 2uy, 3) :> Node<_,_>
+                    | ValueNone ->
+                        Inner(null, min, va, node, 2uy, 2) :> Node<_,_>
+                | ValueNone ->
+                    match b with
+                    | ValueSome vb ->
+                        Inner(null, max, vb, node, 2uy, 2) :> Node<_,_>
+                    | ValueNone ->
+                        node
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let cMin = cmp.Compare(node.Key, min)
+            let cMax = cmp.Compare(node.Key, max)
+            if cMin >= 0 && cMax <= 0 then
+
+                let mutable minKey = Unchecked.defaultof<_>
+                let mutable minValue = Unchecked.defaultof<_>
+                let mutable maxKey = Unchecked.defaultof<_>
+                let mutable maxValue = Unchecked.defaultof<_>
+
+                let l1 = withMaxExclusiveN cmp min &minKey &minValue node.Left
+                let r1 = withMinExclusiveN cmp max &maxKey &maxValue node.Right
+
+                let ln = 
+                    if isNull l1 then l
+                    else ValueSome struct(minKey, minValue)
+                let rn = 
+                    if isNull r1 then r
+                    else ValueSome struct(maxKey, maxValue)
+
+                let struct(a, b) = replacement ln rn
+
+                match a with
+                | ValueSome va ->
+                    match b with
+                    | ValueSome vb ->
+                        if height l1 < height r1 then
+                            binary (add cmp min va l1) max vb r1
+                        else
+                            binary l1 min va (add cmp max vb r1)
+                    | ValueNone ->
+                        binary l1 min va r1
+                | ValueNone ->
+                    match b with
+                    | ValueSome vb ->
+                        binary l1 max vb r1
+                    | ValueNone ->
+                        join l1 r1
+
+            elif cMin < 0 then
+                // only right
+                let r1 = replaceRange cmp min max (ValueSome struct(node.Key, node.Value)) r replacement node.Right
+                binary node.Left node.Key node.Value r1
+            else    
+                // only left
+                let l1 = replaceRange cmp min max l (ValueSome struct(node.Key, node.Value)) replacement node.Left
+                binary l1 node.Key node.Value node.Right
+
+    let rec computeDelta
+        (cmp : IComparer<'Key>) 
+        (node1 : Node<'Key, 'Value1>)
+        (node2 : Node<'Key, 'Value2>)
+        (update : OptimizedClosures.FSharpFunc<'Key, 'Value1, 'Value2, voption<'OP>>)
+        (invoke : OptimizedClosures.FSharpFunc<'Key, 'Value2, 'OP>)
+        (revoke : OptimizedClosures.FSharpFunc<'Key, 'Value1, 'OP>) =
+        if isNull node1 then
+            map invoke node2
+        elif isNull node2 then
+            map revoke node1
+        elif System.Object.ReferenceEquals(node1, node2) then
+            null
+        elif node1.Height = 1uy then
+            // node1 is leaf
+            if node2.Height = 1uy then
+                // both are leaves
+                let c = cmp.Compare(node2.Key, node1.Key)
+                if c > 0 then
+                    let a = revoke.Invoke(node1.Key, node1.Value)
+                    let b = invoke.Invoke(node2.Key, node2.Value)
+                    Inner(Node(node1.Key, a), node2.Key, b, null, 2uy, 2) :> Node<_,_>
+                elif c < 0 then 
+                    let b = invoke.Invoke(node2.Key, node2.Value)
+                    let a = revoke.Invoke(node1.Key, node1.Value)
+                    Inner(null, node2.Key, b, Node(node1.Key, a), 2uy, 2) :> Node<_,_>
+                else
+                    match update.Invoke(node1.Key, node1.Value, node2.Value) with
+                    | ValueSome op -> Node(node1.Key, op)
+                    | ValueNone -> null
+            else
+                // node1 is leaf
+                // node2 is inner
+                let node2 = node2 :?> Inner<'Key, 'Value2>
+                let c = cmp.Compare(node1.Key, node2.Key)
+
+                if c > 0 then
+                    let l1 = map invoke node2.Left
+                    let s = invoke.Invoke(node2.Key, node2.Value)
+                    let r1 = computeDelta cmp node1 node2.Right update invoke revoke
+                    binary l1 node2.Key s r1
+                elif c < 0 then
+                    let l1 = computeDelta cmp node1 node2.Left update invoke revoke
+                    let s = invoke.Invoke(node2.Key, node2.Value)
+                    let r1 = map invoke node2.Right
+                    binary l1 node2.Key s r1
+                else
+                    let l1 = map invoke node2.Left
+                    let s = update.Invoke(node1.Key, node1.Value, node2.Value)
+                    let r1 = map invoke node2.Right
+                    match s with
+                    | ValueSome op ->
+                        Inner(l1, node1.Key, op, r1, node2.Height, node2.Count) :> Node<_,_>
+                    | ValueNone ->
+                        join l1 r1
                         
+        elif node2.Height = 1uy then
+            // node2 is leaf
+            // node1 is inner
+            let node1 = node1 :?> Inner<'Key, 'Value1>
+            let c = cmp.Compare(node2.Key, node1.Key)
+            if c > 0 then
+                let l1 = map revoke node1.Left
+                let s = revoke.Invoke(node1.Key, node1.Value)
+                let r1 = computeDelta cmp node1.Right node2 update invoke revoke
+                binary l1 node1.Key s r1
+            elif c < 0 then     
+                let l1 = computeDelta cmp node1.Left node2 update invoke revoke
+                let s = revoke.Invoke(node1.Key, node1.Value)
+                let r1 = map revoke node1.Right
+                binary l1 node1.Key s r1
+            else
+                let l1 = map revoke node1.Left
+                let s = update.Invoke(node1.Key, node1.Value, node2.Value)
+                let r1 = map revoke node1.Right
+                match s with
+                | ValueSome op ->
+                    Inner(l1, node1.Key, op, r1, node1.Height, node1.Count) :> Node<_,_>
+                | ValueNone ->
+                    join l1 r1
 
-                | MapOne(lk, lv), MapNode(rk, rv, rl, rr, rh, rc) ->
-                    let c = comparer.Compare(lk, rk)
-                    if c = 0 then
-                        let rl = chooseiOptV ro rl
-                        let rr = chooseiOptV ro rr
-                        match f.Invoke(rk, ValueSome lv, ValueSome rv) with
-                        | ValueSome v -> join rl rk v rr
-                        | ValueNone -> merge rl rr
-                    elif c > 0 then
-                        joinV (chooseiOptV ro rl) rk (ro.Invoke(rk, rv)) (choose2VOpt comparer f lo ro l rr)
+        elif node1.Height > node2.Height then
+            // both are inner h1 > h2
+            let node1 = node1 :?> Inner<'Key, 'Value1>
+            let mutable l2 = null
+            let mutable s2 = Unchecked.defaultof<_>
+            let mutable r2 = null
+            let hasValue = split cmp node1.Key &l2 &s2 &r2 node2
+            if hasValue then
+                let ld = computeDelta cmp node1.Left l2 update invoke revoke
+                let self = update.Invoke(node1.Key, node1.Value, s2)
+                let rd = computeDelta cmp node1.Right r2 update invoke revoke
+                match self with
+                | ValueSome self -> binary ld node1.Key self rd
+                | ValueNone -> join ld rd
+            else
+                let ld = computeDelta cmp node1.Left l2 update invoke revoke
+                let op = revoke.Invoke(node1.Key, node1.Value)
+                let rd = computeDelta cmp node1.Right r2 update invoke revoke
+                binary ld node1.Key op rd
+        else
+            // both are inner h2 > h1
+            let node2 = node2 :?> Inner<'Key, 'Value2>
+            let mutable l1 = null
+            let mutable s1 = Unchecked.defaultof<_>
+            let mutable r1 = null
+            let hasValue = split cmp node2.Key &l1 &s1 &r1 node1
+            if hasValue then
+                let ld = computeDelta cmp l1 node2.Left update invoke revoke
+                let self = update.Invoke(node2.Key, s1, node2.Value)
+                let rd = computeDelta cmp r1 node2.Right update invoke revoke
+                match self with
+                | ValueSome self -> binary ld node2.Key self rd
+                | ValueNone -> join ld rd
+            else
+                let ld = computeDelta cmp l1 node2.Left update invoke revoke
+                let self = invoke.Invoke(node2.Key, node2.Value)
+                let rd = computeDelta cmp r1 node2.Right update invoke revoke
+                binary ld node2.Key self rd
+           
+    module ApplyDelta = 
+        let rec applyDeltaSingletonState 
+            (cmp : IComparer<'Key>)
+            (specialKey : 'Key)
+            (specialValue : 'T)
+            (mapping : OptimizedClosures.FSharpFunc<'Key, 'Value, voption<'T>>) 
+            (mapping2 : OptimizedClosures.FSharpFunc<'Key, 'T, 'Value, voption<'T>>) 
+            (node : Node<'Key, 'Value>) = 
+                if isNull node then
+                    Node(specialKey, specialValue)
+                elif node.Height = 1uy then
+                    let c = cmp.Compare(specialKey, node.Key)
+                    if c > 0 then
+                        match mapping.Invoke(node.Key, node.Value) with
+                        | ValueSome v -> 
+                            Inner(null, node.Key, v, Node(specialKey, specialValue), 2uy, 2) :> Node<_,_>
+                        | ValueNone ->
+                            Node(specialKey, specialValue)
+                    elif c < 0 then
+                        match mapping.Invoke(node.Key, node.Value) with
+                        | ValueSome v -> 
+                            Inner(Node(specialKey, specialValue), node.Key, v, null, 2uy, 2) :> Node<_,_>
+                        | ValueNone ->
+                            Node(specialKey, specialValue)
                     else
-                        joinV (choose2VOpt comparer f lo ro l rl) rk (ro.Invoke(rk, rv)) (chooseiOptV ro rr)
-                    
-                | MapNode(lk, lv, ll, lr, lh, lc), MapNode(rk, rv, rl, rr, rh, rc) ->
-                    let c = comparer.Compare(lk, rk)
-                    if c = 0 then
-                        joinV (choose2VOpt comparer f lo ro ll rl) lk (f.Invoke(lk, ValueSome lv, ValueSome rv)) (choose2VOpt comparer f lo ro  lr rr)
-                    elif lh > rh then
-                        let struct (rl, _lmax, rv, _rmin, rr) = splitV comparer lk r
-                        joinV (choose2VOpt comparer f lo ro ll rl) lk (f.Invoke(lk, ValueSome lv, rv)) (choose2VOpt comparer f lo ro  lr rr)
+                        match mapping2.Invoke(node.Key, specialValue, node.Value) with
+                        | ValueSome v ->
+                            Node(node.Key, v)
+                        | ValueNone ->
+                            null
+                else
+                    let node = node :?> Inner<'Key, 'Value>
+                    let c = cmp.Compare(specialKey, node.Key)
+                    if c > 0 then
+                        let l = chooseV mapping node.Left
+                        let s = mapping.Invoke(node.Key, node.Value)
+                        let r = applyDeltaSingletonState cmp specialKey specialValue mapping mapping2 node.Right
+                        match s with
+                        | ValueSome value -> 
+                            binary l node.Key value r
+                        | ValueNone ->
+                            join l r
+                    elif c < 0 then
+                        let l = applyDeltaSingletonState cmp specialKey specialValue mapping mapping2 node.Left
+                        let s = mapping.Invoke(node.Key, node.Value)
+                        let r = chooseV mapping node.Right
+                        match s with
+                        | ValueSome value -> 
+                            binary l node.Key value r
+                        | ValueNone ->
+                            join l r
+                   
                     else
-                        let struct (ll, _lmax, lv, _rmin, lr) = splitV comparer rk l
-                        joinV (choose2VOpt comparer f lo ro ll rl) rk (f.Invoke(rk, lv, ValueSome rv)) (choose2VOpt comparer f lo ro  lr rr)
+                        let l = chooseV mapping node.Left
+                        let self = mapping2.Invoke(node.Key, specialValue, node.Value)
+                        let r = chooseV mapping node.Right
+                        match self with
+                        | ValueSome res ->
+                            binary l node.Key res r
+                        | ValueNone ->
+                            join l r
 
+                        
+        let rec applyDeltaSingle 
+            (cmp : IComparer<'Key>) 
+            (specialKey : 'Key) 
+            (specialValue : 'T)
+            (update : OptimizedClosures.FSharpFunc<'Key, 'T, voption<'Value>>)
+            (update2 : OptimizedClosures.FSharpFunc<'Key, 'Value, 'T, voption<'Value>>) 
+            (node : Node<'Key, 'Value>) : Node<'Key, 'Value> =
+            if isNull node then
+                match update.Invoke(specialKey, specialValue) with
+                | ValueNone -> null
+                | ValueSome v -> Node(specialKey, v)
 
-        let choose2V 
-            (comparer: IComparer<'Key>) 
-            (mapping : 'Key -> voption<'T1> -> voption<'T2> -> voption<'T3>) 
-            l r =
-                
-            let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
-            let lo = OptimizedClosures.FSharpFunc<_,_,_>.Adapt (fun k l -> mapping.Invoke(k, ValueSome l, ValueNone))
-            let ro = OptimizedClosures.FSharpFunc<_,_,_>.Adapt (fun k r -> mapping.Invoke(k, ValueNone, ValueSome r))
-
-            choose2VOpt comparer mapping lo ro l r
-
+            elif node.Height = 1uy then
+                let c = cmp.Compare(specialKey, node.Key)
+                if c > 0 then
+                    match update.Invoke(specialKey, specialValue) with
+                    | ValueNone -> node
+                    | ValueSome n ->
+                        Inner(node, specialKey, n, null, 2uy, 2) :> Node<_,_>
+                elif c < 0 then
+                    match update.Invoke(specialKey, specialValue) with
+                    | ValueNone -> node
+                    | ValueSome n ->
+                        Inner(null, specialKey, n, node, 2uy, 2) :> Node<_,_>
+                else
+                    match update2.Invoke(specialKey, node.Value, specialValue) with
+                    | ValueNone -> null
+                    | ValueSome v -> Node(specialKey, v)
+            else    
+                let node = node :?> Inner<'Key, 'Value>
+                let c = cmp.Compare(specialKey, node.Key)
+                if c > 0 then
+                    unsafeBinary node.Left node.Key node.Value (applyDeltaSingle cmp specialKey specialValue update update2 node.Right)
+                elif c < 0 then
+                    unsafeBinary (applyDeltaSingle cmp specialKey specialValue update update2 node.Left) node.Key node.Value node.Right
+                else
+                    match update2.Invoke(specialKey, node.Value, specialValue) with
+                    | ValueSome n ->
+                        Inner(node.Left, specialKey, n, node.Right, node.Height, node.Count) :> Node<_,_>
+                    | ValueNone ->
+                        unsafeJoin node.Left node.Right
 
 
         let rec applyDelta
-            (comparer : IComparer<'Key>)
-            (apply : OptimizedClosures.FSharpFunc<'Key, voption<'Value>, 'Delta, struct (voption<'Value> * voption<'DeltaOut>)>) 
-            (onlyDelta : OptimizedClosures.FSharpFunc<'Key, 'Delta, struct (voption<'Value> * voption<'DeltaOut>)>)
-            (l : MapTree<'Key, 'Value>) 
-            (r : MapTree<'Key, 'Delta>) =
+            (cmp : IComparer<'Key>)
+            (state : Node<'Key, 'Value>)
+            (delta : Node<'Key, 'OP>)
+            (applyNoState : OptimizedClosures.FSharpFunc<'Key, 'OP, voption<'Value>>) 
+            (apply : OptimizedClosures.FSharpFunc<'Key, 'Value, 'OP, voption<'Value>>) =
+
+            if isNull delta then
+                // delta empty
+                state
+            elif isNull state then
+                // state empty
+                chooseV applyNoState delta
+
+            elif delta.Height = 1uy then
+                // delta leaf
+                applyDeltaSingle cmp delta.Key delta.Value applyNoState apply state
+
+            elif state.Height = 1uy then
+                // state leaf
+                applyDeltaSingletonState cmp state.Key state.Value applyNoState apply delta
                 
-            match struct(l, r) with
-            | struct (value, MapEmpty) ->
-                struct (value, MapEmpty)
+            else
+                // both inner
+                let state = state :?> Inner<'Key, 'Value>
+                let mutable dl = null
+                let mutable ds = Unchecked.defaultof<_>
+                let mutable dr = null
+                let hasValue = split cmp state.Key &dl &ds &dr delta
+                let delta = ()
 
-            | struct (MapEmpty, r) -> 
-                chooseiOptV2 onlyDelta r
-
-            | struct (MapOne(lk, lv), MapOne(rk, rv)) ->
-                let c = comparer.Compare(lk, rk)
-                if c = 0 then
-                    let struct (s, d) = apply.Invoke(lk, ValueSome lv, rv)
-                    let s = match s with | ValueSome v -> MapOne(lk, v) | ValueNone -> MapEmpty
-                    let d = match d with | ValueSome v -> MapOne(rk, v) | ValueNone -> MapEmpty
-                    struct(s, d)
+                if hasValue then
+                    let l = applyDelta cmp state.Left dl applyNoState apply
+                    let self = apply.Invoke(state.Key, state.Value, ds)
+                    let r = applyDelta cmp state.Right dr applyNoState apply
+                    match self with
+                    | ValueSome self -> binary l state.Key self r
+                    | ValueNone -> join l r
                 else
-                    let struct (s, d) = onlyDelta.Invoke(rk, rv)
-                    let d = match d with | ValueSome v -> MapOne(rk, v) | ValueNone -> MapEmpty
-                    match s with
-                    | ValueSome s ->
-                        //let state = merge (MapOne(lk, lv)) (MapOne(rk, s))
-                        let state =
-                            if c > 0 then MapNode(rk, s, MapEmpty, MapOne(lk, lv), 2, 2)
-                            else MapNode(lk, lv, MapEmpty, MapOne(rk, s), 2, 2)
-                        struct(state, d)
-                    | ValueNone ->
-                        struct (l, d)
+                    let l = applyDelta cmp state.Left dl applyNoState apply
+                    let r = applyDelta cmp state.Right dr applyNoState apply
+                    binary l state.Key state.Value r
+            
 
-            | struct (MapOne(lk, lv), MapNode(rk, rv, rl, rr, rh, rc)) ->
-                let c = comparer.Compare(lk, rk)
-                 
-                //match tryRemove comparer lk r with
-                //| Some (rv, r) ->
-                //    let struct (s, d) = chooseiOptV2 onlyDelta r
-                //    let struct (sv, dv) = apply.Invoke(lk, ValueSome lv, rv)
-                //    let s = match sv with | ValueNone -> s | ValueSome v -> add comparer lk v s
-                //    let d = match dv with | ValueNone -> d | ValueSome v -> add comparer lk v d
-                //    struct (s, d)
-                //| None ->
-                //    let struct (s, d) = chooseiOptV2 onlyDelta r
-                //    struct(add comparer lk lv s, d)
+        let rec chooseVAndGetEffective 
+            (mapping : OptimizedClosures.FSharpFunc<'Key, 'Value, struct(voption<'T> * voption<'T2>)>) 
+            (effective : byref<Node<'Key, 'T2>>) 
+            (node : Node<'Key, 'Value>) =
+            if isNull node then
+                effective <- null
+                null
+            elif node.Height = 1uy then
+                let struct(s, op) = mapping.Invoke(node.Key, node.Value)
 
-                if c = 0 then
-                    let struct (s, d) = apply.Invoke(rk, ValueSome lv, rv)
-                    let struct (rls, rld) = chooseiOptV2 onlyDelta rl
-                    let struct (rrs, rrd) = chooseiOptV2 onlyDelta rr
+                match op with
+                | ValueNone -> effective <- null
+                | ValueSome op -> effective <- Node(node.Key, op)
 
-                    let s = joinV rls rk s rrs 
-                    let d = joinV rld rk d rrd 
-                    struct (s, d)
-
-                elif c < 0 then
-                    let struct (s, d) = onlyDelta.Invoke(rk, rv)
-                    let struct (rls, rld) = applyDelta comparer apply onlyDelta l rl
-                    let struct (rrs, rrd) = chooseiOptV2 onlyDelta rr
-                    
-                    let s = joinV rls rk s rrs 
-                    let d = joinV rld rk d rrd
-                    struct (s, d)
-
-                else
-                    let struct (s, d) = onlyDelta.Invoke(rk, rv)
-                    let struct (rls, rld) = chooseiOptV2 onlyDelta rl
-                    let struct (rrs, rrd) = applyDelta comparer apply onlyDelta l rr
-                    
-                    let s = joinV rls rk s rrs 
-                    let d = joinV rld rk d rrd
-                    struct (s, d)
-
-            | struct(MapNode(lk, lv, ll, lr, _, _), MapOne(rk, rv)) ->
-                //match tryRemove comparer rk l with
-                //| Some (lv, l) ->
-                //    let struct (s, d) = apply.Invoke(rk, ValueSome lv, rv)
-                //    let s = match s with | ValueSome s -> (add comparer rk s l) | ValueNone -> l
-                //    let d = match d with | ValueSome v -> MapOne(rk, v) | ValueNone -> MapEmpty
-                //    struct (s, d)
-                //| None ->
-                //    let struct (s, d) = apply.Invoke(rk, ValueNone, rv)
-                //    let s = match s with | ValueSome s -> (add comparer rk s l) | ValueNone -> l
-                //    let d = match d with | ValueSome v -> MapOne(rk, v) | ValueNone -> MapEmpty
-                //    struct (s, d)
-                    
-                let c = comparer.Compare(lk, rk)
-                
-                if c = 0 then
-                    let struct (s, d) = apply.Invoke(lk, ValueSome lv, rv)
-                    let s = joinV ll lk s lr
-                    let d = match d with | ValueSome v -> MapOne(lk, v) | ValueNone -> MapEmpty
-                    struct (s, d)
-                    
-                elif c < 0 then
-                    // delta in right
-                    let struct (lr, d) = applyDelta comparer apply onlyDelta lr r
-                    let s = join ll lk lv lr
-                    struct (s, d)
-                else
-                    // delta in left
-                    let struct (ll, d) = applyDelta comparer apply onlyDelta ll r
-                    let s = join ll lk lv lr
-                    struct (s, d)
-                    
-            | struct(MapNode(lk, lv, ll, lr, lh, _), MapNode(rk, rv, rl, rr, rh, _)) ->
-                let c = comparer.Compare(lk, rk)
-                if c = 0 then
-                    let struct (s, d) = apply.Invoke(lk, ValueSome lv, rv)
-                    let struct (ls, ld) = applyDelta comparer apply onlyDelta ll rl
-                    let struct (rs, rd) = applyDelta comparer apply onlyDelta lr rr
-                    let s = joinV ls lk s rs 
-                    let d = joinV ld lk d rd 
-                    struct (s, d)
-                elif lh > rh then
-                    let struct (rl, _lmax, rv, _rmin, rr) = splitV comparer lk r
-                    let key = lk
-                    let rk = ()
-                    let lk = ()
-                    match rv with
-                    | ValueSome rv ->
-                        let struct (s, d) = apply.Invoke(key, ValueSome lv, rv)
-                        let struct (ls, ld) = applyDelta comparer apply onlyDelta ll rl
-                        let struct (rs, rd) = applyDelta comparer apply onlyDelta lr rr
-                        let s = joinV ls key s rs 
-                        let d = joinV ld key d rd 
-                        struct (s, d)
-                    | ValueNone ->
-                        let struct (ls, ld) = applyDelta comparer apply onlyDelta ll rl
-                        let struct (rs, rd) = applyDelta comparer apply onlyDelta lr rr
-                        let s = join ls key lv rs 
-                        let d = merge ld rd 
-                        struct (s, d)
-                else
-                    let struct (ll, _lmax, lv, _rmin, lr) = splitV comparer rk l
-                    let key = rk
-                    let rk = ()
-                    let lk = ()
-                    match lv with
-                    | ValueSome lv ->
-                        let struct (s, d) = apply.Invoke(key, ValueSome lv, rv)
-                        let struct (ls, ld) = applyDelta comparer apply onlyDelta ll rl
-                        let struct (rs, rd) = applyDelta comparer apply onlyDelta lr rr
-                        let s = joinV ls key s rs 
-                        let d = joinV ld key d rd 
-                        struct (s, d)
-                    | ValueNone ->
-                        let struct (s, d) = onlyDelta.Invoke(key, rv)
-                        let struct (ls, ld) = applyDelta comparer apply onlyDelta ll rl
-                        let struct (rs, rd) = applyDelta comparer apply onlyDelta lr rr
-                        let s = joinV ls key s rs 
-                        let d = joinV ld key d rd 
-                        struct (s, d)
-            //| _ ->
-            //    let mutable state = l
-
-            //    let set = System.Collections.Generic.HashSet<_>()
-
-            //    let delta = 
-            //        r |> choosei (fun i op ->
-            //            if not (set.Add i) then failwith "superbad"
-            //            let l = match tryFind comparer i l with | Some l -> ValueSome l | None -> ValueNone
-            //            let struct (s, d) = apply.Invoke(i, l, op)
-            //            match s with
-            //            | ValueSome s -> state <- add comparer i s state
-            //            | ValueNone -> state <- remove comparer i state
-            //            match d with
-            //            | ValueSome d -> Some d
-            //            | ValueNone -> None
-            //        )
-            //    struct(state, delta)
-
-
-        let rec computeDelta 
-            (comparer: IComparer<'Key>) 
-            (set : OptimizedClosures.FSharpFunc<'Key, 'Value, 'OP>) 
-            (update : OptimizedClosures.FSharpFunc<'Key, 'Value, 'Value, voption<'OP>>) 
-            (remove : OptimizedClosures.FSharpFunc<'Key, 'Value, 'OP>) 
-            (l : MapTree<'Key, 'Value>) 
-            (r : MapTree<'Key, 'Value>) =
-            match struct (l, r) with
-                | struct (MapEmpty, MapEmpty) -> MapEmpty
-                | struct (MapEmpty, r) -> mapiOpt set r
-                | struct (l, MapEmpty) -> mapiOpt remove l
-
-                | struct (MapOne(lk, lv), MapOne(rk, rv)) ->
-                    if Object.ReferenceEquals(l, r) then
-                        MapEmpty
-                    else
-                        let c = comparer.Compare(lk, rk)
-                        if c = 0 then
-                            match update.Invoke(lk, lv, rv) with
-                            | ValueSome r -> MapOne(lk, r)
-                            | ValueNone -> MapEmpty
-                        elif c < 0 then
-                            MapNode(lk, remove.Invoke(lk, lv), MapEmpty, MapOne(rk, set.Invoke(rk, rv)), 2, 2)
-                        else
-                            MapNode(lk, remove.Invoke(lk, lv), MapOne(rk, set.Invoke(rk, rv)), MapEmpty, 2, 2)
-                            
-                | struct (MapOne(lk, lv), MapNode(nk, nv, nl, nr, _, _)) ->
-                    let c = comparer.Compare(lk, nk)
-                    if c = 0 then
-                        let ll = mapiOpt set nl
-                        let rr = mapiOpt set nr
-                        match update.Invoke(lk, lv, nv) with
-                        | ValueSome op ->
-                            join ll lk op rr
-                        | ValueNone ->
-                            merge ll rr
-                    elif c > 0 then
-                        let rr = computeDelta comparer set update remove l nr
-                        join (mapiOpt set nl) nk (set.Invoke(nk, nv)) rr
-                    else
-                        let ll = computeDelta comparer set update remove l nl
-                        join ll nk (set.Invoke(nk, nv)) (mapiOpt set nr)
-
-                | struct(MapNode(nk, nv, nl, nr, _, _), MapOne(rk, rv)) ->
-                    let c = comparer.Compare(rk, nk)
-                    if c = 0 then
-                        let ll = mapiOpt remove nl
-                        let rr = mapiOpt remove nr
-                        match update.Invoke(rk, nv, rv) with
-                        | ValueSome op ->
-                            join ll nk op rr
-                        | ValueNone ->
-                            merge ll rr
-                    elif c > 0 then
-                        let rr = computeDelta comparer set update remove nr r
-                        join (mapiOpt remove nl) nk (remove.Invoke(nk, nv)) rr
-                    else
-                        let ll = computeDelta comparer set update remove nl r
-                        join ll nk (remove.Invoke(nk, nv)) (mapiOpt remove nr)
-
-                | struct(MapNode(lka, lva, lla, lra, lha, _), MapNode(rka, rva, rla, rra, rha, _rc)) ->
-                    if Object.ReferenceEquals(l, r) then
-                        MapEmpty
-                    else
-                        let c = comparer.Compare(lka, rka)
-                        if c = 0 then
-                            let l = computeDelta comparer set update remove lla rla
-                            let r = computeDelta comparer set update remove lra rra
-                            match update.Invoke(lka, lva, rva) with
-                            | ValueSome op ->
-                                join l lka op r
-                            | ValueNone ->
-                                merge l r
-
-                        elif rha < lha then
-                            let struct (rl, _lmax, rv, _rmin, rr) = splitV comparer lka r
-                            let l = computeDelta comparer set update remove lla rl
-                            let r = computeDelta comparer set update remove lra rr
-                            match rv with
-                            | ValueSome rv -> 
-                                match update.Invoke(lka, lva, rv) with
-                                | ValueSome op ->
-                                    join l lka op r
-                                | ValueNone ->
-                                    merge l r
-                            | ValueNone ->
-                                let k = lka
-                                let v = remove.Invoke(lka, lva)
-                                join l k v r
-                        else
-                            let struct (ll, _lmax, lv, _rmin, lr) = splitV comparer rka l
-                            let l = computeDelta comparer set update remove ll rla
-                            let r = computeDelta comparer set update remove lr rra
-
-                            match lv with
-                            | ValueSome lv -> 
-                                match update.Invoke(rka, lv, rva) with
-                                | ValueSome op ->
-                                    join l rka op r
-                                | ValueNone ->
-                                    merge l r
-                            | ValueNone ->
-                                let k = rka
-                                let v = set.Invoke(rka, rva)
-                                join l k v r
-                                
-
-        let rec intersectWithAux (f:OptimizedClosures.FSharpFunc<'Key,'T1,'T2>) (comparer: IComparer<'k>) (l : MapTree<'k, 'Key>) (r : MapTree<'k, 'T1>) : MapTree<'k, 'T2> =
-            match l with
-            | MapEmpty -> 
-                MapEmpty
-
-            | MapOne(k,lv) ->
-                match tryFind comparer k r with
-                | Some rv -> MapOne(k, f.Invoke(lv, rv))
-                | None -> MapEmpty
-
-            | MapNode(k,v,l1,r1,_,_) ->
-                let a, s, b = split comparer k r
                 match s with
-                | Some s ->
-                    let v = f.Invoke(v,s)
-                    rebalance (intersectWithAux f comparer l1 a) k v (intersectWithAux f comparer r1 b)
-                | None ->
-                    let l = intersectWithAux f comparer l1 a
-                    let r = intersectWithAux f comparer r1 b
-                    match l with
-                    | MapEmpty -> r
-                    | _ ->
-                        match r with
-                        | MapEmpty -> l
-                        | _ ->
-                            let k,v,r' = spliceOutSuccessor r
-                            rebalance l k v r'
-
-        let intersectWith (f : 'Key -> 'T1 -> 'T2) (comparer : IComparer<'k>) (l : MapTree<'k, 'Key>) (r : MapTree<'k, 'T1>) =
-            let lc = size l
-            let rc = size r
-            if lc <= rc then
-                intersectWithAux (OptimizedClosures.FSharpFunc<_,_,_>.Adapt f) comparer l r
+                | ValueSome v -> Node(node.Key, v)
+                | ValueNone -> null
             else
-                intersectWithAux (OptimizedClosures.FSharpFunc<_,_,_>.Adapt(fun a b -> f b a)) comparer r l
+                let node = node :?> Inner<'Key, 'Value>
+                let mutable re = null
+                let l = chooseVAndGetEffective mapping &effective node.Left
+                let struct(s, op) = mapping.Invoke(node.Key, node.Value)
+                let r = chooseVAndGetEffective mapping &re node.Right
+                
+                match op with
+                | ValueNone -> effective <- join effective re
+                | ValueSome op -> effective <- binary effective node.Key op re
+
+                match s with
+                | ValueSome s -> binary l node.Key s r
+                | ValueNone -> join l r
+
+        let rec private applyDeltaSingletonStateEff 
+            (cmp : IComparer<'Key>)
+            (specialKey : 'Key)
+            (specialValue : 'Value)
+            (mapping : OptimizedClosures.FSharpFunc<'Key, 'OP, struct(voption<'Value> * voption<'OP2>)>) 
+            (mapping2 : OptimizedClosures.FSharpFunc<'Key, 'Value, 'OP, struct(voption<'Value> * voption<'OP2>)>) 
+            (effective : byref<Node<'Key, 'OP2>>)
+            (delta : Node<'Key, 'OP>) = 
+                if isNull delta then
+                    effective <- null
+                    Node(specialKey, specialValue)
+
+                elif delta.Height = 1uy then
+                    let c = cmp.Compare(specialKey, delta.Key)
+                    if c > 0 then
+                        let struct(state, op) = mapping.Invoke(delta.Key, delta.Value)
+                        match op with
+                        | ValueNone -> effective <- null
+                        | ValueSome op -> effective <- Node(delta.Key, op)
+
+                        match state with
+                        | ValueSome v -> Inner(null, delta.Key, v, Node(specialKey, specialValue), 2uy, 2) :> Node<_,_>
+                        | ValueNone -> Node(specialKey, specialValue)
+                    elif c < 0 then
+                        let struct(state, op) = mapping.Invoke(delta.Key, delta.Value)
+                        
+                        match op with
+                        | ValueNone -> effective <- null
+                        | ValueSome op -> effective <- Node(delta.Key, op)
+
+                        match state with
+                        | ValueSome v -> Inner(Node(specialKey, specialValue), delta.Key, v, null, 2uy, 2) :> Node<_,_>
+                        | ValueNone -> Node(specialKey, specialValue)
+                    else
+                        let struct(state, op) = mapping2.Invoke(delta.Key, specialValue, delta.Value)
+
+                        match op with
+                        | ValueNone -> effective <- null
+                        | ValueSome op -> effective <- Node(delta.Key, op)
+
+                        match state with
+                        | ValueSome v -> Node(delta.Key, v)
+                        | ValueNone -> null
+                else
+                    let delta = delta :?> Inner<'Key, 'OP>
+                    let c = cmp.Compare(specialKey, delta.Key)
+                    if c > 0 then
+                        let mutable re = null
+                        let l = chooseVAndGetEffective mapping &effective delta.Left
+                        let struct(s, op) = mapping.Invoke(delta.Key, delta.Value)
+                        let r = applyDeltaSingletonStateEff cmp specialKey specialValue mapping mapping2 &re delta.Right
+                        
+                        match op with
+                        | ValueNone -> effective <- join effective re
+                        | ValueSome op -> effective <- binary effective delta.Key op re
+
+                        match s with
+                        | ValueSome value -> binary l delta.Key value r
+                        | ValueNone -> join l r
+                    elif c < 0 then
+                        let mutable re = null
+                        let l = applyDeltaSingletonStateEff cmp specialKey specialValue mapping mapping2 &effective delta.Left
+                        let struct(s, op) = mapping.Invoke(delta.Key, delta.Value)
+                        let r = chooseVAndGetEffective mapping &re delta.Right
+
+                        match op with
+                        | ValueNone -> effective <- join effective re
+                        | ValueSome op -> effective <- binary effective delta.Key op re
+
+                        match s with
+                        | ValueSome value -> binary l delta.Key value r
+                        | ValueNone -> join l r
+                   
+                    else
+                        let mutable re = null
+                        let l = chooseVAndGetEffective mapping &effective delta.Left
+                        let struct(s, op) = mapping2.Invoke(delta.Key, specialValue, delta.Value)
+                        let r = chooseVAndGetEffective mapping &re delta.Right
+                        
+                        match op with
+                        | ValueNone -> effective <- join effective re
+                        | ValueSome op -> effective <- binary effective delta.Key op re
+
+                        match s with
+                        | ValueSome res -> binary l delta.Key res r
+                        | ValueNone -> join l r
 
 
-                      
-        let rec foldBackOpt (f:OptimizedClosures.FSharpFunc<_,_,_,_>) m x = 
-            match m with 
-            | MapEmpty -> x
-            | MapOne(k,v) -> f.Invoke(k,v,x)
-            | MapNode(k,v,l,r,_,_) -> 
-                let x = foldBackOpt f r x
-                let x = f.Invoke(k,v,x)
-                foldBackOpt f l x
+        let rec private applyDeltaSingleEff
+            (cmp : IComparer<'Key>) 
+            (specialKey : 'Key) 
+            (specialValue : 'T)
+            (update : OptimizedClosures.FSharpFunc<'Key, 'T, struct(voption<'Value> * voption<'OP2>)>)
+            (update2 : OptimizedClosures.FSharpFunc<'Key, 'Value, 'T, struct(voption<'Value> * voption<'OP2>)>) 
+            (effective : byref<Node<'Key, _>>)
+            (node : Node<'Key, 'Value>) : Node<'Key, 'Value> =
+            if isNull node then
+                let struct(state, delta) = update.Invoke(specialKey, specialValue)
 
-        let foldBack f m x = foldBackOpt (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(f)) m x
+                match delta with
+                | ValueNone -> effective <- null
+                | ValueSome op -> effective <- Node(specialKey, op)
 
-        let rec foldOpt (f:OptimizedClosures.FSharpFunc<_,_,_,_>) x m  = 
-            match m with 
-            | MapEmpty -> x
-            | MapOne(k,v) -> f.Invoke(x,k,v)
-            | MapNode(k,v,l,r,_,_) -> 
-                let x = foldOpt f x l
-                let x = f.Invoke(x,k,v)
-                foldOpt f x r
+                match state with
+                | ValueNone -> null
+                | ValueSome v -> Node(specialKey, v)
 
-        let fold f x m = foldOpt (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(f)) x m
+            elif node.Height = 1uy then
+                let c = cmp.Compare(specialKey, node.Key)
+                if c > 0 then
+                    let struct(state, delta) = update.Invoke(specialKey, specialValue)
+                    match delta with
+                    | ValueNone -> effective <- null
+                    | ValueSome op -> effective <- Node(specialKey, op)
+                    match state with
+                    | ValueNone -> node
+                    | ValueSome n -> Inner(node, specialKey, n, null, 2uy, 2) :> Node<_,_>
+                elif c < 0 then
+                    let struct(state, delta) = update.Invoke(specialKey, specialValue)
+                    match delta with
+                    | ValueNone -> effective <- null
+                    | ValueSome op -> effective <- Node(specialKey, op)
+                    match state with
+                    | ValueNone -> node
+                    | ValueSome n -> Inner(null, specialKey, n, node, 2uy, 2) :> Node<_,_>
+                else
+                    let struct(state, delta) = update2.Invoke(specialKey, node.Value, specialValue)
+                    match delta with
+                    | ValueSome op -> effective <- Node(specialKey, op)
+                    | ValueNone -> effective <- null
+                    match state with
+                    | ValueNone -> null
+                    | ValueSome v -> Node(specialKey, v)
+            else    
+                let node = node :?> Inner<'Key, 'Value>
+                let c = cmp.Compare(specialKey, node.Key)
+                if c > 0 then
+                    unsafeBinary node.Left node.Key node.Value (applyDeltaSingleEff cmp specialKey specialValue update update2 &effective node.Right)
+                elif c < 0 then
+                    unsafeBinary (applyDeltaSingleEff cmp specialKey specialValue update update2 &effective node.Left) node.Key node.Value node.Right
+                else
+                    let struct(state, delta) = update2.Invoke(specialKey, node.Value, specialValue)
+                    match delta with
+                    | ValueNone -> effective <- null
+                    | ValueSome op -> effective <- Node(specialKey, op)
+                    match state with
+                    | ValueSome n -> Inner(node.Left, specialKey, n, node.Right, node.Height, node.Count) :> Node<_,_>
+                    | ValueNone -> unsafeJoin node.Left node.Right
 
-        let foldSectionOpt (comparer: IComparer<'Value>) lo hi (f:OptimizedClosures.FSharpFunc<_,_,_,_>) m x =
-            let rec foldFromTo (f:OptimizedClosures.FSharpFunc<_,_,_,_>) m x = 
-                match m with 
-                | MapEmpty -> x
-                | MapOne(k,v) ->
-                    let cLoKey = comparer.Compare(lo,k)
-                    let cKeyHi = comparer.Compare(k,hi)
-                    let x = if cLoKey <= 0 && cKeyHi <= 0 then f.Invoke(k, v, x) else x
-                    x
-                | MapNode(k,v,l,r,_,_) ->
-                    let cLoKey = comparer.Compare(lo,k)
-                    let cKeyHi = comparer.Compare(k,hi)
-                    let x = if cLoKey < 0                 then foldFromTo f l x else x
-                    let x = if cLoKey <= 0 && cKeyHi <= 0 then f.Invoke(k, v, x) else x
-                    let x = if cKeyHi < 0                 then foldFromTo f r x else x
-                    x
-           
-            if comparer.Compare(lo,hi) = 1 then x else foldFromTo f m x
+        let rec applyDeltaAndGetEffective
+            (cmp : IComparer<'Key>)
+            (state : Node<'Key, 'Value>)
+            (delta : Node<'Key, 'OP>)
+            (applyNoState : OptimizedClosures.FSharpFunc<'Key, 'OP, struct(voption<'Value> * voption<'OP2>)>) 
+            (apply : OptimizedClosures.FSharpFunc<'Key, 'Value, 'OP, struct(voption<'Value> * voption<'OP2>)>) 
+            (effective : byref<Node<'Key, 'OP2>>) =
 
-        let foldSection (comparer: IComparer<'Value>) lo hi f m x =
-            foldSectionOpt comparer lo hi (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(f)) m x
+            if isNull delta then
+                // delta empty
+                effective <- null
+                state
 
-        let toList m = 
-            let rec loop m acc = 
-                match m with 
-                | MapEmpty -> acc
-                | MapOne(k,v) -> (k,v)::acc
-                | MapNode(k,v,l,r,_,_) -> loop l ((k,v)::loop r acc)
-            loop m []
+            elif isNull state then
+                // state empty
+                chooseVAndGetEffective applyNoState &effective delta
 
-        let toListV m =
-            let rec loop m acc = 
-                match m with 
-                | MapEmpty -> acc
-                | MapOne(k,v) -> struct(k,v)::acc
-                | MapNode(k,v,l,r,_,_) -> loop l (struct(k,v)::loop r acc)
-            loop m []
-
-        let rec private copyTo (array : array<'k * 'v>) (index : ref<int>) m =
-            match m with
-            | MapEmpty -> 
-                ()
-            | MapOne(k,v) -> 
-                array.[!index] <- (k, v)
-                index := !index + 1
-            | MapNode(k, v, l, r, _, _) ->
-                copyTo array index l
-                array.[!index] <- (k, v)
-                index := !index + 1
-                copyTo array index r
-
-        let rec private copyToV (array : array<struct('k * 'v)>) (index : ref<int>) m =
-            match m with
-            | MapEmpty -> 
-                ()
-            | MapOne(k,v) -> 
-                array.[!index] <- struct(k, v)
-                index := !index + 1
-            | MapNode(k, v, l, r, _, _) ->
-                copyToV array index l
-                array.[!index] <- struct(k, v)
-                index := !index + 1
-                copyToV array index r
-
-        let rec private copyValuesTo (array : array<'v>) (index : ref<int>) m =
-            match m with
-            | MapEmpty -> 
-                ()
-            | MapOne(k,v) -> 
-                array.[!index] <- v
-                index := !index + 1
-            | MapNode(k, v, l, r, _, _) ->
-                copyValuesTo array index l
-                array.[!index] <- v
-                index := !index + 1
-                copyValuesTo array index r
-
-        let toArrayV m =
-            let cnt = size m
-            let arr = Array.zeroCreate cnt
-            let index = ref 0 
-            copyToV arr index m
-            arr
-
-        let toArray m =
-            let cnt = size m
-            let arr = Array.zeroCreate cnt
-            let index = ref 0 
-            copyTo arr index m
-            arr
-            
-
-        let valueList m =
-            let rec loop m acc = 
-                match m with 
-                | MapEmpty -> acc
-                | MapOne(k,v) -> v::acc
-                | MapNode(k,v,l,r,_,_) -> loop l (v::loop r acc)
-            loop m []
-            
-        let valueArray m =
-            let cnt = size m
-            let arr = Array.zeroCreate cnt
-            let index = ref 0 
-            copyValuesTo arr index m
-            arr
-            
-
-
-        let ofList comparer l = List.fold (fun acc (k,v) -> add comparer k v acc) empty l
-
-        let rec mkFromEnumerator comparer acc (e : IEnumerator<_>) = 
-            if e.MoveNext() then 
-                let (x,y) = e.Current 
-                mkFromEnumerator comparer (add comparer x y acc) e
-            else acc
-          
-        let ofArray comparer (arr : array<_>) =
-            let mutable res = empty
-            for (x,y) in arr do
-                res <- add comparer x y res 
-            res
-
-        let ofSeq comparer (c : seq<'Key * 'T>) =
-            match c with 
-            | :? array<'Key * 'T> as xs -> ofArray comparer xs
-            | :? list<'Key * 'T> as xs -> ofList comparer xs
-            | _ -> 
-                use ie = c.GetEnumerator()
-                mkFromEnumerator comparer empty ie 
-
-          
-        let copyToArray s (arr: _[]) i =
-            let j = ref i 
-            s |> iter (fun x y -> arr.[!j] <- KeyValuePair(x,y); j := !j + 1)
-
-
-        /// Imperative left-to-right iterators.
-        [<NoEquality; NoComparison>]
-        type MapIterator<'Key,'Value when 'Key : comparison > = 
-                { /// invariant: always collapseLHS result 
-                mutable stack: MapTree<'Key,'Value> list;  
-                /// true when MoveNext has been called   
-                mutable started : bool }
-
-        // collapseLHS:
-        // a) Always returns either [] or a list starting with MapOne.
-        // b) The "fringe" of the set stack is unchanged. 
-        let rec collapseLHS stack =
-            match stack with
-            | []                           -> []
-            | MapEmpty             :: rest -> collapseLHS rest
-            | MapOne _         :: _ -> stack
-            | (MapNode(k,v,l,r,_,_)) :: rest -> collapseLHS (l :: MapOne (k,v) :: r :: rest)
-          
-        let mkIterator s = { stack = collapseLHS [s]; started = false }
-
-        let notStarted() = raise (InvalidOperationException("enumeration not started"))
-        let alreadyFinished() = raise (InvalidOperationException("enumeration finished"))
-
-        let current i =
-            if i.started then
-                match i.stack with
-                    | MapOne (k,v) :: _ -> new KeyValuePair<_,_>(k,v)
-                    | []            -> alreadyFinished()
-                    | _             -> failwith "Please report error: MapExt iterator, unexpected stack for current"
+            elif delta.Height = 1uy then
+                // delta leaf
+                applyDeltaSingleEff cmp delta.Key delta.Value applyNoState apply &effective state
+      
+            elif state.Height = 1uy then
+                // state leaf
+                applyDeltaSingletonStateEff cmp state.Key state.Value applyNoState apply &effective delta
+                
             else
-                notStarted()
+                // both inner
+                let state = state :?> Inner<'Key, 'Value>
+                let mutable dl = null
+                let mutable ds = Unchecked.defaultof<_>
+                let mutable dr = null
+                let hasValue = split cmp state.Key &dl &ds &dr delta
+                let delta = ()
 
-        let rec moveNext i =
-            if i.started then
-                match i.stack with
-                    | MapOne _ :: rest -> 
-                        i.stack <- collapseLHS rest
-                        not i.stack.IsEmpty
-                    | [] -> false
-                    | _ -> failwith "Please report error: MapExt iterator, unexpected stack for moveNext"
+                let mutable re = null
+
+                if hasValue then
+                    let l = applyDeltaAndGetEffective cmp state.Left dl applyNoState apply &effective
+                    let struct(s, op) = apply.Invoke(state.Key, state.Value, ds)
+                    let r = applyDeltaAndGetEffective cmp state.Right dr applyNoState apply &re
+
+                    match op with
+                    | ValueNone -> effective <- join effective re
+                    | ValueSome op -> effective <- binary effective state.Key op re
+
+                    match s with
+                    | ValueSome self -> binary l state.Key self r
+                    | ValueNone -> join l r
+                else
+                    let l = applyDeltaAndGetEffective cmp state.Left dl applyNoState apply &effective
+                    let r = applyDeltaAndGetEffective cmp state.Right dr applyNoState apply &re
+                    effective <- join effective re
+                    binary l state.Key state.Value r
+            
+
+
+    let rec private choose2Helper 
+        (cmp : IComparer<'Key>)
+        (specialKey : 'Key)
+        (specialValue : 'T)
+        (only : OptimizedClosures.FSharpFunc<'Key, 'Value, voption<'X>>) 
+        (both : OptimizedClosures.FSharpFunc<'Key, 'T, 'Value, voption<'X>>) 
+        (onlySpecial : OptimizedClosures.FSharpFunc<'Key, 'T, voption<'X>>) 
+        (node : Node<'Key, 'Value>) = 
+            if isNull node then
+                match onlySpecial.Invoke(specialKey, specialValue) with
+                | ValueSome v ->
+                    Node(specialKey, v)
+                | ValueNone ->
+                    null
+            elif node.Height = 1uy then
+                let c = cmp.Compare(specialKey, node.Key)
+                if c > 0 then
+                    match only.Invoke(node.Key, node.Value) with
+                    | ValueSome v -> 
+                        match onlySpecial.Invoke(specialKey, specialValue) with
+                        | ValueSome specialValue ->
+                            Inner(null, node.Key, v, Node(specialKey, specialValue), 2uy, 2) :> Node<_,_>
+                        | ValueNone ->
+                            Node(node.Key, v)
+                    | ValueNone ->
+                        match onlySpecial.Invoke(specialKey, specialValue) with
+                        | ValueSome specialValue ->
+                            Node(specialKey, specialValue)
+                        | ValueNone ->
+                            null
+                elif c < 0 then
+                    match only.Invoke(node.Key, node.Value) with
+                    | ValueSome v -> 
+                        match onlySpecial.Invoke(specialKey, specialValue) with
+                        | ValueSome specialValue ->
+                            Inner(Node(specialKey, specialValue), node.Key, v, null, 2uy, 2) :> Node<_,_>
+                        | ValueNone ->
+                            Node(node.Key, v)
+                    | ValueNone ->
+                        match onlySpecial.Invoke(specialKey, specialValue) with
+                        | ValueSome specialValue ->
+                            Node(specialKey, specialValue)
+                        | ValueNone ->
+                            null
+                else
+                    match both.Invoke(node.Key, specialValue, node.Value) with
+                    | ValueSome v ->
+                        Node(node.Key, v)
+                    | ValueNone ->
+                        null
             else
-                i.started <- true  (* The first call to MoveNext "starts" the enumeration. *)
-                not i.stack.IsEmpty
+                let node = node :?> Inner<'Key, 'Value>
+                let c = cmp.Compare(specialKey, node.Key)
+                if c > 0 then
+                    let l = chooseV only node.Left
+                    let s = only.Invoke(node.Key, node.Value)
+                    let r = choose2Helper cmp specialKey specialValue only both onlySpecial node.Right
+                    match s with
+                    | ValueSome value -> 
+                        binary l node.Key value r
+                    | ValueNone ->
+                        join l r
+                elif c < 0 then
+                    let l = choose2Helper cmp specialKey specialValue only both onlySpecial node.Left
+                    let s = only.Invoke(node.Key, node.Value)
+                    let r = chooseV only node.Right
+                    match s with
+                    | ValueSome value -> 
+                        binary l node.Key value r
+                    | ValueNone ->
+                        join l r
+                   
+                else
+                    let l = chooseV only node.Left
+                    let self = both.Invoke(node.Key, specialValue, node.Value)
+                    let r = chooseV only node.Right
+                    match self with
+                    | ValueSome res ->
+                        binary l node.Key res r
+                    | ValueNone ->
+                        join l r
 
-        let mkIEnumerator s = 
-            let i = ref (mkIterator s) 
-            { new IEnumerator<_> with 
-                member __.Current = current !i
-            interface System.Collections.IEnumerator with
-                member __.Current = box (current !i)
-                member __.MoveNext() = moveNext !i
-                member __.Reset() = i :=  mkIterator s
-            interface System.IDisposable with 
-                member __.Dispose() = ()}
+    let rec choose2
+        (cmp : IComparer<'Key>)
+        (onlyLeft : OptimizedClosures.FSharpFunc<'Key, 'A, voption<'C>>)
+        (both : OptimizedClosures.FSharpFunc<'Key, 'A, 'B, voption<'C>>)
+        (onlyRight : OptimizedClosures.FSharpFunc<'Key, 'B, voption<'C>>)
+        (a : Node<'Key, 'A>)
+        (b : Node<'Key, 'B>) =
 
+        if isNull a then 
+            chooseV onlyRight b
 
-        type MapTreeEnumerator<'k, 'v when 'k : comparison>(m : MapTree<'k, 'v>) =
-            let mutable stack = [m]
-            let mutable current = Unchecked.defaultof<'k * 'v>
+        elif isNull b then
+            chooseV onlyLeft a
+
+        elif a.Height = 1uy then
+            choose2Helper cmp a.Key a.Value onlyRight both onlyLeft b
+
+        elif b.Height = 1uy then
+            let flipped =
+                OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt (fun a b c ->
+                    both.Invoke(a, c, b)
+                )
+            choose2Helper cmp b.Key b.Value onlyLeft flipped onlyRight a
+
+        else
+            let a = a :?> Inner<'Key, 'A>
+            let b = b :?> Inner<'Key, 'B>
             
-            let rec move () =
-                match stack with
-                    | [] ->
-                        false
-                    | MapEmpty :: rest ->
-                        stack <- rest
-                        move()
+            if a.Height > b.Height then
+                let mutable bl = null
+                let mutable bs = Unchecked.defaultof<_>
+                let mutable br = null
+                if split cmp a.Key &bl &bs &br (b :> Node<_,_>) then
+                    let l = choose2 cmp onlyLeft both onlyRight a.Left bl
+                    let s = both.Invoke(a.Key, a.Value, bs)
+                    let r = choose2 cmp onlyLeft both onlyRight a.Right br
+                    match s with
+                    | ValueSome s -> binary l a.Key s r
+                    | ValueNone -> join l r
+                else
+                    let l = choose2 cmp onlyLeft both onlyRight a.Left bl
+                    let s = onlyLeft.Invoke(a.Key, a.Value)
+                    let r = choose2 cmp onlyLeft both onlyRight a.Right br
+                    match s with
+                    | ValueSome s -> binary l a.Key s r
+                    | ValueNone -> join l r
+                    
+            else
+                let mutable al = null
+                let mutable aa = Unchecked.defaultof<_>
+                let mutable ar = null
+                if split cmp b.Key &al &aa &ar (a :> Node<_,_>) then
+                    let l = choose2 cmp onlyLeft both onlyRight al b.Left
+                    let s = both.Invoke(a.Key, aa, b.Value)
+                    let r = choose2 cmp onlyLeft both onlyRight ar b.Right
+                    match s with
+                    | ValueSome s -> binary l a.Key s r
+                    | ValueNone -> join l r
+                else
+                    let l = choose2 cmp onlyLeft both onlyRight al b.Left
+                    let s = onlyRight.Invoke(b.Key, b.Value)
+                    let r = choose2 cmp onlyLeft both onlyRight ar b.Right
+                    match s with
+                    | ValueSome s -> binary l a.Key s r
+                    | ValueNone -> join l r
 
-                    | MapOne(key,value) :: rest ->
-                        stack <- rest
-                        current <- (key, value)
+
+    let rec hash (acc : int) (node : Node<'Key, 'Value>) =  
+        if isNull node then
+            acc
+        elif node.Height = 1uy then
+            combineHash acc (combineHash (Unchecked.hash node.Key) (Unchecked.hash node.Value))
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let a = hash acc node.Left
+            let b = combineHash a (combineHash (Unchecked.hash node.Key) (Unchecked.hash node.Value))
+            hash b node.Right
+            
+    let rec equals (cmp : IComparer<'Key>) (a : Node<'Key, 'Value>) (b : Node<'Key, 'Value>) =  
+        if System.Object.ReferenceEquals(a, b) then
+            true
+        elif count a <> count b then 
+            false
+
+        elif a.Height = 1uy then  
+            Unchecked.equals a.Key b.Key &&
+            Unchecked.equals a.Value b.Value
+
+        else
+            let na = a :?> Inner<'Key, 'Value>
+            let nb = b :?> Inner<'Key, 'Value>
+            
+            if na.Height > nb.Height then
+                let mutable bl = null
+                let mutable bs = Unchecked.defaultof<_>
+                let mutable br = null
+                if split cmp na.Key &bl &bs &br b then
+                    Unchecked.equals na.Value bs &&
+                    equals cmp na.Left bl &&
+                    equals cmp na.Right br
+                else
+                    false
+            else 
+                let mutable al = null
+                let mutable aa = Unchecked.defaultof<_>
+                let mutable ar = null
+                if split cmp nb.Key &al &aa &ar a then
+                    Unchecked.equals aa nb.Value &&
+                    equals cmp al nb.Left &&
+                    equals cmp ar nb.Right
+
+                else
+                    false
+                
+
+
+    type MapExtMappingEnumerator<'Key, 'Value, 'T> =
+        struct
+            val mutable internal Mapping : Node<'Key, 'Value> -> 'T
+            val mutable internal Root : Node<'Key, 'Value>
+            val mutable internal Head : struct(Node<'Key, 'Value> * bool)
+            val mutable internal Tail : list<struct(Node<'Key, 'Value> * bool)>
+            val mutable internal CurrentNode : Node<'Key, 'Value>
+            
+            member x.MoveNext() =
+                let struct(n, deep) = x.Head
+                if not (isNull n) then
+
+                    if n.Height > 1uy && deep then
+                        let inner = n :?> Inner<'Key, 'Value>
+
+                        if isNull inner.Left then
+                            if isNull inner.Right then
+                                if x.Tail.IsEmpty then
+                                    x.Head <- Unchecked.defaultof<_>
+                                    x.Tail <- []
+                                else
+                                    x.Head <- x.Tail.Head
+                                    x.Tail <- x.Tail.Tail
+                            else
+                                x.Head <- struct(inner.Right, true)
+
+                            x.CurrentNode <- n
+                            true
+                        else
+                            x.Head <- struct(inner.Left, true)
+                            if isNull inner.Right then
+                                x.Tail <- struct(n, false) :: x.Tail
+                            else
+                                x.Tail <- struct(n, false) :: struct(inner.Right, true) :: x.Tail
+                            x.MoveNext()
+                    else
+                        x.CurrentNode <- n
+                        if x.Tail.IsEmpty then 
+                            x.Head <- Unchecked.defaultof<_>
+                            x.Tail <- []
+                        else
+                            x.Head <- x.Tail.Head
+                            x.Tail <- x.Tail.Tail
                         true
 
-                    | MapNode(k,v,l,r,_,_) :: rest ->
-                        stack <- l :: (MapOne(k,v)) :: r :: rest
-                        move()
-                        
+                else
+                    false
+
+
+            member x.Reset() =
+                x.Head <- if isNull x.Root then Unchecked.defaultof<_> else struct(x.Root, true)                
+                x.Tail <- []
+                x.CurrentNode <- null
+
+            member x.Dispose() =
+                x.Root <- null
+                x.CurrentNode <- null
+                x.Head <- Unchecked.defaultof<_>
+                x.Tail <- []
+
+            member x.Current =
+                x.Mapping x.CurrentNode
+
             interface System.Collections.IEnumerator with
-                member x.MoveNext() = move()
-                member x.Reset() =
-                    stack <- [m]
-                    current <- Unchecked.defaultof<'k * 'v>
+                member x.MoveNext() = x.MoveNext()
+                member x.Reset() = x.Reset()
+                member x.Current = x.Current :> obj
 
-                member x.Current = current :> obj
-                
-            interface IEnumerator<'k * 'v> with
-                member x.Dispose() =
-                    stack <- []
-                    current <- Unchecked.defaultof<'k * 'v>
-                member x.Current = current
+            interface System.Collections.Generic.IEnumerator<'T> with
+                member x.Current = x.Current
+                member x.Dispose() = x.Dispose()
 
-        type MapTreeBackwardEnumerator<'k, 'v when 'k : comparison>(m : MapTree<'k, 'v>) =
-            let mutable stack = [m]
-            let mutable current = Unchecked.defaultof<'k * 'v>
-            
-            let rec move () =
-                match stack with
-                    | [] ->
-                        false
-                    | MapEmpty :: rest ->
-                        stack <- rest
-                        move()
+            new(root : Node<'Key, 'Value>, mapping : Node<'Key, 'Value> -> 'T) =
+                {
+                    Root = root
+                    Head = if isNull root then Unchecked.defaultof<_> else struct(root, true)
+                    Tail = []
+                    CurrentNode = null
+                    Mapping = mapping
+                }
 
-                    | MapOne(key,value) :: rest ->
-                        stack <- rest
-                        current <- (key, value)
-                        true
-
-                    | MapNode(k,v,l,r,_,_) :: rest ->
-                        stack <- r :: (MapOne(k,v)) :: l :: rest
-                        move()
-                        
-            interface System.Collections.IEnumerator with
-                member x.MoveNext() = move()
-                member x.Reset() =
-                    stack <- [m]
-                    current <- Unchecked.defaultof<'k * 'v>
-
-                member x.Current = current :> obj
-                
-            interface IEnumerator<'k * 'v> with
-                member x.Dispose() =
-                    stack <- []
-                    current <- Unchecked.defaultof<'k * 'v>
-                member x.Current = current
-
-        type ValueMapTreeEnumerator<'k, 'v when 'k : comparison>(m : MapTree<'k, 'v>) =
-            let mutable stack = [m]
-            let mutable current = Unchecked.defaultof<struct('k * 'v)>
-            
-            let rec move () =
-                match stack with
-                    | [] ->
-                        false
-                    | MapEmpty :: rest ->
-                        stack <- rest
-                        move()
-
-                    | MapOne(key,value) :: rest ->
-                        stack <- rest
-                        current <- struct(key, value)
-                        true
-
-                    | MapNode(k,v,l,r,_,_) :: rest ->
-                        stack <- l :: (MapOne(k,v)) :: r :: rest
-                        move()
-                        
-            interface System.Collections.IEnumerator with
-                member x.MoveNext() = move()
-                member x.Reset() =
-                    stack <- [m]
-                    current <- Unchecked.defaultof<_>
-
-                member x.Current = current :> obj
-                
-            interface IEnumerator<struct('k * 'v)> with
-                member x.Dispose() =
-                    stack <- []
-                    current <- Unchecked.defaultof<_>
-                member x.Current = current
-
-        type ValueMapTreeBackwardEnumerator<'k, 'v when 'k : comparison>(m : MapTree<'k, 'v>) =
-            let mutable stack = [m]
-            let mutable current = Unchecked.defaultof<struct('k * 'v)>
-            
-            let rec move () =
-                match stack with
-                    | [] ->
-                        false
-                    | MapEmpty :: rest ->
-                        stack <- rest
-                        move()
-
-                    | MapOne(key,value) :: rest ->
-                        stack <- rest
-                        current <- struct(key, value)
-                        true
-
-                    | MapNode(k,v,l,r,_,_) :: rest ->
-                        stack <- r :: (MapOne(k,v)) :: l :: rest
-                        move()
-                        
-            interface System.Collections.IEnumerator with
-                member x.MoveNext() = move()
-                member x.Reset() =
-                    stack <- [m]
-                    current <- Unchecked.defaultof<_>
-
-                member x.Current = current :> obj
-                
-            interface IEnumerator<struct('k * 'v)> with
-                member x.Dispose() =
-                    stack <- []
-                    current <- Unchecked.defaultof<_>
-                member x.Current = current
-
-
-open MapExtImplementation
-
-
-[<System.Diagnostics.DebuggerTypeProxy(typedefof<MapDebugView<_,_>>)>]
-[<System.Diagnostics.DebuggerDisplay("Count = {Count}")>]
-[<Sealed>]
-[<StructuredFormatDisplay("{AsString}")>]
-type internal MapExt<[<EqualityConditionalOn>]'Key,[<EqualityConditionalOn;ComparisonConditionalOn>]'Value when 'Key : comparison >(comparer: IComparer<'Key>, tree: MapTree<'Key,'Value>) =
-
-    static let defaultComparer = LanguagePrimitives.FastGenericComparer<'Key> 
-    // We use .NET generics per-instantiation static fields to avoid allocating a new object for each empty
-    // set (it is just a lookup into a .NET table of type-instantiation-indexed static fields).
-    static let empty = new MapExt<'Key,'Value>(defaultComparer, MapTree<_,_>.MapEmpty)
-
-    static member Empty : MapExt<'Key,'Value> = empty
-
-    static member Create(ie : IEnumerable<_>) : MapExt<'Key,'Value> = 
-        let comparer = LanguagePrimitives.FastGenericComparer<'Key> 
-        new MapExt<_,_>(comparer,MapTree.ofSeq comparer ie)
-    
-    static member Create() : MapExt<'Key,'Value> = empty
-
-    new(ie : seq<_>) = 
-        let comparer = LanguagePrimitives.FastGenericComparer<'Key> 
-        new MapExt<_,_>(comparer,MapTree.ofSeq comparer ie)
-
-    [<DebuggerBrowsable(DebuggerBrowsableState.Never)>]
-    member internal m.Comparer = comparer
-    //[<DebuggerBrowsable(DebuggerBrowsableState.Never)>]
-    member internal m.Tree = tree
-    member m.Add(k,v) : MapExt<'Key,'Value> = 
-        new MapExt<'Key,'Value>(comparer,MapTree.add comparer k v tree)
-
-    [<DebuggerBrowsable(DebuggerBrowsableState.Never)>]
-    member m.IsEmpty = MapTree.isEmpty tree
-    member m.Item 
-        with get(k : 'Key) = MapTree.find comparer k tree
-
-
-    member x.Keys = 
-        let mutable s = Set.empty
-        for (KeyValue(k,_)) in x do s <- s.Add k
-        s
-
-    member x.Values =
-        x |> Seq.map (fun (KeyValue(_,v)) -> v)
-
-    member x.TryAt i = MapTree.tryAt i tree
-    member x.TryAtV i = MapTree.tryAtV i tree
-    member x.Neighbours k = MapTree.neighbours comparer k tree
-    member x.NeighboursAt i = MapTree.neighboursi i tree
-    member x.NeighboursV k = MapTree.neighboursV comparer k tree
-    member x.NeighboursAtV i = MapTree.neighboursVi i tree
-    member x.TryGetIndex k = MapTree.tryGetIndex comparer k tree
-    member x.TryGetIndexV k = MapTree.tryGetIndexV comparer k tree
-
-    member m.TryPick(f) = MapTree.tryPick f tree 
-    member m.TryPickBack(f) = MapTree.tryPickBack f tree 
-    member m.Exists(f) = MapTree.exists f tree 
-    member m.Filter(f)  : MapExt<'Key,'Value> = new MapExt<'Key,'Value>(comparer ,MapTree.filter comparer f tree)
-    member m.ForAll(f) = MapTree.forall f tree 
-    member m.Fold f acc = MapTree.foldBack f tree acc
-
-    member m.FoldSection (lo:'Key) (hi:'Key) f (acc:'z) = MapTree.foldSection comparer lo hi f tree acc 
-
-    member m.Iterate f = MapTree.iter f tree
-
-    member m.MapRange f  = new MapExt<'Key,'T2>(comparer,MapTree.map f tree)
-
-    member m.Map f  = new MapExt<'Key,'T2>(comparer,MapTree.mapi f tree)
-    
-    member m.MapMonotonic<'Key2, 'Value2 when 'Key2 : comparison> (f : 'Key -> 'Value -> 'Key2 * 'Value2) : MapExt<'Key2,'Value2> = new MapExt<'Key2,'Value2>(LanguagePrimitives.FastGenericComparer<'Key2>, MapTree.mapiMonotonic f tree)
+        end
    
-    member m.ChooseMonotonic<'Key2, 'Value2 when 'Key2 : comparison> (f : 'Key -> 'Value -> option<'Key2 * 'Value2>) : MapExt<'Key2,'Value2> = 
-        new MapExt<'Key2,'Value2>(LanguagePrimitives.FastGenericComparer<'Key2>, MapTree.chooseiMonotonic f tree)
+    type MapExtMappingEnumerable<'Key, 'Value, 'T>(root : Node<'Key, 'Value>, mapping : Node<'Key, 'Value> -> 'T) =
+        member x.GetEnumerator() = new MapExtMappingEnumerator<_,_,_>(root, mapping)
+
+        interface System.Collections.IEnumerable with
+            member x.GetEnumerator() = x.GetEnumerator() :> _
+            
+        interface System.Collections.Generic.IEnumerable<'T> with
+            member x.GetEnumerator() = x.GetEnumerator() :> _
+
+
+    type MapExtBackwardMappingEnumerator<'Key, 'Value, 'T> =
+        struct
+            val mutable internal Mapping : Node<'Key, 'Value> -> 'T
+            val mutable internal Root : Node<'Key, 'Value>
+            val mutable internal Stack : list<struct(Node<'Key, 'Value> * bool)>
+            val mutable internal CurrentNode : Node<'Key, 'Value>
+            
+            member x.MoveNext() =
+                match x.Stack with
+                | struct(n, deep) :: t ->
+                    x.Stack <- t
+
+                    if n.Height > 1uy then
+                        if deep then
+                            let inner = n :?> Inner<'Key, 'Value>
+
+                            if not (isNull inner.Left) then 
+                                x.Stack <- struct(inner.Left, true) :: x.Stack
+                                
+                            if isNull inner.Right then 
+                                x.CurrentNode <- n
+                                true
+                            else
+                                x.Stack <- struct(inner.Right, true) :: struct(n, false) :: x.Stack
+                                x.MoveNext()
+                        else
+                            x.CurrentNode <- n
+                            true
+                    else
+                        x.CurrentNode <- n
+                        true
+
+                | [] ->
+                    false
+
+
+            member x.Reset() =
+                if isNull x.Root then
+                    x.Stack <- []
+                    x.CurrentNode <- null
+                else
+                    x.Stack <- [struct(x.Root, true)]
+                    x.CurrentNode <- null
+
+            member x.Dispose() =
+                x.Root <- null
+                x.CurrentNode <- null
+                x.Stack <- []
+
+            member x.Current =
+                x.Mapping x.CurrentNode
+
+            interface System.Collections.IEnumerator with
+                member x.MoveNext() = x.MoveNext()
+                member x.Reset() = x.Reset()
+                member x.Current = x.Current :> obj
+
+            interface System.Collections.Generic.IEnumerator<'T> with
+                member x.Current = x.Current
+                member x.Dispose() = x.Dispose()
+
+            new(root : Node<'Key, 'Value>, mapping : Node<'Key, 'Value> -> 'T) =
+                {
+                    Root = root
+                    Stack = if isNull root then [] else [struct(root, true)]
+                    CurrentNode = null
+                    Mapping = mapping
+                }
+
+        end
+   
+    type MapExtBackwardMappingEnumerable<'Key, 'Value, 'T>(root : Node<'Key, 'Value>, mapping : Node<'Key, 'Value> -> 'T) =
+        member x.GetEnumerator() = new MapExtBackwardMappingEnumerator<_,_,_>(root, mapping)
+
+        interface System.Collections.IEnumerable with
+            member x.GetEnumerator() = x.GetEnumerator() :> _
+            
+        interface System.Collections.Generic.IEnumerable<'T> with
+            member x.GetEnumerator() = x.GetEnumerator() :> _
+
+
+
+type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'Key>, root : MapExtImplementation.Node<'Key, 'Value>) =
+
+
+    static let defaultComparer = LanguagePrimitives.FastGenericComparer<'Key>
+    static let empty = MapExt<'Key, 'Value>(defaultComparer, null)
+
+    member internal x.Comparer = comparer
+    member internal x.Root = root
+
+    static member Empty = empty
+        
+    static member FromSeq(elements : #seq<'Key * 'Value>) =
+        let cmp = defaultComparer
+        let mutable root = null
+        for (k, v) in elements do
+            root <- MapExtImplementation.addInPlace cmp k v root
+        MapExt(cmp, root)
+
+    static member FromList(elements : list<'Key * 'Value>) =
+        let cmp = defaultComparer
+        let mutable root = null
+        for (k, v) in elements do
+            root <- MapExtImplementation.addInPlace cmp k v root
+        MapExt(cmp, root)
+
+    static member FromArray(elements : ('Key * 'Value)[]) =
+        let cmp = defaultComparer
+        let mutable root = null
+        for (k, v) in elements do
+            root <- MapExtImplementation.addInPlace cmp k v root
+        MapExt(cmp, root)
+        
+    static member FromSeqV(elements : #seq<struct('Key * 'Value)>) =
+        let cmp = defaultComparer
+        let mutable root = null
+        for struct(k, v) in elements do
+            root <- MapExtImplementation.addInPlace cmp k v root
+        MapExt(cmp, root)
+
+    static member FromListV(elements : list<struct('Key * 'Value)>) =
+        let cmp = defaultComparer
+        let mutable root = null
+        for struct(k, v) in elements do
+            root <- MapExtImplementation.addInPlace cmp k v root
+        MapExt(cmp, root)
+
+    static member FromArrayV(elements : struct('Key * 'Value)[]) =
+        let cmp = defaultComparer
+        let mutable root = null
+        for struct(k, v) in elements do
+            root <- MapExtImplementation.addInPlace cmp k v root
+        MapExt(cmp, root)
+
+    member x.Count = 
+        MapExtImplementation.count root
+
+    member x.IsEmpty =
+        isNull root
+
+    member x.Add(key : 'Key, value : 'Value) =
+        MapExt(comparer, MapExtImplementation.add comparer key value root)
+            
+    member x.Remove(key : 'Key) =
+        let mutable newRoot = null
+        if MapExtImplementation.tryRemove' comparer key &newRoot root then
+            MapExt(comparer, newRoot)
+        else    
+            x
+
+    member x.RemoveAt(index : int) =
+        if index < 0 || index >= x.Count then x
+        else 
+            let mutable k = Unchecked.defaultof<_>
+            let mutable v = Unchecked.defaultof<_>
+            MapExt(comparer, MapExtImplementation.removeAt index &k &v root)
+            
+    member x.TryRemoveAt(index : int) =
+        if index < 0 || index >= x.Count then 
+            None
+        else 
+            let mutable k = Unchecked.defaultof<_>
+            let mutable v = Unchecked.defaultof<_>
+            let res = MapExt(comparer, MapExtImplementation.removeAt index &k &v root)
+            Some ((k, v), res)
+            
+    member x.TryRemoveAtV(index : int) =
+        if index < 0 || index >= x.Count then 
+            ValueNone
+        else 
+            let mutable k = Unchecked.defaultof<_>
+            let mutable v = Unchecked.defaultof<_>
+            let res = MapExt(comparer, MapExtImplementation.removeAt index &k &v root)
+            ValueSome struct(k, v, res)
+            
+    member x.TryRemove(key : 'Key, [<Out>] result : byref<MapExt<'Key, 'Value>>, [<Out>] removedValue : byref<'Value>) =
+        let mutable newRoot = null
+        if MapExtImplementation.tryRemove comparer key &removedValue &newRoot root then
+            result <- MapExt(comparer, newRoot)
+            true
+        else    
+            result <- x
+            false
+
+    member x.TryRemove(key : 'Key) =
+        let mutable newRoot = null
+        let mutable removedValue = Unchecked.defaultof<_>
+        if MapExtImplementation.tryRemove comparer key &removedValue &newRoot root then
+            Some(removedValue, MapExt(comparer, newRoot))
+        else    
+            None
+
+    member x.TryRemoveV(key : 'Key) =
+        let mutable newRoot = null
+        let mutable removedValue = Unchecked.defaultof<_>
+        if MapExtImplementation.tryRemove comparer key &removedValue &newRoot root then
+            ValueSome struct(removedValue, MapExt(comparer, newRoot))
+        else    
+            ValueNone
+        
+
+        
+    member x.Change(key : 'Key, update : option<'Value> -> option<'Value>) =
+        MapExt(comparer, MapExtImplementation.change comparer key update root)
+
+    member x.Change(key : 'Key, update : voption<'Value> -> voption<'Value>) =
+        MapExt(comparer, MapExtImplementation.changeV comparer key update root)
+            
+    member x.Item
+        with get(key : 'Key) = MapExtImplementation.find comparer key root
+
+    member x.Find(key : 'Key) =
+        MapExtImplementation.find comparer key root
+
+
+    member x.TryItem(index : int) =
+        if index < 0 || index >= x.Count then None
+        else
+            let mutable k = Unchecked.defaultof<_>
+            let mutable v = Unchecked.defaultof<_>
+            MapExtImplementation.tryGetItem index &k &v root |> ignore
+            Some (k, v)
+            
+    member x.TryItemV(index : int) =
+        if index < 0 || index >= x.Count then ValueNone
+        else
+            let mutable k = Unchecked.defaultof<_>
+            let mutable v = Unchecked.defaultof<_>
+            MapExtImplementation.tryGetItem index &k &v root |> ignore
+            ValueSome struct(k, v)
+
+    member x.TryGetItem(index : int, [<Out>] key : byref<'Key>, [<Out>] value : byref<'Value>) =
+        if index < 0 || index >= x.Count then false
+        else MapExtImplementation.tryGetItem index &key &value root 
+
+    member x.GetItem(index : int) =
+        if index < 0 || index >= x.Count then
+            raise <| System.IndexOutOfRangeException()
+        else
+            let mutable k = Unchecked.defaultof<_>
+            let mutable v = Unchecked.defaultof<_>
+            MapExtImplementation.tryGetItem index &k &v root |> ignore
+            (k, v)
+            
+    member x.GetItemV(index : int) =
+        if index < 0 || index >= x.Count then
+            raise <| System.IndexOutOfRangeException()
+        else
+            let mutable k = Unchecked.defaultof<_>
+            let mutable v = Unchecked.defaultof<_>
+            MapExtImplementation.tryGetItem index &k &v root |> ignore
+            struct(k, v)
+        
+            
+    member x.GetIndex(key : 'Key) =
+        MapExtImplementation.tryGetIndex comparer key 0 root
+        
+    member x.TryGetIndex(key : 'Key) =
+        let index = MapExtImplementation.tryGetIndex comparer key 0 root
+        if index >= 0 then Some index
+        else None
+
+    member x.TryGetIndexV(key : 'Key) =
+        let index = MapExtImplementation.tryGetIndex comparer key 0 root
+        if index >= 0 then ValueSome index
+        else ValueNone
+
+    member x.TryGetValue(key : 'Key, [<Out>] value : byref<'Value>) =
+        MapExtImplementation.tryGetValue comparer key &value root
+
+    member x.TryFind(key : 'Key) =
+        MapExtImplementation.tryFind comparer key root
+        
+    member x.TryFindV(key : 'Key) =
+        let mutable res = Unchecked.defaultof<_>
+        if MapExtImplementation.tryGetValue comparer key &res root then
+            ValueSome res
+        else
+            ValueNone
+
+
+    member x.ContainsKey(key : 'Key) =
+        MapExtImplementation.containsKey comparer key root
+        
+    member x.GetMinKey() =
+        let mutable minKey = Unchecked.defaultof<_>
+        let mutable minValue = Unchecked.defaultof<_>
+        if MapExtImplementation.tryGetMin &minKey &minValue root then
+            minKey
+        else    
+            raise <| System.IndexOutOfRangeException()
+            
+    member x.GetMaxKey() =
+        let mutable maxKey = Unchecked.defaultof<_>
+        let mutable maxValue = Unchecked.defaultof<_>
+        if MapExtImplementation.tryGetMax &maxKey &maxValue root then
+            maxKey
+        else    
+            raise <| System.IndexOutOfRangeException()
+        
+    member x.TryMin() =
+        let mutable minKey = Unchecked.defaultof<_>
+        let mutable minValue = Unchecked.defaultof<_>
+        if MapExtImplementation.tryGetMin &minKey &minValue root then
+            Some (minKey, minValue)
+        else    
+            None
+        
+    member x.TryMax() =
+        let mutable maxKey = Unchecked.defaultof<_>
+        let mutable maxValue = Unchecked.defaultof<_>
+        if MapExtImplementation.tryGetMax &maxKey &maxValue root then
+            Some (maxKey, maxValue)
+        else    
+            None
+        
+    member x.TryMinV() =
+        let mutable minKey = Unchecked.defaultof<_>
+        let mutable minValue = Unchecked.defaultof<_>
+        if MapExtImplementation.tryGetMin &minKey &minValue root then
+            ValueSome struct(minKey, minValue)
+        else    
+            ValueNone
+        
+    member x.TryMaxV() =
+        let mutable maxKey = Unchecked.defaultof<_>
+        let mutable maxValue = Unchecked.defaultof<_>
+        if MapExtImplementation.tryGetMax &maxKey &maxValue root then
+            ValueSome struct(maxKey, maxValue)
+        else    
+            ValueNone
+
+            
+    member x.TryMinKey() =
+        let mutable minKey = Unchecked.defaultof<_>
+        let mutable minValue = Unchecked.defaultof<_>
+        if MapExtImplementation.tryGetMin &minKey &minValue root then
+            Some minKey
+        else    
+            None
+        
+    member x.TryMaxKey() =
+        let mutable maxKey = Unchecked.defaultof<_>
+        let mutable maxValue = Unchecked.defaultof<_>
+        if MapExtImplementation.tryGetMax &maxKey &maxValue root then
+            Some maxKey
+        else    
+            None
+            
+    member x.TryMinKeyV() =
+        let mutable minKey = Unchecked.defaultof<_>
+        let mutable minValue = Unchecked.defaultof<_>
+        if MapExtImplementation.tryGetMin &minKey &minValue root then
+            ValueSome minKey
+        else    
+            ValueNone
+        
+    member x.TryMaxKeyV() =
+        let mutable maxKey = Unchecked.defaultof<_>
+        let mutable maxValue = Unchecked.defaultof<_>
+        if MapExtImplementation.tryGetMax &maxKey &maxValue root then
+            ValueSome maxKey
+        else    
+            ValueNone
+            
+    member x.TryMinValue() =
+        let mutable minKey = Unchecked.defaultof<_>
+        let mutable minValue = Unchecked.defaultof<_>
+        if MapExtImplementation.tryGetMin &minKey &minValue root then
+            Some minValue
+        else    
+            None
+        
+    member x.TryMaxValue() =
+        let mutable maxKey = Unchecked.defaultof<_>
+        let mutable maxValue = Unchecked.defaultof<_>
+        if MapExtImplementation.tryGetMax &maxKey &maxValue root then
+            Some maxValue
+        else    
+            None
+    member x.TryRemoveMin() =
+        if isNull root then 
+            None
+        else 
+            let mutable k = Unchecked.defaultof<_>
+            let mutable v = Unchecked.defaultof<_>
+            let rest = MapExtImplementation.unsafeRemoveMin &k &v root
+            Some (k,v,MapExt(comparer, rest))
+            
+    member x.TryRemoveMax() =
+        if isNull root then 
+            None
+        else 
+            let mutable k = Unchecked.defaultof<_>
+            let mutable v = Unchecked.defaultof<_>
+            let rest = MapExtImplementation.unsafeRemoveMax &k &v root
+            Some (k,v,MapExt(comparer, rest))
+            
+    member x.TryRemoveMinV() =
+        if isNull root then 
+            ValueNone
+        else 
+            let mutable k = Unchecked.defaultof<_>
+            let mutable v = Unchecked.defaultof<_>
+            let rest = MapExtImplementation.unsafeRemoveMin &k &v root
+            ValueSome struct(k,v,MapExt(comparer, rest))
+            
+    member x.TryRemoveMaxV() =
+        if isNull root then 
+            ValueNone
+        else 
+            let mutable k = Unchecked.defaultof<_>
+            let mutable v = Unchecked.defaultof<_>
+            let rest = MapExtImplementation.unsafeRemoveMax &k &v root
+            ValueSome struct(k,v,MapExt(comparer, rest))
+
     
-    member x.GetReference key =
-        MapTree.getReference comparer 0 key tree
+    
+    member x.ToSeq() =
+        MapExtImplementation.MapExtMappingEnumerable(root, fun n -> (n.Key, n.Value)) :> seq<_>
+            
+    member x.ToSeqV() =
+        MapExtImplementation.MapExtMappingEnumerable(root, fun n -> struct(n.Key, n.Value)) :> seq<_>
         
-    member x.TryIndexOf key =
-        match MapTree.getReference comparer 0 key tree with
-            | Existing(i,_) -> Some i
-            | _ -> None
+    member x.ToKeySeq() =
+        MapExtImplementation.MapExtMappingEnumerable(root, fun n -> n.Key) :> seq<_>
 
-    member x.TryRemoveMin() = 
-        match MapTree.tryRemoveMin comparer tree with
-        | Some (k,v,t) -> Some(k,v, MapExt(comparer, t))
-        | None -> None
-
-    member x.TryRemoveMax() = 
-        match MapTree.tryRemoveMax comparer tree with
-        | Some (k,v,t) -> Some(k,v, MapExt(comparer, t))
-        | None -> None
+    member x.ToValueSeq() =
+        MapExtImplementation.MapExtMappingEnumerable(root, fun n -> n.Value) :> seq<_>
         
-    member x.TryRemoveMinV() = 
-        match MapTree.tryRemoveMinV comparer ValueNone tree with
-        | ValueSome (struct(k,v,n,t)) -> ValueSome(struct(k, v, n, MapExt(comparer, t)))
-        | ValueNone -> ValueNone
-
-    member x.TryRemoveMaxV() = 
-        match MapTree.tryRemoveMaxV comparer ValueNone tree with
-        | ValueSome (struct(k,v,p,t)) -> ValueSome(struct(k, v, p, MapExt(comparer, t)))
-        | ValueNone -> ValueNone
-
-    member m.Map2(other:MapExt<'Key,'Value2>, f)  = 
-        new MapExt<'Key,'Result>(comparer, MapTree.map2 comparer f tree other.Tree)
         
-    member m.Choose2(other:MapExt<'Key,'Value2>, f)  = 
-        let inline v o = match o with | Some v -> ValueSome v | None -> ValueNone
-        let inline o o = match o with | ValueSome v -> Some v | ValueNone -> None
+    member x.ToSeqBack() =
+        MapExtImplementation.MapExtBackwardMappingEnumerable(root, fun n -> (n.Key, n.Value)) :> seq<_>
+            
+    member x.ToSeqBackV() =
+        MapExtImplementation.MapExtBackwardMappingEnumerable(root, fun n -> struct(n.Key, n.Value)) :> seq<_>
+            
+    member x.ToKeySeqBack() =
+        MapExtImplementation.MapExtBackwardMappingEnumerable(root, fun n -> n.Key) :> seq<_>
+            
+    member x.ToValueSeqBack() =
+        MapExtImplementation.MapExtBackwardMappingEnumerable(root, fun n -> n.Value) :> seq<_>
+            
+        
+    member x.ToListBack() =
+        MapExtImplementation.toListBack [] root
+            
+    member x.ToListBackV() =
+        MapExtImplementation.toListBackV [] root
+            
+    member x.ToKeyListBack() =
+        MapExtImplementation.toKeyListBack [] root
+            
+    member x.ToValueListBack() =
+        MapExtImplementation.toValueListBack [] root
+            
 
-        let f = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt f
-        let mapping k l r = f.Invoke(k, o l, o r) |> v
-        new MapExt<'Key,'Result>(comparer, MapTree.choose2V comparer mapping tree other.Tree)
+    member x.ToList() =
+        MapExtImplementation.toList [] root
+            
+    member x.ToListV() =
+        MapExtImplementation.toListV [] root
         
-    member m.Choose2V(other:MapExt<'Key,'Value2>, f)  = 
-        new MapExt<'Key,'Result>(comparer, MapTree.choose2V comparer f tree other.Tree)
+    member x.ToValueList() =
+        MapExtImplementation.toValueList [] root
         
-    member m.ComputeDelta(other:MapExt<'Key,'Value>, add, update, remove)  = 
+    member x.ToKeyList() =
+        MapExtImplementation.toKeyList [] root
+
+        
+    member x.ToArrayBack() =
+        let arr = Array.zeroCreate (MapExtImplementation.count root)
+        MapExtImplementation.copyToBackward arr 0 root |> ignore
+        arr
+        
+    member x.ToArrayBackV() =
+        let arr = Array.zeroCreate (MapExtImplementation.count root)
+        MapExtImplementation.copyToBackwardV arr 0 root |> ignore
+        arr
+        
+    member x.ToValueArrayBack() =
+        let arr = Array.zeroCreate (MapExtImplementation.count root)
+        MapExtImplementation.copyValuesTo arr 0 root |> ignore
+        arr
+        
+    member x.ToKeyArrayBack() =
+        let arr = Array.zeroCreate (MapExtImplementation.count root)
+        MapExtImplementation.copyKeysTo arr 0 root |> ignore
+        arr
+
+    member x.CopyTo(dst : ('Key * 'Value)[], index : int) =
+        MapExtImplementation.copyTo dst index root |> ignore
+
+    member x.CopyToV(dst : struct('Key * 'Value)[], index : int) =
+        MapExtImplementation.copyToV dst index root |> ignore
+        
+    member x.CopyValuesTo(dst : 'Value[], index : int) =
+        MapExtImplementation.copyValuesTo dst index root |> ignore
+
+    member x.CopyKeysTo(dst : 'Key[], index : int) =
+        MapExtImplementation.copyKeysTo dst index root |> ignore
+
+
+    member x.ToArray() =
+        let arr = Array.zeroCreate (MapExtImplementation.count root)
+        MapExtImplementation.copyTo arr 0 root |> ignore
+        arr
+        
+    member x.ToArrayV() =
+        let arr = Array.zeroCreate (MapExtImplementation.count root)
+        MapExtImplementation.copyToV arr 0 root |> ignore
+        arr
+        
+    member x.ToValueArray() =
+        let arr = Array.zeroCreate (MapExtImplementation.count root)
+        MapExtImplementation.copyValuesTo arr 0 root |> ignore
+        arr
+        
+    member x.ToKeyArray() =
+        let arr = Array.zeroCreate (MapExtImplementation.count root)
+        MapExtImplementation.copyKeysTo arr 0 root |> ignore
+        arr
+        
+    member x.Iter(action : 'Key -> 'Value -> unit) =
+        let action = OptimizedClosures.FSharpFunc<_,_,_>.Adapt(action)
+        MapExtImplementation.iter action root
+        
+    member x.IterValue(action : 'Value -> unit) =
+        MapExtImplementation.iterValue action root
+        
+    member x.Fold(state : 'State, folder : 'State -> 'Key -> 'Value -> 'State) =
+        let folder = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(folder)
+        MapExtImplementation.fold state folder root
+        
+    member x.FoldBack(state : 'State, folder : 'Key -> 'Value -> 'State -> 'State) =
+        let folder = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(folder)
+        MapExtImplementation.foldBack state folder root
+
+    member x.Map(mapping : 'Key -> 'Value -> 'T) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
+        MapExt(comparer, MapExtImplementation.map mapping root)
+        
+    member x.MapMonotonicV(mapping : 'Key -> 'Value -> struct('K * 'V)) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
+        MapExt(LanguagePrimitives.FastGenericComparer, MapExtImplementation.mapMonotonic mapping root)
+        
+    member x.MapMonotonic(mapping : 'Key -> 'Value -> ('K * 'V)) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
+        let mapping = 
+            OptimizedClosures.FSharpFunc<_,_,_>.Adapt (fun k v -> 
+                let (a,b) = mapping.Invoke(k,v)
+                struct(a,b)
+            )
+        MapExt(LanguagePrimitives.FastGenericComparer, MapExtImplementation.mapMonotonic mapping root)
+
+    member x.ChooseV(mapping : 'Key -> 'Value -> voption<'T>) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
+        MapExt(comparer, MapExtImplementation.chooseV mapping root)
+
+    member x.Choose(mapping : 'Key -> 'Value -> option<'T>) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
+        MapExt(comparer, MapExtImplementation.choose mapping root)
+
+    member x.Filter(predicate : 'Key -> 'Value -> bool) =
+        let predicate = OptimizedClosures.FSharpFunc<_,_,_>.Adapt predicate
+        MapExt(comparer, MapExtImplementation.filter predicate root)
+        
+    member x.TryPick(mapping : 'Key -> 'Value -> option<'T>) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
+        MapExtImplementation.tryPick mapping root
+        
+    member x.TryPickV(mapping : 'Key -> 'Value -> voption<'T>) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
+        MapExtImplementation.tryPickV mapping root
+
+        
+    member x.TryPickBack(mapping : 'Key -> 'Value -> option<'T>) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
+        MapExtImplementation.tryPickBack mapping root
+        
+    member x.TryPickBackV(mapping : 'Key -> 'Value -> voption<'T>) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
+        MapExtImplementation.tryPickBackV mapping root
+
+    member x.Exists(predicate : 'Key -> 'Value -> bool) =
+        let predicate = OptimizedClosures.FSharpFunc<_,_,_>.Adapt predicate
+        MapExtImplementation.exists predicate root
+        
+    member x.ForAll(predicate : 'Key -> 'Value -> bool) =
+        let predicate = OptimizedClosures.FSharpFunc<_,_,_>.Adapt predicate
+        MapExtImplementation.forall predicate root
+        
+    member x.Partition(predicate : 'Key -> 'Value -> bool) =
+        let predicate = OptimizedClosures.FSharpFunc<_,_,_>.Adapt predicate
+        let mutable t = null
+        let mutable f = null
+        MapExtImplementation.partition predicate &t &f root
+        MapExt(comparer, t), MapExt(comparer, f)
+
+
+
+    member x.WithMin(min : 'Key) = MapExt(comparer, MapExtImplementation.withMin comparer min root)
+    member x.WithMax(max : 'Key) = MapExt(comparer, MapExtImplementation.withMax comparer max root)
+    member x.Slice(min : 'Key, max : 'Key) = MapExt(comparer, MapExtImplementation.slice comparer min max root)
+    member x.SliceAt(min : int, max : int) = MapExt(comparer, MapExtImplementation.sliceAt min max root)
+    
+    
+    member x.Take(n : int) =
+        MapExt(comparer, MapExtImplementation.take n root)
+        
+    member x.Skip(n : int) =
+        MapExt(comparer, MapExtImplementation.skip n root)
+
+    member x.Split(key : 'Key) =
+        let mutable l = Unchecked.defaultof<_>
+        let mutable s = Unchecked.defaultof<_>
+        let mutable r = Unchecked.defaultof<_>
+        if MapExtImplementation.split comparer key &l &s &r root then
+            MapExt(comparer, l), Some s, MapExt(comparer, r)
+        else
+            MapExt(comparer, l), None, MapExt(comparer, r)
+            
+    member x.SplitV(key : 'Key) =
+        let mutable l = Unchecked.defaultof<_>
+        let mutable s = Unchecked.defaultof<_>
+        let mutable r = Unchecked.defaultof<_>
+        if MapExtImplementation.split comparer key &l &s &r root then
+            struct(MapExt(comparer, l), ValueSome s, MapExt(comparer, r))
+        else
+            struct(MapExt(comparer, l), ValueNone, MapExt(comparer, r))
+
+    
+
+    member x.ReplaceRangeV(min : 'Key, max : 'Key, replace : voption<struct('Key * 'Value)> -> voption<struct('Key * 'Value)> -> struct(voption<'Value> * voption<'Value>)) =
+        let c = comparer.Compare(min, max) 
+        if c > 0 then
+            // min > max
+            x
+        elif c < 0 then
+            // min < max
+            let newRoot = MapExtImplementation.replaceRange comparer min max ValueNone ValueNone replace root
+            MapExt(comparer, newRoot)
+        else
+            // min = max
+            let replacement l _ r =
+                let struct(a, b) = replace l r
+                match b with
+                | ValueNone -> a
+                | b -> b
+
+            let newRoot = MapExtImplementation.changeWithNeighbours comparer max ValueNone ValueNone replacement root
+            MapExt(comparer, newRoot)
+
+    member x.ReplaceRange(min : 'Key, max : 'Key, replace : option<('Key * 'Value)> -> option<('Key * 'Value)> -> (option<'Value> * option<'Value>)) =
+        let inline v (o : option<_>) =
+            match o with
+            | Some v -> ValueSome v
+            | None -> ValueNone
+        
+        let replacement (l : voption<_>) (r : voption<_>) =
+            match l with
+            | ValueSome struct(lk, lv) ->
+                match r with
+                | ValueSome struct(rk, rv) ->
+                    let (l, r) = replace (Some (lk, lv)) (Some (rk, rv))
+                    struct(v l, v r)
+                | ValueNone ->
+                    let (l, r) = replace (Some (lk, lv)) None
+                    struct(v l, v r)
+            | ValueNone ->
+                match r with
+                | ValueSome struct(rk, rv) ->
+                    let (l, r) = replace None (Some (rk, rv))
+                    struct(v l, v r)
+                | ValueNone ->
+                    let (l, r) = replace None None
+                    struct(v l, v r)
+               
+        x.ReplaceRangeV(min, max, replacement)
+
+    member x.ChangeWithNeighboursV(key : 'Key, replace : voption<struct('Key * 'Value)> -> voption<'Value> -> voption<struct('Key * 'Value)> -> voption<'Value>) =
+        let newRoot = MapExtImplementation.changeWithNeighbours comparer key ValueNone ValueNone replace root
+        MapExt(comparer, newRoot)
+
+    member x.ChangeWithNeighbours(key : 'Key, replace : option<('Key * 'Value)> -> option<'Value> -> option<('Key * 'Value)> -> option<'Value>) =
+        x.ChangeWithNeighboursV(key, fun l s r ->
+            let l = match l with | ValueSome struct(k,v) -> Some (k,v) | _ -> None
+            let r = match r with | ValueSome struct(k,v) -> Some (k,v) | _ -> None
+            let s = match s with | ValueSome v -> Some v | _ -> None
+            match replace l s r with
+            | Some v -> ValueSome v
+            | None -> ValueNone
+        )
+
+    member x.GetSlice(min : option<'Key>, max : option<'Key>) =
+        match min with
+        | Some min ->
+            match max with
+            | Some max -> x.Slice(min, max)
+            | None -> x.WithMin min
+        | None ->
+            match max with
+            | Some max -> x.WithMax max
+            | None -> x
+
+    member x.Neighbours(key : 'Key) =
+        let mutable lKey = Unchecked.defaultof<_>
+        let mutable rKey = Unchecked.defaultof<_>
+        let mutable lValue = Unchecked.defaultof<_>
+        let mutable rValue = Unchecked.defaultof<_>
+        let mutable sValue = Unchecked.defaultof<_>
+        let flags = MapExtImplementation.getNeighbours comparer key MapExtImplementation.NeighbourFlags.None &lKey &lValue &sValue &rKey &rValue root
+
+        let left =
+            if flags.HasFlag MapExtImplementation.NeighbourFlags.Left then Some (lKey, lValue)
+            else None
+            
+        let self =
+            if flags.HasFlag MapExtImplementation.NeighbourFlags.Self then Some (sValue)
+            else None
+            
+        let right =
+            if flags.HasFlag MapExtImplementation.NeighbourFlags.Right then Some (rKey, rValue)
+            else None
+
+        left, self, right
+        
+
+    member x.NeighboursV(key : 'Key) =
+        let mutable lKey = Unchecked.defaultof<_>
+        let mutable rKey = Unchecked.defaultof<_>
+        let mutable lValue = Unchecked.defaultof<_>
+        let mutable rValue = Unchecked.defaultof<_>
+        let mutable sValue = Unchecked.defaultof<_>
+        let flags = MapExtImplementation.getNeighbours comparer key MapExtImplementation.NeighbourFlags.None &lKey &lValue &sValue &rKey &rValue root
+
+        let left =
+            if flags.HasFlag MapExtImplementation.NeighbourFlags.Left then ValueSome struct(lKey, lValue)
+            else ValueNone
+            
+        let self =
+            if flags.HasFlag MapExtImplementation.NeighbourFlags.Self then ValueSome (sValue)
+            else ValueNone
+            
+        let right =
+            if flags.HasFlag MapExtImplementation.NeighbourFlags.Right then ValueSome struct(rKey, rValue)
+            else ValueNone
+
+        struct(left, self, right)
+
+    member x.NeighboursAt(index : int) =
+        let mutable lKey = Unchecked.defaultof<_>
+        let mutable rKey = Unchecked.defaultof<_>
+        let mutable sKey = Unchecked.defaultof<_>
+        let mutable lValue = Unchecked.defaultof<_>
+        let mutable rValue = Unchecked.defaultof<_>
+        let mutable sValue = Unchecked.defaultof<_>
+        let flags = MapExtImplementation.getNeighboursAt index MapExtImplementation.NeighbourFlags.None &lKey &lValue &sKey &sValue &rKey &rValue root
+
+        let left =
+            if flags.HasFlag MapExtImplementation.NeighbourFlags.Left then Some (lKey, lValue)
+            else None
+            
+        let self =
+            if flags.HasFlag MapExtImplementation.NeighbourFlags.Self then Some (sKey, sValue)
+            else None
+            
+        let right =
+            if flags.HasFlag MapExtImplementation.NeighbourFlags.Right then Some (rKey, rValue)
+            else None
+
+        left, self, right
+        
+    member x.NeighboursAtV(index : int) =
+        let mutable lKey = Unchecked.defaultof<_>
+        let mutable rKey = Unchecked.defaultof<_>
+        let mutable sKey = Unchecked.defaultof<_>
+        let mutable lValue = Unchecked.defaultof<_>
+        let mutable rValue = Unchecked.defaultof<_>
+        let mutable sValue = Unchecked.defaultof<_>
+        let flags = MapExtImplementation.getNeighboursAt index MapExtImplementation.NeighbourFlags.None &lKey &lValue &sKey &sValue &rKey &rValue root
+
+        let left =
+            if flags.HasFlag MapExtImplementation.NeighbourFlags.Left then ValueSome struct(lKey, lValue)
+            else ValueNone
+            
+        let self =
+            if flags.HasFlag MapExtImplementation.NeighbourFlags.Self then ValueSome struct(sKey, sValue)
+            else ValueNone
+            
+        let right =
+            if flags.HasFlag MapExtImplementation.NeighbourFlags.Right then ValueSome struct(rKey, rValue)
+            else ValueNone
+
+        struct(left, self, right)
+        
+
+
+    static member Union(l : MapExt<'Key, 'Value>, r : MapExt<'Key, 'Value>) =
+        let cmp = defaultComparer
+        MapExt(cmp, MapExtImplementation.union cmp l.Root r.Root)
+        
+    static member UnionWith(l : MapExt<'Key, 'Value>, r : MapExt<'Key, 'Value>, resolve : 'Key -> 'Value -> 'Value -> 'Value) =
+        let cmp = defaultComparer
+        let resolve = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt resolve
+        MapExt(cmp, MapExtImplementation.unionWith cmp resolve l.Root r.Root)
+
+        
+    static member Choose2V(l : MapExt<'Key, 'A>, r : MapExt<'Key, 'B>, mapping : 'Key -> voption<'A> -> voption<'B> -> voption<'T>) =
+        let cmp = defaultComparer
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
+
+        let both = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt (fun k l r -> mapping.Invoke(k, ValueSome l, ValueSome r))
+        let onlyLeft = OptimizedClosures.FSharpFunc<_,_,_>.Adapt (fun k l -> mapping.Invoke(k, ValueSome l, ValueNone))
+        let onlyRight = OptimizedClosures.FSharpFunc<_,_,_>.Adapt (fun k r -> mapping.Invoke(k, ValueNone, ValueSome r))
+
+        MapExt(cmp, MapExtImplementation.choose2 cmp onlyLeft both onlyRight l.Root r.Root)
+
+         
+    static member Choose2(l : MapExt<'Key, 'A>, r : MapExt<'Key, 'B>, mapping : 'Key -> option<'A> -> option<'B> -> option<'T>) =
+        let cmp = defaultComparer
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
+
+        let inline oo o = match o with | Some v -> ValueSome v | None -> ValueNone
+
+        let both = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt (fun k l r -> mapping.Invoke(k, Some l, Some r) |> oo)
+        let onlyLeft = OptimizedClosures.FSharpFunc<_,_,_>.Adapt (fun k l -> mapping.Invoke(k, Some l, None) |> oo)
+        let onlyRight = OptimizedClosures.FSharpFunc<_,_,_>.Adapt (fun k r -> mapping.Invoke(k, None, Some r) |> oo)
+
+        MapExt(cmp, MapExtImplementation.choose2 cmp onlyLeft both onlyRight l.Root r.Root)
+
+    member x.ComputeDeltaTo( r : MapExt<'Key, 'Value2>, 
+                             add : 'Key -> 'Value2 -> 'OP, 
+                             update : 'Key -> 'Value -> 'Value2 -> voption<'OP>,
+                             remove : 'Key -> 'Value -> 'OP) =
         let add = OptimizedClosures.FSharpFunc<_,_,_>.Adapt add
         let update = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt update
         let remove = OptimizedClosures.FSharpFunc<_,_,_>.Adapt remove
-        new MapExt<'Key,_>(comparer, MapTree.computeDelta comparer add update remove tree other.Tree)
+        MapExt(comparer, MapExtImplementation.computeDelta comparer root r.Root update add remove)
         
-    member m.ApplyDelta(other:MapExt<'Key,'Delta>, apply)  = 
+    member x.ApplyDelta(delta : MapExt<'Key, 'OP>, apply : 'Key -> voption<'Value> -> 'OP -> voption<'Value>) =
         let apply = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply
-        let onlyDelta = OptimizedClosures.FSharpFunc<_,_,_>.Adapt(fun k d -> apply.Invoke(k, ValueNone, d))
-        let struct (s, d) = MapTree.applyDelta comparer apply onlyDelta tree other.Tree
-        new MapExt<'Key,_>(comparer, s), new MapExt<'Key,_>(comparer, d)
-
-    member m.Choose(f) =
-        new MapExt<'Key, 'Value2>(comparer, MapTree.choosei f tree)
-
-    member m.Alter(k, f) = new MapExt<'Key, 'Value>(comparer, MapTree.alter comparer k f tree)
-
-    member m.Partition(f)  : MapExt<'Key,'Value> * MapExt<'Key,'Value> = 
-        let r1,r2 = MapTree.partition comparer f tree  in 
-        new MapExt<'Key,'Value>(comparer,r1), new MapExt<'Key,'Value>(comparer,r2)
-
-    member m.Count = MapTree.size tree
-    
-    member x.TryMin = MapTree.tryMin tree
-    member x.TryMax = MapTree.tryMax tree
-
-    member x.TryMinKey = MapTree.tryMin tree |> Option.map fst
-    member x.TryMaxKey = MapTree.tryMax tree |> Option.map fst
-    
-    member x.TryMinKeyV = MapTree.tryMinV tree |> ValueOption.map (fun struct(k,_) -> k)
-    member x.TryMaxKeyV = MapTree.tryMaxV tree |> ValueOption.map (fun struct(k,_) -> k)
-    
-    member x.TryMinValue = MapTree.tryMin tree |> Option.map snd
-    member x.TryMaxValue = MapTree.tryMax tree |> Option.map snd
-    
-    member x.TryMinValueV = MapTree.tryMinV tree |> ValueOption.map (fun struct(_,v) -> v)
-    member x.TryMaxValueV = MapTree.tryMaxV tree |> ValueOption.map (fun struct(_,v) -> v)
-
-    member x.Split (k) =
-        let l, self, r = MapTree.split comparer k tree
-        MapExt<'Key, 'Value>(comparer, l), self, MapExt<'Key, 'Value>(comparer, r)
+        let applyNoState = OptimizedClosures.FSharpFunc<_,_,_>.Adapt (fun k o -> apply.Invoke(k, ValueNone, o))
+        let applyReal = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt (fun k v o -> apply.Invoke(k, ValueSome v, o))
+        MapExt(comparer, MapExtImplementation.ApplyDelta.applyDelta comparer root delta.Root applyNoState applyReal)
         
-    member x.SplitV (k) =
-        let struct(l, lmax, self, rmin, r) = MapTree.splitV comparer k tree
-        struct(MapExt<'Key, 'Value>(comparer, l), lmax, self, rmin, MapExt<'Key, 'Value>(comparer, r))
         
-    member x.UnionWith (other : MapExt<_,_>, resolve) =
-        if x.IsEmpty then other
-        elif other.IsEmpty then x
-        else new MapExt<'Key, 'Value>(comparer, MapTree.unionWith comparer resolve tree other.Tree)
+    member x.ApplyDeltaAndGetEffective(delta : MapExt<'Key, 'OP>, apply : 'Key -> voption<'Value> -> 'OP -> struct(voption<'Value> * voption<'OP2>)) =
+        let apply = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply
+        let applyNoState = OptimizedClosures.FSharpFunc<_,_,_>.Adapt (fun k o -> apply.Invoke(k, ValueNone, o))
+        let applyReal = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt (fun k v o -> apply.Invoke(k, ValueSome v, o))
+
+        let mutable effective = null
+        let root = MapExtImplementation.ApplyDelta.applyDeltaAndGetEffective comparer root delta.Root applyNoState applyReal &effective
+        MapExt(comparer, root), MapExt(comparer, effective)
         
-    member x.Union(other : MapExt<_,_>) =
-        new MapExt<'Key, 'Value>(comparer, MapTree.union comparer tree other.Tree)
+    override x.GetHashCode() =
+        MapExtImplementation.hash 0 root
 
-    member x.IntersectWith(other : MapExt<_,_>, resolve) =
-        if x.IsEmpty || other.IsEmpty then MapExt<_,_>.Empty
-        else new MapExt<'Key, _>(comparer, MapTree.intersectWith resolve comparer tree other.Tree)
+    override x.Equals o =
+        match o with
+        | :? MapExt<'Key, 'Value> as o ->
+            x.Count = o.Count &&
+            MapExtImplementation.equals comparer root o.Root
+        | _ ->
+            false
+
+
+    new() = MapExt(defaultComparer, null)
+    new(key : 'Key, value : 'Value) =
+        let cmp = defaultComparer
+        MapExt(cmp, MapExtImplementation.Node(key, value))
+
+    new(elements : seq<'Key * 'Value>) =
+        let thing = MapExt.FromSeq elements
+        MapExt(thing.Comparer, thing.Root)
+
+    new(elements : list<'Key * 'Value>) =
+        let thing = MapExt.FromList elements
+        MapExt(thing.Comparer, thing.Root)
+
+    new(elements : ('Key * 'Value)[]) =
+        let thing = MapExt.FromArray elements
+        MapExt(thing.Comparer, thing.Root)
+
         
-    member x.Intersect(other : MapExt<_,_>) =
-        if x.IsEmpty || other.IsEmpty then MapExt<_,_>.Empty
-        else new MapExt<'Key, _>(comparer, MapTree.intersectWith (fun l r -> (l,r)) comparer tree other.Tree)
+    new(elements : seq<struct('Key * 'Value)>) =
+        let thing = MapExt.FromSeqV elements
+        MapExt(thing.Comparer, thing.Root)
 
-    member x.Validate() =
-        MapTree.validate comparer tree
+    new(elements : list<struct('Key * 'Value)>) =
+        let thing = MapExt.FromListV elements
+        MapExt(thing.Comparer, thing.Root)
 
+    new(elements : struct('Key * 'Value)[]) =
+        let thing = MapExt.FromArrayV elements
+        MapExt(thing.Comparer, thing.Root)     
 
-    member m.ContainsKey(k) = 
-        MapTree.mem comparer k tree
-
-
-    member m.Remove(k)  : MapExt<'Key,'Value> = 
-        new MapExt<'Key,'Value>(comparer,MapTree.remove comparer k tree)
-        
-    member m.TryRemove(k) : option<'Value * MapExt<'Key,'Value>> = 
-        match MapTree.tryRemove comparer k tree with
-        | Some (v, t) -> 
-            Some(v, new MapExt<'Key,'Value>(comparer, t))
-        | None ->
-            None
-            
-    member m.TryRemoveV(k) : voption<struct('Value * MapExt<'Key,'Value>)> = 
-        match MapTree.tryRemoveV comparer k tree with
-        | ValueSome struct (v, t) -> 
-            ValueSome(struct(v, new MapExt<'Key,'Value>(comparer, t)))
-        | ValueNone ->
-            ValueNone
-
-    member m.TryFind(k) = 
-        MapTree.tryFind comparer k tree
-        
-    member m.TryFindV(k) = 
-        MapTree.tryFindV comparer k tree
-
-    member m.ToList() = MapTree.toList tree
-
-    member m.ToArray() = MapTree.toArray tree
-
-    member x.ToListV() = MapTree.toListV tree
-    member x.ToArrayV() = MapTree.toArrayV tree
-    
-    member x.ToValueList() = MapTree.valueList tree
-    member x.ToValueArray() = MapTree.valueArray tree
-
-    static member ofList(l) : MapExt<'Key,'Value> = 
-        let comparer = LanguagePrimitives.FastGenericComparer<'Key> 
-        new MapExt<_,_>(comparer,MapTree.ofList comparer l)
-           
-    member this.ComputeHashCode() = 
-        let combineHash x y = (x <<< 1) + y + 631 
-        let mutable res = 0
-        for (KeyValue(x,y)) in this do
-            res <- combineHash res (hash x)
-            res <- combineHash res (DefaultEquality.hash y)
-        abs res
-
-    override this.Equals(that) = 
-        if System.Object.ReferenceEquals(this, that) then
-            true
-        else
-            match that with 
-            | :? MapExt<'Key,'Value> as that -> 
-                use e1 = (this :> seq<_>).GetEnumerator() 
-                use e2 = (that :> seq<_>).GetEnumerator() 
-                let rec loop () = 
-                    let m1 = e1.MoveNext() 
-                    let m2 = e2.MoveNext()
-                    (m1 = m2) && (not m1 || let e1c, e2c = e1.Current, e2.Current in ((e1c.Key = e2c.Key) && (DefaultEquality.equals e1c.Value e2c.Value) && loop()))
-                loop()
-            | _ -> false
-
-    override this.GetHashCode() = this.ComputeHashCode()
-
-    member x.GetForwardEnumerator() = new MapTree.MapTreeEnumerator<'Key, 'Value>(tree) :> IEnumerator<_> 
-    member x.GetBackwardEnumerator() = new MapTree.MapTreeBackwardEnumerator<'Key, 'Value>(tree) :> IEnumerator<_> 
-    
-    member x.GetForwardEnumeratorV() = new MapTree.ValueMapTreeEnumerator<'Key, 'Value>(tree) :> IEnumerator<_> 
-    member x.GetBackwardEnumeratorV() = new MapTree.ValueMapTreeBackwardEnumerator<'Key, 'Value>(tree) :> IEnumerator<_> 
-
-    interface IEnumerable<KeyValuePair<'Key, 'Value>> with
-        member __.GetEnumerator() = MapTree.mkIEnumerator tree
+    member x.GetEnumerator() = new MapExtEnumerator<_,_>(root)
 
     interface System.Collections.IEnumerable with
-        member __.GetEnumerator() = (MapTree.mkIEnumerator tree :> System.Collections.IEnumerator)
+        member x.GetEnumerator() = x.GetEnumerator() :> _
+            
+    interface System.Collections.Generic.IEnumerable<KeyValuePair<'Key, 'Value>> with
+        member x.GetEnumerator() = x.GetEnumerator() :> _
 
-    //interface IDictionary<'Key, 'Value> with 
-    //    member m.Item 
-    //        with get x = m.[x]            
-    //        and  set x v = ignore(x,v); raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"))
+    interface System.Collections.Generic.IReadOnlyCollection<KeyValuePair<'Key, 'Value>> with
+        member x.Count = x.Count
 
-    //    // REVIEW: this implementation could avoid copying the Values to an array    
-    //    member s.Keys = ([| for kvp in s -> kvp.Key |] :> ICollection<'Key>)
-
-    //    // REVIEW: this implementation could avoid copying the Values to an array    
-    //    member s.Values = ([| for kvp in s -> kvp.Value |] :> ICollection<'Value>)
-
-    //    member s.Add(k,v) = ignore(k,v); raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"))
-    //    member s.ContainsKey(k) = s.ContainsKey(k)
-    //    member s.TryGetValue(k,r) = if s.ContainsKey(k) then (r <- s.[k]; true) else false
-    //    member s.Remove(k : 'Key) = ignore(k); (raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)")) : bool)
-
-    //interface ICollection<KeyValuePair<'Key, 'Value>> with 
-    //    member __.Add(x) = ignore(x); raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"));
-    //    member __.Clear() = raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"));
-    //    member __.Remove(x) = ignore(x); raise (NotSupportedException("SR.GetString(SR.mapCannotBeMutated)"));
-    //    member s.Contains(x) = s.ContainsKey(x.Key) && DefaultEquality.equals s.[x.Key] x.Value
-    //    member __.CopyTo(arr,i) = MapTree.copyToArray tree arr i
-    //    member s.IsReadOnly = true
-    //    member s.Count = s.Count
-
-    interface System.IComparable with 
-        member m.CompareTo(obj: obj) = 
-            match obj with 
-            | :? MapExt<'Key,'Value>  as m2->
-                Seq.compareWith 
-                    (fun (kvp1 : KeyValuePair<_,_>) (kvp2 : KeyValuePair<_,_>)-> 
-                        let c = comparer.Compare(kvp1.Key,kvp2.Key) in 
-                        if c <> 0 then c else Unchecked.compare kvp1.Value kvp2.Value)
-                    m m2 
-            | _ -> 
-                invalidArg "obj" ("SR.GetString(SR.notComparable)")
-    override x.ToString() = 
-        let suffix = if x.Count > 4 then "; ..." else ""
-        let content = Seq.truncate 4 x |> Seq.map (fun (KeyValue t) -> sprintf "%A" t) |> String.concat "; "
-        "map [" + content + suffix + "]"
-
-    member private x.AsString = x.ToString()
-
-and 
-    [<Sealed>]
-    internal MapDebugView<'Key,'Value when 'Key : comparison>(v: MapExt<'Key,'Value>)  =  
-
-        [<DebuggerBrowsable(DebuggerBrowsableState.RootHidden)>]
-        member x.Items = v |> Seq.truncate 10000 |> Seq.toArray
-
-
-[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-[<RequireQualifiedAccess>]
-module internal MapExt = 
-
-    [<CompiledName("IsEmpty")>]
-    let isEmpty (m:MapExt<_,_>) = m.IsEmpty
-    
-    [<CompiledName("Keys")>]
-    let keys (m:MapExt<_,_>) = m.Keys
-    
-    [<CompiledName("Values")>]
-    let values (m:MapExt<_,_>) = m.Values
-
-    [<CompiledName("Add")>]
-    let add k v (m:MapExt<_,_>) = m.Add(k,v)
-
-    [<CompiledName("Find")>]
-    let find k (m:MapExt<_,_>) = m.[k]
-
-    [<CompiledName("TryFind")>]
-    let tryFind k (m:MapExt<_,_>) = m.TryFind(k)
-    
-    [<CompiledName("TryFindV")>]
-    let tryFindV k (m:MapExt<_,_>) = m.TryFindV(k)
-
-    [<CompiledName("Remove")>]
-    let remove k (m:MapExt<_,_>) = m.Remove(k)
-    
-    [<CompiledName("TryRemove")>]
-    let tryRemove k (m:MapExt<_,_>) = m.TryRemove(k)
-    
-    [<CompiledName("TryRemoveValue")>]
-    let tryRemoveV k (m:MapExt<_,_>) = m.TryRemoveV(k)
-    
-    [<CompiledName("TryRemoveMin")>]
-    let tryRemoveMin (m:MapExt<_,_>) = m.TryRemoveMin()
-
-    [<CompiledName("TryRemoveMax")>]
-    let tryRemoveMax (m:MapExt<_,_>) = m.TryRemoveMax()
-    
-    [<CompiledName("TryRemoveMinValue")>]
-    let tryRemoveMinV (m:MapExt<_,_>) = m.TryRemoveMinV()
-
-    [<CompiledName("TryRemoveMaxValue")>]
-    let tryRemoveMaxV (m:MapExt<_,_>) = m.TryRemoveMaxV()
-
-    [<CompiledName("ContainsKey")>]
-    let containsKey k (m:MapExt<_,_>) = m.ContainsKey(k)
-
-    [<CompiledName("Iterate")>]
-    let iter f (m:MapExt<_,_>) = m.Iterate(f)
-
-    [<CompiledName("TryPick")>]
-    let tryPick f (m:MapExt<_,_>) = m.TryPick(f)
-
-    [<CompiledName("TryPickBack")>]
-    let tryPickBack f (m:MapExt<_,_>) = m.TryPickBack(f)
-
-    [<CompiledName("Pick")>]
-    let pick f (m:MapExt<_,_>) = match tryPick f m with None -> raise (KeyNotFoundException()) | Some res -> res
-
-    [<CompiledName("Exists")>]
-    let exists f (m:MapExt<_,_>) = m.Exists(f)
-
-    [<CompiledName("Filter")>]
-    let filter f (m:MapExt<_,_>) = m.Filter(f)
-
-    [<CompiledName("Partition")>]
-    let partition f (m:MapExt<_,_>) = m.Partition(f)
-
-    [<CompiledName("ForAll")>]
-    let forall f (m:MapExt<_,_>) = m.ForAll(f)
-    
-    [<CompiledName("MapRange")>]
-    let mapRange f (m:MapExt<_,_>) = m.MapRange(f)
-
-    [<CompiledName("Map")>]
-    let map f (m:MapExt<_,_>) = m.Map(f)
-
-    [<CompiledName("Fold")>]
-    let fold<'Key,'T,'State when 'Key : comparison> f (z:'State) (m:MapExt<'Key,'T>) = MapTree.fold f z m.Tree
-
-    [<CompiledName("FoldBack")>]
-    let foldBack<'Key,'T,'State  when 'Key : comparison> f (m:MapExt<'Key,'T>) (z:'State) =  MapTree.foldBack  f m.Tree z
+    interface System.Collections.Generic.IReadOnlyDictionary<'Key, 'Value> with
+        member x.Keys = MapExtImplementation.MapExtMappingEnumerable(root, fun n -> n.Key) :> seq<_>
+        member x.Values = MapExtImplementation.MapExtMappingEnumerable(root, fun n -> n.Value) :> seq<_>
+        member x.Item with get (key : 'Key) = x.[key]
+        member x.ContainsKey(key : 'Key) = x.ContainsKey key
+        member x.TryGetValue(key : 'Key, value : byref<'Value>) = x.TryGetValue(key, &value)
         
-    [<CompiledName("ToSeq")>]
-    let toSeq (m:MapExt<_,_>) = m |> Seq.map (fun kvp -> kvp.Key, kvp.Value)
+
+
+and internal MapExtEnumerator<'Key, 'Value> =
+    struct
+        val mutable internal Root : MapExtImplementation.Node<'Key, 'Value>
+        val mutable internal Head : struct(MapExtImplementation.Node<'Key, 'Value> * bool)
+        val mutable internal Tail : list<struct(MapExtImplementation.Node<'Key, 'Value> * bool)>
+        val mutable internal CurrentNode : MapExtImplementation.Node<'Key, 'Value>
+        
+        member x.MoveNext() =
+            let struct(n, deep) = x.Head
+            if not (isNull n) then
+
+                if n.Height > 1uy && deep then
+                    let inner = n :?> MapExtImplementation.Inner<'Key, 'Value>
+
+                    if isNull inner.Left then
+                        if isNull inner.Right then
+                            if x.Tail.IsEmpty then
+                                x.Head <- Unchecked.defaultof<_>
+                                x.Tail <- []
+                            else
+                                x.Head <- x.Tail.Head
+                                x.Tail <- x.Tail.Tail
+                        else
+                            x.Head <- struct(inner.Right, true)
+
+                        x.CurrentNode <- n
+                        true
+                    else
+                        x.Head <- struct(inner.Left, true)
+                        if isNull inner.Right then
+                            x.Tail <- struct(n, false) :: x.Tail
+                        else
+                            x.Tail <- struct(n, false) :: struct(inner.Right, true) :: x.Tail
+                        x.MoveNext()
+                else
+                    x.CurrentNode <- n
+                    if x.Tail.IsEmpty then 
+                        x.Head <- Unchecked.defaultof<_>
+                        x.Tail <- []
+                    else
+                        x.Head <- x.Tail.Head
+                        x.Tail <- x.Tail.Tail
+                    true
+
+            else
+                false
+
+
+        member x.Reset() =
+            x.Head <- if isNull x.Root then Unchecked.defaultof<_> else struct(x.Root, true)                
+            x.Tail <- []
+            x.CurrentNode <- null
+
+        member x.Dispose() =
+            x.Root <- null
+            x.CurrentNode <- null
+            x.Head <- Unchecked.defaultof<_>
+            x.Tail <- []
+
+        member x.Current =
+            KeyValuePair(x.CurrentNode.Key, x.CurrentNode.Value)
+
+        interface System.Collections.IEnumerator with
+            member x.MoveNext() = x.MoveNext()
+            member x.Reset() = x.Reset()
+            member x.Current = x.Current :> obj
+
+        interface System.Collections.Generic.IEnumerator<KeyValuePair<'Key, 'Value>> with
+            member x.Current = x.Current
+            member x.Dispose() = x.Dispose()
+
+        new(root : MapExtImplementation.Node<'Key, 'Value>) =
+            {
+                Root = root
+                Head = if isNull root then Unchecked.defaultof<_> else struct(root, true)
+                Tail = []
+                CurrentNode = null
+            }
+    end
+
+
+module internal MapExt =
+    let empty<'Key, 'Value when 'Key : comparison> = MapExt<'Key, 'Value>.Empty
     
-    [<CompiledName("ToSeqV")>]
-    let toSeqV (m:MapExt<_,_>) = m |> Seq.map (fun kvp -> struct(kvp.Key, kvp.Value))
+    let singleton (key : 'Key) (value : 'Value) = MapExt<'Key, 'Value>(key, value)
+
+    let isEmpty (map : MapExt<'Key, 'Value>) = map.IsEmpty
+    let count (map : MapExt<'Key, 'Value>) = map.Count
+
+    let add (key : 'Key) (value : 'Value) (map : MapExt<'Key, 'Value>) = map.Add(key, value)
+    let change (key : 'Key) (update : option<'Value> -> option<'Value>) (map : MapExt<'Key, 'Value>) = map.Change(key, update)
+    let changeV (key : 'Key) (update : voption<'Value> -> voption<'Value>) (map : MapExt<'Key, 'Value>) = map.Change(key, update)
+
+    let remove (key : 'Key) (map : MapExt<'Key, 'Value>) = map.Remove(key)
+    let tryRemove (key : 'Key) (map : MapExt<'Key, 'Value>) = map.TryRemove(key)
+    let tryRemoveV (key : 'Key) (map : MapExt<'Key, 'Value>) = map.TryRemoveV(key)
     
-    [<CompiledName("ToValueSeq")>]
-    let toValueSeq (m:MapExt<_,_>) = m |> Seq.map (fun kvp -> kvp.Value)
+    let removeAt (index : int) (map : MapExt<'Key, 'Value>) = map.RemoveAt(index)
+    let tryRemoveAt (index : int) (map : MapExt<'Key, 'Value>) = map.TryRemoveAt(index)
+    let tryRemoveAtV (index : int) (map : MapExt<'Key, 'Value>) = map.TryRemoveAtV(index)
+
+    let tryRemoveMin (map : MapExt<'Key, 'Value>) = map.TryRemoveMin()
+    let tryRemoveMinV (map : MapExt<'Key, 'Value>) = map.TryRemoveMinV()
+    let tryRemoveMax (map : MapExt<'Key, 'Value>) = map.TryRemoveMax()
+    let tryRemoveMaxV (map : MapExt<'Key, 'Value>) = map.TryRemoveMaxV()
+
+
+    let tryFind (key : 'Key) (map : MapExt<'Key, 'Value>) = map.TryFind key
+    let tryFindV (key : 'Key) (map : MapExt<'Key, 'Value>) = map.TryFindV key
+    let find (key : 'Key) (map : MapExt<'Key, 'Value>) = map.Find key
     
-    [<CompiledName("ToSeqBack")>]
-    let toSeqBack (m : MapExt<_,_>) = new EnumeratorEnumerable<_>(m.GetBackwardEnumerator) :> seq<_> 
+    let tryItem (index : int) (map : MapExt<'Key, 'Value>) = map.TryItem index
+    let tryItemV (index : int) (map : MapExt<'Key, 'Value>) = map.TryItemV index
+    let item (index : int) (map : MapExt<'Key, 'Value>) = map.GetItem index
+    let itemV (index : int) (map : MapExt<'Key, 'Value>) = map.GetItemV index
     
-    [<CompiledName("ToSeqBackV")>]
-    let toSeqBackV (m : MapExt<_,_>) = new EnumeratorEnumerable<_>(m.GetBackwardEnumeratorV) :> seq<_> 
+    let getIndex (key : 'Key) (map : MapExt<'Key, 'Value>) = map.GetIndex key
+    let tryGetIndex (key : 'Key) (map : MapExt<'Key, 'Value>) = map.TryGetIndex key
+    let tryGetIndexV (key : 'Key) (map : MapExt<'Key, 'Value>) = map.TryGetIndexV key
 
-    [<CompiledName("FindKey")>]
-    let findKey f (m : MapExt<_,_>) = m |> toSeq |> Seq.pick (fun (k,v) -> if f k v then Some(k) else None)
+    let containsKey (key : 'Key) (map : MapExt<'Key, 'Value>) = map.ContainsKey key
 
-    [<CompiledName("TryFindKey")>]
-    let tryFindKey f (m : MapExt<_,_>) = m |> toSeq |> Seq.tryPick (fun (k,v) -> if f k v then Some(k) else None)
+    let tryMin (map : MapExt<'Key, 'Value>) = map.TryMin()
+    let tryMax (map : MapExt<'Key, 'Value>) = map.TryMax()
+    let tryMinV (map : MapExt<'Key, 'Value>) = map.TryMinV()
+    let tryMaxV (map : MapExt<'Key, 'Value>) = map.TryMaxV()
+    let minKey (map : MapExt<'Key, 'Value>) = map.GetMinKey()
+    let maxKey (map : MapExt<'Key, 'Value>) = map.GetMaxKey()
+    let tryMinKeyV (map : MapExt<'Key, 'Value>) = map.TryMinKeyV()
+    let tryMaxKeyV (map : MapExt<'Key, 'Value>) = map.TryMaxKeyV()
 
-    [<CompiledName("OfList")>]
-    let ofList (l: ('Key * 'Value) list) = MapExt<_,_>.ofList(l)
-
-    [<CompiledName("OfSeq")>]
-    let ofSeq l = MapExt<_,_>.Create(l)
+    let iter (action : 'Key -> 'Value -> unit) (map : MapExt<'Key, 'Value>) = map.Iter action
+    let iterValue (action : 'Value -> unit) (map : MapExt<'Key, 'Value>) = map.IterValue action
+    let fold (folder : 'State -> 'Key -> 'Value -> 'State) (state : 'State) (map : MapExt<'Key, 'Value>) = map.Fold(state, folder)
+    let foldBack (folder : 'Key -> 'Value -> 'State -> 'State) (map : MapExt<'Key, 'Value>) (state : 'State) =  map.FoldBack(state, folder)
     
-    [<CompiledName("Singleton")>]
-    let singleton k v = MapExt<_,_>(LanguagePrimitives.FastGenericComparer<_>,MapOne(k,v))
-
-    [<CompiledName("OfArray")>]
-    let ofArray (array: ('Key * 'Value) array) = 
-        let comparer = LanguagePrimitives.FastGenericComparer<'Key> 
-        new MapExt<_,_>(comparer,MapTree.ofArray comparer array)
-
-    [<CompiledName("ToList")>]
-    let toList (m:MapExt<_,_>) = m.ToList()
-
-    [<CompiledName("ToArray")>]
-    let toArray (m:MapExt<_,_>) = m.ToArray()
+    let map (mapping : 'Key -> 'Value -> 'T) (map : MapExt<'Key, 'Value>) = map.Map mapping
+    let choose (mapping : 'Key -> 'Value -> option<'T>) (map : MapExt<'Key, 'Value>) = map.Choose mapping
+    let chooseV (mapping : 'Key -> 'Value -> voption<'T>) (map : MapExt<'Key, 'Value>) = map.ChooseV mapping
+    let filter (predicate : 'Key -> 'Value -> bool) (map : MapExt<'Key, 'Value>) = map.Filter predicate
     
-    [<CompiledName("ToListV")>]
-    let toListV (m:MapExt<_,_>) = m.ToListV()
-
-    [<CompiledName("ToArrayV")>]
-    let toArrayV (m:MapExt<_,_>) = m.ToArrayV()
+    let tryPick (mapping : 'Key -> 'Value -> option<'T>) (map : MapExt<'Key, 'Value>) = map.TryPick mapping
+    let tryPickV (mapping : 'Key -> 'Value -> voption<'T>) (map : MapExt<'Key, 'Value>) = map.TryPickV mapping
     
-    [<CompiledName("ToValueList")>]
-    let toValueList (m:MapExt<_,_>) = m.ToValueList()
+    let tryPickBack (mapping : 'Key -> 'Value -> option<'T>) (map : MapExt<'Key, 'Value>) = map.TryPickBack mapping
+    let tryPickBackV (mapping : 'Key -> 'Value -> voption<'T>) (map : MapExt<'Key, 'Value>) = map.TryPickBackV mapping
 
-    [<CompiledName("ToValueArray")>]
-    let toValueArray (m:MapExt<_,_>) = m.ToValueArray()
-
-    [<CompiledName("Empty")>]
-    let empty<'Key,'Value  when 'Key : comparison> = MapExt<'Key,'Value>.Empty
-
-    [<CompiledName("Count")>]
-    let count (m:MapExt<_,_>) = m.Count
+    let exists (predicate : 'Key -> 'Value -> bool) (map : MapExt<'Key, 'Value>) = map.Exists predicate
+    let forall (predicate : 'Key -> 'Value -> bool) (map : MapExt<'Key, 'Value>) = map.ForAll predicate
+    let partition (predicate : 'Key -> 'Value -> bool) (map : MapExt<'Key, 'Value>) = map.Partition predicate
     
-    [<CompiledName("TryMin")>]
-    let tryMin (m:MapExt<_,_>) = m.TryMinKey
-    
-    [<CompiledName("Min")>]
-    let min (m:MapExt<_,_>) = 
-        match m.TryMinKey with
-            | Some min -> min
-            | None -> raise <| ArgumentException("The input sequence was empty.")
+    let withMin (min : 'Key) (map : MapExt<'Key, 'Value>) = map.WithMin min
+    let withMax (min : 'Key) (map : MapExt<'Key, 'Value>) = map.WithMax min
+    let slice (min : 'Key) (max : 'Key) (map : MapExt<'Key, 'Value>) = map.Slice(min, max)
+    let skip (n : int) (map : MapExt<'Key, 'Value>) = map.Skip n
+    let take (n : int) (map : MapExt<'Key, 'Value>) = map.Take n
 
-    [<CompiledName("TryMax")>]
-    let tryMax (m:MapExt<_,_>) = m.TryMaxKey
+    let replaceRange (min : 'Key) (max : 'Key) (replacement : option<'Key * 'Value> -> option<'Key * 'Value> -> (option<'Value> * option<'Value>)) (map : MapExt<'Key, 'Value>) =
+        map.ReplaceRange(min, max, replacement)
 
-    [<CompiledName("Max")>]
-    let max (m:MapExt<_,_>) = 
-        match m.TryMaxKey with
-        | Some min -> min
-        | None -> raise <| ArgumentException("The input sequence was empty.")
+    let replaceRangeV (min : 'Key) (max : 'Key) (replacement : voption<struct('Key * 'Value)> -> voption<struct('Key * 'Value)> -> struct(voption<'Value> * voption<'Value>)) (map : MapExt<'Key, 'Value>) =
+        map.ReplaceRangeV(min, max, replacement)
+        
+    let changeWithNeighbours (key : 'Key) (update : option<'Key * 'Value> -> option<'Value> -> option<'Key * 'Value> -> option<'Value>) (map : MapExt<'Key, 'Value>) =
+        map.ChangeWithNeighbours(key, update)
+        
+    let changeWithNeighboursV (key : 'Key) (update : voption<struct('Key * 'Value)> -> voption<'Value> -> voption<struct('Key * 'Value)> -> voption<'Value>) (map : MapExt<'Key, 'Value>) =
+        map.ChangeWithNeighboursV(key, update)
 
-    
-    [<CompiledName("TryItem")>]
-    let tryItem i (m:MapExt<_,_>) = m.TryAt i
-    
-    [<CompiledName("TryItemV")>]
-    let tryItemV i (m:MapExt<_,_>) = m.TryAtV i
-
-    [<CompiledName("Item")>]
-    let item i (m:MapExt<_,_>) = 
-        match m.TryAt i with
-            | Some t -> t
-            | None -> raise <| IndexOutOfRangeException()
-
-    [<CompiledName("Alter")>]
-    let alter k f (m:MapExt<_,_>) = m.Alter(k, f)
-    
-    [<CompiledName("MapMonotonic")>]
-    let mapMonotonic f (m:MapExt<_,_>) = m.MapMonotonic(f)
-    
-    [<CompiledName("ChooseMonotonic")>]
-    let chooseMonotonic f (m:MapExt<_,_>) = m.ChooseMonotonic(f)
-
-    [<CompiledName("Split")>]
-    let split k (m:MapExt<_,_>) = m.Split k
-
-    [<CompiledName("TryIndexOf")>]
-    let tryIndexOf i (m:MapExt<_,_>) = m.TryIndexOf i
-
-    [<CompiledName("GetReference")>]
-    let reference i (m:MapExt<_,_>) = m.GetReference i
+    let neighbours (key : 'Key) (map : MapExt<'Key, 'Value>) = map.Neighbours key
+    let neighboursV (key : 'Key) (map : MapExt<'Key, 'Value>) = map.NeighboursV key
+    let neighboursAt (index : int) (map : MapExt<'Key, 'Value>) = map.NeighboursAt index
+    let neighboursAtV (index : int) (map : MapExt<'Key, 'Value>) = map.NeighboursAtV index
 
 
-    [<CompiledName("Union")>]
-    let union (l:MapExt<_,_>) r = l.Union r
+    let ofSeq (elements : seq<'Key * 'Value>) = MapExt.FromSeq elements
+    let ofSeqV (elements : seq<struct('Key * 'Value)>) = MapExt.FromSeqV elements
+    let ofList (elements : list<'Key * 'Value>) = MapExt.FromList elements
+    let ofListV (elements : list<struct('Key * 'Value)>) = MapExt.FromListV elements
+    let ofArray (elements : ('Key * 'Value)[]) = MapExt.FromArray elements
+    let ofArrayV (elements : struct('Key * 'Value)[]) = MapExt.FromArrayV elements
+    
+    let toSeq (map : MapExt<'Key, 'Value>) = map.ToSeq()
+    let toSeqV (map : MapExt<'Key, 'Value>) = map.ToSeqV()
+    let toList (map : MapExt<'Key, 'Value>) = map.ToList()
+    let toListV (map : MapExt<'Key, 'Value>) = map.ToListV()
+    let toArray (map : MapExt<'Key, 'Value>) = map.ToArray()
+    let toArrayV (map : MapExt<'Key, 'Value>) = map.ToArrayV()
+    
+    let toValueSeq (map : MapExt<'Key, 'Value>) = map.ToValueSeq()
+    let toValueList (map : MapExt<'Key, 'Value>) = map.ToValueList()
+    let toValueArray (map : MapExt<'Key, 'Value>) = map.ToValueArray()
+    let toKeySeq (map : MapExt<'Key, 'Value>) = map.ToKeySeq()
+    let toKeyList (map : MapExt<'Key, 'Value>) = map.ToKeyList()
+    let toKeyArray (map : MapExt<'Key, 'Value>) = map.ToKeyArray()
 
-    [<CompiledName("UnionWith")>]
-    let unionWith f (l:MapExt<_,_>) r = l.UnionWith (r, f)
+    let toSeqBack (map : MapExt<'Key, 'Value>) = map.ToSeqBack()
+    let toSeqBackV (map : MapExt<'Key, 'Value>) = map.ToSeqBackV()
+    let toKeySeqBack (map : MapExt<'Key, 'Value>) = map.ToKeySeqBack()
+    let toValueSeqBack (map : MapExt<'Key, 'Value>) = map.ToValueSeqBack()
     
-    [<CompiledName("IntersectWith")>]
-    let intersectWith f (l:MapExt<_,_>) r = l.IntersectWith (r, f)
+    let toListBack (map : MapExt<'Key, 'Value>) = map.ToListBack()
+    let toListBackV (map : MapExt<'Key, 'Value>) = map.ToListBackV()
+    let toKeyListBack (map : MapExt<'Key, 'Value>) = map.ToKeyListBack()
+    let toValueListBack (map : MapExt<'Key, 'Value>) = map.ToValueListBack()
     
-    [<CompiledName("Intersect")>]
-    let intersect (l:MapExt<_,_>) r = l.Intersect r
+    let union (l : MapExt<'Key, 'Value>) (r : MapExt<'Key, 'Value>) = MapExt.Union(l, r)
+    let unionMany (maps : #seq<MapExt<'Key, 'Value>>) = (empty, maps) ||> Seq.fold union
+    let unionWith (resolve : 'Key -> 'Value -> 'Value -> 'Value) (l : MapExt<'Key, 'Value>) (r : MapExt<'Key, 'Value>) = MapExt.UnionWith(l, r, resolve)
+    
+    let choose2V (mapping : 'Key -> voption<'A> -> voption<'B> -> voption<'C>) (a : MapExt<'Key, 'A>) (b : MapExt<'Key, 'B>) =
+        MapExt<'Key, 'A>.Choose2V(a, b, mapping)
+        
+    let choose2 (mapping : 'Key -> option<'A> -> option<'B> -> option<'C>) (a : MapExt<'Key, 'A>) (b : MapExt<'Key, 'B>) =
+        MapExt<'Key, 'A>.Choose2(a, b, mapping)
 
-    [<CompiledName("Map2")>]
-    let map2 f (l:MapExt<_,_>) r = l.Map2 (r, f)
-
-    [<CompiledName("Choose")>]
-    let choose f (l:MapExt<_,_>) = l.Choose (f)
-    
-    [<CompiledName("Choose2")>]
-    let choose2 f (l:MapExt<_,_>) r = l.Choose2 (r, f)
-    
-    [<CompiledName("Choose2Value")>]
-    let choose2V f (l:MapExt<_,_>) r = l.Choose2V (r, f)
-    
-    [<CompiledName("Neighbours")>]
-    let neighbours k (m:MapExt<_,_>) = m.Neighbours k
-    
-    [<CompiledName("NeighboursAt")>]
-    let neighboursAt i (m:MapExt<_,_>) = m.NeighboursAt i
-    
-    [<CompiledName("NeighboursV")>]
-    let neighboursV k (m:MapExt<_,_>) = m.NeighboursV k
-    
-    [<CompiledName("NeighboursAtV")>]
-    let neighboursAtV i (m:MapExt<_,_>) = m.NeighboursAtV i
-
-    [<CompiledName("TryGetIndex")>]
-    let tryGetIndex k (m:MapExt<_,_>) = m.TryGetIndex k
-    
-    [<CompiledName("TryGetIndexV")>]
-    let tryGetIndexV k (m:MapExt<_,_>) = m.TryGetIndexV k
+    let computeDelta 
+        (add : 'Key -> 'Value2 -> 'OP)
+        (update : 'Key -> 'Value1 -> 'Value2 -> voption<'OP>)
+        (remove : 'Key -> 'Value1 -> 'OP)
+        (l : MapExt<'Key, 'Value1>) (r : MapExt<'Key, 'Value2>) =
+        l.ComputeDeltaTo(r, add, update, remove)
+                     
+    let applyDelta 
+        (apply : 'Key -> voption<'Value> -> 'OP -> voption<'Value>)
+        (state : MapExt<'Key, 'Value>) (delta : MapExt<'Key, 'OP>) =
+        state.ApplyDelta(delta, apply)
+                                
+    let applyDeltaAndGetEffective
+        (apply : 'Key -> voption<'Value> -> 'OP -> struct(voption<'Value> * voption<'OP2>))
+        (state : MapExt<'Key, 'Value>) (delta : MapExt<'Key, 'OP>) =
+        state.ApplyDeltaAndGetEffective(delta, apply)
+                                

@@ -5,6 +5,9 @@
 type ChangeableHashSet<'T> =
     interface IAdaptiveHashSet<'T>
     interface System.Collections.Generic.ICollection<'T>
+    #if !FABLE_COMPILER
+    interface System.Collections.Generic.ISet<'T>
+    #endif
 
     /// The number of entries currently in the set.
     member Count: int
@@ -19,7 +22,7 @@ type ChangeableHashSet<'T> =
     member Value: HashSet<'T> with get, set
     
     /// Sets the current state as HashSet.
-    member UpdateTo: HashSet<'T> -> unit
+    member UpdateTo: HashSet<'T> -> bool
 
     /// Performs the given Operations on the Set.
     member Perform: operations : HashSetDelta<'T> -> unit
@@ -44,6 +47,8 @@ type ChangeableHashSet<'T> =
 
     /// Creates an adaptive reader for the set.
     member GetReader: unit -> IHashSetReader<'T>
+
+    member GetEnumerator : unit -> HashSetEnumerator<'T>
 
     /// Creates a new empty cset.
     new: unit -> cset<'T>

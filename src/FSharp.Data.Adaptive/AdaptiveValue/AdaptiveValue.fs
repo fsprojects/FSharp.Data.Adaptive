@@ -6,10 +6,14 @@ type IAdaptiveValue =
     inherit IAdaptiveObject
     abstract member GetValueUntyped: AdaptiveToken -> obj
     abstract member ContentType : Type
+    abstract member Accept : IAdaptiveValueVisitor<'R> -> 'R
 
-type IAdaptiveValue<'T> =
+and IAdaptiveValue<'T> =
     inherit IAdaptiveValue
     abstract member GetValue: AdaptiveToken -> 'T
+
+and IAdaptiveValueVisitor<'R> =
+    abstract member Visit<'T> : aval<'T> -> 'R
 
 and aval<'T> = IAdaptiveValue<'T>
 
@@ -34,9 +38,13 @@ type ChangeableValue<'T>(value : 'T) =
         if not (DefaultEquality.equals value newValue) then
             value <- newValue
             x.MarkOutdated()
+            true
+        else
+            false
         
 
     interface IAdaptiveValue with
+        member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
         member x.GetValueUntyped t = x.GetValue t :> obj
         member x.ContentType =
             #if FABLE_COMPILER
@@ -84,6 +92,7 @@ module AVal =
             else String.Format("aval({0})", valueCache)
             
         interface IAdaptiveValue with
+            member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
             member x.GetValueUntyped t = x.GetValue t :> obj
             member x.ContentType =
                 #if FABLE_COMPILER
@@ -94,7 +103,63 @@ module AVal =
 
         interface IAdaptiveValue<'T> with
             member x.GetValue t = x.GetValue t  
-            
+         
+    /// Mapping without dirty tracking (always evaluated)
+    [<StructuredFormatDisplay("{AsString}")>]
+    type MapNonAdaptiveVal<'a, 'b>(mapping : 'a -> 'b, input : aval<'a>) =
+        
+        override x.ToString() = input.ToString()
+        member x.AsString = x.ToString()
+
+        member x.Mapping = mapping
+        member x.Input = input
+
+        override x.GetHashCode() =
+            combineHash (DefaultEquality.hash mapping) (DefaultEquality.hash input)
+
+        override x.Equals o =
+            match o with
+            | :? MapNonAdaptiveVal<'a, 'b> as o -> 
+                DefaultEquality.equals mapping o.Mapping &&
+                DefaultEquality.equals input o.Input
+            | _ ->
+                false
+
+        interface IAdaptiveObject with
+            member x.AllInputsProcessed(a) = input.AllInputsProcessed(a)
+            member x.InputChanged(a,b) = input.InputChanged(a,b)
+            member x.Mark() = input.Mark()
+            member x.IsConstant = input.IsConstant
+            member x.Level
+                with get() = input.Level
+                and set v = input.Level <- v
+            member x.OutOfDate
+                with get() = input.OutOfDate
+                and set v = input.OutOfDate <- v
+            member x.Outputs = input.Outputs
+            member x.Tag 
+                with get() = input.Tag
+                and set t = input.Tag <- t
+            member x.Weak = input.Weak
+
+        interface aval<'b> with
+            member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
+            member x.ContentType = typeof<'b>
+            member x.GetValueUntyped(t) = input.GetValue(t) |> mapping :> obj
+            member x.GetValue(t) = input.GetValue(t) |> mapping
+    
+    type Caster<'a, 'b> private() =
+        static let cast =
+            if typeof<'b>.IsAssignableFrom typeof<'a> then
+                Some (fun (a : 'a) -> unbox<'b> a)
+            else
+                None
+
+        static member Lambda = 
+            match cast with
+            | Some cast -> cast
+            | None -> raise <| InvalidCastException()
+
     /// Lazy without locking
     type LazyOrValue<'T> =
         val mutable public Create: unit -> 'T
@@ -105,7 +170,7 @@ module AVal =
         new(create: unit -> 'T) = { Create = create; Value = Unchecked.defaultof<_>; IsValue = false }
         
     /// A constant value that can either be a value or a lazy computation
-    [<StructuredFormatDisplay("{AsString}")>]
+    [<StructuredFormatDisplay("{AsString}"); Sealed>]
     type ConstantVal<'T> private(data: LazyOrValue<'T>) =
         inherit ConstantObject()
         let mutable data = data
@@ -124,6 +189,7 @@ module AVal =
             x.GetValue()
             
         interface IAdaptiveValue with
+            member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
             member x.GetValueUntyped t = x.GetValue t :> obj
             member x.ContentType = 
                 #if FABLE_COMPILER
@@ -159,7 +225,9 @@ module AVal =
                 DefaultEquality.equals xv ov
             | _ ->
                 false
+
     /// Aval for mapping a single value
+    [<Sealed>]
     type MapVal<'T1, 'T2>(mapping: 'T1 -> 'T2, input: aval<'T1>) =
         inherit AbstractVal<'T2>()
 
@@ -177,6 +245,7 @@ module AVal =
                 b
 
     /// Aval for mapping 2 values in 'parallel'
+    [<Sealed>]
     type Map2Val<'T1, 'T2, 'T3>(mapping: 'T1 -> 'T2 -> 'T3, a: aval<'T1>, b: aval<'T2>) =
         inherit AbstractVal<'T3>()
 
@@ -195,6 +264,7 @@ module AVal =
                 c
 
     /// Aval for mapping 3 values in 'parallel'
+    [<Sealed>]
     type Map3Val<'T1, 'T2, 'T3, 'T4>(mapping: 'T1 -> 'T2 -> 'T3 -> 'T4, a: aval<'T1>, b: aval<'T2>, c: aval<'T3>) =
         inherit AbstractVal<'T4>()
 
@@ -214,6 +284,7 @@ module AVal =
                 d
 
     /// Aval for binding a single value
+    [<Sealed>]
     type BindVal<'T1, 'T2>(mapping: 'T1 -> aval<'T2>, input: aval<'T1>) =
         inherit AbstractVal<'T2>()
 
@@ -247,6 +318,7 @@ module AVal =
                 result.GetValue token     
 
     /// Aval for binding two values in 'parallel'
+    [<Sealed>]
     type Bind2Val<'T1, 'T2, 'T3>(mapping: 'T1 -> 'T2 -> aval<'T3>, value1: aval<'T1>, value2: aval<'T2>) =
         inherit AbstractVal<'T3>()
 
@@ -283,6 +355,7 @@ module AVal =
                 res.GetValue token     
     
     /// Aval for binding three values in 'parallel'
+    [<Sealed>]
     type Bind3Val<'T1, 'T2, 'T3, 'T4>(mapping: 'T1 -> 'T2 -> 'T3 -> aval<'T4>, value1: aval<'T1>, value2: aval<'T2>, value3: aval<'T3>) =
         inherit AbstractVal<'T4>()
 
@@ -320,6 +393,7 @@ module AVal =
                 res.GetValue token     
 
     /// Aval for custom computations
+    [<Sealed>]
     type CustomVal<'T>(compute: AdaptiveToken -> 'T) =
         inherit AbstractVal<'T>()
 
@@ -335,8 +409,8 @@ module AVal =
     let constant (value: 'T) =
         ConstantVal.Value value
         
-    let delay (value: unit -> 'T) =
-        ConstantVal.Lazy value
+    let delay (create: unit -> 'T) =
+        ConstantVal.Lazy create
 
     let map (mapping: 'T1 -> 'T2) (value: aval<'T1>) =
         if value.IsConstant then 
@@ -344,6 +418,23 @@ module AVal =
         else
             MapVal(mapping, value) :> aval<_>
             
+    let mapNonAdaptive (mapping: 'T1 -> 'T2) (value: aval<'T1>) =
+        if value.IsConstant then 
+            ConstantVal.Lazy (fun () -> value |> force |> mapping)
+        else
+            MapNonAdaptiveVal(mapping, value) :> aval<_>
+
+    let cast<'T> (value : IAdaptiveValue) =
+        value.Accept {
+            new IAdaptiveValueVisitor<aval<'T>> with
+                member x.Visit (value : aval<'U>) =
+                    if value.IsConstant then
+                        let mapping = Caster<'U, 'T>.Lambda
+                        delay (fun () -> value.GetValue(AdaptiveToken.Top) |> mapping)
+                    else
+                        MapNonAdaptiveVal(Caster<'U, 'T>.Lambda, value) :> aval<_>
+        }
+
     let map2 (mapping: 'T1 -> 'T2 -> 'T3) (value1: aval<'T1>) (value2: aval<'T2>) =
         if value1.IsConstant && value2.IsConstant then 
             ConstantVal.Lazy (fun () -> 

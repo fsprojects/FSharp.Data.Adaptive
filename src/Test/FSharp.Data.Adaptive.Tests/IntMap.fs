@@ -4,7 +4,7 @@
 //open FsCheck.NUnit
 //open FSharp.Data.Adaptive
 
-//[<Property>]
+//[<Property(EndSize = 10000)>]
 //let ``[IntMap] basics`` (data : list<int>) (value : int) =
 //    let data = data |> List.map (fun i -> i, i)
 //    let map = IntMap.ofList data
@@ -35,7 +35,7 @@
 
 //    // TODO: many more
 
-//[<Property>]
+//[<Property(EndSize = 10000)>]
 //let ``[IntMap] computeDelta`` (data : list<int>) (value : int) =
 //    let data = data |> List.map (fun i -> i, i)
 //    let sorted = data |> Map.ofList |> Map.toList

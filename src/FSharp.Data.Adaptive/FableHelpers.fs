@@ -1,5 +1,24 @@
 ﻿namespace FSharp.Data.Adaptive
 
+[<AutoOpen>]
+module internal Operators =
+    let inline typesize<'T> =  
+        #if FABLE_COMPILER
+        4
+        #else
+        sizeof<'T>
+        #endif
+
+    let resizeArray (r : ref<'a[]>) (l : int) = 
+        let len = r.Value.Length
+        if l < len then 
+            r := Array.take l r.Value
+        elif l > len then 
+            let res = Array.zeroCreate l
+            res.[0..len-1] <- r.Value
+            r := res
+
+
 #if FABLE_COMPILER
 namespace System.Collections.Generic
 
@@ -51,6 +70,21 @@ type Monitor =
     static member inline IsEntered (_o : obj) = true
     static member inline TryEnter (_o : obj) = true
 
+type CancellationTokenRegistration() =
+    member x.Unregister() = true
+    member x.Dispose() = ()
+    interface System.IDisposable with
+        member x.Dispose() = ()
+
+[<AllowNullLiteral>]
+type CancellationToken =
+    static member None : CancellationToken = null
+
+    member x.IsCancellationRequested = false
+    member x.CanBeCanceled = false
+    member x.ThrowIfCancellationRequested() = ()
+    member x.Register(action : System.Action) = CancellationTokenRegistration()
+
 namespace Microsoft.FSharp.Core
 
 module OptimizedClosures =
@@ -100,6 +134,7 @@ type ConditionalWeakTable<'K, 'V when 'K : not struct and 'V : not struct>() =
         m.delete key
 
 namespace Microsoft.FSharp.Core
+
 
 
 [<AutoOpen>]

@@ -6,6 +6,9 @@ open FSharp.Data.Traceable
 [<Sealed>]
 type ChangeableIndexList<'T> =
     interface IAdaptiveIndexList<'T>
+    interface System.Collections.Generic.IEnumerable<'T>
+    interface System.Collections.Generic.ICollection<'T>
+    interface System.Collections.Generic.IList<'T>
 
     /// is the list currently empty?
     member IsEmpty : bool
@@ -21,7 +24,7 @@ type ChangeableIndexList<'T> =
     member UpdateTo : target : IndexList<'T2> * init : ('T2 -> 'T) * update : ('T -> 'T2 -> 'T) -> unit
     
     /// Sets the current state as List.
-    member UpdateTo : target : IndexList<'T> -> unit
+    member UpdateTo : target : IndexList<'T> -> bool
     
     /// Performs the given Operations on the List.
     member Perform: IndexListDelta<'T> -> unit
@@ -48,7 +51,7 @@ type ChangeableIndexList<'T> =
     member NewIndexBefore : ref : Index -> Index
     
     /// Gets the neigbour elements and self (if existing) and returns (previous, self, next) as a triple.
-    member Neighbours : ref : Index -> option<Index * 'T> * option<Index * 'T> * option<Index * 'T>
+    member Neighbours : ref : Index -> option<Index * 'T> * option<'T> * option<Index * 'T>
 
     /// Tries to get the (index, value) for element directly after the given ref.
     member TryGetNext : ref : Index -> option<Index * 'T>
@@ -92,6 +95,8 @@ type ChangeableIndexList<'T> =
 
     /// Gets the (optional) element associated to the given Index.
     member TryGet : index: Index -> option<'T>
+
+    member GetEnumerator : unit -> IndexListEnumerator<'T>
 
     /// Creates a new list initially holding the given elements.
     new : elements: IndexList<'T> -> ChangeableIndexList<'T>

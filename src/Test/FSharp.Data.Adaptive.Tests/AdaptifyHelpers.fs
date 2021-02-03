@@ -31,7 +31,7 @@ let ``[ShallowEquals] special types``() =
     ShallowEqualityComparer.Instance.Equals(del, del) |> should be True
 
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[CModelMap] update``(m : Map<int, string>) =
     let init v = cval v
     let update (c : cval<_>) v = c.Value <- v; c
@@ -92,7 +92,7 @@ let ``[CModelMap] update``(m : Map<int, string>) =
     check true
 
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[CModelList] update``(m : list<int>) =
     let init v = cval v
     let update (c : cval<_>) v = c.Value <- v; c
@@ -120,7 +120,7 @@ let ``[CModelList] update``(m : list<int>) =
             let error =
                 String.concat "\r\n" [
                     yield sprintf "expected %A to be equal to %A but deltas are:" res content
-                    for (k, op) in IndexListDelta.toSeq ops do
+                    for (k, op) in ops do
                         yield sprintf "  %A: %A" k op
                 
                 ]

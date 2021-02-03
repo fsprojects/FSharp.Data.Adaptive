@@ -177,7 +177,7 @@ module internal AdaptiveIndexListHelpers =
         member x.Invoke(k : 'k) =
             let (left, self, right) = MapExt.neighbours k store
             match self with
-                | Some(_, i) -> 
+                | Some i -> 
                     i 
                 | None ->
                     let result = 
@@ -208,7 +208,7 @@ module internal AdaptiveIndexListHelpers =
             let k = UCmp(cmp, k)
             let (left, self, right) = MapExt.neighbours k store
             match self with
-                | Some(_, i) -> 
+                | Some i -> 
                     i 
                 | None ->
                     let result = 

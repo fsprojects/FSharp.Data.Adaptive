@@ -12,6 +12,8 @@ open FSharp.Data.Adaptive
 [<StructuredFormatDisplay("{AsString}"); CompiledName("FSharpHashSetDelta`1")>]
 type HashSetDelta<'T>(store: HashMap<'T, int>) =
 
+    static let setOp = 
+        OptimizedClosures.FSharpFunc<'T, int, SetOperation<'T>>.Adapt (fun k v -> SetOperation(k, v))
     /// The empty set.
     static member Empty = HashSetDelta<'T>(HashMap.empty)
 
@@ -46,7 +48,7 @@ type HashSetDelta<'T>(store: HashMap<'T, int>) =
 
     /// Combines two DHashSets to one using a reference counting implementation.
     member x.Combine (other: HashSetDelta<'T>) =
-        HashMap<'T, int>.UnionWithValueOption(store, other.Store, fun _ ld rd -> 
+        store.UnionWithV(other.Store, fun _ ld rd -> 
             let n = ld + rd
             if n <> 0 then ValueSome n
             else ValueNone
@@ -178,28 +180,14 @@ type HashSetDelta<'T>(store: HashMap<'T, int>) =
 
     member private x.AsString = x.ToString()
 
+    member x.GetEnumerator() = 
+        new HashMapEnumerator<'T, int, SetOperation<'T>>(store.Root, setOp)
+
     interface IEnumerable with
-        member x.GetEnumerator() = new DHashSetEnumerator<_>(store) :> _
+        member x.GetEnumerator() = x.GetEnumerator() :> _
 
     interface IEnumerable<SetOperation<'T>> with
-        member x.GetEnumerator() = new DHashSetEnumerator<_>(store) :> _
-
-/// Special enumerator for HashSetDelta.
-and private DHashSetEnumerator<'T>(store: HashMap<'T, int>) =
-    let e = (store :> seq<_>).GetEnumerator()
-
-    member x.Current = 
-        let (v,c) = e.Current
-        SetOperation(v,c)
-
-    interface IEnumerator with
-        member x.MoveNext() = e.MoveNext()
-        member x.Current = x.Current :> obj
-        member x.Reset() = e.Reset()
-
-    interface IEnumerator<SetOperation<'T>> with
-        member x.Dispose() = e.Dispose()
-        member x.Current = x.Current
+        member x.GetEnumerator() = x.GetEnumerator() :> _
 
 /// Functional operators for HashSetDelta.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix); CompiledName("FSharpHashSetDeltaModule")>]

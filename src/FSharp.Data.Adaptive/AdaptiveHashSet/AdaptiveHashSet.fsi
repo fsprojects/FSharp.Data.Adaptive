@@ -78,6 +78,12 @@ module ASet =
     /// Adaptively unions all the given sets
     val unionMany : sets : aset<aset<'A>> -> aset<'A>
     
+    /// Adaptively subtracts the given sets.
+    val difference : a : aset<'T> -> b : aset<'T> -> aset<'T>
+    
+    /// Adaptively 'xors' the given sets.
+    val xor : a : aset<'T> -> b : aset<'T> -> aset<'T>
+
     /// Adaptively intersects the given sets
     val intersect : a : aset<'T> -> b : aset<'T> -> aset<'T>
 
@@ -113,7 +119,7 @@ module ASet =
     val chooseA : mapping : ('A -> aval<option<'B>>) -> set : aset<'A> -> aset<'B>
 
     /// Adaptively filters the set and also respects inner changes.
-    val filterA : mapping : ('A -> aval<bool>) -> set : aset<'A> -> aset<'A>
+    val filterA : predicate : ('A -> aval<bool>) -> set : aset<'A> -> aset<'A>
 
     /// Creates an aset using the given reader-creator.
     val ofReader : create : (unit -> #IOpReader<HashSetDelta<'T>>) -> aset<'T>

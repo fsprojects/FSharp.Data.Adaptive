@@ -554,8 +554,8 @@ type Index private(number : largeuint, dexp : int) =
 module Index =
     let zero = Index()
 
-    let after (r : Index) = r.After()
+    let after (index : Index) = index.After()
 
-    let before (r : Index) = r.Before()
+    let before (index : Index) = index.Before()
 
-    let between (l : Index) (r : Index) = l.Between r
+    let between (a : Index) (b : Index) = a.Between b

@@ -63,7 +63,7 @@ let ``[AVal] reference impl``() ({ real = real; ref = ref; expression = str; cha
 
     Gen.eval 50 (Random.newSeed()) run
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[AVal] constant equality`` (value : obj) =
     let a = AVal.constant value
     let b = AVal.constant value
@@ -141,6 +141,7 @@ type EagerVal<'T>(input : aval<'T>) =
         )
         
     interface IAdaptiveValue with
+        member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
         member x.GetValueUntyped(t) = x.GetValue t :> obj
         member x.ContentType = typeof<'T>
 

@@ -50,6 +50,8 @@ type HashMapDelta<'K, [<EqualityConditionalOn>] 'V>(store : HashMap<'K, ElementO
     member x.Combine(other : HashMapDelta<'K, 'V>) =
         HashMapDelta (HashMap.union store other.Store)
 
+    member x.GetEnumerator() = store.GetEnumerator()
+
     interface IEnumerable with
         member x.GetEnumerator() = (store :> IEnumerable).GetEnumerator()
 

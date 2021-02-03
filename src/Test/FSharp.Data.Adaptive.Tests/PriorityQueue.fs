@@ -7,7 +7,7 @@ open FsCheck
 open FsCheck.NUnit
 
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[Heap] sorting`` (values : array<int>) =
     let l = List<int>()
     for v in values do
@@ -20,7 +20,7 @@ let ``[Heap] sorting`` (values : array<int>) =
 
     heap |> should equal sorted
 
-[<Property>]
+[<Property(EndSize = 10000)>]
 let ``[Heap] enqueue`` (values : array<int>) =
     let l = List<int>()
     for v in values do
