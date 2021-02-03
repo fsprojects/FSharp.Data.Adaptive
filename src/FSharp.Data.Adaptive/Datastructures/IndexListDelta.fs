@@ -89,33 +89,93 @@ type IndexListDelta< [<EqualityConditionalOn>] 'T> internal(content : MapExt<Ind
             res <- res.Combine(mapping i v)
         res
 
-    member x.GetEnumerator() = new IndexListDeltaEnumerator<'T>(x)
+    member x.GetEnumerator() = new IndexListDeltaEnumerator<'T>(x.Content.Root)
 
     interface System.Collections.IEnumerable with
-        member x.GetEnumerator() = new IndexListDeltaEnumerator<'T>(x) :> _
+        member x.GetEnumerator() = new IndexListDeltaEnumerator<'T>(x.Content.Root) :> _
 
     interface System.Collections.Generic.IEnumerable<Index * ElementOperation<'T>> with
-        member x.GetEnumerator() = new IndexListDeltaEnumerator<'T>(x) :> _
+        member x.GetEnumerator() = new IndexListDeltaEnumerator<'T>(x.Content.Root) :> _
 
-and IndexListDeltaEnumerator<'T>(delta : IndexListDelta<'T>) =
-    let mutable e = new MapExtEnumerator<Index, ElementOperation<'T>>(delta.Content.Root)
+and IndexListDeltaEnumerator<'T> =
+    struct
+        val mutable internal Root : MapExtImplementation.Node<Index, ElementOperation<'T>>
+        val mutable internal Head : struct(MapExtImplementation.Node<Index, ElementOperation<'T>> * bool)
+        val mutable internal Tail : list<struct(MapExtImplementation.Node<Index, ElementOperation<'T>> * bool)>
+        val mutable internal CurrentNode : MapExtImplementation.Node<Index, ElementOperation<'T>>
+        
+        member x.MoveNext() =
+            let struct(n, deep) = x.Head
+            if not (isNull n) then
 
-    member x.MoveNext() = e.MoveNext()
-    member x.Current = 
-        let kvp = e.Current
-        kvp.Key, kvp.Value
+                if n.Height > 1uy && deep then
+                    let inner = n :?> MapExtImplementation.Inner<Index, ElementOperation<'T>>
 
-    member x.Reset() = e.Reset()
-    member x.Dispose() = ()
+                    if isNull inner.Left then
+                        if isNull inner.Right then
+                            if x.Tail.IsEmpty then
+                                x.Head <- Unchecked.defaultof<_>
+                                x.Tail <- []
+                            else
+                                x.Head <- x.Tail.Head
+                                x.Tail <- x.Tail.Tail
+                        else
+                            x.Head <- struct(inner.Right, true)
 
-    interface System.Collections.IEnumerator with
-        member x.MoveNext() = x.MoveNext()
-        member x.Current = x.Current :> obj
-        member x.Reset() = x.Reset()
+                        x.CurrentNode <- n
+                        true
+                    else
+                        x.Head <- struct(inner.Left, true)
+                        if isNull inner.Right then
+                            x.Tail <- struct(n, false) :: x.Tail
+                        else
+                            x.Tail <- struct(n, false) :: struct(inner.Right, true) :: x.Tail
+                        x.MoveNext()
+                else
+                    x.CurrentNode <- n
+                    if x.Tail.IsEmpty then 
+                        x.Head <- Unchecked.defaultof<_>
+                        x.Tail <- []
+                    else
+                        x.Head <- x.Tail.Head
+                        x.Tail <- x.Tail.Tail
+                    true
 
-    interface System.Collections.Generic.IEnumerator<Index * ElementOperation<'T>> with
-        member x.Current = x.Current
-        member x.Dispose() = x.Dispose()
+            else
+                false
+
+
+        member x.Reset() =
+            x.Head <- if isNull x.Root then Unchecked.defaultof<_> else struct(x.Root, true)                
+            x.Tail <- []
+            x.CurrentNode <- null
+
+        member x.Dispose() =
+            x.Root <- null
+            x.CurrentNode <- null
+            x.Head <- Unchecked.defaultof<_>
+            x.Tail <- []
+
+        member x.Current =
+            (x.CurrentNode.Key, x.CurrentNode.Value)
+
+        interface System.Collections.IEnumerator with
+            member x.MoveNext() = x.MoveNext()
+            member x.Reset() = x.Reset()
+            member x.Current = x.Current :> obj
+
+        interface System.Collections.Generic.IEnumerator<Index * ElementOperation<'T>> with
+            member x.Current = x.Current
+            member x.Dispose() = x.Dispose()
+
+        internal new(root : MapExtImplementation.Node<Index, ElementOperation<'T>>) =
+            {
+                Root = root
+                Head = if isNull root then Unchecked.defaultof<_> else struct(root, true)
+                Tail = []
+                CurrentNode = null
+            }
+    end
 
 /// Functional operators for IndexListDelta.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

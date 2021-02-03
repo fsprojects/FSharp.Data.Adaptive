@@ -50,7 +50,7 @@ module internal Reductions =
                         result <- reduction.view sum
                     else
                         let mutable working = true
-                        use e = ops.GetEnumerator()
+                        let mutable e = ops.GetEnumerator()
                         while working && e.MoveNext() do
                             let index, op = e.Current
                             match op with
