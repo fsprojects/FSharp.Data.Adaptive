@@ -21,8 +21,17 @@ type HashMapBuilder<'Key, 'Value>() =
     member x.ToHashMap() =
         HashMap<'Key, 'Value>.OfArrayRange(array, 0, cnt)
    
+[<AutoOpen>]
+module private CrazyNullableHelpers =
+
+    let funcInvoker<'a when 'a : struct and 'a : (new : unit -> 'a) and 'a :> ValueType> (n : Func<Nullable<'a>, Nullable<'a>>) (value : Nullable<'a>) : Nullable<'a> =
+        (n.Invoke : Nullable<'a> -> Nullable<'a>) value
+
+
+
 [<AbstractClass; Sealed; Extension; CompiledName("FSharpHashMap")>]
 type HashMap private() =
+
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Empty<'K, 'V>() = HashMap.empty<'K, 'V>
 
@@ -106,11 +115,11 @@ type HashMap private() =
         this |> HashMap.alter key (fun o ->
             match o with
             | Some o ->
-                let n = update.Invoke (Nullable o)
+                let n = funcInvoker<'Value> update (Nullable o)
                 if n.HasValue then Some n.Value
                 else None
             | None ->
-                let n = update.Invoke Unchecked.defaultof<_>
+                let n = funcInvoker<'Value> update Unchecked.defaultof<_>
                 if n.HasValue then Some n.Value
                 else None
         )
