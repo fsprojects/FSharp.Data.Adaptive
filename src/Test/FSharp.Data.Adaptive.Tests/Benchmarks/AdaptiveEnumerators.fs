@@ -1196,28 +1196,28 @@ type CountingHashSetEnumeratorBenchmark() =
 //  DefaultJob : .NET Core 3.1.11 (CoreCLR 4.700.20.56602, CoreFX 4.700.20.56604), X64 RyuJIT
 
 // NEW HAMT
-//|                 Method | Count |          Mean |      Error |     StdDev |        Median |   Gen 0 | Gen 1 | Gen 2 | Allocated |
-//|----------------------- |------ |--------------:|-----------:|-----------:|--------------:|--------:|------:|------:|----------:|
-//|   IndexListDelta_4byte |     0 |      26.20 ns |   0.114 ns |   0.107 ns |      26.19 ns |  0.0089 |     - |     - |      56 B |
-//|  IndexListDelta_32byte |     0 |      26.96 ns |   0.536 ns |   0.502 ns |      27.25 ns |  0.0089 |     - |     - |      56 B |
-//| IndexListDelta_128byte |     0 |      26.36 ns |   0.121 ns |   0.114 ns |      26.32 ns |  0.0089 |     - |     - |      56 B |
-//| IndexListDelta_384byte |     0 |      26.82 ns |   0.554 ns |   0.660 ns |      26.35 ns |  0.0089 |     - |     - |      56 B |
-//|   IndexListDelta_4byte |     1 |      45.06 ns |   0.244 ns |   0.228 ns |      45.05 ns |  0.0140 |     - |     - |      88 B |
-//|  IndexListDelta_32byte |     1 |      53.38 ns |   0.181 ns |   0.152 ns |      53.37 ns |  0.0191 |     - |     - |     120 B |
-//| IndexListDelta_128byte |     1 |     106.08 ns |   0.353 ns |   0.313 ns |     106.04 ns |  0.0343 |     - |     - |     216 B |
-//| IndexListDelta_384byte |     1 |     125.86 ns |   0.679 ns |   0.635 ns |     125.81 ns |  0.0751 |     - |     - |     472 B |
-//|   IndexListDelta_4byte |    10 |     313.32 ns |   1.241 ns |   1.161 ns |     313.85 ns |  0.1173 |     - |     - |     736 B |
-//|  IndexListDelta_32byte |    10 |     386.19 ns |   1.339 ns |   1.252 ns |     386.63 ns |  0.1683 |     - |     - |    1056 B |
-//| IndexListDelta_128byte |    10 |     911.50 ns |   2.892 ns |   2.705 ns |     910.68 ns |  0.3204 |     - |     - |    2016 B |
-//| IndexListDelta_384byte |    10 |   1,132.03 ns |   4.847 ns |   4.296 ns |   1,131.68 ns |  0.7286 |     - |     - |    4576 B |
-//|   IndexListDelta_4byte |   100 |   2,891.39 ns |   6.021 ns |   5.632 ns |   2,891.57 ns |  1.1482 |     - |     - |    7216 B |
-//|  IndexListDelta_32byte |   100 |   3,827.26 ns |  13.472 ns |  12.602 ns |   3,825.87 ns |  1.6556 |     - |     - |   10416 B |
-//| IndexListDelta_128byte |   100 |   9,167.05 ns |  36.922 ns |  34.537 ns |   9,171.64 ns |  3.1891 |     - |     - |   20016 B |
-//| IndexListDelta_384byte |   100 |  11,818.97 ns |  42.917 ns |  40.145 ns |  11,824.00 ns |  7.2632 |     - |     - |   45616 B |
-//|   IndexListDelta_4byte |  1000 |  29,783.06 ns | 116.120 ns | 108.619 ns |  29,777.66 ns | 11.4746 |     - |     - |   72016 B |
-//|  IndexListDelta_32byte |  1000 |  38,448.63 ns | 182.764 ns | 170.957 ns |  38,467.14 ns | 16.5405 |     - |     - |  104016 B |
-//| IndexListDelta_128byte |  1000 |  94,510.77 ns | 378.081 ns | 335.159 ns |  94,476.92 ns | 31.8604 |     - |     - |  200016 B |
-//| IndexListDelta_384byte |  1000 | 119,939.56 ns | 736.121 ns | 688.568 ns | 119,895.51 ns | 72.5098 |     - |     - |  456016 B |
+//|                 Method | Count |         Mean |      Error |     StdDev |   Gen 0 | Gen 1 | Gen 2 | Allocated |
+//|----------------------- |------ |-------------:|-----------:|-----------:|--------:|------:|------:|----------:|
+//|   IndexListDelta_4byte |     0 |     22.91 ns |   0.480 ns |   0.748 ns |       - |     - |     - |         - |
+//|  IndexListDelta_32byte |     0 |     23.47 ns |   0.100 ns |   0.089 ns |       - |     - |     - |         - |
+//| IndexListDelta_128byte |     0 |     26.28 ns |   0.424 ns |   0.396 ns |       - |     - |     - |         - |
+//| IndexListDelta_384byte |     0 |     28.86 ns |   0.593 ns |   1.084 ns |       - |     - |     - |         - |
+//|   IndexListDelta_4byte |     1 |     36.74 ns |   0.375 ns |   0.333 ns |  0.0051 |     - |     - |      32 B |
+//|  IndexListDelta_32byte |     1 |     39.61 ns |   0.618 ns |   0.578 ns |  0.0102 |     - |     - |      64 B |
+//| IndexListDelta_128byte |     1 |     66.61 ns |   1.067 ns |   0.946 ns |  0.0254 |     - |     - |     160 B |
+//| IndexListDelta_384byte |     1 |     80.58 ns |   1.313 ns |   1.164 ns |  0.0663 |     - |     - |     416 B |
+//|   IndexListDelta_4byte |    10 |    305.43 ns |   4.052 ns |   3.592 ns |  0.1082 |     - |     - |     680 B |
+//|  IndexListDelta_32byte |    10 |    317.43 ns |   4.773 ns |   4.465 ns |  0.1593 |     - |     - |    1000 B |
+//| IndexListDelta_128byte |    10 |    579.46 ns |   7.866 ns |   7.358 ns |  0.3119 |     - |     - |    1960 B |
+//| IndexListDelta_384byte |    10 |    710.47 ns |  14.205 ns |  13.288 ns |  0.7200 |     - |     - |    4520 B |
+//|   IndexListDelta_4byte |   100 |  2,873.52 ns |  11.146 ns |   9.880 ns |  1.1406 |     - |     - |    7160 B |
+//|  IndexListDelta_32byte |   100 |  3,070.15 ns |  13.405 ns |  10.465 ns |  1.6479 |     - |     - |   10360 B |
+//| IndexListDelta_128byte |   100 |  5,632.50 ns |  52.545 ns |  46.580 ns |  3.1815 |     - |     - |   19960 B |
+//| IndexListDelta_384byte |   100 |  6,985.31 ns | 137.300 ns | 201.253 ns |  7.2556 |     - |     - |   45560 B |
+//|   IndexListDelta_4byte |  1000 | 29,841.99 ns | 580.036 ns | 644.709 ns | 11.4441 |     - |     - |   71960 B |
+//|  IndexListDelta_32byte |  1000 | 31,322.35 ns | 280.222 ns | 262.119 ns | 16.5405 |     - |     - |  103960 B |
+//| IndexListDelta_128byte |  1000 | 56,759.43 ns | 784.391 ns | 733.720 ns | 31.8604 |     - |     - |  199960 B |
+//| IndexListDelta_384byte |  1000 | 73,869.05 ns | 515.012 ns | 456.545 ns | 72.6318 |     - |     - |  455961 B |
 
 [<PlainExporter; MemoryDiagnoser>]
 type IndexListDeltaEnumeratorBenchmark() =
