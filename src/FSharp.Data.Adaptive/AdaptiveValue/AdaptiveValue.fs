@@ -425,15 +425,18 @@ module AVal =
             MapNonAdaptiveVal(mapping, value) :> aval<_>
 
     let cast<'T> (value : IAdaptiveValue) =
-        value.Accept {
-            new IAdaptiveValueVisitor<aval<'T>> with
-                member x.Visit (value : aval<'U>) =
-                    if value.IsConstant then
-                        let mapping = Caster<'U, 'T>.Lambda
-                        delay (fun () -> value.GetValue(AdaptiveToken.Top) |> mapping)
-                    else
-                        MapNonAdaptiveVal(Caster<'U, 'T>.Lambda, value) :> aval<_>
-        }
+        match value with
+        | :? aval<'T> as r -> r
+        | _ ->
+            value.Accept {
+                new IAdaptiveValueVisitor<aval<'T>> with
+                    member x.Visit (value : aval<'U>) =
+                        if value.IsConstant then
+                            let mapping = Caster<'U, 'T>.Lambda
+                            delay (fun () -> value.GetValue(AdaptiveToken.Top) |> mapping)
+                        else
+                            MapNonAdaptiveVal(Caster<'U, 'T>.Lambda, value) :> aval<_>
+            }
 
     let map2 (mapping: 'T1 -> 'T2 -> 'T3) (value1: aval<'T1>) (value2: aval<'T2>) =
         if value1.IsConstant && value2.IsConstant then 
