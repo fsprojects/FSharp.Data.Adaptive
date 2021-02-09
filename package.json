@@ -4,7 +4,8 @@
   "description": "FSharp.Data.Adaptive for Fable",
   "private": true,
   "scripts": {
-    "start": "webpack-dev-server"
+    "postinstall": "dotnet tool restore",
+    "start": "dotnet fable src/Demo/Fable  -s --run webpack serve"
   },
   "repository": {
     "type": "git",
@@ -17,15 +18,9 @@
   },
   "homepage": "https://github.com/fsprojects/FSharp.Data.Adaptive#readme",
   "devDependencies": {
-    "@babel/core": "^7.8.3",
-    "@babel/preset-env": "^7.8.3",
     "copy-webpack-plugin": "^5.1.1",
-    "fable-compiler": "^2.4.12",
-    "fable-loader": "^2.1.8",
-    "fable-splitter": "^2.1.12",
-    "npx": "^10.2.2",
-    "webpack": "^4.41.5",
-    "webpack-cli": "^3.3.10",
-    "webpack-dev-server": "^3.10.1"
+    "webpack": "^5.10.3",
+    "webpack-cli": "^4.2.0",
+    "webpack-dev-server": "^3.11.0"
   }
 }
