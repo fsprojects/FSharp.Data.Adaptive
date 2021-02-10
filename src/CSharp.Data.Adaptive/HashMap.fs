@@ -75,6 +75,10 @@ type HashMap private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Forall(this: HashMap<'Key, 'Value>, predicate: Func<'Key, 'Value, bool>) =
         this |> HashMap.forall (fun k v -> predicate.Invoke(k,v))
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member ForEach(this: HashMap<'Key, 'Value>, op: Action<'Key, 'Value>) =
+        this |> HashMap.iter (fun k v -> op.Invoke(k,v))
         
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Choose2(this: HashMap<'Key, 'V1>, other : HashMap<'Key, 'V2>, mapping: Func<'Key, Option<'V1>, Option<'V2>, Option<'V3>>) =

@@ -44,6 +44,9 @@ type AdaptiveHashSet private() =
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfSeq<'T>(sq: seq<'T>) = ASet.ofSeq sq
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfHashSet<'T>(set: HashSet<'T>) = ASet.ofHashSet set
         
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ToAdaptiveHashSet(this: seq<'T>) = ASet.ofSeq this

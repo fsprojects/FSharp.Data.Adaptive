@@ -3,14 +3,14 @@ using FSharp.Data.Adaptive;
 using CSharp.Data.Adaptive;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Linq;
+using BenchmarkDotNet.Running;
 
 namespace CSharpInterop
 {
     public class Program
     {
-
-
-        public static void Main()
+        static void Scratch()
         {
             DefaultEqualityComparer.SetProvider(DefaultEqualityComparer.System);
 
@@ -109,10 +109,13 @@ namespace CSharpInterop
                 set.Remove(arr1);
             }
             Console.WriteLine("{0}", len.Content.GetValue());
+        }
 
+        public static void Main()
+        {
+            //Scratch();
 
-
-
+            BenchmarkRunner.Run<ForEachBenchmarks>();
         }
     }
 }

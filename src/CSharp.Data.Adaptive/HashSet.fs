@@ -33,6 +33,15 @@ type HashSet private() =
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Single<'T>(value: 'T) = HashSet.single value
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfSeq<'T>(seq: seq<'T>) = HashSet.ofSeq seq
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfList<'T>(list: list<'T>) = HashSet.ofList list
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfArray<'T>(arr: 'T[]) = HashSet.ofArray arr
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining); CompiledName("ToFSharpHashSet")>]
     static member ToHashSet(elements: seq<'T>) = HashSet.ofSeq elements
@@ -70,6 +79,14 @@ type HashSet private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Forall(this: HashSet<'T1>, predicate: Func<'T1, bool>) =
         this |> HashSet.forall predicate.Invoke
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member ForEach(this: HashSet<'T1>, op: Action<'T1>) =
+        this |> HashSet.iter op.Invoke
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Fold<'T1, 'T2>(this: HashSet<'T1>, seed : 'T2, op: Func<'T2, 'T1, 'T2>) : 'T2 =
+        HashSet.fold (fun a b -> op.Invoke(a, b)) seed this
 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member MapNullable(this: HashSet<'T1>, action: Func<'T1, Nullable<'T2>>) =
