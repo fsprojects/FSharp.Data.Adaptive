@@ -447,8 +447,8 @@ module AdaptiveHashSetImplementation =
                 reader <- Unchecked.defaultof<_>
             )
             match Transaction.Current with
-            | Some t -> t.Enqueue x
-            | None -> transact x.MarkOutdated
+            | ValueSome t -> t.Enqueue x
+            | ValueNone -> transact x.MarkOutdated
 
         interface System.IDisposable with
             member x.Dispose() = x.Dispose()

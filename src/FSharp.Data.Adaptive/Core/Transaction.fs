@@ -38,10 +38,10 @@ type Transaction() =
 
     // Each thread may have its own running transaction
     [<ThreadStatic; DefaultValue>]
-    static val mutable private RunningTransaction : option<Transaction>
+    static val mutable private RunningTransaction : ValueOption<Transaction>
 
     [<ThreadStatic; DefaultValue>]
-    static val mutable private CurrentTransaction : option<Transaction>
+    static val mutable private CurrentTransaction : ValueOption<Transaction>
 
     static let cmp = OptimizedClosures.FSharpFunc<_,_,_>.Adapt(fun struct(l,_) struct(r,_) -> compare l r)
 
@@ -87,7 +87,7 @@ type Transaction() =
     /// Int32.MaxValue when no Transaction is running
     static member RunningLevel =
         match Transaction.RunningTransaction with
-            | Some t -> t.CurrentLevel
+            | ValueSome t -> t.CurrentLevel
             | _ -> Int32.MaxValue - 1
 
     /// Gets the current Level the Transaction operates on
@@ -109,7 +109,7 @@ type Transaction() =
         // cache the currently running transaction (if any)
         // and make ourselves current.
         let old = Transaction.RunningTransaction
-        Transaction.RunningTransaction <- Some x
+        Transaction.RunningTransaction <- ValueSome x
         let outputs = ref (Array.zeroCreate 8)
         let mutable outputCount = 0
 
@@ -203,23 +203,23 @@ module Transaction =
     /// the current transaction for the calling thread
     let getCurrentTransaction() =
         match Transaction.Running with
-        | Some r -> Some r
-        | None ->
+        | ValueSome r -> ValueSome r
+        | ValueNone ->
             match Transaction.Current with
-            | Some c -> Some c
-            | None -> None
+            | ValueSome c -> ValueSome c
+            | ValueNone -> ValueNone
 
     let useTransaction (t : Transaction) (action : unit -> 'T) =
         let old = Transaction.Current
         try
-            Transaction.Current <- Some t
+            Transaction.Current <- ValueSome t
             action()
         finally
             Transaction.Current <- old
 
     let makeCurrent (t : Transaction) : IDisposable =
         let old = Transaction.Current
-        Transaction.Current <- Some t
+        Transaction.Current <- ValueSome t
 
         { new IDisposable with
             member x.Dispose() = 
@@ -229,7 +229,7 @@ module Transaction =
     let inline internal useCurrent (t : Transaction) (action : unit -> 'T) =
         let old = Transaction.Current
         try
-            Transaction.Current <- Some t
+            Transaction.Current <- ValueSome t
             action()
         finally
             Transaction.Current <- old
@@ -246,8 +246,8 @@ module Transaction =
     /// or creates and commits a new one whenever none was current.
     let internal transactIfNecessary (action : unit -> 'T) =
         match Transaction.Current with
-        | Some _ -> action()
-        | None -> transact action
+        | ValueSome _ -> action()
+        | ValueNone -> transact action
             
 
     // Defines some extension utilites for IAdaptiveObjects
@@ -260,8 +260,8 @@ module Transaction =
         /// also be "marked" when not having a current transaction.
         member x.MarkOutdated () =
             match getCurrentTransaction() with
-                | Some t -> t.Enqueue(x)
-                | None -> 
+                | ValueSome t -> t.Enqueue(x)
+                | ValueNone -> 
                     lock x (fun () -> 
                         if x.OutOfDate then ()
                         elif x.Outputs.IsEmpty then x.OutOfDate <- true
@@ -276,10 +276,10 @@ module Transaction =
         /// Also be "marked" when not having a current transaction.
         member x.MarkOutdated (fin : unit -> unit) =
             match getCurrentTransaction() with
-                | Some t -> 
+                | ValueSome t -> 
                     t.Enqueue(x)
                     t.AddFinalizer(fin)
-                | None -> 
+                | ValueNone -> 
                     lock x (fun () -> 
                         if x.OutOfDate then ()
                         elif x.Outputs.IsEmpty then x.OutOfDate <- true

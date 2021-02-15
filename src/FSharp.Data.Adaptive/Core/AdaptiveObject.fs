@@ -266,8 +266,8 @@ type AdaptiveSynchronizationContext(captured : SynchronizationContext) =
         let ac = AfterEvaluateCallbacks.Callbacks
         try
             // reset all thread-locals/static to their default values
-            Transaction.Current <- None
-            Transaction.Running <- None
+            Transaction.Current <- ValueNone
+            Transaction.Running <- ValueNone
             AdaptiveObject.UnsafeEvaluationDepth <- 0
             AfterEvaluateCallbacks.Callbacks <- []
 
