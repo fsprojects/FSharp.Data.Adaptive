@@ -49,5 +49,8 @@ type IndexList private() =
     static member Map(this: IndexList<'T1>, map: Func<'T1, 'T2>) =
         this |> IndexList.map map.Invoke
 
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Exists(this: IndexList<'T>, predicate: Func<Index, 'T, bool>) =
+        this |> IndexList.exists (fun a b -> predicate.Invoke(a, b))
 
 
