@@ -624,6 +624,17 @@ let ``[ASet] range systematic int32``() =
 let ``[ASet] range systematic int64``() =
     ASetRangeSystematic(0L, 4L)
 
+[<Test>]
+let ``[ASet] content bind``() =
+    let set = cset<int>()
+    let res = (set :> aset<_>).Content |> ASet.bind (fun x -> ASet.ofHashSet (x.Map(fun v -> v * 2)))
+
+    for i in 1..100 do
+        transact(fun () -> set.Add(i) |> ignore)
+        let cnt = (res |> ASet.force).Count
+        printfn "InputCount=%d OutputCount=%d" set.Count cnt
+        cnt |> should equal set.Count
+    
 
 
 
