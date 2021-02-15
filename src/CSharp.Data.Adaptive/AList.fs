@@ -270,6 +270,14 @@ type AdaptiveIndexList private() =
         this |> AList.toAMap
 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member ToAdaptiveHashSet(this: clist<'T>) =
+        this |> AList.toASet
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member ToAdaptiveHashMap(this: clist<'T>) =
+        this |> AList.toAMap
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member GroupBy(this: alist<'T>, mapping: Func<'T, 'G>) =
         this |> AList.groupBy mapping.Invoke
 
