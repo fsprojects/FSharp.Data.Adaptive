@@ -229,8 +229,7 @@ and [<Struct; StructLayout(LayoutKind.Explicit)>] private VolatileSetData =
 and internal WeakOutputSet() =
     let mutable data = Unchecked.defaultof<VolatileSetData>
     let mutable setOps = 0
-    let mutable value : IAdaptiveObject = Unchecked.defaultof<IAdaptiveObject>
-    let mutable valueReader = ref value
+    let mutable valueReader = ref Unchecked.defaultof<IAdaptiveObject>
 
     let add (obj: IAdaptiveObject) =
         let weakObj = obj.Weak
@@ -242,7 +241,9 @@ and internal WeakOutputSet() =
             elif data.Single = weakObj then
                 false
             elif data.Single.TryGetTarget(valueReader) then
-                if Object.ReferenceEquals(value, obj) then
+                let found = Object.ReferenceEquals(valueReader.Value, obj)
+                valueReader.Value <- Unchecked.defaultof<IAdaptiveObject>
+                if found then
                     false
                 else
                     let arr = Array.zeroCreate 8
@@ -266,26 +267,30 @@ and internal WeakOutputSet() =
                     i <- len
                 else
                     if data.Array.[i].TryGetTarget(valueReader) then
-                        if Object.ReferenceEquals(value, obj) then
+                        if Object.ReferenceEquals(valueReader.Value, obj) then
                             freeIndex <- -2
                             i <- len
                     else
                         if freeIndex < 0 then freeIndex <- i
                 i <- i + 1
 
-            if freeIndex = -2 then
-                false
-            elif freeIndex >= 0 then
-                data.Array.[freeIndex] <- weakObj
-                true
-            else
-                // r cannot be null here (empty index would have been found)
-                let all = data.Array |> Array.choose (fun r -> if r.TryGetTarget(valueReader) then Some r else None)
-                let set = HashSet all
-                let res = set.Add weakObj
-                data.Tag <- 2
-                data.Set <- set
-                res
+            let res = 
+                if freeIndex = -2 then
+                    false
+                elif freeIndex >= 0 then
+                    data.Array.[freeIndex] <- weakObj
+                    true
+                else
+                    // r cannot be null here (empty index would have been found)
+                    let all = data.Array |> Array.choose (fun r -> if r.TryGetTarget(valueReader) then Some r else None)
+                    let set = HashSet all
+                    let res = set.Add weakObj
+                    data.Tag <- 2
+                    data.Set <- set
+                    res
+
+            valueReader.Value <- Unchecked.defaultof<IAdaptiveObject>
+            res
         | _ ->
             data.Set.Add weakObj
 
