@@ -867,7 +867,11 @@ module AdaptiveHashSetImplementation =
         let mutable cache : option<'A * IHashSetReader<'B>> = None
             
         override x.InputChangedObject(_, i) =
-            if System.Object.ReferenceEquals(i, input) then
+            // check if input is different object
+            // NOTE: in case of 'input' being a MapFastVal, that forwrads the Outputs set of its input, 
+            // this callback will actually be invoked by the input of the MapFastVal
+            //  -> test Outputs set for equality instead of AdaptiveObjects to dected 'valChanged' in all cases
+            if System.Object.ReferenceEquals(i.Outputs, input.Outputs) then
                 valChanged <- 1
 
         override x.Compute(token) =
