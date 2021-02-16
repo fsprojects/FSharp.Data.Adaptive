@@ -69,3 +69,48 @@ type EqualsBenchmark() =
             if ShallowEqualityComparer<HashSet<int>>.ShallowEquals(empty1, empty2) then
                 res <- res + 1
         res
+
+
+//BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+//Intel Core i7-8700K CPU 3.70GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+//.NET Core SDK=5.0.103
+//  [Host]     : .NET Core 3.1.12 (CoreCLR 4.700.21.6504, CoreFX 4.700.21.6905), X64 RyuJIT DEBUG
+//  DefaultJob : .NET Core 3.1.12 (CoreCLR 4.700.21.6504, CoreFX 4.700.21.6905), X64 RyuJIT
+                
+//|                               Method |       Mean |     Error |    StdDev |   Gen 0 | Gen 1 | Gen 2 | Allocated |
+//|------------------------------------- |-----------:|----------:|----------:|--------:|------:|------:|----------:|
+//|               System_DefaultEquality |   9.637 us | 0.1882 us | 0.2167 us |       - |     - |     - |         - |
+//| Adaptive_DefaultEquality (unchecked) | 215.764 us | 1.4034 us | 1.2440 us | 76.4160 |     - |     - |  479952 B |
+//|    Adaptive_DefaultEquality (system) |  32.686 us | 0.1525 us | 0.1427 us |       - |     - |     - |         - |
+
+[<PlainExporter; MemoryDiagnoser>]
+type EqualityComparerBenchmark() =
+    let arr = Array.init 10000 (fun i -> i)
+
+    // System.Collections.Generic.EqualityComparer
+    [<Benchmark>]
+    member x.System_DefaultEquality() =
+        let mutable res = 0
+        let cnt = arr.Length
+        let mutable i = 0
+        let mutable j = cnt - 1
+        while j > 0 do
+            if System.Collections.Generic.EqualityComparer<_>.Default.Equals(arr.[i], arr.[j]) then
+                res <- res + 1
+            i <- i + 1
+            j <- j - 1
+        res
+
+    // DefaultEquality using unchecked
+    [<Benchmark>]
+    member x.Adaptive_DefaultEquality() =
+        let mutable res = 0
+        let cnt = arr.Length
+        let mutable i = 0
+        let mutable j = cnt - 1
+        while j > 0 do
+            if DefaultEquality.equals arr.[i] arr.[j] then
+                res <- res + 1
+            i <- i + 1
+            j <- j - 1
+        res
