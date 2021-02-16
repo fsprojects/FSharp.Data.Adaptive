@@ -54,7 +54,7 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
     /// Gets or sets the current state as HashSet.
     member x.Value
         with get() = 
-            CountingHashSet.toHashSet history.State
+            AVal.force content
         and set newSet = 
             x.UpdateTo newSet |> ignore
                 

@@ -104,7 +104,7 @@ let ``[AVal] map3 constant`` () =
 
 
 [<Test>]
-let ``[AVal] bind constant`` () =
+let ``[AVal] bind content`` () =
     let a = AVal.constant 10
     let b = AVal.init "b" |> AVal.map id
     let c = AVal.init "c" |> AVal.map id
