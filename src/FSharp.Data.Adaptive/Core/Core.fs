@@ -229,9 +229,10 @@ and [<Struct; StructLayout(LayoutKind.Explicit)>] private VolatileSetData =
 and internal WeakOutputSet() =
     let mutable data = Unchecked.defaultof<VolatileSetData>
     let mutable setOps = 0
+    let mutable value : IAdaptiveObject = Unchecked.defaultof<IAdaptiveObject>
+    let mutable valueReader = ref value
 
     let add (obj: IAdaptiveObject) =
-        let mutable value = Unchecked.defaultof<IAdaptiveObject>
         let weakObj = obj.Weak
         match data.Tag with
         | 0 ->  
@@ -240,7 +241,7 @@ and internal WeakOutputSet() =
                 true
             elif data.Single = weakObj then
                 false
-            elif data.Single.TryGetTarget(&value) then
+            elif data.Single.TryGetTarget(valueReader) then
                 if Object.ReferenceEquals(value, obj) then
                     false
                 else
@@ -264,7 +265,7 @@ and internal WeakOutputSet() =
                     freeIndex <- -2
                     i <- len
                 else
-                    if data.Array.[i].TryGetTarget(&value) then
+                    if data.Array.[i].TryGetTarget(valueReader) then
                         if Object.ReferenceEquals(value, obj) then
                             freeIndex <- -2
                             i <- len
@@ -279,7 +280,7 @@ and internal WeakOutputSet() =
                 true
             else
                 // r cannot be null here (empty index would have been found)
-                let all = data.Array |> Array.choose (fun r -> if r.TryGetTarget(&value) then Some r else None)
+                let all = data.Array |> Array.choose (fun r -> if r.TryGetTarget(valueReader) then Some r else None)
                 let set = HashSet all
                 let res = set.Add weakObj
                 data.Tag <- 2

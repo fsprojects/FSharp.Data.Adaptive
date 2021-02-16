@@ -23,6 +23,11 @@ open BenchmarkDotNet.Attributes
 //| AValueGetValue |  28.01 ns | 0.187 ns | 0.175 ns |      - |     - |     - |         - |
 //|     CValUpdate | 904.03 ns | 8.161 ns | 7.234 ns | 0.1259 |     - |     - |     792 B |
 
+// WeakOutputSet.add without alloc of FSharpRef
+//|     Method |     Mean |   Error |  StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+//|----------- |---------:|--------:|--------:|-------:|------:|------:|----------:|
+//| CValUpdate | 869.8 ns | 8.92 ns | 7.45 ns | 0.1144 |     - |     - |     720 B |
+
 [<PlainExporter; MemoryDiagnoser>]
 type GetValueBenchmark() =
     let cval = ChangeableValue(10)
