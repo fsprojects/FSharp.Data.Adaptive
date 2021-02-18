@@ -15,7 +15,7 @@ let ``[Transaction] transact sets/restores current``() =
         )
         Transaction.Current |> should equal a
     )
-    Transaction.Current |> should equal Option<Transaction>.None
+    Transaction.Current |> should equal ValueOption<Transaction>.None
     
 [<Test>]
 let ``[Transaction] transact sets/restores current on exception``() =
