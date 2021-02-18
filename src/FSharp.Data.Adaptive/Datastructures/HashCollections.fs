@@ -3411,6 +3411,10 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         member x.IsSupersetOf (other : seq<'K>) = x.IsSupersetOf other
         member x.IsProperSupersetOf (other : seq<'K>) = x.IsProperSupersetOf other
 
+    interface System.IEquatable<HashSet<'K>> with
+        member x.Equals(o : HashSet<'K>) = 
+            SetNode.equals comparer root o.Root
+
 
 and internal HashSetProxy<'K>(set : HashSet<'K>) =
     let items = set |> Seq.truncate 10000 |> Seq.toArray
