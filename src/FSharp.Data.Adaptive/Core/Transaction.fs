@@ -51,6 +51,7 @@ type Transaction() =
     let mutable current : IAdaptiveObject = Unchecked.defaultof<_>
     let mutable currentLevel = 0
     let mutable finalizers : list<unit -> unit> = []
+    let outputs = ref (Array.zeroCreate 8)
 
     let runFinalizers () =
         #if FABLE_COMPILER 
@@ -110,7 +111,6 @@ type Transaction() =
         // and make ourselves current.
         let old = Transaction.RunningTransaction
         Transaction.RunningTransaction <- Some x
-        let outputs = ref (Array.zeroCreate 8)
         let mutable outputCount = 0
 
         while not q.IsEmpty do
@@ -226,6 +226,7 @@ module Transaction =
                 Transaction.Current <- old
         }
 
+    // TODO: identical to useTransaction ?
     let inline internal useCurrent (t : Transaction) (action : unit -> 'T) =
         let old = Transaction.Current
         try
@@ -239,7 +240,8 @@ module Transaction =
     let transact (action : unit -> 'T) =
         use t = new Transaction()
         let r = useCurrent t action
-        t.Commit()
+        t.Commit() 
+        // TODO: no t.Dispose() intentional? C# API does
         r
         
     /// Executes a function "inside" the current transaction

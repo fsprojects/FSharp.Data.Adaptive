@@ -18,6 +18,14 @@ type AbstractAdaptiveObject() =
         (x :> AdaptiveObject).EvaluateIfNeeded token def compute.Invoke
 
 
+[<Struct>]
+type TransactionDisposable(active : Transaction, old : Option<Transaction>) =
+
+    interface IDisposable with
+        member x.Dispose() = 
+            Transaction.Current <- old // reset old
+            active.Commit() // mark
+            active.Dispose() // finalizers
 
 
 module private AdaptiveObjectExtensionHelpers =
@@ -29,14 +37,9 @@ module private AdaptiveObjectExtensionHelpers =
 
     let inline useTransaction() =
         let t = new Transaction()
-        let d = Transaction.makeCurrent t
-
-        { new IDisposable with
-            member x.Dispose() =
-                d.Dispose()
-                t.Commit()
-                t.Dispose()
-        }
+        let old = Transaction.Current
+        Transaction.Current <- Some t
+        new TransactionDisposable(t, old)
 
     let inline markOutdated (v : IAdaptiveObject) =
         v.MarkOutdated()
@@ -56,7 +59,13 @@ type Adaptive private() =
         AdaptiveObjectExtensionHelpers.addWeakMarkingCallback this action.Invoke
 
     static member Transact : IDisposable =
-        AdaptiveObjectExtensionHelpers.useTransaction()
+        AdaptiveObjectExtensionHelpers.useTransaction() :> IDisposable
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member UseTransaction(t : Transaction) : TransactionDisposable =
+        let old = Transaction.Current
+        Transaction.Current <- Some t
+        new TransactionDisposable(t, old)
 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member GetValueUntyped(this: IAdaptiveValue) =

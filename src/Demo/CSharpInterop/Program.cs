@@ -91,20 +91,21 @@ namespace CSharpInterop
             var arr1 = new[] { 1, 2, 3 };
             var arr2 = new[] { 1, 2, 3 };
 
-            using (Adaptive.Transact)
+            var t = new Transaction();
+
+            using (Adaptive.UseTransaction(t))
             {
                 set.Add(arr1);
             }
             Console.WriteLine("{0}", len.Content.GetValue());
 
-            using (Adaptive.Transact)
+            using (Adaptive.UseTransaction(t))
             {
                 set.Remove(arr2);
             }
             Console.WriteLine("{0}", len.Content.GetValue());
 
-
-            using (Adaptive.Transact)
+            using (Adaptive.UseTransaction(t))
             {
                 set.Remove(arr1);
             }
@@ -113,9 +114,9 @@ namespace CSharpInterop
 
         public static void Main()
         {
-            //Scratch();
+            Scratch();
 
-            BenchmarkRunner.Run<ForEachBenchmarks>();
+            //BenchmarkRunner.Run<ForEachBenchmarks>();
         }
     }
 }
