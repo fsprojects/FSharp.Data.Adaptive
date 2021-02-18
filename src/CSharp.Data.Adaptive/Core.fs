@@ -19,7 +19,7 @@ type AbstractAdaptiveObject() =
 
 
 [<Struct>]
-type TransactionDisposable(active : Transaction, old : Option<Transaction>) =
+type TransactionDisposable(active : Transaction, old : ValueOption<Transaction>) =
 
     interface IDisposable with
         member x.Dispose() = 
@@ -38,7 +38,7 @@ module private AdaptiveObjectExtensionHelpers =
     let inline useTransaction() =
         let t = new Transaction()
         let old = Transaction.Current
-        Transaction.Current <- Some t
+        Transaction.Current <- ValueSome t
         new TransactionDisposable(t, old)
 
     let inline markOutdated (v : IAdaptiveObject) =
@@ -64,7 +64,7 @@ type Adaptive private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member UseTransaction(t : Transaction) : TransactionDisposable =
         let old = Transaction.Current
-        Transaction.Current <- Some t
+        Transaction.Current <- ValueSome t
         new TransactionDisposable(t, old)
 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]

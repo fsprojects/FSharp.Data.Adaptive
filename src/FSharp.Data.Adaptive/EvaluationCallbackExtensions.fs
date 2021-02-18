@@ -27,8 +27,8 @@ module EvaluationCallbackExtensions =
                 )
 
             match Transaction.Running with
-            | Some t -> t.AddFinalizer (fun () -> value.GetValueUntyped AdaptiveToken.Top |> action)
-            | None -> value.GetValueUntyped AdaptiveToken.Top |> action
+            | ValueSome t -> t.AddFinalizer (fun () -> value.GetValueUntyped AdaptiveToken.Top |> action)
+            | ValueNone -> value.GetValueUntyped AdaptiveToken.Top |> action
 
             sub
             
@@ -60,8 +60,8 @@ module EvaluationCallbackExtensions =
                 )
 
             match Transaction.Running with
-            | Some t -> t.AddFinalizer (fun () -> value |> AVal.force |> action)
-            | None -> value |> AVal.force |> action
+            | ValueSome t -> t.AddFinalizer (fun () -> value |> AVal.force |> action)
+            | ValueNone -> value |> AVal.force |> action
 
             sub
             
@@ -92,8 +92,8 @@ module EvaluationCallbackExtensions =
                 )
         
             match Transaction.Running with
-            | Some t -> t.AddFinalizer run
-            | None -> run()
+            | ValueSome t -> t.AddFinalizer run
+            | ValueNone -> run()
 
             sub
             
