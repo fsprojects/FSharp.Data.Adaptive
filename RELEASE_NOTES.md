@@ -1,3 +1,10 @@
+### 1.2.0
+* changed Transaction.Current/Running to ValueOption
+* small performance improvements
+* more c# extensions
+* fixed bind of cset.Content
+* fixed ASet.force
+
 ### 1.1.0
 * major upgrade with improved performance
 * several new combinators `ASet.xor`, `AVal.cast`, etc.
