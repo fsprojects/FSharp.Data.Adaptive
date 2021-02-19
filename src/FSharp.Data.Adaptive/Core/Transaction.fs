@@ -241,7 +241,6 @@ module Transaction =
         use t = new Transaction()
         let r = useCurrent t action
         t.Commit() 
-        // TODO: no t.Dispose() intentional? C# API does
         r
         
     /// Executes a function "inside" the current transaction
