@@ -7,17 +7,17 @@ open FSharp.Data.Adaptive
 [<EntryPoint>]
 let main _args =
 
-    let a = cval [1;2;3;4]
-    let b = AVal.cast<seq<int>> a
+    //let a = cval [1;2;3;4]
+    //let b = AVal.cast<seq<int>> a
 
-    AVal.force b |> printfn "%0A"
+    //AVal.force b |> printfn "%0A"
 
     
-    let c = AVal.cast<float> a
-    AVal.force c |> printfn "%0A"
+    //let c = AVal.cast<float> a
+    //AVal.force c |> printfn "%0A"
 
 
-    exit 0
+    //exit 0
 
     //let b = HAMTBench()
 
@@ -41,5 +41,7 @@ let main _args =
     //BenchmarkRunner.Run<Benchmarks.HashSetDeltaEnumeratorBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.HashMapDeltaEnumeratorBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.MapExtEnumeratorBenchmark>() |> ignore
+
+    BenchmarkRunner.Run<Benchmarks.HashSetDeltaBench>() |> ignore
 
     0

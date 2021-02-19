@@ -23,6 +23,7 @@
     <Compile Include="Benchmarks\AdaptiveEnumerators.fs" />
     <Compile Include="Benchmarks\HashSetBench.fs" />
     <Compile Include="Benchmarks\CollectionUpdate.fs" />
+    <Compile Include="Benchmarks\HashSetDeltaBench.fs" />
     <Compile Include="Utilities\Helpers.fs" />
     <Compile Include="Utilities\Generators.fs" />
     <Compile Include="Callbacks.fs" />

@@ -29,10 +29,10 @@ type HashSetDelta<'T>(store: HashMap<'T, int>) =
     /// Adds a SetOperation to the HashSetDelta.
     member x.Add (op: SetOperation<'T>) =
         if op.Count <> 0 then
-            store |> HashMap.alter op.Value (fun o ->
-                let n = defaultArg o 0 + op.Count
-                if n = 0 then None
-                else Some n
+            store |> HashMap.alterV op.Value (fun o ->
+                let n = defaultValueArg o 0 + op.Count
+                if n = 0 then ValueNone
+                else ValueSome n
             )
             |> HashSetDelta
         else
@@ -83,35 +83,43 @@ type HashSetDelta<'T>(store: HashMap<'T, int>) =
     /// Applies the mapping function to all operations in the set.
     member x.Map (mapping: SetOperation<'T> -> SetOperation<'T2>) =
         let mutable res = HashSetDelta<'T2>.Empty
-        for (k,v) in store do
-            res <- res.Add (mapping (SetOperation(k,v)))
+        if not store.IsEmpty then
+            store |> HashMap.iter (fun k v -> 
+                res <- res.Add (mapping (SetOperation(k,v)))
+            )
         res
         
     /// Applies the mapping function to all operations in the set.
     member x.Choose (f: SetOperation<'T> -> option<SetOperation<'T2>>) =
         let mutable res = HashSetDelta<'T2>.Empty
-        for (k,v) in store do
-            match f (SetOperation(k,v)) with
-            | Some r -> res <- res.Add r
-            | _ -> ()
+        if not store.IsEmpty then
+            store |> HashMap.iter (fun k v -> 
+                match f (SetOperation(k,v)) with
+                | Some r -> res <- res.Add r
+                | _ -> ()
+            )
         res
         
     /// Filters the operations contains using the given predicate.
     member x.Filter (f: SetOperation<'T> -> bool) =
-        store |> HashMap.filter (fun k v -> SetOperation(k,v) |> f) |> HashSetDelta
+        if store.IsEmpty then HashSetDelta.Empty
+        else store |> HashMap.filter (fun k v -> SetOperation(k,v) |> f) |> HashSetDelta
         
     /// Applies the mapping function to all operations in the set and combines all the results.
     member x.Collect (f: SetOperation<'T> -> HashSetDelta<'T2>) =
         let mutable res = HashSetDelta<'T2>.Empty
-        for (k,v) in store do
-            res <- res.Combine (f (SetOperation(k,v)))
+        if not store.IsEmpty then
+            store |> HashMap.iter (fun k v -> 
+                    res <- res.Combine (f (SetOperation(k,v)))
+                )
         res
 
     /// Iterates over all operations in the set.
     member x.Iter (f: SetOperation<'T> -> unit) =
-        store |> HashMap.iter (fun k v ->
-            f (SetOperation(k,v))
-        )
+        if not store.IsEmpty then
+            store |> HashMap.iter (fun k v ->
+                f (SetOperation(k,v))
+            )
 
     /// Folds over the set.
     member x.Fold (seed: 'State, f: 'State -> SetOperation<'T> -> 'State) =
@@ -133,12 +141,25 @@ type HashSetDelta<'T>(store: HashMap<'T, int>) =
 
     /// Creates a list containing all operations from the set.
     member x.ToList() =
-        store |> HashMap.toList |> List.map (fun (k, v) -> SetOperation(k,v))
-
-        
+        let mutable list = []
+        if not store.IsEmpty then
+            store |> HashMap.iter(fun k v ->
+                list <- (SetOperation(k,v)) :: list
+            )
+        list
+                
     /// Creates an array containing all operations from the set.
     member x.ToArray() =
-        store |> HashMap.toArray |> Array.map SetOperation
+        if store.IsEmpty then
+            Array.empty
+        else
+            let arr = Array.zeroCreate store.Count
+            let mutable dst = 0
+            store |> HashMap.iter(fun k v -> 
+                arr.[dst] <- SetOperation(k, v)
+                dst <- dst + 1
+            )
+            arr
 
     
     /// Creates a HashMap containing all operations from the set.
@@ -154,11 +175,17 @@ type HashSetDelta<'T>(store: HashMap<'T, int>) =
         
     /// Creates a HashSetDelta using the given operations.
     static member OfList (list: list<SetOperation<'T>>) =
-        list |> HashSetDelta.OfSeq
+        let mutable res = HashSetDelta<'T>.Empty
+        for e in list do
+            res <- res.Add e
+        res
         
     /// Creates a HashSetDelta using the given operations.
     static member OfArray (arr: array<SetOperation<'T>>) =
-        arr |> HashSetDelta.OfSeq
+        let mutable res = HashSetDelta<'T>.Empty
+        for e in arr do
+            res <- res.Add e
+        res
         
 
     override x.GetHashCode() = store.GetHashCode()
@@ -188,6 +215,11 @@ type HashSetDelta<'T>(store: HashMap<'T, int>) =
 
     interface IEnumerable<SetOperation<'T>> with
         member x.GetEnumerator() = x.GetEnumerator() :> _
+
+    interface IEquatable<HashSetDelta<'T>> with
+        member x.Equals(o : HashSetDelta<'T>) =
+            DefaultEquality.equals store o.Store
+
 
 /// Functional operators for HashSetDelta.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix); CompiledName("FSharpHashSetDeltaModule")>]
