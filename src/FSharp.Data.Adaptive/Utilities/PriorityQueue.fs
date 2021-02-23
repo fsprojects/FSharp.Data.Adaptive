@@ -149,6 +149,7 @@ type internal TransactQueue<'V when 'V : not struct>() =
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     let free (e : TransactQueueEntry<'V>) =
         e.Next <- reuse
+        e.Value <- Unchecked.defaultof<'V>
         reuse <- e
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -218,10 +219,13 @@ type internal TransactQueue<'V when 'V : not struct>() =
             p.Next <- n
             if not (isNull n) then n.Prev <- p
 
+        count <- count - 1
+
+        let res = struct(e.Key, e.Value)
+
         free e
 
-        count <- count - 1
-        struct(e.Key, e.Value)
+        res
         
     /// Is the queue emoty?
     member x.IsEmpty = count = 0

@@ -179,6 +179,7 @@ type Transaction() =
                 let outputs = outputs.Value
                 for i in 0 .. outputCount - 1 do
                     let o = outputs.[i]
+                    outputs.[i] <- Unchecked.defaultof<_>
                     o.InputChanged(x, e)
                     x.Enqueue o
 
