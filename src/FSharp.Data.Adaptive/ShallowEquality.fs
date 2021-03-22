@@ -36,6 +36,7 @@ open System.Reflection.Emit
 open System.Reflection
 open System.Runtime.InteropServices
 open System.Runtime.CompilerServices
+open Microsoft.FSharp.Reflection
 
 type private ShallowEqDelegate<'a> = delegate of 'a * 'a -> bool
 type private ShallowHashDelegate<'a> = delegate of 'a -> int
@@ -105,6 +106,41 @@ type ShallowEqualityComparer<'a> private() =
         else
             false
 
+    static let isRecursive =
+        let rec run (visited : System.Collections.Generic.HashSet<_>) (top : bool) (t : System.Type) =
+            if not top && typ.IsAssignableFrom t then
+                true
+            elif visited.Add t then
+                if FSharpType.IsUnion(t, true) then
+                    let fields = FSharpType.GetUnionCases(t, true) |> Array.collect (fun ci -> ci.GetFields())
+                    fields |> Array.exists (fun f -> run visited false f.PropertyType)
+                else
+                    let fields = t.GetFields(BindingFlags.NonPublic ||| BindingFlags.Public ||| BindingFlags.Instance)
+                    fields |> Array.exists (fun f -> run visited false f.FieldType)
+            else
+                false
+
+        if typ.IsValueType then false
+        else run (System.Collections.Generic.HashSet()) true typ
+
+    static let getTag (il : ILGenerator) (typ : System.Type) =
+        
+        let tag = FSharpValue.PreComputeUnionTagMemberInfo(typ, true)
+         
+        match tag with
+        | :? MethodInfo as tag ->
+            let cc = if tag.IsStatic then OpCodes.Call else OpCodes.Callvirt
+            il.EmitCall(cc, tag, null)
+                
+        | :? PropertyInfo as tag ->
+            il.EmitCall(OpCodes.Callvirt, tag.GetMethod, null)
+
+        | :? FieldInfo as tag ->
+            il.Emit(OpCodes.Ldfld, tag)
+
+        | _ ->
+            failwith "bad tag"
+
     static let getHashCode =
         if isUnmanaged then
             Unchecked.hash
@@ -158,6 +194,71 @@ type ShallowEqualityComparer<'a> private() =
             else
                 // TODO: any better way??
                 fun (v : 'a) -> 0
+
+        elif FSharpType.IsUnion typ && DynamicMethod.IsSupported && not isRecursive then
+            let cases = FSharpType.GetUnionCases(typ, true)
+            let meth = 
+                DynamicMethod(
+                    "shallowHash", 
+                    MethodAttributes.Static ||| MethodAttributes.Public,
+                    CallingConventions.Standard,
+                    typeof<int>,
+                    [| typeof<'a> |],
+                    typeof<'a>,
+                    true
+                )
+
+            let il = meth.GetILGenerator()
+
+            let zero = il.DefineLabel()
+
+            let maxTag = cases |> Seq.map (fun c -> c.Tag) |> Seq.max
+            let labels = Array.zeroCreate cases.Length
+            let jumpTable = Array.create (2 + maxTag) zero
+            for i in 0 .. cases.Length-1 do 
+                let l = il.DefineLabel()
+                labels.[i] <- l
+                jumpTable.[cases.[i].Tag] <- l
+
+
+            il.Emit(OpCodes.Ldarg_0)
+            getTag il typ
+            il.Emit(OpCodes.Switch, jumpTable)
+
+            for i in 0 .. cases.Length - 1 do
+                let ci = cases.[i]
+                il.MarkLabel labels.[i]
+
+                let h = il.DeclareLocal(typeof<int>)
+                il.Emit(OpCodes.Ldc_I4, ci.Tag)
+                il.Emit(OpCodes.Stloc, h)
+
+                for field in ci.GetFields() do
+                    let cmp = typedefof<ShallowEqualityComparer<_>>.MakeGenericType [| field.PropertyType |]
+                    let inst = cmp.GetProperty "Instance"
+                    let cmpType = typedefof<System.Collections.Generic.IEqualityComparer<_>>.MakeGenericType [| field.PropertyType |]
+                    let hash = cmpType.GetMethod("GetHashCode", [| field.PropertyType |])
+
+                    il.Emit(OpCodes.Ldloc, h)
+
+                    il.EmitCall(OpCodes.Call, inst.GetMethod, null)
+                    il.Emit(OpCodes.Ldarg_0)
+                    il.EmitCall(OpCodes.Callvirt, field.GetMethod, null)
+                    il.EmitCall(OpCodes.Callvirt, hash, null)
+
+                    il.EmitCall(OpCodes.Call, HashCodeHelpers.CombineMethod, null)
+                    il.Emit(OpCodes.Stloc, h)
+
+                il.Emit(OpCodes.Ldloc, h)
+                il.Emit(OpCodes.Ret)
+
+            il.MarkLabel zero
+            il.Emit(OpCodes.Ldc_I4_0)
+            il.Emit(OpCodes.Ret)
+            
+            let del = meth.CreateDelegate(typeof<ShallowHashDelegate<'a>>) |> unbox<ShallowHashDelegate<'a>>
+            del.Invoke
+
         else
             fun (v : 'a) -> RuntimeHelpers.GetHashCode(v :> obj)
 
@@ -214,7 +315,96 @@ type ShallowEqualityComparer<'a> private() =
             else
                 /// TODO: better way?
                 fun (a : 'a) (b : 'a) -> false
+        elif FSharpType.IsUnion(typ, true) && DynamicMethod.IsSupported && not isRecursive then
+            let cases = FSharpType.GetUnionCases(typ, true)
+            
+            let meth = 
+                DynamicMethod(
+                    "shallowEquals", 
+                    MethodAttributes.Static ||| MethodAttributes.Public,
+                    CallingConventions.Standard,
+                    typeof<bool>,
+                    [| typeof<'a>; typeof<'a> |],
+                    typeof<'a>,
+                    true
+                )
+
+            let il = meth.GetILGenerator()
+
+            let t = il.DefineLabel()
+            let f = il.DefineLabel()
+
+            il.Emit(OpCodes.Ldarg_0)
+            il.Emit(OpCodes.Ldarg_1)
+            il.Emit(OpCodes.Beq, t)
+
+            let t0 = il.DeclareLocal(typeof<int>)
+            let t1 = il.DeclareLocal(typeof<int>)
+
+            il.Emit(OpCodes.Ldarg_0)
+            getTag il typ
+            il.Emit(OpCodes.Stloc, t0)
+
+            il.Emit(OpCodes.Ldarg_1)
+            getTag il typ
+            il.Emit(OpCodes.Stloc, t1)
+
+            il.Emit(OpCodes.Ldloc, t0)
+            il.Emit(OpCodes.Ldloc, t1)
+            il.Emit(OpCodes.Bne_Un, f)
+
+            let maxTag = cases |> Seq.map (fun c -> c.Tag) |> Seq.max
+            let labels = Array.zeroCreate cases.Length
+            let jumpTable = Array.create (2 + maxTag) f
+            for i in 0 .. cases.Length-1 do 
+                let l = il.DefineLabel()
+                labels.[i] <- l
+                jumpTable.[cases.[i].Tag] <- l
+
+            il.Emit(OpCodes.Ldloc, t0)
+            il.Emit(OpCodes.Switch, jumpTable)
+
+            for i in 0 .. cases.Length-1 do
+                let ci = cases.[i]
+                il.MarkLabel labels.[i]
+                let fields = ci.GetFields()
+
+                for field in fields do
+                    let cmp = typedefof<ShallowEqualityComparer<_>>.MakeGenericType [| field.PropertyType |]
+                    let inst = cmp.GetProperty "Instance"
+                    let cmpType = typedefof<System.Collections.Generic.IEqualityComparer<_>>.MakeGenericType [| field.PropertyType |]
+                    let eq = cmpType.GetMethod("Equals", [| field.PropertyType; field.PropertyType |])
+
+                    il.EmitCall(OpCodes.Call, inst.GetMethod, null)
+
+                    il.Emit(OpCodes.Ldarg_0)
+                    il.EmitCall(OpCodes.Callvirt, field.GetMethod, null)
+                    
+                    il.Emit(OpCodes.Ldarg_1)
+                    il.EmitCall(OpCodes.Callvirt, field.GetMethod, null)
+
+                    il.EmitCall(OpCodes.Callvirt, eq, null)
+                    il.Emit(OpCodes.Brfalse, f)
+                    
+
+
+
+            il.MarkLabel t
+            il.Emit(OpCodes.Ldc_I4_1)
+            il.Emit(OpCodes.Ret)
+
+
+            il.MarkLabel f
+            il.Emit(OpCodes.Ldc_I4_0)
+            il.Emit(OpCodes.Ret)
+
+            
+            let del = meth.CreateDelegate(typeof<ShallowEqDelegate<'a>>) |> unbox<ShallowEqDelegate<'a>>
+            fun (a : 'a) (b : 'a) -> del.Invoke(a, b)
+
+
         else
+
             fun (a : 'a) (b : 'a) -> System.Object.ReferenceEquals(a :> obj, b :> obj)
             
     static let mutable instance = 

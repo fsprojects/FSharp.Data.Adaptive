@@ -1,3 +1,6 @@
+### 1.2.1
+* ShallowEquality now descends into non-recursive DUs (e.g. option)
+
 ### 1.2.0
 * changed Transaction.Current/Running to ValueOption
 * small performance improvements
