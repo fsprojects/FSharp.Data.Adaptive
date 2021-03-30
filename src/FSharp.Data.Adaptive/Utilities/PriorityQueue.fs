@@ -268,7 +268,7 @@ type internal TransactQueue<'V when 'V : not struct>() =
 //    val mutable public Next : int
 
 //type HashQueue2<'K, 'V when 'V : not struct>() =
-//    static let cmp  = Comparer<'K>.Default
+//    static let cmp  = Comparer<'K>.Default :> IComparer<_>
 
     
 //    let mutable capacityIndex = 0

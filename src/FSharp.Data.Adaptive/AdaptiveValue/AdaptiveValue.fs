@@ -144,13 +144,22 @@ module AVal =
 
         interface aval<'b> with
             member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
-            member x.ContentType = typeof<'b>
+            member x.ContentType =
+                #if FABLE_COMPILER
+                typeof<obj>
+                #else
+                typeof<'b>
+                #endif
             member x.GetValueUntyped(t) = input.GetValue(t) |> mapping :> obj
             member x.GetValue(t) = input.GetValue(t) |> mapping
     
     type Caster<'a, 'b> private() =
         static let cast =
+#if FABLE_COMPILER
+            if true then
+#else
             if typeof<'b>.IsAssignableFrom typeof<'a> then
+#endif
                 Some (fun (a : 'a) -> unbox<'b> a)
             else
                 None

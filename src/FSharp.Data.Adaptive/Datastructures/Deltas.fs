@@ -34,8 +34,8 @@ module DifferentiationExtensions =
                     struct(o, ValueNone)
                     
             let cmp = value.Comparer
-            let mutable value = value.Root
-            let effective = HashImplementation.SetNode.applyDelta cmp (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) &value delta.Store.Root
+            let value = value.Root
+            let struct(effective, value) = HashImplementation.SetNode.applyDelta cmp (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) value delta.Store.Root
             let set = HashSet<'T>(cmp, value)
             let delta = HashMap<'T, int>(cmp, effective)
             set, HashSetDelta delta
@@ -79,8 +79,8 @@ module DifferentiationExtensions =
                         struct(ValueSome v, ValueSome (Set v))
 
 
-            let mutable state = l.Root
-            let delta = HashImplementation.MapNode.applyDelta l.Comparer (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) &state r.Store.Root
+            let state = l.Root
+            let struct(delta, state) = HashImplementation.MapNode.applyDelta l.Comparer (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) state r.Store.Root
 
             let state = HashMap<'K, 'V>(l.Comparer, state)
             let delta = HashMap<'K, ElementOperation<'V>>(l.Comparer, delta)
