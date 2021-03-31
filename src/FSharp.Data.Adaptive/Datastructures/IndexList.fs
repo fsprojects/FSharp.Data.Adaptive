@@ -69,16 +69,14 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
         
     /// Gets the entry at the given index (if any).
     member x.TryGet (i : int) =
-        let mutable index = Index.zero
-        let mutable value = Unchecked.defaultof<_>
-        if content.TryGetItem(i, &index, &value) then Some value
+        let struct(ok, index, value) = content.TryGetItem(i)
+        if ok then Some value
         else None
         
     /// Gets the entry at the given index (if any).
     member x.TryGetV (i : int) =
-        let mutable index = Index.zero
-        let mutable value = Unchecked.defaultof<_>
-        if content.TryGetItem(i, &index, &value) then ValueSome value
+        let struct(ok, index, value) = content.TryGetItem(i)
+        if ok then ValueSome value
         else ValueNone
 
     /// Gets the entry associated to the given index or fails if not existing.
@@ -1322,7 +1320,7 @@ module IndexList =
         if l.Count <= 1 then
             l
         else
-            let ic = Comparer<Index>.Default
+            let ic = Comparer<Index>.Default :> IComparer<_>
             let cmp = OptimizedClosures.FSharpFunc<'T,'T,int>.Adapt(cmp)
             let inline comparer struct(li, lv) struct(ri, rv) =
                 let c = cmp.Invoke(lv, rv)

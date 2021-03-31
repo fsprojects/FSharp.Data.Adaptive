@@ -5,6 +5,8 @@ open System.Runtime.InteropServices
 
 
 module internal MapExtImplementation =
+
+#if !FABLE_COMPILER
     module private Memory = 
         let mem() =
             let garbage() = 
@@ -29,6 +31,7 @@ module internal MapExtImplementation =
             let diff = mem() - before - arrayOverhead
             let pseudo = float (Unchecked.hash arr % 2) - 0.5 |> int64
             float (diff + pseudo) / float cnt 
+#endif
             
     let inline combineHash (a: int) (b: int) =
         uint32 a ^^^ uint32 b + 0x9e3779b9u + ((uint32 a) <<< 6) + ((uint32 a) >>> 2) |> int
@@ -140,36 +143,29 @@ module internal MapExtImplementation =
         elif lh = 0uy && rh = 0uy then Node(k, v)
         else Inner(l, k, v, r, 1uy + max lh rh, 1 + lc + rc) :> Node<_,_>
 
-    let rec unsafeRemoveMin (key : byref<'Key>) (value : byref<'Value>) (n : Node<'Key, 'Value>) =
+    let rec unsafeRemoveMin (n : Node<'Key, 'Value>) =
         if n.Height = 1uy then
-            key <- n.Key
-            value <- n.Value
-            null
+            struct(n.Key, n.Value, Unchecked.defaultof<_>)
         else
             let n = n :?> Inner<'Key, 'Value>
             if isNull n.Left then
-                key <- n.Key
-                value <- n.Value
-                n.Right
+                struct(n.Key, n.Value, n.Right)
             else
-                let newLeft = unsafeRemoveMin &key &value n.Left
-                unsafeBinary newLeft n.Key n.Value n.Right
-                    
-    let rec unsafeRemoveMax (key : byref<'Key>) (value : byref<'Value>) (n : Node<'Key, 'Value>) =
+                let struct(key, value, newLeft) = unsafeRemoveMin n.Left
+                let node = unsafeBinary newLeft n.Key n.Value n.Right
+                struct(key, value, node)
+
+    let rec unsafeRemoveMax (n : Node<'Key, 'Value>) =
         if n.Height = 1uy then
-            key <- n.Key
-            value <- n.Value
-            null
+            struct(n.Key, n.Value, null)
         else
             let n = n :?> Inner<'Key, 'Value>
             if isNull n.Right then
-                key <- n.Key
-                value <- n.Value
-                n.Left
+                struct(n.Key, n.Value, n.Left)
             else
-                let newRight = unsafeRemoveMax &key &value n.Right
-                unsafeBinary n.Left n.Key n.Value newRight
-
+                let struct(key, value, newRight) = unsafeRemoveMax n.Right
+                let node = unsafeBinary n.Left n.Key n.Value newRight
+                struct(key, value, node)
 
     let rebalanceUnsafe (node : Inner<'Key, 'Value>) =
         let lh = height node.Left
@@ -331,13 +327,11 @@ module internal MapExtImplementation =
         else
             let lc = l.Height
             let rc = r.Height
-            let mutable k = Unchecked.defaultof<_>
-            let mutable v = Unchecked.defaultof<_>
             if lc > rc then
-                let ln = unsafeRemoveMax &k &v l
+                let struct(k, v, ln) = unsafeRemoveMax l
                 unsafeBinary ln k v r
             else
-                let rn = unsafeRemoveMin &k &v r
+                let struct(k, v, rn) = unsafeRemoveMin r
                 unsafeBinary l k v rn
                 
     let rec binary (l : Node<'Key, 'Value>) (k : 'Key) (v : 'Value) (r : Node<'Key, 'Value>) =
@@ -392,13 +386,11 @@ module internal MapExtImplementation =
         else
             let lh = l.Height
             let rh = r.Height
-            let mutable k = Unchecked.defaultof<_>
-            let mutable v = Unchecked.defaultof<_>
             if lh > rh then
-                let ln = unsafeRemoveMax &k &v l
+                let struct(k, v, ln) = unsafeRemoveMax l
                 binary ln k v r
             else
-                let rn = unsafeRemoveMin &k &v r
+                let struct(k, v, rn) = unsafeRemoveMin r
                 binary l k v rn
 
     let rec find (cmp : IComparer<'Key>) (key : 'Key) (node : Node<'Key, 'Value>) =
@@ -414,23 +406,21 @@ module internal MapExtImplementation =
             elif c < 0 then find cmp key node.Left
             else node.Value
             
-    let rec tryGetValue (cmp : IComparer<'Key>) (key : 'Key) (result : outref<'Value>) (node : Node<'Key, 'Value>) =
+    let rec tryGetValue (cmp : IComparer<'Key>) (key : 'Key) (node : Node<'Key, 'Value>) =
         if isNull node then
-            false
+            struct(false, Unchecked.defaultof<'Value>)
         elif node.Height = 1uy then
             if cmp.Compare(key, node.Key) = 0 then 
-                result <- node.Value
-                true
+                struct(true, node.Value)
             else 
-                false
+                struct(false, Unchecked.defaultof<'Value>)
         else
             let node = node :?> Inner<'Key, 'Value>
             let c = cmp.Compare(key, node.Key)
-            if c > 0 then tryGetValue cmp key &result node.Right
-            elif c < 0 then tryGetValue cmp key &result node.Left
+            if c > 0 then tryGetValue cmp key node.Right
+            elif c < 0 then tryGetValue cmp key node.Left
             else 
-                result <- node.Value
-                true
+                struct(true, node.Value)
 
     let rec tryFind (cmp : IComparer<'Key>) (key : 'Key) (node : Node<'Key, 'Value>) =
         if isNull node then
@@ -445,27 +435,23 @@ module internal MapExtImplementation =
             elif c < 0 then tryFind cmp key node.Left
             else Some node.Value
             
-    let rec tryGetItem (index : int) (key : byref<'Key>) (value : byref<'Value>) (node : Node<'Key, 'Value>) =
+    let rec tryGetItem (index : int) (node : Node<'Key, 'Value>) =
         if isNull node then
-            false
+            struct(false, Unchecked.defaultof<'Key>, Unchecked.defaultof<'Value>)
         elif node.Height = 1uy then
             if index = 0 then 
-                key <- node.Key
-                value <- node.Value
-                true
+                struct(true, node.Key, node.Value)
             else
-                false
+                struct(false, Unchecked.defaultof<'Key>, Unchecked.defaultof<'Value>)
         else
             let node = node :?> Inner<'Key, 'Value>
             let id = index - count node.Left
             if id > 0 then
-                tryGetItem (id - 1) &key &value node.Right
+                tryGetItem (id - 1) node.Right
             elif id < 0 then
-                tryGetItem index &key &value node.Left
+                tryGetItem index node.Left
             else
-                key <- node.Key
-                value <- node.Value
-                true
+                struct(true, node.Key, node.Value)
 
     let rec tryGetIndex (cmp : IComparer<'Key>) (key : 'Key) (offset : int) (node : Node<'Key, 'Value>) =
         if isNull node then 
@@ -484,37 +470,29 @@ module internal MapExtImplementation =
             else
                 offset + count node.Left
 
-    let rec tryGetMin (minKey : byref<'Key>) (minValue : byref<'Value>) (node : Node<'Key, 'Value>) =
+    let rec tryGetMin (node : Node<'Key, 'Value>) =
         if isNull node then
-            false
+            struct(false, Unchecked.defaultof<'Key>, Unchecked.defaultof<'Value>)
         elif node.Height = 1uy then
-            minKey <- node.Key
-            minValue <- node.Value
-            true
+            struct(true, node.Key, node.Value)
         else
             let node = node :?> Inner<'Key, 'Value>
             if isNull node.Left then 
-                minKey <- node.Key
-                minValue <- node.Value
-                true
+                struct(true, node.Key, node.Value)
             else
-                tryGetMin &minKey &minValue node.Left
+                tryGetMin node.Left
 
-    let rec tryGetMax (maxKey : byref<'Key>) (maxValue : byref<'Value>) (node : Node<'Key, 'Value>) =
+    let rec tryGetMax (node : Node<'Key, 'Value>) =
         if isNull node then
-            false
+            struct(false, Unchecked.defaultof<'Key>, Unchecked.defaultof<'Value>)
         elif node.Height = 1uy then
-            maxKey <- node.Key
-            maxValue <- node.Value
-            true
+            struct(true, node.Key, node.Value)
         else
             let node = node :?> Inner<'Key, 'Value>
             if isNull node.Right then
-                maxKey <- node.Key
-                maxValue <- node.Value
-                true
+                struct(true, node.Key, node.Value)
             else
-                tryGetMax &maxKey &maxValue node.Right
+                tryGetMax node.Right
 
 
     let rec containsKey (cmp : IComparer<'Key>) (key : 'Key) (node : Node<'Key, 'Value>) =
@@ -639,90 +617,110 @@ module internal MapExtImplementation =
                 node
      
              
-    let rec tryRemove' (cmp : IComparer<'Key>) (key : 'Key)  (result : byref<Node<'Key, 'Value>>) (node : Node<'Key, 'Value>) =
-        if isNull node then 
-            false
-        elif node.Height = 1uy then
-            let c = cmp.Compare(key, node.Key)
-            if c = 0 then 
-                result <- null
-                true
-            else
+    let rec tryRemove' (cmp : IComparer<'Key>) (key : 'Key) (node : Node<'Key, 'Value>) =
+        let mutable result : Node<'Key, 'Value> = null
+        let ok =
+            if isNull node then 
                 false
-        else
-            let node = node :?> Inner<'Key, 'Value>
-            let c = cmp.Compare(key, node.Key)
-            if c > 0 then 
-                if tryRemove' cmp key &result node.Right then
-                    result <- unsafeBinary node.Left node.Key node.Value result
+            elif node.Height = 1uy then
+                let c = cmp.Compare(key, node.Key)
+                if c = 0 then 
+                    result <- null
                     true
                 else
                     false
-            elif c < 0 then 
-                if tryRemove' cmp key &result node.Left then
-                    result <- unsafeBinary result node.Key node.Value node.Right
+            else
+                let node = node :?> Inner<'Key, 'Value>
+                let c = cmp.Compare(key, node.Key)
+                if c > 0 then 
+                    let struct(ok, res) = tryRemove' cmp key node.Right
+                    if ok then
+                        result <- unsafeBinary node.Left node.Key node.Value res
+                        true
+                    else
+                        false
+                elif c < 0 then 
+                    let struct(ok, res) = tryRemove' cmp key node.Left
+                    if ok then
+                        result <- unsafeBinary res node.Key node.Value node.Right
+                        true
+                    else
+                        false
+                else 
+                    result <- unsafeJoin node.Left node.Right
                     true
-                else
-                    false
-            else 
-                result <- unsafeJoin node.Left node.Right
-                true
+        struct(ok, result)
        
-    let rec tryRemove (cmp : IComparer<'Key>) (key : 'Key) (removedValue : byref<'Value>) (result : byref<Node<'Key, 'Value>>) (node : Node<'Key, 'Value>) =
-        if isNull node then 
-            false
-        elif node.Height = 1uy then
-            let c = cmp.Compare(key, node.Key)
-            if c = 0 then 
-                removedValue <- node.Value
-                result <- null
-                true
-            else
+    let rec tryRemove (cmp : IComparer<'Key>) (key : 'Key) (node : Node<'Key, 'Value>) =
+        let mutable result : Node<'Key, 'Value> = null
+        let mutable removedValue : 'Value = Unchecked.defaultof<'Value>
+        let ok =
+            if isNull node then 
                 false
-        else
-            let node = node :?> Inner<'Key, 'Value>
-            let c = cmp.Compare(key, node.Key)
-            if c > 0 then 
-                if tryRemove cmp key &removedValue &result node.Right then
-                    result <- unsafeBinary node.Left node.Key node.Value result
+            elif node.Height = 1uy then
+                let c = cmp.Compare(key, node.Key)
+                if c = 0 then 
+                    removedValue <- node.Value
+                    result <- null
                     true
                 else
                     false
-            elif c < 0 then 
-                if tryRemove cmp key &removedValue &result node.Left then
-                    result <- unsafeBinary result node.Key node.Value node.Right
-                    true
-                else
-                    false
-            else 
-                result <- unsafeJoin node.Left node.Right
-                removedValue <- node.Value
-                true
-     
-     
-    let rec removeAt (index : int) (removedKey : byref<'Key>) (removedValue : byref<'Value>) (node : Node<'Key, 'Value>) =
-        if isNull node then 
-            null
-        elif node.Height = 1uy then
-            if index = 0 then
-                removedKey <- node.Key
-                removedValue <- node.Value
-                null
             else
-                node
-        else
-            let node = node :?> Inner<'Key, 'Value>
-            let id = index - count node.Left
-            if id > 0 then 
-                let result = removeAt (id - 1) &removedKey &removedValue node.Right
-                unsafeBinary node.Left node.Key node.Value result
-            elif id < 0 then 
-                let result = removeAt index &removedKey &removedValue node.Left
-                unsafeBinary result node.Key node.Value node.Right
-            else 
-                removedKey <- node.Key
-                removedValue <- node.Value
-                unsafeJoin node.Left node.Right
+                let node = node :?> Inner<'Key, 'Value>
+                let c = cmp.Compare(key, node.Key)
+                if c > 0 then 
+                    let struct(ok, res, v) = tryRemove cmp key node.Right
+                    if ok then
+                        removedValue <- v
+                        result <- unsafeBinary node.Left node.Key node.Value res
+                        true
+                    else
+                        false
+                elif c < 0 then 
+                    let struct(ok, res, v) = tryRemove cmp key node.Left
+                    if ok then
+                        removedValue <- v
+                        result <- unsafeBinary res node.Key node.Value node.Right
+                        true
+                    else
+                        false
+                else 
+                    result <- unsafeJoin node.Left node.Right
+                    removedValue <- node.Value
+                    true
+        struct(ok, result, removedValue)
+     
+    let rec removeAt (index : int) (node : Node<'Key, 'Value>) =
+        let mutable removedKey : 'Key = Unchecked.defaultof<'Key>
+        let mutable removedValue : 'Value = Unchecked.defaultof<'Value>
+        let result =
+            if isNull node then 
+                null
+            elif node.Height = 1uy then
+                if index = 0 then
+                    removedKey <- node.Key
+                    removedValue <- node.Value
+                    null
+                else
+                    node
+            else
+                let node = node :?> Inner<'Key, 'Value>
+                let id = index - count node.Left
+                if id > 0 then 
+                    let struct(result, k, v) = removeAt (id - 1) node.Right
+                    removedKey <- k
+                    removedValue <- v
+                    unsafeBinary node.Left node.Key node.Value result
+                elif id < 0 then 
+                    let struct(result, k, v) = removeAt index node.Left
+                    removedKey <- k
+                    removedValue <- v
+                    unsafeBinary result node.Key node.Value node.Right
+                else 
+                    removedKey <- node.Key
+                    removedValue <- node.Value
+                    unsafeJoin node.Left node.Right
+        struct(result, removedKey, removedValue)
      
 
     let rec changeV (cmp : IComparer<'Key>) (key : 'Key) (update : voption<'Value> -> voption<'Value>) (node : Node<'Key, 'Value>) =
@@ -1163,76 +1161,74 @@ module internal MapExtImplementation =
             predicate.Invoke(node.Key, node.Value) &&
             forall predicate node.Right
 
-    let rec partition (predicate : OptimizedClosures.FSharpFunc<'Key, 'Value, bool>) (t : byref<Node<'Key, 'Value>>) (f : byref<Node<'Key, 'Value>>) (node : Node<'Key, 'Value>) =
+    let rec partition (predicate : OptimizedClosures.FSharpFunc<'Key, 'Value, bool>) (node : Node<'Key, 'Value>) =
         if isNull node then
-            t <- null
-            f <- null
+            struct(null, null)
         elif node.Height = 1uy then
             if predicate.Invoke(node.Key, node.Value) then 
-                t <- node
-                f <- null
+                struct(node, null)
             else 
-                t <- null
-                f <- node
+                struct(null, node)
         else
             let node = node :?> Inner<'Key, 'Value>
 
-            let mutable lt = null
-            let mutable lf = null
-
-            partition predicate &lt &lf node.Left
+            let struct(lt, lf) = partition predicate node.Left
             let c = predicate.Invoke(node.Key, node.Value)
-            partition predicate &t &f node.Right
+            let struct(rt, rf) = partition predicate node.Right
 
             if c then
-                t <- binary lt node.Key node.Value t
-                f <- join lf f
+                struct(binary lt node.Key node.Value rt, join lf rf)
             else
-                t <- join lt t
-                f <- binary lf node.Key node.Value f
+                struct(join lt rt, binary lf node.Key node.Value rf)
 
 
-    let rec split 
+    let split 
         (cmp : IComparer<'Key>) (key : 'Key) 
-        (left : byref<Node<'Key, 'Value>>) (self : byref<'Value>) (right : byref<Node<'Key, 'Value>>) 
         (node : Node<'Key, 'Value>) =
         
-        if isNull node then
-            left <- null
-            right <- null
-            false
-        elif node.Height = 1uy then
-            let c = cmp.Compare(key, node.Key)
-            if c > 0 then
-                left <- node
-                right <- null
-                false
-            elif c < 0 then
-                left <- null
-                right <- node
-                false
-            else
-                left <- null
-                right <- null
-                self <- node.Value
-                true
-        else
-            let node = node :?> Inner<'Key,'Value>
-            let c = cmp.Compare(key, node.Key)
-            if c > 0 then
-                let res = split cmp key &left &self &right node.Right
-                left <- binary node.Left node.Key node.Value left
-                res
-            elif c < 0 then
-                let res = split cmp key &left &self &right node.Left
-                right <- binary right node.Key node.Value node.Right
-                res
-            else
-                left <- node.Left
-                right <- node.Right
-                self <- node.Value
-                true
+        let mutable left : Node<'Key, 'Value> = null
+        let mutable right : Node<'Key, 'Value> = null
+        let mutable self : 'Value = Unchecked.defaultof<'Value>
 
+        let rec traverse (node : Node<'Key, 'Value>) =
+            if isNull node then
+                left <- null
+                right <- null
+                false
+            elif node.Height = 1uy then
+                let c = cmp.Compare(key, node.Key)
+                if c > 0 then
+                    left <- node
+                    right <- null
+                    false
+                elif c < 0 then
+                    left <- null
+                    right <- node
+                    false
+                else
+                    left <- null
+                    right <- null
+                    self <- node.Value
+                    true
+            else
+                let node = node :?> Inner<'Key,'Value>
+                let c = cmp.Compare(key, node.Key)
+                if c > 0 then
+                    let res = traverse node.Right
+                    left <- binary node.Left node.Key node.Value left
+                    res
+                elif c < 0 then
+                    let res = traverse node.Left
+                    right <- binary right node.Key node.Value node.Right
+                    res
+                else
+                    left <- node.Left
+                    right <- node.Right
+                    self <- node.Value
+                    true
+
+        let hasValue = traverse node
+        struct(hasValue, left, self, right)
 
     let rec private changeWithLeft
         (cmp : IComparer<'Key>)
@@ -1312,10 +1308,7 @@ module internal MapExtImplementation =
 
             if l.Height < r.Height then
                 let key = r.Key
-                let mutable ll = null
-                let mutable lv = Unchecked.defaultof<_>
-                let mutable lr = null
-                let hasValue = split cmp key &ll &lv &lr (l :> Node<_,_>)
+                let struct(hasValue, ll, lv, lr) = split cmp key (l :> Node<_,_>)
                 //let struct(ll, lv, lr) = splitV cmp key l
 
                 let newLeft = unionWith cmp resolve ll r.Left
@@ -1328,10 +1321,7 @@ module internal MapExtImplementation =
                 binary newLeft key value newRight
             else
                 let key = l.Key
-                let mutable rl = null
-                let mutable rv = Unchecked.defaultof<_>
-                let mutable rr = null
-                let hasValue = split cmp key &rl &rv &rr (r :> Node<_,_>)
+                let struct(hasValue, rl, rv, rr) = split cmp key (r :> Node<_,_>)
 
                 let newLeft = unionWith cmp resolve l.Left rl
 
@@ -1364,21 +1354,14 @@ module internal MapExtImplementation =
 
             if map1.Height < map2.Height then
                 let key = map2.Key
-                let mutable l1 = null
-                let mutable v1 = Unchecked.defaultof<_>
-                let mutable r1 = null
-                split cmp key &l1 &v1 &r1 (map1 :> Node<_,_>) |> ignore
+                let struct(_hasValue, l1, v1, r1) = split cmp key (map1 :> Node<_,_>)
                 let newLeft = union cmp l1 map2.Left
                 let value = map2.Value
                 let newRight = union cmp r1 map2.Right
-
                 binary newLeft key value newRight
             else
                 let key = map1.Key
-                let mutable l2 = null
-                let mutable v2 = Unchecked.defaultof<_>
-                let mutable r2 = null
-                let hasValue = split cmp key &l2 &v2 &r2 (map2 :> Node<_,_>)
+                let struct(hasValue, l2, v2, r2) = split cmp key (map2 :> Node<_,_>)
                 let newLeft = union cmp map1.Left l2
                 let value = if hasValue then v2 else map1.Value
                 let newRight = union cmp map1.Right r2
@@ -1391,91 +1374,122 @@ module internal MapExtImplementation =
         | Self = 2
         | Right = 4
 
-    let rec getNeighbours 
+    let getNeighbours 
         (cmp : IComparer<'Key>) (key : 'Key) 
-        (flags : NeighbourFlags)
-        (leftKey : byref<'Key>) (leftValue : byref<'Value>)
-        (selfValue : byref<'Value>)
-        (rightKey : byref<'Key>) (rightValue : byref<'Value>)
         (node : Node<'Key, 'Value>) =
 
-        if isNull node then
-            flags
+        let mutable flags = NeighbourFlags.None
+        let mutable leftKey = Unchecked.defaultof<'Key>
+        let mutable leftValue = Unchecked.defaultof<'Value>
+        let mutable rightKey = Unchecked.defaultof<'Key>
+        let mutable rightValue = Unchecked.defaultof<'Value>
+        let mutable selfValue = Unchecked.defaultof<'Value>
 
-        elif node.Height = 1uy then
-            let c = cmp.Compare(key, node.Key)
-            if c > 0 then
-                leftKey <- node.Key
-                leftValue <- node.Value
-                flags ||| NeighbourFlags.Left
-            elif c < 0 then
-                rightKey <- node.Key
-                rightValue <- node.Value
-                flags ||| NeighbourFlags.Right
+        let rec traverse (node : Node<'Key, 'Value>) =
+            if isNull node then
+                ()
+            elif node.Height = 1uy then
+                let c = cmp.Compare(key, node.Key)
+                if c > 0 then
+                    flags <- flags ||| NeighbourFlags.Left
+                    leftKey <- node.Key
+                    leftValue <- node.Value
+                elif c < 0 then
+                    flags <- flags ||| NeighbourFlags.Right
+                    rightKey <- node.Key
+                    rightValue <- node.Value
+                else
+                    flags <- flags ||| NeighbourFlags.Self
+                    selfValue <- node.Value
             else
-                selfValue <- node.Value
-                flags ||| NeighbourFlags.Self
-        else
-            let node = node :?> Inner<'Key, 'Value>
-            let c = cmp.Compare(key, node.Key)
-            if c > 0 then
-                leftKey <- node.Key
-                leftValue <- node.Value
-                getNeighbours cmp key (flags ||| NeighbourFlags.Left) &leftKey &leftValue &selfValue &rightKey &rightValue node.Right
-            elif c < 0 then
-                rightKey <- node.Key
-                rightValue <- node.Value
-                getNeighbours cmp key (flags ||| NeighbourFlags.Right) &leftKey &leftValue &selfValue &rightKey &rightValue node.Left
-            else    
-                selfValue <- node.Value
-                let mutable flags = flags 
-                if tryGetMin &rightKey &rightValue node.Right then flags <- flags ||| NeighbourFlags.Right
-                if tryGetMax &leftKey &leftValue node.Left then flags <- flags ||| NeighbourFlags.Left
-                flags ||| NeighbourFlags.Self
+                let node = node :?> Inner<'Key, 'Value>
+                let c = cmp.Compare(key, node.Key)
+                if c > 0 then
+                    flags <- flags ||| NeighbourFlags.Left
+                    leftKey <- node.Key
+                    leftValue <- node.Value
+                    traverse node.Right
+                elif c < 0 then
+                    flags <- flags ||| NeighbourFlags.Right
+                    rightKey <- node.Key
+                    rightValue <- node.Value
+                    traverse node.Left
+                else
+                    flags <- flags ||| NeighbourFlags.Self
+                    selfValue <- node.Value
+                    let struct(minOk, minKey, minValue) = tryGetMin node.Right
+                    if minOk then
+                        flags <- flags ||| NeighbourFlags.Right
+                        rightKey <- minKey
+                        rightValue <- minValue
+                    let struct(maxOk, maxKey, maxValue) = tryGetMax node.Left
+                    if maxOk then
+                        flags <- flags ||| NeighbourFlags.Left
+                        leftKey <- maxKey
+                        leftValue <- maxValue
 
-    let rec getNeighboursAt
+        traverse node
+        struct(flags, leftKey, leftValue, selfValue, rightKey, rightValue)
+
+
+    let getNeighboursAt
         (index : int) 
-        (flags : NeighbourFlags)
-        (leftKey : byref<'Key>) (leftValue : byref<'Value>)
-        (selfKey : byref<'Key>) (selfValue : byref<'Value>)
-        (rightKey : byref<'Key>) (rightValue : byref<'Value>)
         (node : Node<'Key, 'Value>) =
 
-        if isNull node then
-            flags
+        let mutable flags = NeighbourFlags.None
+        let mutable leftKey = Unchecked.defaultof<'Key>
+        let mutable leftValue = Unchecked.defaultof<'Value>
+        let mutable rightKey = Unchecked.defaultof<'Key>
+        let mutable rightValue = Unchecked.defaultof<'Value>
+        let mutable selfKey = Unchecked.defaultof<'Key>
+        let mutable selfValue = Unchecked.defaultof<'Value>
 
-        elif node.Height = 1uy then
-            if index > 0 then
-                leftKey <- node.Key
-                leftValue <- node.Value
-                flags ||| NeighbourFlags.Left
-            elif index < 0 then
-                rightKey <- node.Key
-                rightValue <- node.Value
-                flags ||| NeighbourFlags.Right
+        let rec traverse (index : int) (node : Node<'Key, 'Value>) =
+            if isNull node then
+                ()
+            elif node.Height = 1uy then
+                if index > 0 then
+                    flags <- flags ||| NeighbourFlags.Left
+                    leftKey <- node.Key
+                    leftValue <- node.Value
+                elif index < 0 then
+                    flags <- flags ||| NeighbourFlags.Right
+                    rightKey <- node.Key
+                    rightValue <- node.Value
+                else
+                    flags <- flags ||| NeighbourFlags.Self
+                    selfKey <- node.Key
+                    selfValue <- node.Value
             else
-                selfKey <- node.Key
-                selfValue <- node.Value
-                flags ||| NeighbourFlags.Self
-        else
-            let node = node :?> Inner<'Key, 'Value>
-            let id = index - count node.Left
-            if id > 0 then
-                leftKey <- node.Key
-                leftValue <- node.Value
-                getNeighboursAt (id - 1) (flags ||| NeighbourFlags.Left) &leftKey &leftValue &selfKey &selfValue &rightKey &rightValue node.Right
-            elif id < 0 then
-                rightKey <- node.Key
-                rightValue <- node.Value
-                getNeighboursAt index (flags ||| NeighbourFlags.Right) &leftKey &leftValue &selfKey &selfValue &rightKey &rightValue node.Left
-            else    
-                selfKey <- node.Key
-                selfValue <- node.Value
-                let mutable flags = flags 
-                if tryGetMin &rightKey &rightValue node.Right then flags <- flags ||| NeighbourFlags.Right
-                if tryGetMax &leftKey &leftValue node.Left then flags <- flags ||| NeighbourFlags.Left
-                flags ||| NeighbourFlags.Self
+                let node = node :?> Inner<'Key, 'Value>
+                let id = index - count node.Left
+                if id > 0 then
+                    flags <- flags ||| NeighbourFlags.Left
+                    leftKey <- node.Key
+                    leftValue <- node.Value
+                    traverse (id - 1) node.Right
+                elif id < 0 then
+                    flags <- flags ||| NeighbourFlags.Right
+                    rightKey <- node.Key
+                    rightValue <- node.Value
+                    traverse index node.Left
+                else    
+                    flags <- flags ||| NeighbourFlags.Self
+                    selfKey <- node.Key
+                    selfValue <- node.Value
+                    let struct(minOk, minKey, minValue) = tryGetMin node.Right
+                    if minOk then
+                        flags <- flags ||| NeighbourFlags.Right
+                        rightKey <- minKey
+                        rightValue <- minValue
+                    let struct(maxOk, maxKey, maxValue) = tryGetMax node.Left
+                    if maxOk then
+                        flags <- flags ||| NeighbourFlags.Left
+                        leftKey <- maxKey
+                        leftValue <- maxValue
 
+        traverse index node
+        struct(flags, leftKey, leftValue, selfKey, selfValue, rightKey, rightValue)
 
 
     let rec withMin (cmp : IComparer<'Key>) (minKey : 'Key) (node : Node<'Key, 'Value>) =
@@ -1513,57 +1527,69 @@ module internal MapExtImplementation =
             else
                 withMax cmp maxKey node.Left |> add cmp node.Key node.Value
   
-    let rec withMinExclusiveN 
+    let withMinExclusiveN 
         (cmp : IComparer<'Key>) (minKey : 'Key) 
-        (firstKey : byref<'Key>) (firstValue : byref<'Value>)
         (node : Node<'Key, 'Value>) =
-        if isNull node then
-            node
-        elif node.Height = 1uy then
-            let c = cmp.Compare(node.Key, minKey)
-            if c > 0 then 
-                firstKey <- node.Key
-                firstValue <- node.Value
+        let mutable firstKey = Unchecked.defaultof<'Key>
+        let mutable firstValue = Unchecked.defaultof<'Value>
+
+        let rec traverse (node : Node<'Key, 'Value>) =
+            if isNull node then
                 node
-            else 
-                null
-        else
-            let node = node :?> Inner<'Key, 'Value>
-            let c = cmp.Compare(node.Key, minKey)
-            if c > 0 then
-                let newLeft = withMinExclusiveN cmp minKey &firstKey &firstValue node.Left
-                if isNull newLeft then
+            elif node.Height = 1uy then
+                let c = cmp.Compare(node.Key, minKey)
+                if c > 0 then 
                     firstKey <- node.Key
                     firstValue <- node.Value
-                binary newLeft node.Key node.Value node.Right
+                    node
+                else 
+                    null
             else
-                withMinExclusiveN cmp minKey &firstKey &firstValue node.Right
- 
-    let rec withMaxExclusiveN 
+                let node = node :?> Inner<'Key, 'Value>
+                let c = cmp.Compare(node.Key, minKey)
+                if c > 0 then
+                    let newLeft = traverse node.Left
+                    if isNull newLeft then
+                        firstKey <- node.Key
+                        firstValue <- node.Value
+                    binary newLeft node.Key node.Value node.Right
+                else
+                    traverse node.Right
+
+        let result = traverse node
+        (result, firstKey, firstValue)
+
+    let withMaxExclusiveN 
         (cmp : IComparer<'Key>) (maxKey : 'Key) 
-        (lastKey : byref<'Key>) (lastValue : byref<'Value>)
         (node : Node<'Key, 'Value>) =
-        if isNull node then
-            node
-        elif node.Height = 1uy then
-            let c = cmp.Compare(node.Key, maxKey)
-            if c < 0 then 
-                lastKey <- node.Key
-                lastValue <- node.Value
+        let mutable lastKey = Unchecked.defaultof<'Key>
+        let mutable lastValue = Unchecked.defaultof<'Value>
+
+        let rec traverse (node : Node<'Key, 'Value>) =
+            if isNull node then
                 node
-            else 
-                null
-        else
-            let node = node :?> Inner<'Key, 'Value>
-            let c = cmp.Compare(node.Key, maxKey)
-            if c < 0 then
-                let newRight = withMaxExclusiveN cmp maxKey &lastKey &lastValue node.Right
-                if isNull newRight then
+            elif node.Height = 1uy then
+                let c = cmp.Compare(node.Key, maxKey)
+                if c < 0 then 
                     lastKey <- node.Key
                     lastValue <- node.Value
-                binary node.Left node.Key node.Value newRight
+                    node
+                else 
+                    null
             else
-                withMaxExclusiveN cmp maxKey &lastKey &lastValue node.Left
+                let node = node :?> Inner<'Key, 'Value>
+                let c = cmp.Compare(node.Key, maxKey)
+                if c < 0 then
+                    let newRight = traverse node.Right
+                    if isNull newRight then
+                        lastKey <- node.Key
+                        lastValue <- node.Value
+                    binary node.Left node.Key node.Value newRight
+                else
+                    traverse node.Left
+
+        let result = traverse node
+        (result, lastKey, lastValue)
 
 
     let rec slice (cmp : IComparer<'Key>) (minKey : 'Key) (maxKey : 'Key) (node : Node<'Key, 'Value>) =
@@ -1740,17 +1766,15 @@ module internal MapExtImplementation =
                 binary (changeWithNeighbours cmp key l (ValueSome struct(node.Key, node.Value)) replacement node.Left) node.Key node.Value node.Right
             else
                 let rNeighbour =
-                    let mutable k = Unchecked.defaultof<_>
-                    let mutable v = Unchecked.defaultof<_>
-                    if tryGetMin &k &v node.Right then
+                    let struct(ok, k, v) = tryGetMin node.Right
+                    if ok then
                         ValueSome struct(k,v)
                     else
                         r
 
                 let lNeighbour =
-                    let mutable k = Unchecked.defaultof<_>
-                    let mutable v = Unchecked.defaultof<_>
-                    if tryGetMax &k &v node.Right then
+                    let struct(ok, k, v) = tryGetMax node.Right
+                    if ok then
                         ValueSome struct(k,v)
                     else
                         l
@@ -1820,13 +1844,8 @@ module internal MapExtImplementation =
             let cMax = cmp.Compare(node.Key, max)
             if cMin >= 0 && cMax <= 0 then
 
-                let mutable minKey = Unchecked.defaultof<_>
-                let mutable minValue = Unchecked.defaultof<_>
-                let mutable maxKey = Unchecked.defaultof<_>
-                let mutable maxValue = Unchecked.defaultof<_>
-
-                let l1 = withMaxExclusiveN cmp min &minKey &minValue node.Left
-                let r1 = withMinExclusiveN cmp max &maxKey &maxValue node.Right
+                let (l1, minKey, minValue) = withMaxExclusiveN cmp min node.Left
+                let (r1, maxKey, maxValue) = withMinExclusiveN cmp max node.Right
 
                 let ln = 
                     if isNull l1 then l
@@ -1947,10 +1966,7 @@ module internal MapExtImplementation =
         elif node1.Height > node2.Height then
             // both are inner h1 > h2
             let node1 = node1 :?> Inner<'Key, 'Value1>
-            let mutable l2 = null
-            let mutable s2 = Unchecked.defaultof<_>
-            let mutable r2 = null
-            let hasValue = split cmp node1.Key &l2 &s2 &r2 node2
+            let struct(hasValue, l2, s2, r2) = split cmp node1.Key node2
             if hasValue then
                 let ld = computeDelta cmp node1.Left l2 update invoke revoke
                 let self = update.Invoke(node1.Key, node1.Value, s2)
@@ -1966,10 +1982,7 @@ module internal MapExtImplementation =
         else
             // both are inner h2 > h1
             let node2 = node2 :?> Inner<'Key, 'Value2>
-            let mutable l1 = null
-            let mutable s1 = Unchecked.defaultof<_>
-            let mutable r1 = null
-            let hasValue = split cmp node2.Key &l1 &s1 &r1 node1
+            let struct(hasValue, l1, s1, r1) = split cmp node2.Key node1
             if hasValue then
                 let ld = computeDelta cmp l1 node2.Left update invoke revoke
                 let self = update.Invoke(node2.Key, s1, node2.Value)
@@ -2114,10 +2127,7 @@ module internal MapExtImplementation =
             else
                 // both inner
                 let state = state :?> Inner<'Key, 'Value>
-                let mutable dl = null
-                let mutable ds = Unchecked.defaultof<_>
-                let mutable dr = null
-                let hasValue = split cmp state.Key &dl &ds &dr delta
+                let struct(hasValue, dl, ds, dr) = split cmp state.Key delta
                 let delta = ()
 
                 if hasValue then
@@ -2135,35 +2145,39 @@ module internal MapExtImplementation =
 
         let rec chooseVAndGetEffective 
             (mapping : OptimizedClosures.FSharpFunc<'Key, 'Value, struct(voption<'T> * voption<'T2>)>) 
-            (effective : byref<Node<'Key, 'T2>>) 
             (node : Node<'Key, 'Value>) =
-            if isNull node then
-                effective <- null
-                null
-            elif node.Height = 1uy then
-                let struct(s, op) = mapping.Invoke(node.Key, node.Value)
 
-                match op with
-                | ValueNone -> effective <- null
-                | ValueSome op -> effective <- Node(node.Key, op)
+            let mutable effective : Node<'Key, 'T2> = null
+            let result =
 
-                match s with
-                | ValueSome v -> Node(node.Key, v)
-                | ValueNone -> null
-            else
-                let node = node :?> Inner<'Key, 'Value>
-                let mutable re = null
-                let l = chooseVAndGetEffective mapping &effective node.Left
-                let struct(s, op) = mapping.Invoke(node.Key, node.Value)
-                let r = chooseVAndGetEffective mapping &re node.Right
-                
-                match op with
-                | ValueNone -> effective <- join effective re
-                | ValueSome op -> effective <- binary effective node.Key op re
+                if isNull node then
+                    effective <- null
+                    null
+                elif node.Height = 1uy then
+                    let struct(s, op) = mapping.Invoke(node.Key, node.Value)
 
-                match s with
-                | ValueSome s -> binary l node.Key s r
-                | ValueNone -> join l r
+                    match op with
+                    | ValueNone -> effective <- null
+                    | ValueSome op -> effective <- Node(node.Key, op)
+
+                    match s with
+                    | ValueSome v -> Node(node.Key, v)
+                    | ValueNone -> null
+                else
+                    let node = node :?> Inner<'Key, 'Value>
+                    let struct(l, le) = chooseVAndGetEffective mapping node.Left
+                    let struct(s, op) = mapping.Invoke(node.Key, node.Value)
+                    let struct(r, re) = chooseVAndGetEffective mapping node.Right
+                    
+                    match op with
+                    | ValueNone -> effective <- join le re
+                    | ValueSome op -> effective <- binary le node.Key op re
+
+                    match s with
+                    | ValueSome s -> binary l node.Key s r
+                    | ValueNone -> join l r
+
+            struct(result, effective)
 
         let rec private applyDeltaSingletonStateEff 
             (cmp : IComparer<'Key>)
@@ -2171,8 +2185,11 @@ module internal MapExtImplementation =
             (specialValue : 'Value)
             (mapping : OptimizedClosures.FSharpFunc<'Key, 'OP, struct(voption<'Value> * voption<'OP2>)>) 
             (mapping2 : OptimizedClosures.FSharpFunc<'Key, 'Value, 'OP, struct(voption<'Value> * voption<'OP2>)>) 
-            (effective : byref<Node<'Key, 'OP2>>)
             (delta : Node<'Key, 'OP>) = 
+
+            let mutable effective : Node<'Key, 'OP2> = null
+            let result =
+
                 if isNull delta then
                     effective <- null
                     Node(specialKey, specialValue)
@@ -2212,45 +2229,44 @@ module internal MapExtImplementation =
                     let delta = delta :?> Inner<'Key, 'OP>
                     let c = cmp.Compare(specialKey, delta.Key)
                     if c > 0 then
-                        let mutable re = null
-                        let l = chooseVAndGetEffective mapping &effective delta.Left
+                        let struct(l, le) = chooseVAndGetEffective mapping delta.Left
                         let struct(s, op) = mapping.Invoke(delta.Key, delta.Value)
-                        let r = applyDeltaSingletonStateEff cmp specialKey specialValue mapping mapping2 &re delta.Right
+                        let struct(r, re) = applyDeltaSingletonStateEff cmp specialKey specialValue mapping mapping2 delta.Right
                         
                         match op with
-                        | ValueNone -> effective <- join effective re
-                        | ValueSome op -> effective <- binary effective delta.Key op re
+                        | ValueNone -> effective <- join le re
+                        | ValueSome op -> effective <- binary le delta.Key op re
 
                         match s with
                         | ValueSome value -> binary l delta.Key value r
                         | ValueNone -> join l r
                     elif c < 0 then
-                        let mutable re = null
-                        let l = applyDeltaSingletonStateEff cmp specialKey specialValue mapping mapping2 &effective delta.Left
+                        let struct(l, le) = applyDeltaSingletonStateEff cmp specialKey specialValue mapping mapping2 delta.Left
                         let struct(s, op) = mapping.Invoke(delta.Key, delta.Value)
-                        let r = chooseVAndGetEffective mapping &re delta.Right
+                        let struct(r, re) = chooseVAndGetEffective mapping delta.Right
 
                         match op with
-                        | ValueNone -> effective <- join effective re
-                        | ValueSome op -> effective <- binary effective delta.Key op re
+                        | ValueNone -> effective <- join le re
+                        | ValueSome op -> effective <- binary le delta.Key op re
 
                         match s with
                         | ValueSome value -> binary l delta.Key value r
                         | ValueNone -> join l r
                    
                     else
-                        let mutable re = null
-                        let l = chooseVAndGetEffective mapping &effective delta.Left
+                        let struct(l, le) = chooseVAndGetEffective mapping delta.Left
                         let struct(s, op) = mapping2.Invoke(delta.Key, specialValue, delta.Value)
-                        let r = chooseVAndGetEffective mapping &re delta.Right
+                        let struct(r, re) = chooseVAndGetEffective mapping delta.Right
                         
                         match op with
-                        | ValueNone -> effective <- join effective re
-                        | ValueSome op -> effective <- binary effective delta.Key op re
+                        | ValueNone -> effective <- join le re
+                        | ValueSome op -> effective <- binary le delta.Key op re
 
                         match s with
                         | ValueSome res -> binary l delta.Key res r
                         | ValueNone -> join l r
+
+            struct(result, effective)
 
 
         let rec private applyDeltaSingleEff
@@ -2259,60 +2275,69 @@ module internal MapExtImplementation =
             (specialValue : 'T)
             (update : OptimizedClosures.FSharpFunc<'Key, 'T, struct(voption<'Value> * voption<'OP2>)>)
             (update2 : OptimizedClosures.FSharpFunc<'Key, 'Value, 'T, struct(voption<'Value> * voption<'OP2>)>) 
-            (effective : byref<Node<'Key, _>>)
-            (node : Node<'Key, 'Value>) : Node<'Key, 'Value> =
-            if isNull node then
-                let struct(state, delta) = update.Invoke(specialKey, specialValue)
+            (node : Node<'Key, 'Value>) =
 
-                match delta with
-                | ValueNone -> effective <- null
-                | ValueSome op -> effective <- Node(specialKey, op)
+            let mutable effective : Node<'Key, 'OP2> = null
+            let result =
 
-                match state with
-                | ValueNone -> null
-                | ValueSome v -> Node(specialKey, v)
-
-            elif node.Height = 1uy then
-                let c = cmp.Compare(specialKey, node.Key)
-                if c > 0 then
+                if isNull node then
                     let struct(state, delta) = update.Invoke(specialKey, specialValue)
+
                     match delta with
                     | ValueNone -> effective <- null
                     | ValueSome op -> effective <- Node(specialKey, op)
-                    match state with
-                    | ValueNone -> node
-                    | ValueSome n -> Inner(node, specialKey, n, null, 2uy, 2) :> Node<_,_>
-                elif c < 0 then
-                    let struct(state, delta) = update.Invoke(specialKey, specialValue)
-                    match delta with
-                    | ValueNone -> effective <- null
-                    | ValueSome op -> effective <- Node(specialKey, op)
-                    match state with
-                    | ValueNone -> node
-                    | ValueSome n -> Inner(null, specialKey, n, node, 2uy, 2) :> Node<_,_>
-                else
-                    let struct(state, delta) = update2.Invoke(specialKey, node.Value, specialValue)
-                    match delta with
-                    | ValueSome op -> effective <- Node(specialKey, op)
-                    | ValueNone -> effective <- null
+
                     match state with
                     | ValueNone -> null
                     | ValueSome v -> Node(specialKey, v)
-            else    
-                let node = node :?> Inner<'Key, 'Value>
-                let c = cmp.Compare(specialKey, node.Key)
-                if c > 0 then
-                    unsafeBinary node.Left node.Key node.Value (applyDeltaSingleEff cmp specialKey specialValue update update2 &effective node.Right)
-                elif c < 0 then
-                    unsafeBinary (applyDeltaSingleEff cmp specialKey specialValue update update2 &effective node.Left) node.Key node.Value node.Right
-                else
-                    let struct(state, delta) = update2.Invoke(specialKey, node.Value, specialValue)
-                    match delta with
-                    | ValueNone -> effective <- null
-                    | ValueSome op -> effective <- Node(specialKey, op)
-                    match state with
-                    | ValueSome n -> Inner(node.Left, specialKey, n, node.Right, node.Height, node.Count) :> Node<_,_>
-                    | ValueNone -> unsafeJoin node.Left node.Right
+
+                elif node.Height = 1uy then
+                    let c = cmp.Compare(specialKey, node.Key)
+                    if c > 0 then
+                        let struct(state, delta) = update.Invoke(specialKey, specialValue)
+                        match delta with
+                        | ValueNone -> effective <- null
+                        | ValueSome op -> effective <- Node(specialKey, op)
+                        match state with
+                        | ValueNone -> node
+                        | ValueSome n -> Inner(node, specialKey, n, null, 2uy, 2) :> Node<_,_>
+                    elif c < 0 then
+                        let struct(state, delta) = update.Invoke(specialKey, specialValue)
+                        match delta with
+                        | ValueNone -> effective <- null
+                        | ValueSome op -> effective <- Node(specialKey, op)
+                        match state with
+                        | ValueNone -> node
+                        | ValueSome n -> Inner(null, specialKey, n, node, 2uy, 2) :> Node<_,_>
+                    else
+                        let struct(state, delta) = update2.Invoke(specialKey, node.Value, specialValue)
+                        match delta with
+                        | ValueSome op -> effective <- Node(specialKey, op)
+                        | ValueNone -> effective <- null
+                        match state with
+                        | ValueNone -> null
+                        | ValueSome v -> Node(specialKey, v)
+                else    
+                    let node = node :?> Inner<'Key, 'Value>
+                    let c = cmp.Compare(specialKey, node.Key)
+                    if c > 0 then
+                        let struct(r, re) = applyDeltaSingleEff cmp specialKey specialValue update update2 node.Right
+                        effective <- re
+                        unsafeBinary node.Left node.Key node.Value r
+                    elif c < 0 then
+                        let struct(l, le) = applyDeltaSingleEff cmp specialKey specialValue update update2 node.Left
+                        effective <- le
+                        unsafeBinary l node.Key node.Value node.Right
+                    else
+                        let struct(state, delta) = update2.Invoke(specialKey, node.Value, specialValue)
+                        match delta with
+                        | ValueNone -> effective <- null
+                        | ValueSome op -> effective <- Node(specialKey, op)
+                        match state with
+                        | ValueSome n -> Inner(node.Left, specialKey, n, node.Right, node.Height, node.Count) :> Node<_,_>
+                        | ValueNone -> unsafeJoin node.Left node.Right
+
+            struct(result, effective)
 
         let rec applyDeltaAndGetEffective
             (cmp : IComparer<'Key>)
@@ -2320,54 +2345,59 @@ module internal MapExtImplementation =
             (delta : Node<'Key, 'OP>)
             (applyNoState : OptimizedClosures.FSharpFunc<'Key, 'OP, struct(voption<'Value> * voption<'OP2>)>) 
             (apply : OptimizedClosures.FSharpFunc<'Key, 'Value, 'OP, struct(voption<'Value> * voption<'OP2>)>) 
-            (effective : byref<Node<'Key, 'OP2>>) =
+            =
 
-            if isNull delta then
-                // delta empty
-                effective <- null
-                state
+            let mutable effective : Node<'Key, 'OP2> = null
+            let result =
 
-            elif isNull state then
-                // state empty
-                chooseVAndGetEffective applyNoState &effective delta
+                if isNull delta then
+                    // delta empty
+                    effective <- null
+                    state
 
-            elif delta.Height = 1uy then
-                // delta leaf
-                applyDeltaSingleEff cmp delta.Key delta.Value applyNoState apply &effective state
-      
-            elif state.Height = 1uy then
-                // state leaf
-                applyDeltaSingletonStateEff cmp state.Key state.Value applyNoState apply &effective delta
-                
-            else
-                // both inner
-                let state = state :?> Inner<'Key, 'Value>
-                let mutable dl = null
-                let mutable ds = Unchecked.defaultof<_>
-                let mutable dr = null
-                let hasValue = split cmp state.Key &dl &ds &dr delta
-                let delta = ()
+                elif isNull state then
+                    // state empty
+                    let struct(res, e) = chooseVAndGetEffective applyNoState delta
+                    effective <- e
+                    res
 
-                let mutable re = null
-
-                if hasValue then
-                    let l = applyDeltaAndGetEffective cmp state.Left dl applyNoState apply &effective
-                    let struct(s, op) = apply.Invoke(state.Key, state.Value, ds)
-                    let r = applyDeltaAndGetEffective cmp state.Right dr applyNoState apply &re
-
-                    match op with
-                    | ValueNone -> effective <- join effective re
-                    | ValueSome op -> effective <- binary effective state.Key op re
-
-                    match s with
-                    | ValueSome self -> binary l state.Key self r
-                    | ValueNone -> join l r
+                elif delta.Height = 1uy then
+                    // delta leaf
+                    let struct(res, e) = applyDeltaSingleEff cmp delta.Key delta.Value applyNoState apply state
+                    effective <- e
+                    res
+        
+                elif state.Height = 1uy then
+                    // state leaf
+                    let struct(res, e) = applyDeltaSingletonStateEff cmp state.Key state.Value applyNoState apply delta
+                    effective <- e
+                    res
+                    
                 else
-                    let l = applyDeltaAndGetEffective cmp state.Left dl applyNoState apply &effective
-                    let r = applyDeltaAndGetEffective cmp state.Right dr applyNoState apply &re
-                    effective <- join effective re
-                    binary l state.Key state.Value r
-            
+                    // both inner
+                    let state = state :?> Inner<'Key, 'Value>
+                    let struct(hasValue, dl, ds, dr) = split cmp state.Key delta
+                    let delta = ()
+
+                    if hasValue then
+                        let struct(l, le) = applyDeltaAndGetEffective cmp state.Left dl applyNoState apply
+                        let struct(s, op) = apply.Invoke(state.Key, state.Value, ds)
+                        let struct(r, re) = applyDeltaAndGetEffective cmp state.Right dr applyNoState apply
+
+                        match op with
+                        | ValueNone -> effective <- join le re
+                        | ValueSome op -> effective <- binary le state.Key op re
+
+                        match s with
+                        | ValueSome self -> binary l state.Key self r
+                        | ValueNone -> join l r
+                    else
+                        let struct(l, le) = applyDeltaAndGetEffective cmp state.Left dl applyNoState apply
+                        let struct(r, re) = applyDeltaAndGetEffective cmp state.Right dr applyNoState apply
+                        effective <- join le re
+                        binary l state.Key state.Value r
+
+            struct(result, effective)
 
 
     let rec private choose2Helper 
@@ -2481,10 +2511,8 @@ module internal MapExtImplementation =
             let b = b :?> Inner<'Key, 'B>
             
             if a.Height > b.Height then
-                let mutable bl = null
-                let mutable bs = Unchecked.defaultof<_>
-                let mutable br = null
-                if split cmp a.Key &bl &bs &br (b :> Node<_,_>) then
+                let struct(hasValue, bl, bs, br) = split cmp a.Key (b :> Node<_,_>)
+                if hasValue then
                     let l = choose2 cmp onlyLeft both onlyRight a.Left bl
                     let s = both.Invoke(a.Key, a.Value, bs)
                     let r = choose2 cmp onlyLeft both onlyRight a.Right br
@@ -2500,10 +2528,8 @@ module internal MapExtImplementation =
                     | ValueNone -> join l r
                     
             else
-                let mutable al = null
-                let mutable aa = Unchecked.defaultof<_>
-                let mutable ar = null
-                if split cmp b.Key &al &aa &ar (a :> Node<_,_>) then
+                let struct(hasValue, al, aa, ar) = split cmp b.Key (a :> Node<_,_>)
+                if hasValue then
                     let l = choose2 cmp onlyLeft both onlyRight al b.Left
                     let s = both.Invoke(a.Key, aa, b.Value)
                     let r = choose2 cmp onlyLeft both onlyRight ar b.Right
@@ -2545,20 +2571,16 @@ module internal MapExtImplementation =
             let nb = b :?> Inner<'Key, 'Value>
             
             if na.Height > nb.Height then
-                let mutable bl = null
-                let mutable bs = Unchecked.defaultof<_>
-                let mutable br = null
-                if split cmp na.Key &bl &bs &br b then
+                let struct(hasValue, bl, bs, br) = split cmp na.Key b
+                if hasValue then
                     Unchecked.equals na.Value bs &&
                     equals cmp na.Left bl &&
                     equals cmp na.Right br
                 else
                     false
             else 
-                let mutable al = null
-                let mutable aa = Unchecked.defaultof<_>
-                let mutable ar = null
-                if split cmp nb.Key &al &aa &ar a then
+                let struct(hasValue, al, aa, ar) = split cmp nb.Key a
+                if hasValue then
                     Unchecked.equals aa nb.Value &&
                     equals cmp al nb.Left &&
                     equals cmp ar nb.Right
@@ -2806,8 +2828,8 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
         MapExt(comparer, MapExtImplementation.add comparer key value root)
             
     member x.Remove(key : 'Key) =
-        let mutable newRoot = null
-        if MapExtImplementation.tryRemove' comparer key &newRoot root then
+        let struct(ok, newRoot) = MapExtImplementation.tryRemove' comparer key root
+        if ok then
             MapExt(comparer, newRoot)
         else    
             x
@@ -2815,49 +2837,49 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
     member x.RemoveAt(index : int) =
         if index < 0 || index >= x.Count then x
         else 
-            let mutable k = Unchecked.defaultof<_>
-            let mutable v = Unchecked.defaultof<_>
-            MapExt(comparer, MapExtImplementation.removeAt index &k &v root)
+            let struct(result, k, v) = MapExtImplementation.removeAt index root
+            MapExt(comparer, result)
             
     member x.TryRemoveAt(index : int) =
         if index < 0 || index >= x.Count then 
             None
         else 
-            let mutable k = Unchecked.defaultof<_>
-            let mutable v = Unchecked.defaultof<_>
-            let res = MapExt(comparer, MapExtImplementation.removeAt index &k &v root)
+            let struct(result, k, v) = MapExtImplementation.removeAt index root
+            let res = MapExt(comparer, result)
             Some ((k, v), res)
             
     member x.TryRemoveAtV(index : int) =
         if index < 0 || index >= x.Count then 
             ValueNone
         else 
-            let mutable k = Unchecked.defaultof<_>
-            let mutable v = Unchecked.defaultof<_>
-            let res = MapExt(comparer, MapExtImplementation.removeAt index &k &v root)
+            let struct(result, k, v) = MapExtImplementation.removeAt index root
+            let res = MapExt(comparer, result)
             ValueSome struct(k, v, res)
             
+#if !FABLE_COMPILER
     member x.TryRemove(key : 'Key, [<Out>] result : byref<MapExt<'Key, 'Value>>, [<Out>] removedValue : byref<'Value>) =
-        let mutable newRoot = null
-        if MapExtImplementation.tryRemove comparer key &removedValue &newRoot root then
+        let struct(ok, newRoot, removedValue) =
+            MapExtImplementation.tryRemove comparer key root
+        if ok then
             result <- MapExt(comparer, newRoot)
             true
         else    
             result <- x
             false
+#endif
 
     member x.TryRemove(key : 'Key) =
-        let mutable newRoot = null
-        let mutable removedValue = Unchecked.defaultof<_>
-        if MapExtImplementation.tryRemove comparer key &removedValue &newRoot root then
+        let struct(ok, newRoot, removedValue) =
+            MapExtImplementation.tryRemove comparer key root
+        if ok then
             Some(removedValue, MapExt(comparer, newRoot))
         else    
             None
 
     member x.TryRemoveV(key : 'Key) =
-        let mutable newRoot = null
-        let mutable removedValue = Unchecked.defaultof<_>
-        if MapExtImplementation.tryRemove comparer key &removedValue &newRoot root then
+        let struct(ok, newRoot, removedValue) =
+            MapExtImplementation.tryRemove comparer key root
+        if ok then
             ValueSome struct(removedValue, MapExt(comparer, newRoot))
         else    
             ValueNone
@@ -2876,45 +2898,34 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
     member x.Find(key : 'Key) =
         MapExtImplementation.find comparer key root
 
-
     member x.TryItem(index : int) =
         if index < 0 || index >= x.Count then None
         else
-            let mutable k = Unchecked.defaultof<_>
-            let mutable v = Unchecked.defaultof<_>
-            MapExtImplementation.tryGetItem index &k &v root |> ignore
-            Some (k, v)
-            
+            let struct(ok, k, v) = MapExtImplementation.tryGetItem index root
+            if ok then Some (k, v)
+            else None
+
     member x.TryItemV(index : int) =
         if index < 0 || index >= x.Count then ValueNone
         else
-            let mutable k = Unchecked.defaultof<_>
-            let mutable v = Unchecked.defaultof<_>
-            MapExtImplementation.tryGetItem index &k &v root |> ignore
-            ValueSome struct(k, v)
+            let struct(ok, k, v) = MapExtImplementation.tryGetItem index root
+            if ok then ValueSome struct(k, v)
+            else ValueNone
 
-    member x.TryGetItem(index : int, [<Out>] key : byref<'Key>, [<Out>] value : byref<'Value>) =
-        if index < 0 || index >= x.Count then false
-        else MapExtImplementation.tryGetItem index &key &value root 
+    member x.TryGetItem(index : int) =
+        if index < 0 || index >= x.Count
+        then struct(false, Unchecked.defaultof<'Key>, Unchecked.defaultof<'Value>)
+        else MapExtImplementation.tryGetItem index root
 
     member x.GetItem(index : int) =
-        if index < 0 || index >= x.Count then
-            raise <| System.IndexOutOfRangeException()
-        else
-            let mutable k = Unchecked.defaultof<_>
-            let mutable v = Unchecked.defaultof<_>
-            MapExtImplementation.tryGetItem index &k &v root |> ignore
-            (k, v)
-            
+        let struct(ok, k, v) = x.TryGetItem index
+        if ok then (k, v)
+        else raise <| System.IndexOutOfRangeException()
+
     member x.GetItemV(index : int) =
-        if index < 0 || index >= x.Count then
-            raise <| System.IndexOutOfRangeException()
-        else
-            let mutable k = Unchecked.defaultof<_>
-            let mutable v = Unchecked.defaultof<_>
-            MapExtImplementation.tryGetItem index &k &v root |> ignore
-            struct(k, v)
-        
+        let struct(ok, k, v) = x.TryGetItem index
+        if ok then struct(k, v)
+        else raise <| System.IndexOutOfRangeException()
             
     member x.GetIndex(key : 'Key) =
         MapExtImplementation.tryGetIndex comparer key 0 root
@@ -2929,153 +2940,136 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
         if index >= 0 then ValueSome index
         else ValueNone
 
+#if !FABLE_COMPILER
     member x.TryGetValue(key : 'Key, [<Out>] value : byref<'Value>) =
-        MapExtImplementation.tryGetValue comparer key &value root
+        let struct(ok, res) = MapExtImplementation.tryGetValue comparer key root
+        value <- res
+        ok
+#endif
 
     member x.TryFind(key : 'Key) =
         MapExtImplementation.tryFind comparer key root
         
     member x.TryFindV(key : 'Key) =
-        let mutable res = Unchecked.defaultof<_>
-        if MapExtImplementation.tryGetValue comparer key &res root then
+        let struct(ok, res) = MapExtImplementation.tryGetValue comparer key root
+        if ok then
             ValueSome res
         else
             ValueNone
-
 
     member x.ContainsKey(key : 'Key) =
         MapExtImplementation.containsKey comparer key root
         
     member x.GetMinKey() =
-        let mutable minKey = Unchecked.defaultof<_>
-        let mutable minValue = Unchecked.defaultof<_>
-        if MapExtImplementation.tryGetMin &minKey &minValue root then
+        let struct(ok, minKey, minValue) = MapExtImplementation.tryGetMin root
+        if ok then
             minKey
         else    
             raise <| System.IndexOutOfRangeException()
             
     member x.GetMaxKey() =
-        let mutable maxKey = Unchecked.defaultof<_>
-        let mutable maxValue = Unchecked.defaultof<_>
-        if MapExtImplementation.tryGetMax &maxKey &maxValue root then
+        let struct(ok, maxKey, maxValue) = MapExtImplementation.tryGetMax root
+        if ok then
             maxKey
         else    
             raise <| System.IndexOutOfRangeException()
         
     member x.TryMin() =
-        let mutable minKey = Unchecked.defaultof<_>
-        let mutable minValue = Unchecked.defaultof<_>
-        if MapExtImplementation.tryGetMin &minKey &minValue root then
+        let struct(ok, minKey, minValue) = MapExtImplementation.tryGetMin root
+        if ok then
             Some (minKey, minValue)
         else    
             None
         
     member x.TryMax() =
-        let mutable maxKey = Unchecked.defaultof<_>
-        let mutable maxValue = Unchecked.defaultof<_>
-        if MapExtImplementation.tryGetMax &maxKey &maxValue root then
+        let struct(ok, maxKey, maxValue) = MapExtImplementation.tryGetMax root
+        if ok then
             Some (maxKey, maxValue)
         else    
             None
         
     member x.TryMinV() =
-        let mutable minKey = Unchecked.defaultof<_>
-        let mutable minValue = Unchecked.defaultof<_>
-        if MapExtImplementation.tryGetMin &minKey &minValue root then
+        let struct(ok, minKey, minValue) = MapExtImplementation.tryGetMin root
+        if ok then
             ValueSome struct(minKey, minValue)
         else    
             ValueNone
         
     member x.TryMaxV() =
-        let mutable maxKey = Unchecked.defaultof<_>
-        let mutable maxValue = Unchecked.defaultof<_>
-        if MapExtImplementation.tryGetMax &maxKey &maxValue root then
+        let struct(ok, maxKey, maxValue) = MapExtImplementation.tryGetMax root
+        if ok then
             ValueSome struct(maxKey, maxValue)
         else    
             ValueNone
-
             
     member x.TryMinKey() =
-        let mutable minKey = Unchecked.defaultof<_>
-        let mutable minValue = Unchecked.defaultof<_>
-        if MapExtImplementation.tryGetMin &minKey &minValue root then
+        let struct(ok, minKey, minValue) = MapExtImplementation.tryGetMin root
+        if ok then
             Some minKey
         else    
             None
         
     member x.TryMaxKey() =
-        let mutable maxKey = Unchecked.defaultof<_>
-        let mutable maxValue = Unchecked.defaultof<_>
-        if MapExtImplementation.tryGetMax &maxKey &maxValue root then
+        let struct(ok, maxKey, maxValue) = MapExtImplementation.tryGetMax root
+        if ok then
             Some maxKey
         else    
             None
             
     member x.TryMinKeyV() =
-        let mutable minKey = Unchecked.defaultof<_>
-        let mutable minValue = Unchecked.defaultof<_>
-        if MapExtImplementation.tryGetMin &minKey &minValue root then
+        let struct(ok, minKey, minValue) = MapExtImplementation.tryGetMin root
+        if ok then
             ValueSome minKey
         else    
             ValueNone
         
     member x.TryMaxKeyV() =
-        let mutable maxKey = Unchecked.defaultof<_>
-        let mutable maxValue = Unchecked.defaultof<_>
-        if MapExtImplementation.tryGetMax &maxKey &maxValue root then
+        let struct(ok, maxKey, maxValue) = MapExtImplementation.tryGetMax root
+        if ok then
             ValueSome maxKey
         else    
             ValueNone
             
     member x.TryMinValue() =
-        let mutable minKey = Unchecked.defaultof<_>
-        let mutable minValue = Unchecked.defaultof<_>
-        if MapExtImplementation.tryGetMin &minKey &minValue root then
+        let struct(ok, minKey, minValue) = MapExtImplementation.tryGetMin root
+        if ok then
             Some minValue
         else    
             None
         
     member x.TryMaxValue() =
-        let mutable maxKey = Unchecked.defaultof<_>
-        let mutable maxValue = Unchecked.defaultof<_>
-        if MapExtImplementation.tryGetMax &maxKey &maxValue root then
+        let struct(ok, maxKey, maxValue) = MapExtImplementation.tryGetMax root
+        if ok then
             Some maxValue
         else    
             None
+
     member x.TryRemoveMin() =
         if isNull root then 
             None
         else 
-            let mutable k = Unchecked.defaultof<_>
-            let mutable v = Unchecked.defaultof<_>
-            let rest = MapExtImplementation.unsafeRemoveMin &k &v root
+            let struct(k, v, rest) = MapExtImplementation.unsafeRemoveMin root
             Some (k,v,MapExt(comparer, rest))
             
     member x.TryRemoveMax() =
         if isNull root then 
             None
         else 
-            let mutable k = Unchecked.defaultof<_>
-            let mutable v = Unchecked.defaultof<_>
-            let rest = MapExtImplementation.unsafeRemoveMax &k &v root
+            let struct(k, v, rest) = MapExtImplementation.unsafeRemoveMax root
             Some (k,v,MapExt(comparer, rest))
             
     member x.TryRemoveMinV() =
         if isNull root then 
             ValueNone
         else 
-            let mutable k = Unchecked.defaultof<_>
-            let mutable v = Unchecked.defaultof<_>
-            let rest = MapExtImplementation.unsafeRemoveMin &k &v root
+            let struct(k, v, rest) = MapExtImplementation.unsafeRemoveMin root
             ValueSome struct(k,v,MapExt(comparer, rest))
             
     member x.TryRemoveMaxV() =
         if isNull root then 
             ValueNone
         else 
-            let mutable k = Unchecked.defaultof<_>
-            let mutable v = Unchecked.defaultof<_>
-            let rest = MapExtImplementation.unsafeRemoveMax &k &v root
+            let struct(k, v, rest) = MapExtImplementation.unsafeRemoveMax root
             ValueSome struct(k,v,MapExt(comparer, rest))
 
     
@@ -3256,9 +3250,7 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
         
     member x.Partition(predicate : 'Key -> 'Value -> bool) =
         let predicate = OptimizedClosures.FSharpFunc<_,_,_>.Adapt predicate
-        let mutable t = null
-        let mutable f = null
-        MapExtImplementation.partition predicate &t &f root
+        let struct(t, f) = MapExtImplementation.partition predicate root
         MapExt(comparer, t), MapExt(comparer, f)
 
 
@@ -3276,19 +3268,15 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
         MapExt(comparer, MapExtImplementation.skip n root)
 
     member x.Split(key : 'Key) =
-        let mutable l = Unchecked.defaultof<_>
-        let mutable s = Unchecked.defaultof<_>
-        let mutable r = Unchecked.defaultof<_>
-        if MapExtImplementation.split comparer key &l &s &r root then
+        let struct(hasValue, l, s, r) = MapExtImplementation.split comparer key root
+        if hasValue then
             MapExt(comparer, l), Some s, MapExt(comparer, r)
         else
             MapExt(comparer, l), None, MapExt(comparer, r)
             
     member x.SplitV(key : 'Key) =
-        let mutable l = Unchecked.defaultof<_>
-        let mutable s = Unchecked.defaultof<_>
-        let mutable r = Unchecked.defaultof<_>
-        if MapExtImplementation.split comparer key &l &s &r root then
+        let struct(hasValue, l, s, r) = MapExtImplementation.split comparer key root
+        if hasValue then
             struct(MapExt(comparer, l), ValueSome s, MapExt(comparer, r))
         else
             struct(MapExt(comparer, l), ValueNone, MapExt(comparer, r))
@@ -3368,12 +3356,8 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
             | None -> x
 
     member x.Neighbours(key : 'Key) =
-        let mutable lKey = Unchecked.defaultof<_>
-        let mutable rKey = Unchecked.defaultof<_>
-        let mutable lValue = Unchecked.defaultof<_>
-        let mutable rValue = Unchecked.defaultof<_>
-        let mutable sValue = Unchecked.defaultof<_>
-        let flags = MapExtImplementation.getNeighbours comparer key MapExtImplementation.NeighbourFlags.None &lKey &lValue &sValue &rKey &rValue root
+        let struct(flags, lKey, lValue, sValue, rKey, rValue) =
+            MapExtImplementation.getNeighbours comparer key root
 
         let left =
             if flags.HasFlag MapExtImplementation.NeighbourFlags.Left then Some (lKey, lValue)
@@ -3391,12 +3375,8 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
         
 
     member x.NeighboursV(key : 'Key) =
-        let mutable lKey = Unchecked.defaultof<_>
-        let mutable rKey = Unchecked.defaultof<_>
-        let mutable lValue = Unchecked.defaultof<_>
-        let mutable rValue = Unchecked.defaultof<_>
-        let mutable sValue = Unchecked.defaultof<_>
-        let flags = MapExtImplementation.getNeighbours comparer key MapExtImplementation.NeighbourFlags.None &lKey &lValue &sValue &rKey &rValue root
+        let struct(flags, lKey, lValue, sValue, rKey, rValue) =
+            MapExtImplementation.getNeighbours comparer key root
 
         let left =
             if flags.HasFlag MapExtImplementation.NeighbourFlags.Left then ValueSome struct(lKey, lValue)
@@ -3413,13 +3393,8 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
         struct(left, self, right)
 
     member x.NeighboursAt(index : int) =
-        let mutable lKey = Unchecked.defaultof<_>
-        let mutable rKey = Unchecked.defaultof<_>
-        let mutable sKey = Unchecked.defaultof<_>
-        let mutable lValue = Unchecked.defaultof<_>
-        let mutable rValue = Unchecked.defaultof<_>
-        let mutable sValue = Unchecked.defaultof<_>
-        let flags = MapExtImplementation.getNeighboursAt index MapExtImplementation.NeighbourFlags.None &lKey &lValue &sKey &sValue &rKey &rValue root
+        let struct(flags, lKey, lValue, sKey, sValue, rKey, rValue) = 
+            MapExtImplementation.getNeighboursAt index root
 
         let left =
             if flags.HasFlag MapExtImplementation.NeighbourFlags.Left then Some (lKey, lValue)
@@ -3436,13 +3411,8 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
         left, self, right
         
     member x.NeighboursAtV(index : int) =
-        let mutable lKey = Unchecked.defaultof<_>
-        let mutable rKey = Unchecked.defaultof<_>
-        let mutable sKey = Unchecked.defaultof<_>
-        let mutable lValue = Unchecked.defaultof<_>
-        let mutable rValue = Unchecked.defaultof<_>
-        let mutable sValue = Unchecked.defaultof<_>
-        let flags = MapExtImplementation.getNeighboursAt index MapExtImplementation.NeighbourFlags.None &lKey &lValue &sKey &sValue &rKey &rValue root
+        let struct(flags, lKey, lValue, sKey, sValue, rKey, rValue) = 
+            MapExtImplementation.getNeighboursAt index root
 
         let left =
             if flags.HasFlag MapExtImplementation.NeighbourFlags.Left then ValueSome struct(lKey, lValue)
@@ -3514,8 +3484,8 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
         let applyNoState = OptimizedClosures.FSharpFunc<_,_,_>.Adapt (fun k o -> apply.Invoke(k, ValueNone, o))
         let applyReal = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt (fun k v o -> apply.Invoke(k, ValueSome v, o))
 
-        let mutable effective = null
-        let root = MapExtImplementation.ApplyDelta.applyDeltaAndGetEffective comparer root delta.Root applyNoState applyReal &effective
+        let struct(root, effective) =
+            MapExtImplementation.ApplyDelta.applyDeltaAndGetEffective comparer root delta.Root applyNoState applyReal
         MapExt(comparer, root), MapExt(comparer, effective)
         
     override x.GetHashCode() =
@@ -3571,13 +3541,14 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
     interface System.Collections.Generic.IReadOnlyCollection<KeyValuePair<'Key, 'Value>> with
         member x.Count = x.Count
 
+#if !FABLE_COMPILER
     interface System.Collections.Generic.IReadOnlyDictionary<'Key, 'Value> with
         member x.Keys = MapExtImplementation.MapExtMappingEnumerable(root, fun n -> n.Key) :> seq<_>
         member x.Values = MapExtImplementation.MapExtMappingEnumerable(root, fun n -> n.Value) :> seq<_>
         member x.Item with get (key : 'Key) = x.[key]
         member x.ContainsKey(key : 'Key) = x.ContainsKey key
         member x.TryGetValue(key : 'Key, value : byref<'Value>) = x.TryGetValue(key, &value)
-        
+#endif
 
 
 and internal MapExtEnumerator<'Key, 'Value> =

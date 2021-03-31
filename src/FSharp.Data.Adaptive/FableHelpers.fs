@@ -83,7 +83,7 @@ type CancellationToken =
     member x.IsCancellationRequested = false
     member x.CanBeCanceled = false
     member x.ThrowIfCancellationRequested() = ()
-    member x.Register(action : System.Action) = CancellationTokenRegistration()
+    member x.Register(action : System.Action) = new CancellationTokenRegistration()
 
 namespace Microsoft.FSharp.Core
 

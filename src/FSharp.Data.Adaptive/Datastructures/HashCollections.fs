@@ -156,14 +156,19 @@ module internal HashImplementation =
                 let next = alter cmp key update n.SetNext
                 SetLinked(n.Key, next)
 
-        let rec addInPlace (cmp : IEqualityComparer<'K>) (key : 'K) (n : byref<SetLinked<'K>>) =
-            if isNull n then
-                n <- SetLinked(key, null)
-                true
-            elif cmp.Equals(n.Key, key) then
-                false
-            else
-                addInPlace cmp key &n.SetNext
+        let rec addInPlace (cmp : IEqualityComparer<'K>) (key : 'K) (n : SetLinked<'K>) =
+            let mutable n : SetLinked<'K> = n
+            let ok =
+                if isNull n then
+                    n <- SetLinked(key, null)
+                    true
+                elif cmp.Equals(n.Key, key) then
+                    false
+                else
+                    let struct(ok, node) = addInPlace cmp key n.SetNext
+                    n.SetNext <- node
+                    ok
+            struct(ok, n)
          
         let rec contains (cmp : IEqualityComparer<'K>) (key : 'K) (n : SetLinked<'K>) =
             if isNull n then
@@ -182,29 +187,30 @@ module internal HashImplementation =
             else
                 filter predicate n.SetNext
 
-        let rec tryRemove (cmp : IEqualityComparer<'K>) (key : 'K) (n : byref<SetLinked<'K>>) =
-            if isNull n then
-                false
-            elif cmp.Equals(key, n.Key) then
-                n <- n.SetNext
-                true
-            else
-                let mutable next = n.SetNext
-                if tryRemove cmp key &next then
-                    n <- SetLinked(n.Key, next)
+        let rec tryRemove (cmp : IEqualityComparer<'K>) (key : 'K) (n : SetLinked<'K>) =
+            let mutable n : SetLinked<'K> = n
+            let ok =
+                if isNull n then
+                    false
+                elif cmp.Equals(key, n.Key) then
+                    n <- n.SetNext
                     true
                 else
-                    false
+                    let struct(ok, next) = tryRemove cmp key n.SetNext
+                    if ok then n <- SetLinked(n.Key, next)
+                    ok
+            struct(ok, n)
 
         let rec equals (cmp : IEqualityComparer<'K>) (a : SetLinked<'K>) (b : SetLinked<'K>) =
             if isNull a then isNull b
             elif isNull b then false
             else
-                let mutable b = b
-                if tryRemove cmp a.Key &b then
+                let struct(ok, b) = tryRemove cmp a.Key b
+                if ok then
                     equals cmp a.SetNext b
                 else
                     false
+
         let rec toList (acc : list<'K>) (n : SetLinked<'K>) =
             if isNull n then acc
             else n.Key :: toList acc n.SetNext
@@ -254,8 +260,7 @@ module internal HashImplementation =
             if isNull a then b
             elif isNull b then a
             else
-                let mutable b = b
-                tryRemove cmp a.Key &b |> ignore
+                let struct(ok, b) = tryRemove cmp a.Key b
                 SetLinked(a.Key, union cmp a.SetNext b)
                 
         let rec xor 
@@ -264,8 +269,8 @@ module internal HashImplementation =
             if isNull a then b
             elif isNull b then a
             else
-                let mutable b = b
-                if tryRemove cmp a.Key &b then
+                let struct(ok, b) = tryRemove cmp a.Key b
+                if ok then
                     xor cmp a.SetNext b
                 else
                     SetLinked(a.Key, xor cmp a.SetNext b)
@@ -276,8 +281,7 @@ module internal HashImplementation =
             if isNull a then null
             elif isNull b then a
             else
-                let mutable a = a
-                tryRemove cmp b.Key &a |> ignore
+                let struct(ok, a) = tryRemove cmp b.Key a
                 difference cmp a b.SetNext
                 
         let rec intersect 
@@ -285,8 +289,8 @@ module internal HashImplementation =
             (a : SetLinked<'K>) (b : SetLinked<'K>) =
             if isNull a || isNull b then null
             else
-                let mutable b = b
-                if tryRemove cmp a.Key &b then
+                let struct(ok, b) = tryRemove cmp a.Key b
+                if ok then
                     SetLinked(a.Key, intersect cmp a.SetNext b)
                 else
                     intersect cmp a.SetNext b
@@ -304,8 +308,8 @@ module internal HashImplementation =
                 chooseToMapV onlyLeft a
 
             else
-                let mutable b = b
-                if tryRemove cmp a.Key &b then
+                let struct(ok, b) = tryRemove cmp a.Key b
+                if ok then
                     computeDelta cmp onlyLeft onlyRight a.SetNext b
                 else
                     match onlyLeft a.Key with
@@ -316,49 +320,56 @@ module internal HashImplementation =
                    
         let rec applyDeltaNoState
             (apply : OptimizedClosures.FSharpFunc<'K, bool, 'D, struct(bool * voption<'DOut>)>)
-            (delta : MapLinked<'K, 'D>) 
-            (state : byref<SetLinked<'K>>) =
-                
-            if isNull delta then
-                state <- null
-                null
-            else
-                let struct (exists, op) = apply.Invoke(delta.Key, false, delta.Value)
+            (delta : MapLinked<'K, 'D>) =
 
-                let mutable restState = null
-                let restDelta = applyDeltaNoState apply delta.MapNext &restState
+            let mutable state : SetLinked<'K> = null
+            let result =
+                if isNull delta then
+                    state <- null
+                    null
+                else
+                    let struct(exists, op) = apply.Invoke(delta.Key, false, delta.Value)
+                    let struct(restDelta, restState) = applyDeltaNoState apply delta.MapNext
 
+                    if exists then 
+                        state <- SetLinked(delta.Key, restState)
 
-                if exists then 
-                    state <- SetLinked(delta.Key, restState)
+                    match op with
+                    | ValueSome op -> 
+                        MapLinked(delta.Key, op, restDelta)
+                    | _ -> restDelta
 
-                match op with
-                | ValueSome op -> 
-                    MapLinked(delta.Key, op, restDelta)
-                | _ -> restDelta
+            struct(result, state)
                      
         let rec applyDelta
             (cmp : IEqualityComparer<'K>)
             (apply : OptimizedClosures.FSharpFunc<'K, bool, 'D, struct(bool * voption<'DOut>)>)
             (delta : MapLinked<'K, 'D>) 
-            (state : byref<SetLinked<'K>>) =
+            (state : SetLinked<'K>) =
 
-            if isNull state then
-                applyDeltaNoState apply delta &state
-            elif isNull delta then
-                null
-            else
-                let wasExisting = tryRemove cmp delta.Key &state
-                let struct(exists, op) = apply.Invoke(delta.Key, wasExisting, delta.Value)
-                let restDelta = applyDelta cmp apply delta.MapNext &state
-                if exists then 
-                    state <- SetLinked(delta.Key, state)
+            let mutable state : SetLinked<'K> = state
+            let result =
+                if isNull state then
+                    let struct(res, st) = applyDeltaNoState apply delta
+                    state <- st
+                    res
+                elif isNull delta then
+                    null
+                else
+                    let struct(wasExisting, st) = tryRemove cmp delta.Key state
+                    let struct(exists, op) = apply.Invoke(delta.Key, wasExisting, delta.Value)
+                    let struct(restDelta, st) = applyDelta cmp apply delta.MapNext st
+                    state <- st
+                    if exists then 
+                        state <- SetLinked(delta.Key, state)
 
-                match op with
-                | ValueSome op -> 
-                    MapLinked(delta.Key, op, restDelta)
-                | ValueNone -> 
-                    restDelta
+                    match op with
+                    | ValueSome op -> 
+                        MapLinked(delta.Key, op, restDelta)
+                    | ValueNone -> 
+                        restDelta
+
+            struct(result, state)
 
     module MapLinked =
         let rec add (cmp : IEqualityComparer<'K>) (key : 'K) (value : 'V) (n : MapLinked<'K, 'V>) =
@@ -393,34 +404,41 @@ module internal HashImplementation =
             else
                 MapLinked(n.Key, n.Value, alterV cmp key update n.MapNext)
                    
-        let rec addInPlace (cmp : IEqualityComparer<'K>) (key : 'K) (value : 'V) (n : byref<SetLinked<'K>>) =
-            if isNull n then
-                n <- MapLinked(key, value, null)
-                true
-            elif cmp.Equals(n.Key, key) then
-                let n = n :?> MapLinked<'K, 'V>
-                n.Key <- key
-                n.Value <- value
-                false
-            else
-                addInPlace cmp key value &n.SetNext
-                
-                
-        let rec tryRemove (cmp : IEqualityComparer<'K>) (key : 'K) (n : byref<MapLinked<'K, 'V>>) =
-            if isNull n then
-                ValueNone
-            elif cmp.Equals(key, n.Key) then
-                let v = n.Value
-                n <- n.MapNext
-                ValueSome v
-            else
-                let mutable next = n.MapNext
-                match tryRemove cmp key &next with
-                | ValueNone ->
+        let rec addInPlace (cmp : IEqualityComparer<'K>) (key : 'K) (value : 'V) (n : SetLinked<'K>) =
+            let mutable n : SetLinked<'K> = n
+            let ok =
+                if isNull n then
+                    n <- MapLinked(key, value, null)
+                    true
+                elif cmp.Equals(n.Key, key) then
+                    let n = n :?> MapLinked<'K, 'V>
+                    n.Key <- key
+                    n.Value <- value
+                    false
+                else
+                    let struct(ok, node) = addInPlace cmp key value n.SetNext
+                    n.SetNext <- node
+                    ok
+            struct(ok, n)
+            
+        let rec tryRemove (cmp : IEqualityComparer<'K>) (key : 'K) (n : MapLinked<'K, 'V>) =
+            let mutable n : MapLinked<'K, 'V> = n
+            let res =
+                if isNull n then
                     ValueNone
-                | result ->
-                    n <- MapLinked(n.Key, n.Value, next)
-                    result
+                elif cmp.Equals(key, n.Key) then
+                    let v = n.Value
+                    n <- n.MapNext
+                    ValueSome v
+                else
+                    let struct(result, next) = tryRemove cmp key n.MapNext
+                    match result with
+                    | ValueNone ->
+                        ValueNone
+                    | result ->
+                        n <- MapLinked(n.Key, n.Value, next)
+                        result
+            struct(res, n)
 
         let rec tryFindV (cmp : IEqualityComparer<'K>) (key : 'K) (n : MapLinked<'K, 'V>) =
             if isNull n then
@@ -508,13 +526,14 @@ module internal HashImplementation =
             if isNull a then isNull b
             elif isNull b then false
             else
-                let mutable b = b
-                match tryRemove cmp a.Key &b with
+                let struct(ok, b) = tryRemove cmp a.Key b
+                match ok with
                 | ValueSome vb ->
                     DefaultEquality.equals a.Value vb &&
                     equals cmp a.MapNext b
                 | ValueNone ->
                     false 
+
         let rec map (mapping : OptimizedClosures.FSharpFunc<'K, 'V, 'T>) (node : MapLinked<'K, 'V>) =
             if isNull node then
                 null
@@ -583,8 +602,8 @@ module internal HashImplementation =
             elif isNull b then
                 choose2VLeft mapping a
             else
-                let mutable b = b
-                match tryRemove cmp a.Key &b with
+                let struct(res, b) = tryRemove cmp a.Key b
+                match res with
                 | ValueSome vb ->
                     match mapping.Invoke(a.Key, ValueSome a.Value, ValueSome vb) with
                     | ValueSome c ->
@@ -605,8 +624,7 @@ module internal HashImplementation =
             if isNull a then b
             elif isNull b then a
             else
-                let mutable a = a
-                tryRemove cmp b.Key &a |> ignore
+                let struct(res, a) = tryRemove cmp b.Key a
                 MapLinked(b.Key, b.Value, union cmp a b.MapNext)
                     
                     
@@ -624,8 +642,8 @@ module internal HashImplementation =
             if isNull a then b
             elif isNull b then a
             else
-                let mutable a = a
-                match tryRemove cmp b.Key &a with
+                let struct(res, a) = tryRemove cmp b.Key a
+                match res with
                 | ValueSome aValue ->
                     let v = resolve.Invoke(b.Key, aValue, b.Value)
                     MapLinked(b.Key, v, unionWith cmp resolve a b.MapNext)
@@ -649,8 +667,8 @@ module internal HashImplementation =
             if isNull a then b
             elif isNull b then a
             else
-                let mutable a = a
-                match tryRemove cmp b.Key &a with
+                let struct(res, a) = tryRemove cmp b.Key a
+                match res with
                 | ValueSome aValue ->
                     match resolve.Invoke(b.Key, aValue, b.Value) with
                     | ValueSome v ->
@@ -674,8 +692,8 @@ module internal HashImplementation =
                 chooseV onlyLeft a
 
             else
-                let mutable b = b
-                match tryRemove cmp a.Key &b with
+                let struct(res, b) = tryRemove cmp a.Key b
+                match res with
                 | ValueSome bv ->
                     match both.Invoke(a.Key, a.Value, bv) with
                     | ValueNone ->  
@@ -691,57 +709,64 @@ module internal HashImplementation =
                     
         let rec applyDeltaNoState
             (apply : OptimizedClosures.FSharpFunc<'K, voption<'V>, 'D, struct(voption<'V> * voption<'DOut>)>)
-            (delta : MapLinked<'K, 'D>) 
-            (state : byref<MapLinked<'K, 'V>>) =
-                
-            if isNull delta then
-                state <- null
-                null
-            else
-                let struct (newValue, op) = apply.Invoke(delta.Key, ValueNone, delta.Value)
+            (delta : MapLinked<'K, 'D>) =
 
-                let mutable restState = null
-                let restDelta = applyDeltaNoState apply delta.MapNext &restState
+            let mutable state : MapLinked<'K, 'V> = null
+            let result =
+                if isNull delta then
+                    state <- null
+                    null
+                else
+                    let struct(newValue, op) = apply.Invoke(delta.Key, ValueNone, delta.Value)
 
+                    let struct(restDelta, restState) = applyDeltaNoState apply delta.MapNext
 
-                match newValue with
-                | ValueSome newValue ->
-                    state <- MapLinked(delta.Key, newValue, restState)
-                | ValueNone ->
-                    ()
+                    match newValue with
+                    | ValueSome newValue ->
+                        state <- MapLinked(delta.Key, newValue, restState)
+                    | ValueNone ->
+                        ()
 
-                match op with
-                | ValueSome op -> 
-                    MapLinked(delta.Key, op, restDelta)
-                | _ -> restDelta
+                    match op with
+                    | ValueSome op -> 
+                        MapLinked(delta.Key, op, restDelta)
+                    | _ -> restDelta
+
+            struct(result, state)
                      
         let rec applyDelta
             (cmp : IEqualityComparer<'K>)
             (apply : OptimizedClosures.FSharpFunc<'K, voption<'V>, 'D, struct(voption<'V> * voption<'DOut>)>)
             (delta : MapLinked<'K, 'D>) 
-            (state : byref<MapLinked<'K, 'V>>) =
+            (state : MapLinked<'K, 'V>) =
 
-            if isNull state then
-                applyDeltaNoState apply delta &state
-            elif isNull delta then
-                null
-            else
-                let wasExisting = tryRemove cmp delta.Key &state
-                let struct(exists, op) = apply.Invoke(delta.Key, wasExisting, delta.Value)
-                let restDelta = applyDelta cmp apply delta.MapNext &state
-                match exists with
-                | ValueSome newValue ->
-                    state <- MapLinked(delta.Key, newValue, state)
-                | _ ->
-                    ()
+            let mutable state : MapLinked<'K, 'V> = state
+            let result =
+                if isNull state then
+                    let struct(res, st) = applyDeltaNoState apply delta
+                    state <- st
+                    res
+                elif isNull delta then
+                    null
+                else
+                    let struct(wasExisting, st) = tryRemove cmp delta.Key state
+                    let struct(exists, op) = apply.Invoke(delta.Key, wasExisting, delta.Value)
+                    let struct(restDelta, st) = applyDelta cmp apply delta.MapNext st
+                    state <- st
+                    match exists with
+                    | ValueSome newValue ->
+                        state <- MapLinked(delta.Key, newValue, state)
+                    | _ ->
+                        ()
 
-                match op with
-                | ValueSome op -> 
-                    MapLinked(delta.Key, op, restDelta)
-                | ValueNone -> 
-                    restDelta
-          
-          
+                    match op with
+                    | ValueSome op -> 
+                        MapLinked(delta.Key, op, restDelta)
+                    | ValueNone -> 
+                        restDelta
+
+            struct(result, state)
+
     module SetNode =
 
         let inline join (p0 : uint32) (t0 : SetNode<'K>) (p1 : uint32) (t1 : SetNode<'K>) =
@@ -830,79 +855,92 @@ module internal HashImplementation =
                         node :> SetNode<_>
 
                        
-        let rec addInPlace (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (node : byref<SetNode<'K>>) =
-            if isNull node then
-                node <- SetLeaf(hash, key, null)
-                true
+        let rec addInPlace (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (node : SetNode<'K>) =
+            let mutable node : SetNode<'K> = node
+            let ok =
+                if isNull node then
+                    node <- SetLeaf(hash, key, null)
+                    true
 
-            elif node.IsLeaf then
-                let leaf : SetLeaf<'K> = downcast node
-                if leaf.Hash = hash then
-                    if cmp.Equals(leaf.Key, key) then
-                        false
+                elif node.IsLeaf then
+                    let leaf : SetLeaf<'K> = downcast node
+                    if leaf.Hash = hash then
+                        if cmp.Equals(leaf.Key, key) then
+                            false
+                        else
+                            let struct(ok, n) = SetLinked.addInPlace cmp key leaf.SetNext
+                            leaf.SetNext <- n
+                            ok
                     else
-                        SetLinked.addInPlace cmp key &leaf.SetNext
+                        node <- join leaf.Hash leaf hash (SetLeaf(hash, key, null))
+                        true
                 else
-                    node <- join leaf.Hash leaf hash (SetLeaf(hash, key, null))
-                    true
-            else
-                let inner : Inner<'K> = downcast node
-                match matchPrefixAndGetBit hash inner.Prefix inner.Mask with
-                | 0u ->
-                    if addInPlace cmp hash key &inner.Left then
-                        inner.Count <- inner.Count + 1
-                        true
-                    else
-                        false
-                | 1u ->
-                    if addInPlace cmp hash key &inner.Right then
-                        inner.Count <- inner.Count + 1
-                        true
-                    else
-                        false
-                | _ ->
-                    node <- join inner.Prefix inner hash (SetLeaf(hash, key, null))
-                    true
-                 
-        let rec tryRemove (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (node : byref<SetNode<'K>>) =
-            if isNull node then
-                false
-            elif node.IsLeaf then
-                let n = node :?> SetLeaf<'K>
-                if hash = n.Hash then
-                    if cmp.Equals(key, n.Key) then
-                        let next = n.SetNext
-                        if isNull next then node <- null
-                        else node <- SetLeaf(n.Hash, next.Key, next.SetNext)
-                        true
-                    else
-                        let mutable next = n.SetNext
-                        if SetLinked.tryRemove cmp key &next then
-                            node <- SetLeaf(n.Hash, n.Key, next)
+                    let inner : Inner<'K> = downcast node
+                    match matchPrefixAndGetBit hash inner.Prefix inner.Mask with
+                    | 0u ->
+                        let struct(ok, n) = addInPlace cmp hash key inner.Left
+                        inner.Left <- n
+                        if ok then
+                            inner.Count <- inner.Count + 1
                             true
                         else
                             false
+                    | 1u ->
+                        let struct(ok, n) = addInPlace cmp hash key inner.Right
+                        inner.Right <- n
+                        if ok then
+                            inner.Count <- inner.Count + 1
+                            true
+                        else
+                            false
+                    | _ ->
+                        node <- join inner.Prefix inner hash (SetLeaf(hash, key, null))
+                        true
+                 
+            struct(ok, node)
+
+        let rec tryRemove (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (node : SetNode<'K>) =
+            let mutable node : SetNode<'K> = node
+            let ok =
+                if isNull node then
+                    false
+                elif node.IsLeaf then
+                    let n = node :?> SetLeaf<'K>
+                    if hash = n.Hash then
+                        if cmp.Equals(key, n.Key) then
+                            let next = n.SetNext
+                            if isNull next then node <- null
+                            else node <- SetLeaf(n.Hash, next.Key, next.SetNext)
+                            true
+                        else
+                            let struct(ok, next) = SetLinked.tryRemove cmp key n.SetNext
+                            if ok then
+                                node <- SetLeaf(n.Hash, n.Key, next)
+                                true
+                            else
+                                false
+                    else
+                        false
                 else
-                    false
-            else
-                let n = node :?> Inner<'K>
-                match matchPrefixAndGetBit hash n.Prefix n.Mask with
-                | 0u ->
-                    let mutable l = n.Left
-                    if tryRemove cmp hash key &l then
-                        node <- newInner n.Prefix n.Mask l n.Right
-                        true
-                    else
+                    let n = node :?> Inner<'K>
+                    match matchPrefixAndGetBit hash n.Prefix n.Mask with
+                    | 0u ->
+                        let struct(ok, l) = tryRemove cmp hash key n.Left
+                        if ok then
+                            node <- newInner n.Prefix n.Mask l n.Right
+                            true
+                        else
+                            false
+                    | 1u ->
+                        let struct(ok, r) = tryRemove cmp hash key n.Right
+                        if ok then
+                            node <- newInner n.Prefix n.Mask n.Left r
+                            true
+                        else
+                            false
+                    | _ ->
                         false
-                | 1u ->
-                    let mutable r = n.Right
-                    if tryRemove cmp hash key &r then
-                        node <- newInner n.Prefix n.Mask n.Left r
-                        true
-                    else
-                        false
-                | _ ->
-                    false
+            struct(ok, node)
 
         let rec contains (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (node : SetNode<'K>) =
             if isNull node then
@@ -1538,184 +1576,185 @@ module internal HashImplementation =
 
         let rec applyDeltaNoState
             (apply : OptimizedClosures.FSharpFunc<'K, bool, 'D, struct(bool * voption<'DOut>)>)
-            (delta : SetNode<'K>) 
-            (state : byref<SetNode<'K>>) =
+            (delta : SetNode<'K>) =
 
-            if isNull delta then
-                state <- null
-                null
+            let mutable state : SetNode<'K> = null
+            let result =
 
-            elif delta.IsLeaf then
-                let delta = delta :?> MapLeaf<'K, 'D>
-                let struct(exists, op) = apply.Invoke(delta.Key, false, delta.Value)
-                match op with
-                | ValueSome op ->
-                    let mutable ls = null
-                    let rest = SetLinked.applyDeltaNoState apply delta.MapNext &ls
-                    if exists then state <- SetLeaf(delta.Hash, delta.Key, ls)
-                    elif isNull ls then state <- null
-                    else state <- SetLeaf(delta.Hash, ls.Key, ls.SetNext)
-                    MapLeaf(delta.Hash, delta.Key, op, rest) :> SetNode<_>
+                if isNull delta then
+                    state <- null
+                    null
 
-                | ValueNone ->
-                    let mutable ls = null
-                    let rest = SetLinked.applyDeltaNoState apply delta.MapNext &ls
-                    if exists then state <- SetLeaf(delta.Hash, delta.Key, ls)
-                    elif isNull ls then state <- null
-                    else state <- SetLeaf(delta.Hash, ls.Key, ls.SetNext)
-                    if isNull rest then null
-                    else MapLeaf(delta.Hash, rest.Key, rest.Value, rest.MapNext) :> SetNode<_>
+                elif delta.IsLeaf then
+                    let delta = delta :?> MapLeaf<'K, 'D>
+                    let struct(exists, op) = apply.Invoke(delta.Key, false, delta.Value)
+                    match op with
+                    | ValueSome op ->
+                        let struct(rest, ls) = SetLinked.applyDeltaNoState apply delta.MapNext
+                        if exists then state <- SetLeaf(delta.Hash, delta.Key, ls)
+                        elif isNull ls then state <- null
+                        else state <- SetLeaf(delta.Hash, ls.Key, ls.SetNext)
+                        MapLeaf(delta.Hash, delta.Key, op, rest) :> SetNode<_>
+
+                    | ValueNone ->
+                        let struct(rest, ls) = SetLinked.applyDeltaNoState apply delta.MapNext
+                        if exists then state <- SetLeaf(delta.Hash, delta.Key, ls)
+                        elif isNull ls then state <- null
+                        else state <- SetLeaf(delta.Hash, ls.Key, ls.SetNext)
+                        if isNull rest then null
+                        else MapLeaf(delta.Hash, rest.Key, rest.Value, rest.MapNext) :> SetNode<_>
 
 
-            else
-                let delta = delta :?> Inner<'K>
-                let mutable ls = null
-                let mutable rs = null
-                let l = applyDeltaNoState apply delta.Left &ls
-                let r = applyDeltaNoState apply delta.Right &rs
-                state <- newInner delta.Prefix delta.Mask ls rs
-                newInner delta.Prefix delta.Mask l r
+                else
+                    let delta = delta :?> Inner<'K>
+                    let struct(l, ls) = applyDeltaNoState apply delta.Left
+                    let struct(r, rs) = applyDeltaNoState apply delta.Right
+                    state <- newInner delta.Prefix delta.Mask ls rs
+                    newInner delta.Prefix delta.Mask l r
+
+            struct(result, state)
 
 
         let rec applyDelta
             (cmp : IEqualityComparer<'K>)
             (apply : OptimizedClosures.FSharpFunc<'K, bool, 'D, struct(bool * voption<'DOut>)>)
-            (state : byref<SetNode<'K>>) (delta : SetNode<'K>) =
-            if isNull delta then
-                null
+            (state : SetNode<'K>)
+            (delta : SetNode<'K>) =
 
-            elif isNull state then
-                applyDeltaNoState apply delta &state
+            let mutable state : SetNode<'K> = state
+            let result =
+                if isNull delta then
+                    null
 
-            elif delta.IsLeaf then  
-                let d = delta :?> MapLeaf<'K, 'D>
-                if state.IsLeaf then
-                    let s = state :?> SetLeaf<'K>
-                    if s.Hash = d.Hash then
-                        // TODO: avoid allocating Linkeds here
-                        let mutable lstate = SetLinked(s.Key, s.SetNext)
-                        let ldelta = MapLinked(d.Key, d.Value, d.MapNext)
-                        let ldelta = SetLinked.applyDelta cmp apply ldelta &lstate
+                elif isNull state then
+                    let struct(res, st) = applyDeltaNoState apply delta
+                    state <- st
+                    res
 
-                        if isNull lstate then state <- null
-                        else state <- SetLeaf(s.Hash, lstate.Key, lstate.SetNext)
+                elif delta.IsLeaf then  
+                    let d = delta :?> MapLeaf<'K, 'D>
+                    if state.IsLeaf then
+                        let s = state :?> SetLeaf<'K>
+                        if s.Hash = d.Hash then
+                            // TODO: avoid allocating Linkeds here
+                            let lstate = SetLinked(s.Key, s.SetNext)
+                            let ldelta = MapLinked(d.Key, d.Value, d.MapNext)
+                            let struct(ldelta, lstate) = SetLinked.applyDelta cmp apply ldelta lstate
 
-                        if isNull ldelta then null
-                        else MapLeaf(d.Hash, ldelta.Key, ldelta.Value, ldelta.MapNext) :> SetNode<_>
+                            if isNull lstate then state <- null
+                            else state <- SetLeaf(s.Hash, lstate.Key, lstate.SetNext)
+
+                            if isNull ldelta then null
+                            else MapLeaf(d.Hash, ldelta.Key, ldelta.Value, ldelta.MapNext) :> SetNode<_>
+                        else
+                            let struct(ld, ls) = applyDeltaNoState apply delta
+                            state <- join s.Hash s d.Hash ls
+                            ld
+
                     else
-                        let mutable ls = null
-                        let ld = applyDeltaNoState apply delta &ls
-                        state <- join s.Hash s d.Hash ls
-                        ld
+                        // delta in state
+                        let s = state :?> Inner<'K>
+                        match matchPrefixAndGetBit d.Hash s.Prefix s.Mask with
+                        | 0u ->
+                            let l = s.Left
+                            let struct(delta, l) = applyDelta cmp apply l delta
+                            state <- newInner s.Prefix s.Mask l s.Right
+                            delta
+                        | 1u ->
+                            let r = s.Right
+                            let struct(delta, r) = applyDelta cmp apply r delta
+                            state <- newInner s.Prefix s.Mask s.Left r
+                            delta
+                        | _ ->
+                            let struct(ld, ls) = applyDeltaNoState apply delta
+                            state <- join s.Prefix s d.Hash ls
+                            ld
 
-                else
-                    // delta in state
-                    let s = state :?> Inner<'K>
-                    match matchPrefixAndGetBit d.Hash s.Prefix s.Mask with
-                    | 0u ->
-                        let mutable l = s.Left
-                        let delta = applyDelta cmp apply &l delta
-                        state <- newInner s.Prefix s.Mask l s.Right
-                        delta
-                    | 1u ->
-                        let mutable r = s.Right
-                        let delta = applyDelta cmp apply &r delta
-                        state <- newInner s.Prefix s.Mask s.Left r
-                        delta
-                    | _ ->
-                        let mutable ls = null
-                        let ld = applyDeltaNoState apply delta &ls
-                        state <- join s.Prefix s d.Hash ls
-                        ld
-
-            elif state.IsLeaf then
-                // state in delta
-                let s = state :?> SetLeaf<'K>
-                let d = delta :?> Inner<'K>
-
-                match matchPrefixAndGetBit s.Hash d.Prefix d.Mask with
-                | 0u ->
-                    let mutable ls = state
-                    let mutable rs = null
-                    let ld = applyDelta cmp apply &ls d.Left
-                    let rd = applyDelta cmp apply &rs d.Right
-                    state <- newInner d.Prefix d.Mask ls rs
-                    newInner d.Prefix d.Mask ld rd
-                | 1u -> 
-                    let mutable ls = null
-                    let mutable rs = state
-                    let ld = applyDelta cmp apply &ls d.Left
-                    let rd = applyDelta cmp apply &rs d.Right
-                    state <- newInner d.Prefix d.Mask ls rs
-                    newInner d.Prefix d.Mask ld rd
-                | _ ->
-                    let mutable ls = null
-                    let ld = applyDeltaNoState apply delta &ls
-                    state <- join s.Hash state d.Prefix ls
-                    ld
-                        
-
-            else
-                let d = delta :?> Inner<'K>
-                let s = state :?> Inner<'K>
-
-                let cc = compareMasks d.Mask s.Mask
-                if cc > 0 then
-                    // delta in state
-                    match matchPrefixAndGetBit d.Prefix s.Prefix s.Mask with
-                    | 0u ->
-                        let mutable l = s.Left
-                        let delta = applyDelta cmp apply &l delta
-                        state <- newInner s.Prefix s.Mask l s.Right
-                        delta
-                    | 1u ->
-                        let mutable r = s.Right
-                        let delta = applyDelta cmp apply &r delta
-                        state <- newInner s.Prefix s.Mask s.Left r
-                        delta
-                    | _ ->
-                        let mutable ls = null
-                        let ld = applyDeltaNoState apply delta &ls
-                        state <- join s.Prefix s d.Prefix ls
-                        ld
-
-                elif cc < 0 then
+                elif state.IsLeaf then
                     // state in delta
-                    match matchPrefixAndGetBit s.Prefix d.Prefix d.Mask with
+                    let s = state :?> SetLeaf<'K>
+                    let d = delta :?> Inner<'K>
+
+                    match matchPrefixAndGetBit s.Hash d.Prefix d.Mask with
                     | 0u ->
-                        let mutable ls = state
-                        let mutable rs = null
-                        let ld = applyDelta cmp apply &ls d.Left
-                        let rd = applyDelta cmp apply &rs d.Right
+                        let ls = state
+                        let rs = null
+                        let struct(ld, ls) = applyDelta cmp apply ls d.Left
+                        let struct(rd, rs) = applyDelta cmp apply rs d.Right
                         state <- newInner d.Prefix d.Mask ls rs
                         newInner d.Prefix d.Mask ld rd
                     | 1u -> 
-                        let mutable ls = null
-                        let mutable rs = state
-                        let ld = applyDelta cmp apply &ls d.Left
-                        let rd = applyDelta cmp apply &rs d.Right
+                        let ls = null
+                        let rs = state
+                        let struct(ld, ls) = applyDelta cmp apply ls d.Left
+                        let struct(rd, rs) = applyDelta cmp apply rs d.Right
                         state <- newInner d.Prefix d.Mask ls rs
                         newInner d.Prefix d.Mask ld rd
                     | _ ->
-                        let mutable ls = null
-                        let ld = applyDeltaNoState apply delta &ls
+                        let struct(ld, ls) = applyDeltaNoState apply delta
+                        state <- join s.Hash state d.Prefix ls
+                        ld
+
+                else
+                    let d = delta :?> Inner<'K>
+                    let s = state :?> Inner<'K>
+
+                    let cc = compareMasks d.Mask s.Mask
+                    if cc > 0 then
+                        // delta in state
+                        match matchPrefixAndGetBit d.Prefix s.Prefix s.Mask with
+                        | 0u ->
+                            let l = s.Left
+                            let struct(delta, l) = applyDelta cmp apply l delta
+                            state <- newInner s.Prefix s.Mask l s.Right
+                            delta
+                        | 1u ->
+                            let r = s.Right
+                            let struct(delta, r) = applyDelta cmp apply r delta
+                            state <- newInner s.Prefix s.Mask s.Left r
+                            delta
+                        | _ ->
+                            let struct(ld, ls) = applyDeltaNoState apply delta
+                            state <- join s.Prefix s d.Prefix ls
+                            ld
+
+                    elif cc < 0 then
+                        // state in delta
+                        match matchPrefixAndGetBit s.Prefix d.Prefix d.Mask with
+                        | 0u ->
+                            let ls = state
+                            let rs = null
+                            let struct(ld, ls) = applyDelta cmp apply ls d.Left
+                            let struct(rd, rs) = applyDelta cmp apply rs d.Right
+                            state <- newInner d.Prefix d.Mask ls rs
+                            newInner d.Prefix d.Mask ld rd
+                        | 1u -> 
+                            let ls = null
+                            let rs = state
+                            let struct(ld, ls) = applyDelta cmp apply ls d.Left
+                            let struct(rd, rs) = applyDelta cmp apply rs d.Right
+                            state <- newInner d.Prefix d.Mask ls rs
+                            newInner d.Prefix d.Mask ld rd
+                        | _ ->
+                            let struct(ld, ls) = applyDeltaNoState apply delta
+                            state <- join s.Prefix state d.Prefix ls
+                            ld
+
+                    elif s.Prefix = d.Prefix then
+                        let ls = s.Left
+                        let rs = s.Right
+                        let struct(ld, ls) = applyDelta cmp apply ls d.Left
+                        let struct(rd, rs) = applyDelta cmp apply rs d.Right
+                        state <- newInner s.Prefix s.Mask ls rs
+                        newInner d.Prefix d.Mask ld rd
+
+                    else
+                        let struct(ld, ls) = applyDeltaNoState apply delta
                         state <- join s.Prefix state d.Prefix ls
                         ld
 
-                elif s.Prefix = d.Prefix then
-                    let mutable ls = s.Left
-                    let mutable rs = s.Right
-                    let ld = applyDelta cmp apply &ls d.Left
-                    let rd = applyDelta cmp apply &rs d.Right
-                    state <- newInner s.Prefix s.Mask ls rs
-                    newInner d.Prefix d.Mask ld rd
+            struct(result, state)
 
-                else
-                    let mutable ls = null
-                    let ld = applyDeltaNoState apply delta &ls
-                    state <- join s.Prefix state d.Prefix ls
-                    ld
- 
     module MapNode =    
 
         let inline join (p0 : uint32) (t0 : SetNode<'K>) (p1 : uint32) (t1 : SetNode<'K>) =
@@ -1835,50 +1874,53 @@ module internal HashImplementation =
                 | _ ->
                     join node.Prefix node hash (MapLeaf(hash, key, value, null))
                  
-        let rec tryRemove<'K, 'V> (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (node : byref<SetNode<'K>>) =
-            if isNull node then
-                ValueNone
+        let rec tryRemove<'K, 'V> (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (node : SetNode<'K>) =
+            let mutable node : SetNode<'K> = node
+            let res =
+                if isNull node then
+                    ValueNone
 
-            elif node.IsLeaf then
-                let n = node :?> MapLeaf<'K, 'V>
-                if n.Hash = hash then
-                    if cmp.Equals(n.Key, key) then
-                        let next = n.MapNext
-                        if isNull next then node <- null
-                        else node <- MapLeaf(n.Hash, next.Key, next.Value, next.MapNext)
-                        ValueSome n.Value
+                elif node.IsLeaf then
+                    let n = node :?> MapLeaf<'K, 'V>
+                    if n.Hash = hash then
+                        if cmp.Equals(n.Key, key) then
+                            let next = n.MapNext
+                            if isNull next then node <- null
+                            else node <- MapLeaf(n.Hash, next.Key, next.Value, next.MapNext)
+                            ValueSome n.Value
+                        else
+                            let struct(res, next) = MapLinked.tryRemove cmp key n.MapNext
+                            match res with
+                            | ValueNone -> 
+                                ValueNone
+                            | res -> 
+                                node <- MapLeaf(n.Hash, n.Key, n.Value, next)
+                                res
                     else
-                        let mutable next = n.MapNext
-                        match MapLinked.tryRemove cmp key &next with
-                        | ValueNone -> 
-                            ValueNone
-                        | res -> 
-                            node <- MapLeaf(n.Hash, n.Key, n.Value, next)
-                            res
+                        ValueNone
                 else
-                    ValueNone
-            else
-                let n = node :?> Inner<'K>
-                match matchPrefixAndGetBit hash n.Prefix n.Mask with
-                | 0u ->
-                    let mutable l = n.Left
-                    match tryRemove cmp hash key &l with
-                    | ValueNone ->
+                    let n = node :?> Inner<'K>
+                    match matchPrefixAndGetBit hash n.Prefix n.Mask with
+                    | 0u ->
+                        let struct(res, l) = tryRemove cmp hash key n.Left
+                        match res with
+                        | ValueNone ->
+                            ValueNone
+                        | res ->
+                            node <- newInner n.Prefix n.Mask l n.Right
+                            res
+                    | 1u ->
+                        let struct(res, r) = tryRemove cmp hash key n.Right
+                        match res with
+                        | ValueNone ->
+                            ValueNone
+                        | res ->
+                            node <- newInner n.Prefix n.Mask n.Left r
+                            res
+                    | _ ->
                         ValueNone
-                    | res ->
-                        node <- newInner n.Prefix n.Mask l n.Right
-                        res
-                | 1u ->
-                    let mutable r = n.Right
-                    match tryRemove cmp hash key &r with
-                    | ValueNone ->
-                        ValueNone
-                    | res ->
-                        node <- newInner n.Prefix n.Mask n.Left r
-                        res
-                | _ ->
-                    ValueNone
-                   
+            struct(res, node)
+
         let rec tryFindV<'K, 'V>  (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (node : SetNode<'K>) =
             if isNull node then
                 ValueNone
@@ -1939,42 +1981,50 @@ module internal HashImplementation =
                 | _ ->
                     false
 
-        let rec addInPlace (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (value : 'V) (node : byref<SetNode<'K>>) =
-            if isNull node then
-                node <- MapLeaf(hash, key, value, null)
-                true
+        let rec addInPlace (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (value : 'V) (node : SetNode<'K>) =
+            let mutable node : SetNode<'K> = node
+            let ok =
+                if isNull node then
+                    node <- MapLeaf(hash, key, value, null)
+                    true
 
-            elif node.IsLeaf then
-                let leaf = node :?> MapLeaf<'K, 'V>
-                if leaf.Hash = hash then
-                    if cmp.Equals(leaf.Key, key) then
-                        leaf.Key <- key
-                        leaf.Value <- value
-                        false
+                elif node.IsLeaf then
+                    let leaf = node :?> MapLeaf<'K, 'V>
+                    if leaf.Hash = hash then
+                        if cmp.Equals(leaf.Key, key) then
+                            leaf.Key <- key
+                            leaf.Value <- value
+                            false
+                        else
+                            let struct(ok, n) = MapLinked.addInPlace cmp key value leaf.SetNext
+                            leaf.SetNext <- n
+                            ok
                     else
-                        MapLinked.addInPlace cmp key value &leaf.SetNext
+                        node <- join leaf.Hash leaf hash (MapLeaf(hash, key, value, null))
+                        true
                 else
-                    node <- join leaf.Hash leaf hash (MapLeaf(hash, key, value, null))
-                    true
-            else
-                let inner = node :?> Inner<'K>
-                match matchPrefixAndGetBit hash inner.Prefix inner.Mask with
-                | 0u -> 
-                    if addInPlace cmp hash key value &inner.Left then
-                        inner.Count <- inner.Count + 1
+                    let inner = node :?> Inner<'K>
+                    match matchPrefixAndGetBit hash inner.Prefix inner.Mask with
+                    | 0u ->
+                        let struct(ok, n) = addInPlace cmp hash key value inner.Left
+                        inner.Left <- n
+                        if ok then
+                            inner.Count <- inner.Count + 1
+                            true
+                        else
+                            false
+                    | 1u -> 
+                        let struct(ok, n) = addInPlace cmp hash key value inner.Right
+                        inner.Right <- n
+                        if ok then
+                            inner.Count <- inner.Count + 1
+                            true
+                        else
+                            false
+                    | _ ->
+                        node <- join inner.Prefix inner hash (MapLeaf(hash, key, value, null))
                         true
-                    else
-                        false
-                | 1u -> 
-                    if addInPlace cmp hash key value &inner.Right then
-                        inner.Count <- inner.Count + 1
-                        true
-                    else
-                        false
-                | _ ->
-                    node <- join inner.Prefix inner hash (MapLeaf(hash, key, value, null))
-                    true
-                
+            struct(ok, node)
                 
         let rec toValueList (acc : list<'V>) (node : SetNode<'K>) =
             if isNull node then acc
@@ -2686,192 +2736,192 @@ module internal HashImplementation =
 
         let rec applyDeltaNoState
             (apply : OptimizedClosures.FSharpFunc<'K, voption<'V>, 'D, struct(voption<'V> * voption<'DOut>)>)
-            (delta : SetNode<'K>) 
-            (state : byref<SetNode<'K>>) =
+            (delta : SetNode<'K>) =
 
-            if isNull delta then
-                state <- null
-                null
+            let mutable state : SetNode<'K> = null
+            let result =
+                if isNull delta then
+                    state <- null
+                    null
 
-            elif delta.IsLeaf then
-                let delta = delta :?> MapLeaf<'K, 'D>
-                let struct(exists, op) = apply.Invoke(delta.Key, ValueNone, delta.Value)
-                match op with
-                | ValueSome op ->
-                    let mutable ls = null
-                    let rest = MapLinked.applyDeltaNoState apply delta.MapNext &ls
+                elif delta.IsLeaf then
+                    let delta = delta :?> MapLeaf<'K, 'D>
+                    let struct(exists, op) = apply.Invoke(delta.Key, ValueNone, delta.Value)
+                    match op with
+                    | ValueSome op ->
+                        let struct(rest, ls) = MapLinked.applyDeltaNoState apply delta.MapNext
 
-                    match exists with
-                    | ValueSome newValue -> state <- MapLeaf(delta.Hash, delta.Key, newValue, ls)
+                        match exists with
+                        | ValueSome newValue -> state <- MapLeaf(delta.Hash, delta.Key, newValue, ls)
+                        | ValueNone ->
+                            if isNull ls then state <- null
+                            else state <- MapLeaf(delta.Hash, ls.Key, ls.Value, ls.MapNext)
+
+                        MapLeaf(delta.Hash, delta.Key, op, rest) :> SetNode<_>
+
                     | ValueNone ->
-                        if isNull ls then state <- null
-                        else state <- MapLeaf(delta.Hash, ls.Key, ls.Value, ls.MapNext)
+                        let struct(rest, ls) = MapLinked.applyDeltaNoState apply delta.MapNext
+                            
+                        match exists with
+                        | ValueSome newValue -> state <- MapLeaf(delta.Hash, delta.Key, newValue, ls)
+                        | ValueNone ->
+                            if isNull ls then state <- null
+                            else state <- MapLeaf(delta.Hash, ls.Key, ls.Value, ls.MapNext)
 
-                    MapLeaf(delta.Hash, delta.Key, op, rest) :> SetNode<_>
-
-                | ValueNone ->
-                    let mutable ls = null
-                    let rest = MapLinked.applyDeltaNoState apply delta.MapNext &ls
-                        
-                    match exists with
-                    | ValueSome newValue -> state <- MapLeaf(delta.Hash, delta.Key, newValue, ls)
-                    | ValueNone ->
-                        if isNull ls then state <- null
-                        else state <- MapLeaf(delta.Hash, ls.Key, ls.Value, ls.MapNext)
-
-                    if isNull rest then null
-                    else MapLeaf(delta.Hash, rest.Key, rest.Value, rest.MapNext) :> SetNode<_>
+                        if isNull rest then null
+                        else MapLeaf(delta.Hash, rest.Key, rest.Value, rest.MapNext) :> SetNode<_>
 
 
-            else
-                let delta = delta :?> Inner<'K>
-                let mutable ls = null
-                let mutable rs = null
-                let l = applyDeltaNoState apply delta.Left &ls
-                let r = applyDeltaNoState apply delta.Right &rs
-                state <- newInner delta.Prefix delta.Mask ls rs
-                newInner delta.Prefix delta.Mask l r
+                else
+                    let delta = delta :?> Inner<'K>
+                    let struct(l, ls) = applyDeltaNoState apply delta.Left
+                    let struct(r, rs) = applyDeltaNoState apply delta.Right
+                    state <- newInner delta.Prefix delta.Mask ls rs
+                    newInner delta.Prefix delta.Mask l r
 
+            struct(result, state)
 
         let rec applyDelta
             (cmp : IEqualityComparer<'K>)
             (apply : OptimizedClosures.FSharpFunc<'K, voption<'V>, 'D, struct(voption<'V> * voption<'DOut>)>)
-            (state : byref<SetNode<'K>>) (delta : SetNode<'K>) =
-            if isNull delta then
-                null
+            (state : SetNode<'K>)
+            (delta : SetNode<'K>) =
 
-            elif isNull state then
-                applyDeltaNoState apply delta &state
+            let mutable state : SetNode<'K> = state
+            let result =
+                if isNull delta then
+                    null
 
-            elif delta.IsLeaf then  
-                let d = delta :?> MapLeaf<'K, 'D>
-                if state.IsLeaf then
-                    let s = state :?> MapLeaf<'K, 'V>
-                    if s.Hash = d.Hash then
-                        // TODO: avoid allocating Linkeds here
-                        let mutable lstate = MapLinked(s.Key, s.Value, s.MapNext)
-                        let ldelta = MapLinked(d.Key, d.Value, d.MapNext)
-                        let ldelta = MapLinked.applyDelta cmp apply ldelta &lstate
+                elif isNull state then
+                    let struct(res, st) = applyDeltaNoState apply delta
+                    state <- st
+                    res
 
-                        if isNull lstate then state <- null
-                        else state <- MapLeaf(s.Hash, lstate.Key, lstate.Value, lstate.MapNext)
+                elif delta.IsLeaf then  
+                    let d = delta :?> MapLeaf<'K, 'D>
+                    if state.IsLeaf then
+                        let s = state :?> MapLeaf<'K, 'V>
+                        if s.Hash = d.Hash then
+                            // TODO: avoid allocating Linkeds here
+                            let lstate = MapLinked(s.Key, s.Value, s.MapNext)
+                            let ldelta = MapLinked(d.Key, d.Value, d.MapNext)
+                            let struct(ldelta, lstate) = MapLinked.applyDelta cmp apply ldelta lstate
 
-                        if isNull ldelta then null
-                        else MapLeaf(d.Hash, ldelta.Key, ldelta.Value, ldelta.MapNext) :> SetNode<_>
+                            if isNull lstate then state <- null
+                            else state <- MapLeaf(s.Hash, lstate.Key, lstate.Value, lstate.MapNext)
+
+                            if isNull ldelta then null
+                            else MapLeaf(d.Hash, ldelta.Key, ldelta.Value, ldelta.MapNext) :> SetNode<_>
+                        else
+                            let struct(ld, ls) = applyDeltaNoState apply delta
+                            state <- join s.Hash s d.Hash ls
+                            ld
+
                     else
-                        let mutable ls = null
-                        let ld = applyDeltaNoState apply delta &ls
-                        state <- join s.Hash s d.Hash ls
-                        ld
+                        // delta in state
+                        let s = state :?> Inner<'K>
+                        match matchPrefixAndGetBit d.Hash s.Prefix s.Mask with
+                        | 0u ->
+                            let l = s.Left
+                            let struct(delta, l) = applyDelta cmp apply l delta
+                            state <- newInner s.Prefix s.Mask l s.Right
+                            delta
+                        | 1u ->
+                            let r = s.Right
+                            let struct(delta, r) = applyDelta cmp apply r delta
+                            state <- newInner s.Prefix s.Mask s.Left r
+                            delta
+                        | _ ->
+                            let struct(ld, ls) = applyDeltaNoState apply delta
+                            state <- join s.Prefix s d.Hash ls
+                            ld
 
-                else
-                    // delta in state
-                    let s = state :?> Inner<'K>
-                    match matchPrefixAndGetBit d.Hash s.Prefix s.Mask with
-                    | 0u ->
-                        let mutable l = s.Left
-                        let delta = applyDelta cmp apply &l delta
-                        state <- newInner s.Prefix s.Mask l s.Right
-                        delta
-                    | 1u ->
-                        let mutable r = s.Right
-                        let delta = applyDelta cmp apply &r delta
-                        state <- newInner s.Prefix s.Mask s.Left r
-                        delta
-                    | _ ->
-                        let mutable ls = null
-                        let ld = applyDeltaNoState apply delta &ls
-                        state <- join s.Prefix s d.Hash ls
-                        ld
-
-            elif state.IsLeaf then
-                // state in delta
-                let s = state :?> MapLeaf<'K, 'V>
-                let d = delta :?> Inner<'K>
-
-                match matchPrefixAndGetBit s.Hash d.Prefix d.Mask with
-                | 0u ->
-                    let mutable ls = state
-                    let mutable rs = null
-                    let ld = applyDelta cmp apply &ls d.Left
-                    let rd = applyDelta cmp apply &rs d.Right
-                    state <- newInner d.Prefix d.Mask ls rs
-                    newInner d.Prefix d.Mask ld rd
-                | 1u -> 
-                    let mutable ls = null
-                    let mutable rs = state
-                    let ld = applyDelta cmp apply &ls d.Left
-                    let rd = applyDelta cmp apply &rs d.Right
-                    state <- newInner d.Prefix d.Mask ls rs
-                    newInner d.Prefix d.Mask ld rd
-                | _ ->
-                    let mutable ls = null
-                    let ld = applyDeltaNoState apply delta &ls
-                    state <- join s.Hash state d.Prefix ls
-                    ld
-                        
-
-            else
-                let d = delta :?> Inner<'K>
-                let s = state :?> Inner<'K>
-
-                let cc = compareMasks d.Mask s.Mask
-                if cc > 0 then
-                    // delta in state
-                    match matchPrefixAndGetBit d.Prefix s.Prefix s.Mask with
-                    | 0u ->
-                        let mutable l = s.Left
-                        let delta = applyDelta cmp apply &l delta
-                        state <- newInner s.Prefix s.Mask l s.Right
-                        delta
-                    | 1u ->
-                        let mutable r = s.Right
-                        let delta = applyDelta cmp apply &r delta
-                        state <- newInner s.Prefix s.Mask s.Left r
-                        delta
-                    | _ ->
-                        let mutable ls = null
-                        let ld = applyDeltaNoState apply delta &ls
-                        state <- join s.Prefix s d.Prefix ls
-                        ld
-
-                elif cc < 0 then
+                elif state.IsLeaf then
                     // state in delta
-                    match matchPrefixAndGetBit s.Prefix d.Prefix d.Mask with
+                    let s = state :?> MapLeaf<'K, 'V>
+                    let d = delta :?> Inner<'K>
+
+                    match matchPrefixAndGetBit s.Hash d.Prefix d.Mask with
                     | 0u ->
-                        let mutable ls = state
-                        let mutable rs = null
-                        let ld = applyDelta cmp apply &ls d.Left
-                        let rd = applyDelta cmp apply &rs d.Right
+                        let ls = state
+                        let rs = null
+                        let struct(ld, ls) = applyDelta cmp apply ls d.Left
+                        let struct(rd, rs) = applyDelta cmp apply rs d.Right
                         state <- newInner d.Prefix d.Mask ls rs
                         newInner d.Prefix d.Mask ld rd
                     | 1u -> 
-                        let mutable ls = null
-                        let mutable rs = state
-                        let ld = applyDelta cmp apply &ls d.Left
-                        let rd = applyDelta cmp apply &rs d.Right
+                        let ls = null
+                        let rs = state
+                        let struct(ld, ls) = applyDelta cmp apply ls d.Left
+                        let struct(rd, rs) = applyDelta cmp apply rs d.Right
                         state <- newInner d.Prefix d.Mask ls rs
                         newInner d.Prefix d.Mask ld rd
                     | _ ->
-                        let mutable ls = null
-                        let ld = applyDeltaNoState apply delta &ls
+                        let struct(ld, ls) = applyDeltaNoState apply delta
+                        state <- join s.Hash state d.Prefix ls
+                        ld
+                            
+
+                else
+                    let d = delta :?> Inner<'K>
+                    let s = state :?> Inner<'K>
+
+                    let cc = compareMasks d.Mask s.Mask
+                    if cc > 0 then
+                        // delta in state
+                        match matchPrefixAndGetBit d.Prefix s.Prefix s.Mask with
+                        | 0u ->
+                            let l = s.Left
+                            let struct(delta, l) = applyDelta cmp apply l delta
+                            state <- newInner s.Prefix s.Mask l s.Right
+                            delta
+                        | 1u ->
+                            let r = s.Right
+                            let struct(delta, r) = applyDelta cmp apply r delta
+                            state <- newInner s.Prefix s.Mask s.Left r
+                            delta
+                        | _ ->
+                            let struct(ld, ls) = applyDeltaNoState apply delta
+                            state <- join s.Prefix s d.Prefix ls
+                            ld
+
+                    elif cc < 0 then
+                        // state in delta
+                        match matchPrefixAndGetBit s.Prefix d.Prefix d.Mask with
+                        | 0u ->
+                            let ls = state
+                            let rs = null
+                            let struct(ld, ls) = applyDelta cmp apply ls d.Left
+                            let struct(rd, rs) = applyDelta cmp apply rs d.Right
+                            state <- newInner d.Prefix d.Mask ls rs
+                            newInner d.Prefix d.Mask ld rd
+                        | 1u -> 
+                            let ls = null
+                            let rs = state
+                            let struct(ld, ls) = applyDelta cmp apply ls d.Left
+                            let struct(rd, rs) = applyDelta cmp apply rs d.Right
+                            state <- newInner d.Prefix d.Mask ls rs
+                            newInner d.Prefix d.Mask ld rd
+                        | _ ->
+                            let struct(ld, ls) = applyDeltaNoState apply delta
+                            state <- join s.Prefix state d.Prefix ls
+                            ld
+
+                    elif s.Prefix = d.Prefix then
+                        let ls = s.Left
+                        let rs = s.Right
+                        let struct(ld, ls) = applyDelta cmp apply ls d.Left
+                        let struct(rd, rs) = applyDelta cmp apply rs d.Right
+                        state <- newInner s.Prefix s.Mask ls rs
+                        newInner d.Prefix d.Mask ld rd
+
+                    else
+                        let struct(ld, ls) = applyDeltaNoState apply delta
                         state <- join s.Prefix state d.Prefix ls
                         ld
 
-                elif s.Prefix = d.Prefix then
-                    let mutable ls = s.Left
-                    let mutable rs = s.Right
-                    let ld = applyDelta cmp apply &ls d.Left
-                    let rd = applyDelta cmp apply &rs d.Right
-                    state <- newInner s.Prefix s.Mask ls rs
-                    newInner d.Prefix d.Mask ld rd
+            struct(result, state)
 
-                else
-                    let mutable ls = null
-                    let ld = applyDeltaNoState apply delta &ls
-                    state <- join s.Prefix state d.Prefix ls
-                    ld
-       
 open HashImplementation
 
 [<Struct>]
@@ -3042,7 +3092,8 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         while e.MoveNext() do
             let item = e.Current
             let hash = uint32 (cmp.GetHashCode item) &&& 0x7FFFFFFFu
-            SetNode.addInPlace cmp hash item &root |> ignore
+            let struct(ok, n) = SetNode.addInPlace cmp hash item root
+            root <- n
         e.Dispose()
         HashSet(cmp, root)
 
@@ -3097,8 +3148,8 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Remove(key) = 
         let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
-        let mutable root = root
-        if SetNode.tryRemove comparer hash key &root then
+        let struct(ok, root) = SetNode.tryRemove comparer hash key root
+        if ok then
             HashSet<'K>(comparer, root)
         else
             x
@@ -3106,8 +3157,8 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.TryRemove(key) = 
         let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
-        let mutable root = root
-        if SetNode.tryRemove comparer hash key &root then
+        let struct(ok, root) = SetNode.tryRemove comparer hash key root
+        if ok then
             HashSet<'K>(comparer, root) |> Some
         else
             None
@@ -3115,8 +3166,8 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.TryRemoveV(key) = 
         let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
-        let mutable root = root
-        if SetNode.tryRemove comparer hash key &root then
+        let struct(ok, root) = SetNode.tryRemove comparer hash key root
+        if ok then
             HashSet<'K>(comparer, root) |> ValueSome
         else
             ValueNone
@@ -3152,7 +3203,8 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         for e in x do
             let n = mapping e
             let hash = uint32 (cmp.GetHashCode n) &&& 0x7FFFFFFFu
-            SetNode.addInPlace cmp hash n &root |> ignore
+            let struct(ok, n) = SetNode.addInPlace cmp hash n root
+            root <- n
 
         HashSet<'T>(cmp, root)
         
@@ -3169,7 +3221,8 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
             match mapping e with
             | ValueSome n ->
                 let hash = uint32 (cmp.GetHashCode n) &&& 0x7FFFFFFFu
-                SetNode.addInPlace cmp hash n &root |> ignore
+                let struct(ok, n) = SetNode.addInPlace cmp hash n root
+                root <- n
             | ValueNone ->
                 ()
         HashSet<'T>(cmp, root)
@@ -3183,7 +3236,8 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
             match mapping e with
             | Some n ->
                 let hash = uint32 (cmp.GetHashCode n) &&& 0x7FFFFFFFu
-                SetNode.addInPlace cmp hash n &root |> ignore
+                let struct(ok, n) = SetNode.addInPlace cmp hash n root
+                root <- n
             | None ->
                 ()
         HashSet<'T>(cmp, root)
@@ -3198,8 +3252,8 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
     
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ApplyDelta(a : HashSet<'K>, b : HashMap<'K, 'D>, apply : 'K -> bool -> 'D -> struct(bool * voption<'DOut>)) =
-        let mutable state = a.Root
-        let delta = SetNode.applyDelta a.Comparer (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) &state b.Root
+        let state = a.Root
+        let struct(delta, state) = SetNode.applyDelta a.Comparer (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) state b.Root
         let state = HashSet<'K>(a.Comparer, state)
         let delta = HashMap<'K, 'DOut>(a.Comparer, delta)
         state, delta
@@ -3306,8 +3360,8 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ApplyDeltaAsHashMap(delta : HashMap<'K, int>) =
-        let mutable state = root
-        let delta = SetNode.applyDelta comparer applyOp &state delta.Root
+        let state = root
+        let struct(delta, state) = SetNode.applyDelta comparer applyOp state delta.Root
         HashSet<'K>(comparer, state), HashMap<'K, int>(comparer, delta)
 
     // ====================================================================================
@@ -3327,7 +3381,8 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         let mutable root = null
         for e in elements do 
             let hash = uint32 (cmp.GetHashCode e) &&& 0x7FFFFFFFu
-            SetNode.addInPlace cmp hash e &root |> ignore
+            let struct(ok, n) = SetNode.addInPlace cmp hash e root
+            root <- n
         HashSet(cmp, root)
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3336,7 +3391,8 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         let mutable root = null
         for e in elements do 
             let hash = uint32 (cmp.GetHashCode e) &&& 0x7FFFFFFFu
-            SetNode.addInPlace cmp hash e &root |> ignore
+            let struct(ok, n) = SetNode.addInPlace cmp hash e root
+            root <- n
         HashSet(cmp, root)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3345,7 +3401,8 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         let mutable root = null
         for e in elements do 
             let hash = uint32 (cmp.GetHashCode e) &&& 0x7FFFFFFFu
-            SetNode.addInPlace cmp hash e &root |> ignore
+            let struct(ok, n) = SetNode.addInPlace cmp hash e root
+            root <- n
         HashSet(cmp, root)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3357,7 +3414,8 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         while i < ee do
             let e = elements.[i]
             let hash = uint32 (cmp.GetHashCode e) &&& 0x7FFFFFFFu
-            SetNode.addInPlace cmp hash e &root |> ignore
+            let struct(ok, n) = SetNode.addInPlace cmp hash e root
+            root <- n
             i <- i + 1
         HashSet(cmp, root)
         
@@ -3478,26 +3536,26 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Remove(key : 'K) = 
         let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
-        let mutable root = root
-        match MapNode.tryRemove<'K, 'V> comparer hash key &root with
+        let struct(res, root) = MapNode.tryRemove<'K, 'V> comparer hash key root
+        match res with
         | ValueNone -> x
         | ValueSome _ -> HashMap<'K, 'V>(comparer, root)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.TryRemove(key : 'K) = 
         let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
-        let mutable root = root
-        match MapNode.tryRemove<'K, 'V> comparer hash key &root with
+        let struct(res, root) = MapNode.tryRemove<'K, 'V> comparer hash key root
+        match res with
         | ValueNone -> None
         | ValueSome v -> Some (v, HashMap<'K, 'V>(comparer, root))
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.TryRemoveV(key : 'K) = 
         let hash = uint32 (comparer.GetHashCode key) &&& 0x7FFFFFFFu
-        let mutable root = root
-        match MapNode.tryRemove<'K, 'V> comparer hash key &root with
+        let struct(res, root) = MapNode.tryRemove<'K, 'V> comparer hash key root
+        match res with
         | ValueNone -> ValueNone
-        | ValueSome v -> ValueSome struct (v, HashMap<'K, 'V>(comparer, root))
+        | ValueSome v -> ValueSome struct(v, HashMap<'K, 'V>(comparer, root))
 
 
     // ====================================================================================
@@ -3572,8 +3630,8 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
     
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ApplyDelta(a : HashMap<'K, 'V>, b : HashMap<'K, 'T>, apply : 'K -> voption<'V> -> 'T -> struct(voption<'V> * voption<'U>)) =
-        let mutable state = a.Root
-        let delta = MapNode.applyDelta a.Comparer (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) &state b.Root
+        let state = a.Root
+        let struct(delta, state) = MapNode.applyDelta a.Comparer (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) state b.Root
         let state = HashMap<'K, 'V>(a.Comparer, state)
         let delta = HashMap<'K, 'U>(a.Comparer, delta)
         state, delta
@@ -3636,7 +3694,8 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let mutable root = null
         for (k, v) in elements do 
             let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-            MapNode.addInPlace cmp hash k v &root |> ignore
+            let struct(ok, n) = MapNode.addInPlace cmp hash k v root
+            root <- n
         HashMap<'K, 'V>(cmp, root)
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3645,7 +3704,8 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let mutable root = null
         for (k, v) in elements do 
             let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-            MapNode.addInPlace cmp hash k v &root |> ignore
+            let struct(ok, n) = MapNode.addInPlace cmp hash k v root
+            root <- n
         HashMap<'K, 'V>(cmp, root)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3654,7 +3714,8 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let mutable root = null
         for (k, v) in elements do 
             let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-            MapNode.addInPlace cmp hash k v &root |> ignore
+            let struct(ok, n) = MapNode.addInPlace cmp hash k v root
+            root <- n
         HashMap<'K, 'V>(cmp, root)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3666,7 +3727,8 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         while i < ee do
             let (k, v) = elements.[i]
             let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-            MapNode.addInPlace cmp hash k v &root |> ignore
+            let struct(ok, n) = MapNode.addInPlace cmp hash k v root
+            root <- n
             i <- i + 1
         HashMap<'K, 'V>(cmp, root)
         
@@ -3679,7 +3741,8 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         while i < ee do
             let struct(k, v) = elements.[i]
             let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-            MapNode.addInPlace cmp hash k v &root |> ignore
+            let struct(ok, n) = MapNode.addInPlace cmp hash k v root
+            root <- n
             i <- i + 1
         HashMap<'K, 'V>(cmp, root)
 
@@ -3689,7 +3752,8 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let mutable root = null
         for struct(k, v) in elements do 
             let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-            MapNode.addInPlace cmp hash k v &root |> ignore
+            let struct(ok, n) = MapNode.addInPlace cmp hash k v root
+            root <- n
         HashMap<'K, 'V>(cmp, root)
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3698,7 +3762,8 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let mutable root = null
         for struct(k, v) in elements do 
             let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-            MapNode.addInPlace cmp hash k v &root |> ignore
+            let struct(ok, n) = MapNode.addInPlace cmp hash k v root
+            root <- n
         HashMap<'K, 'V>(cmp, root)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3707,7 +3772,8 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let mutable root = null
         for struct(k, v) in elements do 
             let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-            MapNode.addInPlace cmp hash k v &root |> ignore
+            let struct(ok, n) = MapNode.addInPlace cmp hash k v root
+            root <- n
         HashMap<'K, 'V>(cmp, root)
         
 

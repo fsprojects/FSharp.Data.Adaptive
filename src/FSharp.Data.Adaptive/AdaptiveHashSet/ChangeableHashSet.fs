@@ -23,7 +23,12 @@ type MapFastVal<'a, 'b>(mapping : 'a -> 'b, input : aval<'a>) =
 
     interface aval<'b> with
         member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
-        member x.ContentType = typeof<'b>
+        member x.ContentType =
+            #if FABLE_COMPILER
+            typeof<obj>
+            #else
+            typeof<'b>
+            #endif
         member x.GetValueUntyped(t) = input.GetValue(t) |> mapping :> obj
         member x.GetValue(t) = input.GetValue(t) |> mapping
 
