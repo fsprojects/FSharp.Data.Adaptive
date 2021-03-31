@@ -108,11 +108,13 @@ module private WeakTableHelpers =
     open Fable.Core.JsInterop
 
     type [<AllowNullLiteral>] WeakMap<'K, 'V> =
-        abstract clear: unit -> unit
-        abstract delete: key: 'K -> bool
-        abstract get: key: 'K -> 'V
-        abstract has: key: 'K -> bool
-        abstract set: key: 'K * ?value: 'V -> WeakMap<'K, 'V>
+        interface
+            abstract clear: unit -> unit
+            abstract delete: key: 'K -> bool
+            abstract get: key: 'K -> 'V
+            abstract has: key: 'K -> bool
+            abstract set: key: 'K * ?value: 'V -> WeakMap<'K, 'V>
+        end
 
     and [<AllowNullLiteral>] WeakMapConstructor =
         [<Emit("new $0($1...)")>] abstract Create: ?iterable: seq<'K * 'V> -> WeakMap<'K, 'V>

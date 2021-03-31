@@ -3517,7 +3517,7 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
         let thing = MapExt.FromArray elements
         MapExt(thing.Comparer, thing.Root)
 
-        
+    #if !FABLE_COMPILER
     new(elements : seq<struct('Key * 'Value)>) =
         let thing = MapExt.FromSeqV elements
         MapExt(thing.Comparer, thing.Root)
@@ -3529,6 +3529,7 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
     new(elements : struct('Key * 'Value)[]) =
         let thing = MapExt.FromArrayV elements
         MapExt(thing.Comparer, thing.Root)     
+    #endif
 
     member x.GetEnumerator() = new MapExtEnumerator<_,_>(root)
 

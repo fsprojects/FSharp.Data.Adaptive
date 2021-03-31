@@ -30,7 +30,7 @@ type HashSetDelta<'T>(store: HashMap<'T, int>) =
     member x.Add (op: SetOperation<'T>) =
         if op.Count <> 0 then
             store |> HashMap.alterV op.Value (fun o ->
-                let n = defaultValueArg o 0 + op.Count
+                let n = match o with | ValueNone -> op.Count | ValueSome o -> o + op.Count
                 if n = 0 then ValueNone
                 else ValueSome n
             )

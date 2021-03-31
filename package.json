@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/fsprojects/FSharp.Data.Adaptive#readme",
   "devDependencies": {
+    "@webpack-cli/serve": "^1.3.1",
     "copy-webpack-plugin": "^5.1.1",
     "webpack": "^5.10.3",
     "webpack-cli": "^4.2.0",
