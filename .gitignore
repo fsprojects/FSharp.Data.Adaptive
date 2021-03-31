@@ -2,6 +2,8 @@ bin/Release
 bin/Debug
 bin/Fable
 bin/Fable.Splitter
+*.fs.js
+*.fs.js.map
 *.swp
 *.userprefs
 **/obj
