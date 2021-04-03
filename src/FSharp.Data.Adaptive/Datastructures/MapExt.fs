@@ -37,20 +37,44 @@ module internal MapExtImplementation =
         uint32 a ^^^ uint32 b + 0x9e3779b9u + ((uint32 a) <<< 6) + ((uint32 a) >>> 2) |> int
 
     [<AllowNullLiteral; NoEquality; NoComparison>]
-    type Node<'Key, 'Value> =
-        val mutable public Height : byte
-        val mutable public Key : 'Key
-        val mutable public Value : 'Value
-        new(k, v, h) = { Key = k; Value = v; Height = h }
-        new(k, v) = { Key = k; Value = v; Height = 1uy }
+    type Node<'Key, 'Value>(key : 'Key, value : 'Value, height : byte) =
+        let mutable height = height
+        let mutable key = key
+        let mutable value = value
+
+        member x.Key
+            with inline get() = key
+            and inline set v = key <- v
+
+        member x.Value
+            with inline get() = value
+            and inline set v = value <- v
+
+        member x.Height
+            with inline get() = height
+            and inline set v = height <- v
+
+        new(k, v) = Node<'Key, 'Value>(k, v, 1uy)
         
     [<Sealed; AllowNullLiteral; NoEquality; NoComparison>]
-    type Inner<'Key, 'Value> =
-        inherit Node<'Key, 'Value>
-        val mutable public Count : int
-        val mutable public Left : Node<'Key, 'Value>
-        val mutable public Right : Node<'Key, 'Value>
-       
+    type Inner<'Key, 'Value>(l : Node<'Key, 'Value>, k : 'Key, v : 'Value, r : Node<'Key, 'Value>, h : byte, cnt : int) =
+        inherit Node<'Key, 'Value>(k, v, h)
+        let mutable left = l
+        let mutable right = r
+        let mutable count = cnt
+
+        member x.Left
+            with inline get() = left
+            and inline set v = left <- v
+
+        member x.Right
+            with inline get() = right
+            and inline set v = right <- v
+
+        member x.Count
+            with inline get() = count
+            and inline set v = count <- v
+
         static member inline GetCount(node : Node<'Key, 'Value>) =
             if isNull node then 0
             elif node.Height = 1uy then 1
@@ -67,9 +91,6 @@ module internal MapExtImplementation =
             let rh = if rc > 0 then inner.Right.Height else 0uy
             inner.Count <- 1 + lc + rc
             inner.Height <- 1uy + max lh rh
-
-        new(l : Node<'Key, 'Value>, k : 'Key, v : 'Value, r : Node<'Key, 'Value>, h : byte, cnt : int) =
-            { inherit  Node<'Key, 'Value>(k, v, h); Left = l; Right = r; Count = cnt }
 
         static member Create(l : Node<'Key, 'Value>, k : 'Key, v : 'Value, r : Node<'Key, 'Value>) =
             if isNull l && isNull r then Node(k, v)
