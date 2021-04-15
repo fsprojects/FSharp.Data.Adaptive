@@ -191,7 +191,7 @@ Target.create "CompileFable" (fun _ ->
 )
 
 Target.create "WatchFable" (fun _ ->
-    DotNet.exec (fun o -> o) "fable" "src/Demo/Fable  -s --run webpack serve"
+    DotNet.exec (fun o -> o) "fable" "watch src/Demo/Fable  -s --run webpack serve"
     |> ignore
 
 )

@@ -55,13 +55,19 @@ let example() =
     let dependent = set |> ASet.map (fun v -> v * 2)
     let reader = dependent.GetReader()
 
-    log "%A -> %A" (Seq.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList reader.State)
+    let ops = Seq.toList (reader.GetChanges AdaptiveToken.Top)
+    let state = Seq.toList reader.State
+    log "%A -> %A" ops state
 
     transact (fun () -> set.Add 4) |> ignore
-    log "%A -> %A" (Seq.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList reader.State)
+    let ops = Seq.toList (reader.GetChanges AdaptiveToken.Top)
+    let state = Seq.toList reader.State
+    log "%A -> %A" ops state
 
     transact (fun () -> set.Value <- HashSet.ofList [5]) |> ignore
-    log "%A -> %A" (Seq.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList reader.State)
+    let ops = Seq.toList (reader.GetChanges AdaptiveToken.Top)
+    let state = Seq.toList reader.State
+    log "%A -> %A" ops state
     
     logh3 "AMap"
     let map = cmap [1, "one"; 2, "two"]
@@ -69,31 +75,44 @@ let example() =
     let reader = dependent.GetReader()
     
     use __ = reader.AddMarkingCallback(fun () -> log "reader marked")
-
-    log "%A -> %A" (Seq.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList reader.State)
+    let ops = Seq.toList (reader.GetChanges AdaptiveToken.Top)
+    let state = Seq.toList reader.State
+    log "%A -> %A" ops state
     
     transact (fun () -> map.[3] <- "three") |> ignore
-    log "%A -> %A" (Seq.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList reader.State)
+    let ops = Seq.toList (reader.GetChanges AdaptiveToken.Top)
+    let state = Seq.toList reader.State
+    log "%A -> %A" ops state
     
     transact (fun () -> map.[2] <- "twa") |> ignore
-    log "%A -> %A" (Seq.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList reader.State)
+    let ops = Seq.toList (reader.GetChanges AdaptiveToken.Top)
+    let state = Seq.toList reader.State
+    log "%A -> %A" ops state
     
     transact (fun () -> map.Remove 1) |> ignore
-    log "%A -> %A" (Seq.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList reader.State)
+    let ops = Seq.toList (reader.GetChanges AdaptiveToken.Top)
+    let state = Seq.toList reader.State
+    log "%A -> %A" ops state
 
     logh3 "AList"
     let list = clist [1;2;3]
     let dependent = list |> AList.map (fun v -> v * 2)
     let reader = dependent.GetReader()
     
-    log "%A -> %A" (IndexListDelta.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList reader.State)
+    let ops = IndexListDelta.toList (reader.GetChanges AdaptiveToken.Top)
+    let state = Seq.toList reader.State
+    log "%A -> %A" ops state
 
     transact (fun () -> list.Add 4) |> ignore
-    log "%A -> %A" (IndexListDelta.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList reader.State)
+    let ops = IndexListDelta.toList (reader.GetChanges AdaptiveToken.Top)
+    let state = Seq.toList reader.State
+    log "%A -> %A" ops state
 
     
     transact (fun () -> list.Clear())
-    log "%A -> %A" (IndexListDelta.toList (reader.GetChanges AdaptiveToken.Top)) (Seq.toList reader.State)
+    let ops = Seq.toList (reader.GetChanges AdaptiveToken.Top)
+    let state = Seq.toList reader.State
+    log "%A -> %A" ops state
 
 
     logh3 "ASet unionMany"
@@ -105,20 +124,28 @@ let example() =
     let reader = dependent.GetReader()
 
     logh4 "initial"
-    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    let ops = List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)
+    let state = List.sort <| Seq.toList reader.State
+    log "%A -> %A" ops state
     
     logh4 "Add 5"
     transact (fun () -> b.Add 5) |> ignore
-    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    let ops = List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)
+    let state = List.sort <| Seq.toList reader.State
+    log "%A -> %A" ops state
     
     let c = cset [8;9]
     logh4 "Add [8;9]"
     transact (fun () -> set.Add (c :> aset<_>)) |> ignore
-    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    let ops = List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)
+    let state = List.sort <| Seq.toList reader.State
+    log "%A -> %A" ops state
     
     logh4 "Rem [8;9]"
     transact (fun () -> set.Remove (c :> aset<_>) |> ignore; c.Add 10 |> ignore)
-    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    let ops = List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)
+    let state = List.sort <| Seq.toList reader.State
+    log "%A -> %A" ops state
     
     let f = AVal.init 1
     
@@ -127,12 +154,16 @@ let example() =
     let reader = overkill.GetReader()
     
     logh4 "initial"
-    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    let ops = List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)
+    let state = List.sort <| Seq.toList reader.State
+    log "%A -> %A" ops state
     
     transact (fun () -> f.Value <- 2)
     
     logh4 "f = 2"
-    log "%A -> %A" (List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)) (List.sort <| Seq.toList reader.State)
+    let ops = List.sort <| Seq.toList (reader.GetChanges AdaptiveToken.Top)
+    let state = List.sort <| Seq.toList reader.State
+    log "%A -> %A" ops state
     
 
 
