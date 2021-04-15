@@ -3384,6 +3384,13 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         HashMap<'K, int>(comparer, delta)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.ComputeDeltaAsHashMap(other : HashSet<'K>, remOp : 'K -> bool, addOp : 'K -> bool) =
+        let rem = fun k -> if remOp k then ValueSome -1 else ValueNone
+        let add = fun k -> if addOp k then ValueSome  1 else ValueNone
+        let delta = SetNode.computeDelta comparer rem add root other.Root
+        HashMap<'K, int>(comparer, delta)
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ApplyDeltaAsHashMap(delta : HashMap<'K, int>) =
         let state = root
         let struct(delta, state) = SetNode.applyDelta comparer applyOp state delta.Root
