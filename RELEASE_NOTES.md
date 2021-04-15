@@ -1,3 +1,6 @@
+### 1.2.3
+* fixed fable build
+
 ### 1.2.2
 * added [HashMap|HashSet|IndexList] computeDeltaCustom
 
