@@ -15,4 +15,6 @@ if [ ! -f packages/build/fake-cli/tools/netcoreapp2.1/any/fake-cli.dll ]; then
     .paket/paket install
 fi
 
+dotnet tool restore
+
 dotnet packages/build/fake-cli/tools/netcoreapp2.1/any/fake-cli.dll build $@ 
