@@ -18,5 +18,7 @@ if NOT exist packages\build\fake-cli\tools\netcoreapp2.1\any\fake-cli.dll (
 	.paket\paket.exe restore
 )
 
+dotnet tool restore
+
 dotnet "packages\build\fake-cli\tools\netcoreapp2.1\any\fake-cli.dll" build %* 
 

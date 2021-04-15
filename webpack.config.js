@@ -11,7 +11,7 @@ module.exports = {
 	context: path.join(__dirname, "./src/Demo/Fable/"),
     mode: production ? "production" : "development",
     entry: {
-        bundle: path.join(__dirname, "./src/Demo/Fable/Fable.fsproj"),
+        bundle: path.join(__dirname, "./src/Demo/Fable/Program.fs.js"),
     },
     output: {
         path: path.join(__dirname, "./bin/Fable"),
@@ -29,19 +29,6 @@ module.exports = {
 
     },
     devtool: production ? false : "eval-source-map",
-    module: {
-        rules: [
-			{
-				test: /\.fs(x|proj)?$/,
-				use: {
-					loader: "fable-loader",
-					options: {
-						define: ["ADAPTIVE_NO_TYPE_TESTS"]
-					}
-				}
-			}
-        ]
-    },
 	plugins: [
 	  new CopyPlugin([
 	    { from: path.join(__dirname, "./src/Demo/Fable/index.html"), to: path.join(__dirname, "./bin/Fable/index.html") }

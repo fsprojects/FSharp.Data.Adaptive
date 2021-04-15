@@ -114,7 +114,7 @@ and IndexListDeltaEnumerator<'T> =
                     if isNull inner.Left then
                         if isNull inner.Right then
                             if x.Tail.IsEmpty then
-                                x.Head <- Unchecked.defaultof<_>
+                                x.Head <- struct(Unchecked.defaultof<_>, false)
                                 x.Tail <- []
                             else
                                 x.Head <- x.Tail.Head
@@ -134,7 +134,7 @@ and IndexListDeltaEnumerator<'T> =
                 else
                     x.CurrentNode <- n
                     if x.Tail.IsEmpty then 
-                        x.Head <- Unchecked.defaultof<_>
+                        x.Head <- struct(Unchecked.defaultof<_>, false)
                         x.Tail <- []
                     else
                         x.Head <- x.Tail.Head
@@ -146,7 +146,7 @@ and IndexListDeltaEnumerator<'T> =
 
 
         member x.Reset() =
-            x.Head <- if isNull x.Root then Unchecked.defaultof<_> else struct(x.Root, true)                
+            x.Head <- if isNull x.Root then struct(Unchecked.defaultof<_>, false) else struct(x.Root, true)                
             x.Tail <- []
             x.CurrentNode <- null
 
@@ -171,7 +171,7 @@ and IndexListDeltaEnumerator<'T> =
         internal new(root : MapExtImplementation.Node<Index, ElementOperation<'T>>) =
             {
                 Root = root
-                Head = if isNull root then Unchecked.defaultof<_> else struct(root, true)
+                Head = if isNull root then struct(Unchecked.defaultof<_>, false) else struct(root, true)
                 Tail = []
                 CurrentNode = null
             }

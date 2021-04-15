@@ -3764,6 +3764,7 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
             i <- i + 1
         HashMap<'K, 'V>(cmp, root)
         
+    #if !FABLE_COMPILER
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfArrayRange(elements: array<struct('K * 'V)>, offset: int, length: int) =  
         let cmp = DefaultEqualityComparer<'K>.Instance
@@ -3808,6 +3809,7 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
             root <- n
         HashMap<'K, 'V>(cmp, root)
         
+    #endif
 
     // ====================================================================================
     // Accessors: GetKeys/CopyTo/ToList/etc.
@@ -3831,10 +3833,14 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
     member x.CopyTo(array : ('K * 'V)[], startIndex : int) =
         MapNode.copyTo array startIndex root |> ignore
             
+    #if !FABLE_COMPILER
+
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.CopyTo(array : struct('K * 'V)[], startIndex : int) =
         MapNode.copyToV array startIndex root |> ignore
             
+    #endif
+
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.CopyKeysTo(array : 'K[], startIndex : int) =
         SetNode.copyTo array startIndex root |> ignore
@@ -4115,21 +4121,23 @@ module HashMap =
     /// Creates a map with all entries from the seq. `O(N)`
     let inline ofSeq (elements : seq<'K * 'V>) = HashMap.OfSeq elements
     
-    /// Creates a map with all entries from the seq. `O(N)`
-    let inline ofSeqV (elements : seq<struct('K * 'V)>) = HashMap.OfSeq elements
-    
     /// Creates a map with all entries from the list. `O(N)`
     let inline ofList (elements : list<'K * 'V>) = HashMap.OfList elements
+    
+    /// Creates a map with all entries from the array. `O(N)`
+    let inline ofArray (elements : ('K * 'V)[]) = HashMap.OfArray elements
+    
+    #if !FABLE_COMPILER
+    /// Creates a map with all entries from the seq. `O(N)`
+    let inline ofSeqV (elements : seq<struct('K * 'V)>) = HashMap.OfSeq elements
     
     /// Creates a map with all entries from the list. `O(N)`
     let inline ofListV (elements : list<struct('K * 'V)>) = HashMap.OfList elements
     
     /// Creates a map with all entries from the array. `O(N)`
-    let inline ofArray (elements : ('K * 'V)[]) = HashMap.OfArray elements
-    
-    /// Creates a map with all entries from the array. `O(N)`
     let inline ofArrayV (elements : struct('K * 'V)[]) = HashMap.OfArray elements
-    
+    #endif
+
     /// Creates a map with all entries from the map. `O(N)`
     let inline ofMap (elements : Map<'K, 'V>) = elements |> Map.toSeq |> HashMap.OfSeq
 
