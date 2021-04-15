@@ -7,6 +7,11 @@ module DifferentiationExtensions =
     /// Functional programming operators related to the HashSet<_> type.
     module HashSet =
 
+        /// Determines the operations needed to transform l into r, using custom element operation functions.
+        /// Returns a HashSetDelta containing these operations.
+        let computeDeltaCustom (l: HashSet<'T>) (r: HashSet<'T>) (add : 'T -> bool) (remove : 'T -> bool) =
+            l.ComputeDeltaAsHashMap(r, remove, add) |> HashSetDelta
+
         /// Determines the operations needed to transform l into r.
         /// Returns a HashSetDelta containing these operations.
         let computeDelta (l: HashSet<'T>) (r: HashSet<'T>) =
@@ -43,15 +48,13 @@ module DifferentiationExtensions =
     /// Functional programming operators related to the HashMap<_,_> type.
     module HashMap =
     
-        /// Determines the operations needed to transform l into r.
+        /// Determines the operations needed to transform l into r, using custom element operation functions.
         /// Returns a HashMapDelta containing all the needed operations.
-        let computeDelta (l: HashMap<'A, 'B>) (r: HashMap<'A, 'B>): HashMapDelta<'A, 'B> =
-            let inline add (_k : 'A) (v : 'B) = ValueSome (Set v)
-            let inline remove (_k : 'A) (v : 'B) = ValueSome Remove
-            let inline update (_k : 'A) (o : 'B) (n : 'B) =
-                if DefaultEquality.equals o n then ValueNone
-                else ValueSome (Set n)
-
+        let computeDeltaCustom 
+            (add: 'A -> 'B -> ValueOption<ElementOperation<'B>>) 
+            (remove: 'A -> 'B -> ValueOption<ElementOperation<'B>>) 
+            (update: 'A -> 'B -> 'B -> ValueOption<ElementOperation<'B>>)
+            (l: HashMap<'A, 'B>) (r: HashMap<'A, 'B>): HashMapDelta<'A, 'B> =
             let delta = 
                 HashImplementation.MapNode.computeDelta 
                     l.Comparer
@@ -62,6 +65,16 @@ module DifferentiationExtensions =
                     r.Root
 
             HashMap<'A, ElementOperation<'B>>(l.Comparer, delta) |> HashMapDelta
+
+        /// Determines the operations needed to transform l into r.
+        /// Returns a HashMapDelta containing all the needed operations.
+        let computeDelta (l: HashMap<'A, 'B>) (r: HashMap<'A, 'B>): HashMapDelta<'A, 'B> =
+            let inline add (_k : 'A) (v : 'B) = ValueSome (Set v)
+            let inline remove (_k : 'A) (v : 'B) = ValueSome Remove
+            let inline update (_k : 'A) (o : 'B) (n : 'B) =
+                if DefaultEquality.equals o n then ValueNone
+                else ValueSome (Set n)
+            computeDeltaCustom add remove update l r
 
         let applyDelta (l : HashMap<'K, 'V>) (r : HashMapDelta<'K, 'V>) =
             let inline apply (_ : 'K) (o : voption<'V>) (n : ElementOperation<'V>) =
@@ -90,8 +103,8 @@ module DifferentiationExtensions =
     /// Functional programming operators related to the IndexList<_> type.
     module IndexList =
         
-        /// Determines the operations needed to transform l into r.
-        /// Returns a IndexListDelta containing these operations.
+        /// Applies the given operations to the list. 
+        /// Returns the new list and the 'effective' operations.
         let applyDelta (x : IndexList<'T>) (deltas : IndexListDelta<'T>) =
             let inline apply _ o n =
                 match n with
@@ -108,14 +121,23 @@ module DifferentiationExtensions =
                         struct(ValueSome v, ValueSome (Set v))
             let s, d = x.Content.ApplyDeltaAndGetEffective(deltas.Content, apply)
             IndexList.ofMap s, IndexListDelta.ofMap d
-
-        /// Applies the given operations to the list. 
+            
+        /// Applies the given operations to the list, using custom element operation functions. 
         /// Returns the new list and the 'effective' operations.
+        let computeDeltaCustom 
+            (add: Index -> 'T -> ElementOperation<'T>) 
+            (remove: Index -> 'T -> ElementOperation<'T>) 
+            (update: Index -> 'T -> 'T -> ValueOption<ElementOperation<'T>>)
+            (l : IndexList<'T>) (r : IndexList<'T>) : IndexListDelta<'T> =
+            let res = l.Content.ComputeDeltaTo(r.Content, add, update, remove)
+            IndexListDelta res
+
+        /// Determines the operations needed to transform l into r.
+        /// Returns a IndexListDelta containing these operations.
         let computeDelta (l : IndexList<'T>) (r : IndexList<'T>) : IndexListDelta<'T> =
             let inline add _ v = Set v
             let inline rem _ _ = Remove
             let inline update _ o n =
                 if DefaultEquality.equals o n then ValueNone
                 else ValueSome (Set n)
-            let res = l.Content.ComputeDeltaTo(r.Content, add, update, rem)
-            IndexListDelta res
+            computeDeltaCustom add rem update l r

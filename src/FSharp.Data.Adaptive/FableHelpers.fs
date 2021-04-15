@@ -101,29 +101,9 @@ module OptimizedClosures =
 
 namespace System.Runtime.CompilerServices
 
-
-[<AutoOpen>]
-module private WeakTableHelpers =
-    open Fable.Core
-    open Fable.Core.JsInterop
-
-    type [<AllowNullLiteral>] WeakMap<'K, 'V> =
-        interface
-            abstract clear: unit -> unit
-            abstract delete: key: 'K -> bool
-            abstract get: key: 'K -> 'V
-            abstract has: key: 'K -> bool
-            abstract set: key: 'K * ?value: 'V -> WeakMap<'K, 'V>
-        end
-
-    and [<AllowNullLiteral>] WeakMapConstructor =
-        [<Emit("new $0($1...)")>] abstract Create: ?iterable: seq<'K * 'V> -> WeakMap<'K, 'V>
-
-    let [<Global>] WeakMap: WeakMapConstructor = jsNative
-
 type ConditionalWeakTable<'K, 'V when 'K : not struct and 'V : not struct>() =
     
-    let m = WeakMap.Create<'K, 'V> []
+    let m = Fable.Core.JS.WeakMap.Create<'K, 'V> []
 
     member x.TryGetValue(key : 'K) =
         if m.has key then (true, m.get key)

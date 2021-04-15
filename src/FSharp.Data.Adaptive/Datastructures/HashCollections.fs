@@ -41,69 +41,98 @@ module internal HashImplementation =
     open HashNumberCrunching
 
     [<AllowNullLiteral>]
-    type SetLinked<'K> =
-        val mutable public SetNext : SetLinked<'K>
-        val mutable public Key : 'K
-        new(k, n) = { Key = k; SetNext = n }
-            
+    type SetLinked<'K>(key : 'K, next : SetLinked<'K>) =
+        let mutable key = key
+        let mutable next = next
+
+        member x.Key
+            with inline get() = key
+            and inline set v = key <- v
+
+        member x.SetNext
+            with inline get() = next
+            and inline set v = next <- v
+
     [<AllowNullLiteral>]
-    type MapLinked<'K, 'V> =
-        inherit SetLinked<'K>
-        val mutable public Value : 'V
+    type MapLinked<'K, 'V>(key : 'K, value : 'V, next : MapLinked<'K, 'V>) =
+        inherit SetLinked<'K>(key, next :> SetLinked<'K>)
+        let mutable value = value
+
+        member x.Value
+            with inline get() = value
+            and inline set v = value <- v
 
         member x.MapNext
             with inline get() : MapLinked<'K, 'V> = downcast x.SetNext
             and inline set (v : MapLinked<'K, 'V>) = x.SetNext <- v
-
-        new(k : 'K, v : 'V, n : MapLinked<'K, 'V>) = { inherit SetLinked<'K>(k, n :> SetLinked<'K>); Value = v }
 
     type NodeKind =
         | Leaf = 0uy
         | Inner = 1uy
         
     [<AllowNullLiteral; AbstractClass>]
-    type SetNode<'K> =
-        val mutable public Store : uint32
-            
+    type SetNode<'K>(k : NodeKind, data : uint32) =
+        let mutable store = (data <<< 1) ||| uint32 k
+
         member inline x.IsLeaf = 
-            x.Store &&& 1u = 0u
+            store &&& 1u = 0u
 
         member x.Data
-            with inline get() = x.Store >>> 1
-            and inline set v = x.Store <- (v <<< 1) ||| (x.Store &&& 1u)
+            with inline get() = store >>> 1
+            and inline set v = store <- (v <<< 1) ||| (store &&& 1u)
 
-        new(k : NodeKind, data : uint32) = { Store = (data <<< 1) ||| uint32 k }
+    type SetLeaf<'K>(hash : uint32, key : 'K, next : SetLinked<'K>) =
+        inherit SetNode<'K>(NodeKind.Leaf, hash)
+        let mutable key = key
+        let mutable next = next
 
-    type SetLeaf<'K> =
-        inherit SetNode<'K>
-        val mutable public Key : 'K
-        val mutable public SetNext : SetLinked<'K>
+        member x.Key
+            with inline get() = key
+            and inline set v = key <- v
+
+        member x.SetNext
+            with inline get() = next
+            and inline set v = next <- v
 
         member x.Hash
             with inline get() = x.Data
             and inline set v = x.Data <- v
 
-        new(hash : uint32, key : 'K, next : SetLinked<'K>) =
-            { inherit SetNode<'K>(NodeKind.Leaf, hash); Key = key; SetNext = next }
+    type MapLeaf<'K, 'V>(hash : uint32, key : 'K, value : 'V, next : MapLinked<'K, 'V>) =
+        inherit SetLeaf<'K>(hash, key, next)
+        let mutable value = value
 
-    type MapLeaf<'K, 'V> =
-        inherit SetLeaf<'K>
-        val mutable public Value : 'V
+        member x.Value
+            with inline get() = value
+            and inline set v = value <- v
 
         member x.MapNext
             with inline get() : MapLinked<'K, 'V> = downcast x.SetNext
             and inline set (v : MapLinked<'K, 'V>) = x.SetNext <- v
 
-        new(hash : uint32, key : 'K, value : 'V, next : MapLinked<'K, 'V>) =
-            { inherit SetLeaf<'K>(hash, key, next); Value = value }
+    type Inner<'K>(prefix : uint32, mask : uint32, left : SetNode<'K>, right : SetNode<'K>) =
+        inherit SetNode<'K>(NodeKind.Inner, prefix)
+        let mutable mask = mask
+        let mutable count = Inner.GetCount left + Inner.GetCount right
+        let mutable left = left
+        let mutable right = right
 
-    type Inner<'K> =
-        inherit SetNode<'K>
-        val mutable public Mask : uint32
-        val mutable public Count : int
-        val mutable public Left : SetNode<'K>
-        val mutable public Right : SetNode<'K>
-            
+        member x.Mask
+            with inline get() = mask
+            and inline set v = mask <- v
+
+        member x.Count
+            with inline get() = count
+            and inline set v = count <- v
+
+        member x.Left
+            with inline get() = left
+            and inline set v = left <- v
+
+        member x.Right
+            with inline get() = right
+            and inline set v = right <- v
+
         static member GetCount(node : SetNode<'K>) =
             if isNull node then 0
             elif node.IsLeaf then 
@@ -119,15 +148,11 @@ module internal HashImplementation =
             else
                 let inner = node :?> Inner<'K>
                 inner.Count
-                
 
         member x.Prefix
             with inline get() = x.Data
             and inline set v = x.Data <- v
 
-        new(prefix : uint32, mask : uint32, left : SetNode<'K>, right : SetNode<'K>) =
-            let cnt = Inner.GetCount left + Inner.GetCount right
-            { inherit SetNode<'K>(NodeKind.Inner, prefix); Mask = mask; Count = cnt; Left = left; Right = right }
 
     let size (node : SetNode<'K>) =
         Inner.GetCount node
@@ -3358,6 +3383,13 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         let delta = SetNode.computeDelta comparer remOp addOp root other.Root
         HashMap<'K, int>(comparer, delta)
         
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.ComputeDeltaAsHashMap(other : HashSet<'K>, remOp : 'K -> bool, addOp : 'K -> bool) =
+        let rem = fun k -> if remOp k then ValueSome -1 else ValueNone
+        let add = fun k -> if addOp k then ValueSome  1 else ValueNone
+        let delta = SetNode.computeDelta comparer rem add root other.Root
+        HashMap<'K, int>(comparer, delta)
+
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ApplyDeltaAsHashMap(delta : HashMap<'K, int>) =
         let state = root

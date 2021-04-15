@@ -1,3 +1,6 @@
+### 1.2.2
+* added [HashMap|HashSet|IndexList] computeDeltaCustom
+
 ### 1.2.1
 * ShallowEquality now descends into non-recursive DUs (e.g. option)
 
