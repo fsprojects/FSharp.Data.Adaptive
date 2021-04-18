@@ -1,6 +1,7 @@
 ﻿namespace FSharp.Data.Adaptive
 
 open System
+#nowarn "7331"
 
 type IAdaptiveValue =
     inherit IAdaptiveObject
@@ -108,7 +109,13 @@ module AVal =
     [<StructuredFormatDisplay("{AsString}")>]
     type MapNonAdaptiveVal<'a, 'b>(mapping : 'a -> 'b, input : aval<'a>) =
         
-        override x.ToString() = input.ToString()
+        override x.ToString() = 
+            if input.OutOfDate then 
+                "aval*"
+            else 
+                let v = input.GetValue AdaptiveToken.Top
+                sprintf "aval(%A)" (mapping v)
+
         member x.AsString = x.ToString()
 
         member x.Mapping = mapping
@@ -150,8 +157,19 @@ module AVal =
                 #else
                 typeof<'b>
                 #endif
-            member x.GetValueUntyped(t) = input.GetValue(t) |> mapping :> obj
-            member x.GetValue(t) = input.GetValue(t) |> mapping
+            member x.GetValueUntyped(t) = 
+                if Unchecked.isNull t.caller then
+                    input.GetValue t |> mapping :> obj
+                else
+                    let c = DecoratedObject.Create(t.caller, x)
+                    input.GetValue(t.WithCaller c) |> mapping :> obj
+
+            member x.GetValue(t) =  
+                if Unchecked.isNull t.caller then
+                    input.GetValue t |> mapping
+                else
+                    let c = DecoratedObject.Create(t.caller, x)
+                    input.GetValue(t.WithCaller c) |> mapping
     
     type Caster<'a, 'b> private() =
         static let cast =

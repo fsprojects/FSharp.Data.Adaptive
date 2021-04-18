@@ -235,4 +235,28 @@ let ``[AVal] ChangeableLazyVal working``() =
     test.OutOfDate |> should be False
     ()
 
+[<Test>]
+let ``[AVal] map non-adaptive and bind``() =
+    let v = AVal.init true
+    let a = AVal.constant 0
+    let b = AVal.constant 1
 
+    let output = v |> AVal.map id |> AVal.mapNonAdaptive id |> AVal.bind (fun flag -> if flag then a else b)
+
+    output |> AVal.force |> should equal 0
+
+    transact (fun () -> v.Value <- false)
+    output |> AVal.force |> should equal 1
+
+[<Test>]
+let ``[AVal] multi map non-adaptive and bind``() =
+    let v = AVal.init true
+    let a = AVal.constant 0
+    let b = AVal.constant 1
+
+    let output = v |> AVal.map id |> AVal.mapNonAdaptive id |> AVal.mapNonAdaptive id |> AVal.bind (fun flag -> if flag then a else b)
+
+    output |> AVal.force |> should equal 0
+
+    transact (fun () -> v.Value <- false)
+    output |> AVal.force |> should equal 1

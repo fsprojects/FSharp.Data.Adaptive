@@ -3,6 +3,8 @@
 open System
 open System.Threading
 
+#nowarn "7331"
+
 [<AutoOpen>]
 module internal LockingExtensions =
     type IAdaptiveObject with
@@ -28,6 +30,50 @@ module internal LockingExtensions =
 exception LevelChangedException of 
     /// The new level for the top-level object.
     newLevel : int
+
+/// internal type used for properly handling of decorator objects (as introduced in AVal.mapNonAdaptive)
+/// Note that it should never be necessary to use this in user-code.
+[<CompilerMessage("internal", 7331)>]
+type internal DecoratedObject private(real : IAdaptiveObject, decorator : IAdaptiveObject) =
+    let mutable weak : WeakReference<IAdaptiveObject> = null
+
+    interface IAdaptiveObject with
+        member x.Tag
+            with get() = null
+            and set _ = ()
+
+        member x.IsConstant = false
+        member x.Weak = 
+            // Note that we accept the race conditon here since locking the object
+            // would potentially cause deadlocks and the worst case is, that we
+            // create two different WeakReferences for the same object
+            let w = weak
+            if isNull w then
+                let w = WeakReference<_>(x :> IAdaptiveObject)
+                weak <- w
+                w
+            else
+                w
+        member x.Outputs = Unchecked.defaultof<_>
+        member x.Mark() = false
+        member x.AllInputsProcessed(_) = ()
+        member x.InputChanged(_, _) = ()
+
+        member x.OutOfDate
+            with get() = false
+            and set o = ()
+
+        member x.Level
+            with get() = real.Level
+            and set l = real.Level <- l
+
+    member x.Real = real
+    member x.Decorator = decorator
+
+    static member Create(real : IAdaptiveObject, decorator : IAdaptiveObject) =
+        match real with
+        | :? DecoratedObject as r -> r
+        | _ -> DecoratedObject(real, decorator)
 
 
 /// Holds a set of adaptive objects which have been changed and shall
@@ -180,8 +226,13 @@ type Transaction() =
                 for i in 0 .. outputCount - 1 do
                     let o = outputs.[i]
                     outputs.[i] <- Unchecked.defaultof<_>
-                    o.InputChanged(x, e)
-                    x.Enqueue o
+                    match o with
+                    | :? DecoratedObject as o ->
+                        o.Real.InputChanged(x, o.Decorator)
+                        x.Enqueue o.Real
+                    | _ ->
+                        o.InputChanged(x, e)
+                        x.Enqueue o
 
             current <- Unchecked.defaultof<_>
             
