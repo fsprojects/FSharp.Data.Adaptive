@@ -3,7 +3,7 @@ redirects: off
 storage: none
 framework: auto-detect
 
-nuget FSharp.Core                           >= 4.6.2 lowest_matching: true
+nuget FSharp.Core                           >= 4.7.0 lowest_matching: true
 nuget System.Reflection.Emit.Lightweight    >= 4.6.0 lowest_matching: true
 
 # Tests : intentionally in main group

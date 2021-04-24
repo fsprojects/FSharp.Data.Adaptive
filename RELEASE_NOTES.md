@@ -1,3 +1,6 @@
+### 1.2.4
+* raised minimal FSharp.Core version to 4.7.0 (necessary due to Fable.Core update)
+
 ### 1.2.3
 * fixed fable build
 
