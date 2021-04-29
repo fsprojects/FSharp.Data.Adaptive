@@ -277,3 +277,20 @@ let ``[IndexList] computeDelta / applyDelta`` (l1 : list<int>) (l2 : list<int>) 
     IndexList.applyDelta l1 d1231 |> fst |> should equal l1
     IndexList.applyDelta l2 d2312 |> fst |> should equal l2
     IndexList.applyDelta l3 d3123 |> fst |> should equal l3
+
+    
+[<Property(MaxTest = 4000)>]
+let ``[IndexList] computeDeltaToList`` (l1 : list<int>) (l2 : list<int>) =
+    let a1 = IndexList.ofList l1
+    let a2 = IndexList.ofList l2
+
+    let cmp = DefaultEqualityComparer.Instance
+
+    IndexList.computeDeltaToList cmp a1 l1 |> should equal IndexListDelta.empty<int>
+    IndexList.computeDeltaToList cmp a2 l2 |> should equal IndexListDelta.empty<int>
+
+    let d12 = IndexList.computeDeltaToList cmp a1 l2
+    let d21 = IndexList.computeDeltaToList cmp a2 l1
+
+    IndexList.applyDelta a1 d12 |> fst |> IndexList.toList |> should equal l2
+    IndexList.applyDelta a2 d21 |> fst |> IndexList.toList |> should equal l1
