@@ -109,6 +109,25 @@ module AVal =
     [<StructuredFormatDisplay("{AsString}")>]
     type MapNonAdaptiveVal<'a, 'b>(mapping : 'a -> 'b, input : aval<'a>) =
         
+        // need to keep all decorators alive since they "live" in WeakOutputSets
+        let decorators = System.Collections.Generic.Dictionary<WeakReference<IAdaptiveObject>, DecoratedObject>()
+
+        let removeDecorator (d : DecoratedObject) =
+            lock decorators (fun () ->
+                decorators.Remove d.Real |> ignore
+            )
+
+        let getDecorator (caller : IAdaptiveObject) (self : IAdaptiveObject) =
+            lock decorators (fun () ->
+                match decorators.TryGetValue caller.Weak with
+                | (true, d) -> d
+                | _ -> 
+                    let o = DecoratedObject.Create(caller, self, removeDecorator)
+                    decorators.[caller.Weak] <- o
+                    o
+            )
+
+
         override x.ToString() = 
             if input.OutOfDate then 
                 "aval*"
@@ -161,14 +180,14 @@ module AVal =
                 if Unchecked.isNull t.caller then
                     input.GetValue t |> mapping :> obj
                 else
-                    let c = DecoratedObject.Create(t.caller, x)
+                    let c = getDecorator t.caller x
                     input.GetValue(t.WithCaller c) |> mapping :> obj
 
             member x.GetValue(t) =  
                 if Unchecked.isNull t.caller then
                     input.GetValue t |> mapping
                 else
-                    let c = DecoratedObject.Create(t.caller, x)
+                    let c = getDecorator t.caller x
                     input.GetValue(t.WithCaller c) |> mapping
     
     type Caster<'a, 'b> private() =

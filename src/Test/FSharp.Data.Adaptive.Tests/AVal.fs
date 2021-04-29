@@ -249,6 +249,27 @@ let ``[AVal] map non-adaptive and bind``() =
     output |> AVal.force |> should equal 1
 
 [<Test>]
+let ``[AVal] mapNonAdaptive GC correct``() =
+    
+    let v = cval 10
+
+    let run() =
+        v |> AVal.mapNonAdaptive ((+)1) |> AVal.map id
+
+    let test = run()
+    test |> AVal.force |> should equal 11
+
+    System.GC.Collect(3)
+    System.GC.WaitForFullGCComplete() |> ignore
+    System.GC.WaitForPendingFinalizers()
+
+
+    transact (fun () -> v.Value <- 100)
+    test |> AVal.force |> should equal 101
+
+
+
+[<Test>]
 let ``[AVal] multi map non-adaptive and bind``() =
     let v = AVal.init true
     let a = AVal.constant 0

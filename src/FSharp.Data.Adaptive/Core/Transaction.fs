@@ -34,7 +34,7 @@ exception LevelChangedException of
 /// internal type used for properly handling of decorator objects (as introduced in AVal.mapNonAdaptive)
 /// Note that it should never be necessary to use this in user-code.
 [<CompilerMessage("internal", 7331)>]
-type internal DecoratedObject private(real : IAdaptiveObject, decorator : IAdaptiveObject) =
+type internal DecoratedObject private(real : WeakReference<IAdaptiveObject>, decorator : IAdaptiveObject, release : DecoratedObject -> unit) =
     let mutable weak : WeakReference<IAdaptiveObject> = null
 
     interface IAdaptiveObject with
@@ -64,17 +64,25 @@ type internal DecoratedObject private(real : IAdaptiveObject, decorator : IAdapt
             and set o = ()
 
         member x.Level
-            with get() = real.Level
-            and set l = real.Level <- l
+            with get() = 
+                match real.TryGetTarget() with
+                | (true, r) -> r.Level
+                | _ -> 0
+            and set l = 
+                match real.TryGetTarget() with
+                | (true, r) -> r.Level <- l
+                | _ -> ()
 
     member x.Real = real
     member x.Decorator = decorator
 
-    static member Create(real : IAdaptiveObject, decorator : IAdaptiveObject) =
+    static member Create(real : IAdaptiveObject, decorator : IAdaptiveObject, release : DecoratedObject -> unit) =
         match real with
         | :? DecoratedObject as r -> r
-        | _ -> DecoratedObject(real, decorator)
+        | _ -> DecoratedObject(real.Weak, decorator, release)
 
+
+    member x.Release() = release x
 
 /// Holds a set of adaptive objects which have been changed and shall
 /// therefore be marked as outOfDate. Committing the transaction propagates
@@ -228,8 +236,12 @@ type Transaction() =
                     outputs.[i] <- Unchecked.defaultof<_>
                     match o with
                     | :? DecoratedObject as o ->
-                        o.Real.InputChanged(x, o.Decorator)
-                        x.Enqueue o.Real
+                        match o.Real.TryGetTarget() with
+                        | (true, r) ->
+                            r.InputChanged(x, o.Decorator)
+                            x.Enqueue r
+                        | _ ->
+                            o.Release()
                     | _ ->
                         o.InputChanged(x, e)
                         x.Enqueue o
