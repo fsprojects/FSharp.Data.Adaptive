@@ -179,7 +179,7 @@ Target.create "NpmInstall" (fun _ ->
 )
 
 Target.create "CompileFable" (fun _ ->
-    DotNet.exec (fun o -> o) "fable" "src/Demo/Fable/Fable.fsproj"
+    DotNet.exec (fun o -> o) "fable" "src/Demo/Fable/Fable.fsproj -o bin/Fable"
     |> ignore
     //CreateProcess.fromRawCommand "node" [npx; "fable-splitter"; "-c"; "splitter-config.js"]
     //|> CreateProcess.withWorkingDirectory Environment.CurrentDirectory

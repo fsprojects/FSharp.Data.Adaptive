@@ -20,6 +20,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CSharpInterop", "src\Demo\C
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{3F9BDA4B-D949-46D6-B237-07FE80CBBB53}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FileSystem", "src\Demo\FileSystem\FileSystem.fsproj", "{2AE99C0D-703D-4042-9E8D-BF8A66284B0D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -54,6 +56,10 @@ Global
 		{D4058F6D-A8D5-4587-AE05-D32A3B99B625}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D4058F6D-A8D5-4587-AE05-D32A3B99B625}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D4058F6D-A8D5-4587-AE05-D32A3B99B625}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2AE99C0D-703D-4042-9E8D-BF8A66284B0D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2AE99C0D-703D-4042-9E8D-BF8A66284B0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2AE99C0D-703D-4042-9E8D-BF8A66284B0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2AE99C0D-703D-4042-9E8D-BF8A66284B0D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -64,6 +70,7 @@ Global
 		{03B1322E-F6C8-4CF2-84DD-8996A2373479} = {B5A29D79-4C76-4148-A69F-814ED1BEEFCE}
 		{B978F3DF-9F10-493E-97E9-0248491D41D9} = {B5A29D79-4C76-4148-A69F-814ED1BEEFCE}
 		{D4058F6D-A8D5-4587-AE05-D32A3B99B625} = {B5A29D79-4C76-4148-A69F-814ED1BEEFCE}
+		{2AE99C0D-703D-4042-9E8D-BF8A66284B0D} = {B5A29D79-4C76-4148-A69F-814ED1BEEFCE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0E91AEEA-75F2-484D-8E5E-E3322D13C65A}

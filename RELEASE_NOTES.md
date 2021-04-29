@@ -1,3 +1,8 @@
+### 1.2.5
+* fixed GC problem with `AVal.mapNonAdaptive`
+* added adaptive FileSystem tools
+* implemented efficient `IndexList.computeDeltaTo(Array|List|Seq)` (https://neil.fraser.name/writing/diff/myers.pdf)
+
 ### 1.2.4
 * raised minimal FSharp.Core version to 4.7.0 (necessary due to Fable.Core update)
 

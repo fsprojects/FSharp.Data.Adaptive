@@ -100,6 +100,19 @@ type HashSetDelta<'T>(store: HashMap<'T, int>) =
             )
         res
         
+        
+    /// Applies the mapping function to all operations in the set.
+    member x.ChooseV (f: SetOperation<'T> -> voption<SetOperation<'T2>>) =
+        let mutable res = HashSetDelta<'T2>.Empty
+        if not store.IsEmpty then
+            store |> HashMap.iter (fun k v -> 
+                match f (SetOperation(k,v)) with
+                | ValueSome r -> res <- res.Add r
+                | _ -> ()
+            )
+        res
+        
+
     /// Filters the operations contains using the given predicate.
     member x.Filter (f: SetOperation<'T> -> bool) =
         if store.IsEmpty then HashSetDelta.Empty
@@ -295,6 +308,10 @@ module HashSetDelta =
     /// Applies the mapping function to all operations in the set.
     let inline choose (f: SetOperation<'T> -> option<SetOperation<'T2>>) (set: HashSetDelta<'T>) =
         set.Choose f
+        
+    /// Applies the mapping function to all operations in the set.
+    let inline chooseV (f: SetOperation<'T> -> voption<SetOperation<'T2>>) (set: HashSetDelta<'T>) =
+        set.ChooseV f
 
     /// Filters the operations contains using the given predicate.
     let inline filter (f: SetOperation<'T> -> bool) (set: HashSetDelta<'T>) =

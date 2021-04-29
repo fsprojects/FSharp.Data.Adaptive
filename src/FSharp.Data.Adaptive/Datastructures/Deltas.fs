@@ -368,6 +368,92 @@ module DifferentiationExtensions =
                                     di <- di + 1
 
                     delta
+              
+        /// Determines the operations needed to transform src into dst.
+        /// Returns a IndexListDelta containing these operations and the
+        /// resulting IndexList.
+        let computeDeltaToArrayAndGetResult (cmp : System.Collections.Generic.IEqualityComparer<'a>) (src : IndexList<'a>) (dst : 'a[]) =
+            if dst.Length = 0 then
+                computeDelta src IndexList.empty, IndexList.empty
+            else
+                if src.Count = 0 then
+                    let dst = IndexList.ofArray dst
+                    computeDelta src dst, dst
+                else
+                    // both are non-empty
+                    let mutable result = src
+                    let src = IndexList.toArrayIndexed src
+
+                    let mutable steps = ComputeListDeltaHelpers.DeltaOperationList.ofArrayMyers (fun (_,a) b -> cmp.Equals(a, b)) src dst
+                    let mutable si = 0
+                    let mutable di = 0
+                    let mutable delta = IndexListDelta.empty
+                    let mutable lastIndex = Index.zero
+                    while not steps.IsNil do
+                        let struct(h, t) = steps.UnsafeUnconsV()
+
+                        match h with
+                        | ComputeListDeltaHelpers.DeltaOperation.Equal ->
+                            steps <- t
+                            // step both => no delta
+                            lastIndex <- fst src.[si]
+                            si <- si + 1
+                            di <- di + 1
+                        | _ ->
+                       
+                            let mutable remCnt = 0
+                            let mutable addCnt = 0
+                            let mutable struct(h, t) = steps.UnsafeUnconsV()
+                            steps <- t
+
+                            while h <> ComputeListDeltaHelpers.DeltaOperation.Equal do
+                                if h = ComputeListDeltaHelpers.DeltaOperation.Remove then remCnt <- remCnt + 1
+                                else addCnt <- addCnt + 1
+
+                                if steps.IsNil then 
+                                    h <- ComputeListDeltaHelpers.DeltaOperation.Equal
+                                else 
+                                    let struct(hh, tt) = steps.UnsafeUnconsV()
+                                    if hh <> ComputeListDeltaHelpers.DeltaOperation.Equal then 
+                                        h <- hh
+                                        steps <- tt
+                                    else
+                                        h <- ComputeListDeltaHelpers.DeltaOperation.Equal
+
+                        
+                            let replace = min remCnt addCnt
+                            for _ in 0 .. replace - 1 do
+                                let (idx,_) = src.[si]
+                                let nv = dst.[di]
+                                delta <- delta |> IndexListDelta.add idx (Set nv)
+                                result <- result |> IndexList.set idx nv
+                                si <- si + 1
+                                di <- di + 1
+                                lastIndex <- idx
+
+                            for _ in replace .. remCnt - 1 do
+                                let (idx, _) = src.[si]
+                                delta <- delta |> IndexListDelta.add idx Remove
+                                result <- result |> IndexList.remove idx
+                                si <- si + 1
+
+                            if replace < addCnt then
+                                let newIndex =
+                                    if si < src.Length then 
+                                        let (ni,_) = src.[si]
+                                        fun l -> Index.between l ni
+                                    else 
+                                        Index.after
+
+                                for _ in replace .. addCnt - 1 do
+                                    let idx = newIndex lastIndex
+                                    let nv = dst.[di]
+                                    delta <- delta |> IndexListDelta.add idx (Set nv)
+                                    result <- result |> IndexList.set idx nv
+                                    lastIndex <- idx
+                                    di <- di + 1
+
+                    delta, result
                     
         /// Determines the operations needed to transform src into dst.
         /// Returns a IndexListDelta containing these operations.

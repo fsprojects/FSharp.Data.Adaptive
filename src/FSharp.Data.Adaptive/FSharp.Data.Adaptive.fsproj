@@ -60,6 +60,7 @@
     <Compile Include="AdaptiveIndexList\AdaptiveIndexList.fs" />
     <Compile Include="AdaptiveIndexList\ChangeableIndexList.fsi" /> 
     <Compile Include="AdaptiveIndexList\ChangeableIndexList.fs" />
+    <Compile Include="AdaptiveTools\AdaptiveFileSystem.fs" />
     <Compile Include="CollectionExtensions.fs" />
     <Compile Include="EvaluationCallbackExtensions.fs" />
     <Compile Include="ComputationExpressions.fs" />

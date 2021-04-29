@@ -1090,10 +1090,16 @@ module internal AdaptiveIndexListImplementation =
         let mutable last = IndexList.empty
 
         override x.Compute(token: AdaptiveToken) =
-            let v = input.GetValue token |> IndexList.ofSeq
-            let ops = IndexList.computeDelta last v
-            last <- v
-            ops
+            let v = input.GetValue token
+            match v :> seq<_> with
+            | :? IndexList<'a> as v ->
+                let ops = IndexList.computeDelta last v
+                last <- v
+                ops
+            | _ ->
+                let ops, n = IndexList.computeDeltaToArrayAndGetResult DefaultEqualityComparer.Instance last (Seq.toArray v)
+                last <- n
+                ops
     
     /// Reader for pairwise operations
     [<Sealed>]

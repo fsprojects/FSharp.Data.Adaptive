@@ -116,7 +116,15 @@ let ``[AVal] bind content`` () =
         )
 
     test |> should equal b
- 
+
+[<Test>]
+let ``[AVal] cast equality`` () =
+    let a = cval [1;2;3]
+
+    let b = a |> AVal.cast<seq<int>>
+    let c = a |> AVal.cast<seq<int>>
+    b |> should equal c
+
  
 type EagerVal<'T>(input : aval<'T>) =
     inherit AdaptiveObject()
