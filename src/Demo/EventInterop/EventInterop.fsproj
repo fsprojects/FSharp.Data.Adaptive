@@ -12,6 +12,7 @@
     <OutputPath>..\..\..\bin\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="AdaptiveFilesystem.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
