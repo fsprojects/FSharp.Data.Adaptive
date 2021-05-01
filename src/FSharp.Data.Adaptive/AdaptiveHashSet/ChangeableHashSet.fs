@@ -3,35 +3,6 @@
 open FSharp.Data.Traceable
 open System.Threading
 
-type MapFastVal<'a, 'b>(mapping : 'a -> 'b, input : aval<'a>) =
-    interface IAdaptiveObject with
-        member x.AllInputsProcessed(a) = input.AllInputsProcessed(a)
-        member x.InputChanged(a,b) = input.InputChanged(a,b)
-        member x.Mark() = input.Mark()
-        member x.IsConstant = input.IsConstant
-        member x.Level
-            with get() = input.Level
-            and set v = input.Level <- v
-        member x.OutOfDate
-            with get() = input.OutOfDate
-            and set v = input.OutOfDate <- v
-        member x.Outputs = input.Outputs
-        member x.Tag 
-            with get() = input.Tag
-            and set t = input.Tag <- t
-        member x.Weak = input.Weak
-
-    interface aval<'b> with
-        member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
-        member x.ContentType =
-            #if FABLE_COMPILER
-            typeof<obj>
-            #else
-            typeof<'b>
-            #endif
-        member x.GetValueUntyped(t) = input.GetValue(t) |> mapping :> obj
-        member x.GetValue(t) = input.GetValue(t) |> mapping
-
 /// Changeable adaptive set that allows mutation by user-code and implements aset.
 [<Sealed>]
 type ChangeableHashSet<'T>(initial : HashSet<'T>) =
@@ -42,7 +13,7 @@ type ChangeableHashSet<'T>(initial : HashSet<'T>) =
             h.Perform delta |> ignore
         h
 
-    let content = MapFastVal(CountingHashSet.toHashSet, history) :> aval<_>
+    let content = AVal.mapNonAdaptive CountingHashSet.toHashSet history
 
     /// The number of entries currently in the set.
     member x.Count =

@@ -38,6 +38,7 @@
     <Compile Include="Core\Transaction.fs" />
     <Compile Include="Core\AdaptiveToken.fs" />
     <Compile Include="Core\AdaptiveObject.fs" />
+    <Compile Include="Core\DecoratorObject.fs" />
     <Compile Include="Core\Callbacks.fs" />
     <Compile Include="AdaptiveValue\AdaptiveValue.fsi" /> 
     <Compile Include="AdaptiveValue\AdaptiveValue.fs" /> 

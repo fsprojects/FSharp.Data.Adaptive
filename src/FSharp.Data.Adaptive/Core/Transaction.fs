@@ -34,7 +34,7 @@ exception LevelChangedException of
 /// internal type used for properly handling of decorator objects (as introduced in AVal.mapNonAdaptive)
 /// Note that it should never be necessary to use this in user-code.
 [<CompilerMessage("internal", 7331)>]
-type internal DecoratedObject private(real : WeakReference<IAdaptiveObject>, decorator : IAdaptiveObject, release : DecoratedObject -> unit) =
+type internal IndirectOutputObject private(real : WeakReference<IAdaptiveObject>, decorator : IAdaptiveObject, release : IndirectOutputObject -> unit) =
     let mutable weak : WeakReference<IAdaptiveObject> = null
 
     interface IAdaptiveObject with
@@ -76,10 +76,10 @@ type internal DecoratedObject private(real : WeakReference<IAdaptiveObject>, dec
     member x.Real = real
     member x.Decorator = decorator
 
-    static member Create(real : IAdaptiveObject, decorator : IAdaptiveObject, release : DecoratedObject -> unit) =
+    static member Create(real : IAdaptiveObject, decorator : IAdaptiveObject, release : IndirectOutputObject -> unit) =
         match real with
-        | :? DecoratedObject as r -> r
-        | _ -> DecoratedObject(real.Weak, decorator, release)
+        | :? IndirectOutputObject as r -> r
+        | _ -> IndirectOutputObject(real.Weak, decorator, release)
 
 
     member x.Release() = release x
@@ -235,7 +235,7 @@ type Transaction() =
                     let o = outputs.[i]
                     outputs.[i] <- Unchecked.defaultof<_>
                     match o with
-                    | :? DecoratedObject as o ->
+                    | :? IndirectOutputObject as o ->
                         match o.Real.TryGetTarget() with
                         | (true, r) ->
                             r.InputChanged(x, o.Decorator)

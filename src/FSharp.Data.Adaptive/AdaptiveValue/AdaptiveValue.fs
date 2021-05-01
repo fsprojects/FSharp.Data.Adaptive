@@ -105,28 +105,11 @@ module AVal =
         interface IAdaptiveValue<'T> with
             member x.GetValue t = x.GetValue t  
          
+
     /// Mapping without dirty tracking (always evaluated)
     [<StructuredFormatDisplay("{AsString}")>]
     type MapNonAdaptiveVal<'a, 'b>(mapping : 'a -> 'b, input : aval<'a>) =
-        
-        // need to keep all decorators alive since they "live" in WeakOutputSets
-        let decorators = System.Collections.Generic.Dictionary<WeakReference<IAdaptiveObject>, DecoratedObject>()
-
-        let removeDecorator (d : DecoratedObject) =
-            lock decorators (fun () ->
-                decorators.Remove d.Real |> ignore
-            )
-
-        let getDecorator (caller : IAdaptiveObject) (self : IAdaptiveObject) =
-            lock decorators (fun () ->
-                match decorators.TryGetValue caller.Weak with
-                | (true, d) -> d
-                | _ -> 
-                    let o = DecoratedObject.Create(caller, self, removeDecorator)
-                    decorators.[caller.Weak] <- o
-                    o
-            )
-
+        inherit DecoratorObject(input)
 
         override x.ToString() = 
             if input.OutOfDate then 
@@ -151,23 +134,6 @@ module AVal =
             | _ ->
                 false
 
-        interface IAdaptiveObject with
-            member x.AllInputsProcessed(a) = input.AllInputsProcessed(a)
-            member x.InputChanged(a,b) = input.InputChanged(a,b)
-            member x.Mark() = input.Mark()
-            member x.IsConstant = input.IsConstant
-            member x.Level
-                with get() = input.Level
-                and set v = input.Level <- v
-            member x.OutOfDate
-                with get() = input.OutOfDate
-                and set v = input.OutOfDate <- v
-            member x.Outputs = input.Outputs
-            member x.Tag 
-                with get() = input.Tag
-                and set t = input.Tag <- t
-            member x.Weak = input.Weak
-
         interface aval<'b> with
             member x.Accept (v : IAdaptiveValueVisitor<'R>) = v.Visit x
             member x.ContentType =
@@ -177,18 +143,13 @@ module AVal =
                 typeof<'b>
                 #endif
             member x.GetValueUntyped(t) = 
-                if Unchecked.isNull t.caller then
+                x.EvaluateAlways t (fun t ->
                     input.GetValue t |> mapping :> obj
-                else
-                    let c = getDecorator t.caller x
-                    input.GetValue(t.WithCaller c) |> mapping :> obj
-
+                )
             member x.GetValue(t) =  
-                if Unchecked.isNull t.caller then
+                x.EvaluateAlways t (fun t ->
                     input.GetValue t |> mapping
-                else
-                    let c = getDecorator t.caller x
-                    input.GetValue(t.WithCaller c) |> mapping
+                )
     
     type Caster<'a, 'b> private() =
         static let cast =
