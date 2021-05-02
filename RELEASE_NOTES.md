@@ -1,3 +1,6 @@
+### 1.2.6
+* added `AMap.choose2(V)` and derived combinators (`intersectWith`, `intersect(V)`)
+
 ### 1.2.5
 * fixed GC problem with `AVal.mapNonAdaptive`
 * added adaptive FileSystem tools
