@@ -151,6 +151,11 @@ module AMap =
     let filter' (mapping: 'Value -> bool) (set: amap<'Key, 'Value>) =
         filter (fun _ -> mapping) set
     
+    let choose2 (mapping: 'Key -> 'Value1 option -> 'Value2 option -> 'T option) (l : amap<'Key, 'Value1>) (r : amap<'Key, 'Value2>) =
+        (l.Content, r.Content) ||> AVal.map2 (fun l r ->
+            HashMap.choose2 mapping l r
+        ) |> ofRef
+
     let unionWith (resolve: 'Key -> 'Value -> 'Value -> 'Value) (l: amap<'Key, 'Value>) (r: amap<'Key, 'Value>) =
         (l.Content, r.Content) ||> AVal.map2 (fun l r ->
             HashMap.unionWith resolve l r

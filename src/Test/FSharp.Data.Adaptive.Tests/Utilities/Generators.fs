@@ -1132,6 +1132,29 @@ module Generators =
                         (fun () -> a.mchanges() @ b.mchanges())
 
             }
+              
+        let choose2<'a, 'b, 'c, 'd> () =
+            gen {
+                let mySize = ref 0
+                let! a = Arb.generate<VMap<'a, 'b>> |> Gen.scaleSize (fun v -> mySize := v; v / 2)
+                let! b = Arb.generate<VMap<'a, 'c>> |> Gen.scaleSize (fun v -> v / 2)
+                
+                let _, mapping = randomFunction3<'a, option<'b>, option<'c>, option<'d>>()
+
+                return 
+                    create 
+                        (Adaptive.AMap.choose2 mapping a.mreal b.mreal)
+                        (Reference.AMap.choose2 mapping a.mref b.mref)
+                        (fun verbose ->
+                            let ma, a = a.mexpression verbose
+                            let mb, b = b.mexpression verbose
+                            let m = Map.union ma mb
+
+                            m, sprintf "choose2\r\n%s\r\n%s" (indent a) (indent b)
+                        )
+                        (fun () -> a.mchanges() @ b.mchanges())
+
+            }
 
         let mapSet<'a, 'b>() =
             gen {
@@ -1937,6 +1960,7 @@ type AdaptiveGenerators() =
                                     yield 3, Gen.constant "choose'"
                                     yield 3, Gen.constant "filter'"
                                     yield 3, Gen.constant "union"
+                                    yield 3, Gen.constant "choose2"
                                     yield 3, Gen.constant "mapSet"
                                     yield 3, Gen.constant "bind"
                                     yield 3, Gen.constant "ofAVal"
@@ -1951,6 +1975,17 @@ type AdaptiveGenerators() =
                             return! Generators.VMap.filter<'a, 'b>()
                         | "union" -> 
                             return! Generators.VMap.union<'a, 'b>()
+                        | "choose2" ->
+                            let! c = Gen.elements relevantTypes
+                            let! d = Gen.elements relevantTypes
+                            return!
+                                c |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'c>() = 
+                                        d |> visit { new TypeVisitor<_> with 
+                                            member __.Accept<'d>() = 
+                                                Generators.VMap.choose2<'a, 'c, 'd, 'b>() 
+                                        }
+                                }
                         | "mapSet" ->
                             return! Generators.VMap.mapSet<'a, 'b>()
                         | "ofAVal" ->

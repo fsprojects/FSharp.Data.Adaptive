@@ -349,6 +349,18 @@ module internal MapReductions =
 /// Internal implementations for amap operations.
 module AdaptiveHashMapImplementation =
 
+    module ValueOption =
+        let inline toOption (v : voption<'T>) =
+            match v with
+            | ValueSome v -> Some v
+            | ValueNone -> None
+
+    module Option =
+        let inline toValueOption (v : option<'T>) =
+            match v with
+            | Some v -> ValueSome v
+            | None -> ValueNone
+
     /// Core implementation for a dependent map.
     [<Sealed>]
     type AdaptiveHashMapImpl<'Key, 'Value>(createReader : unit -> IOpReader<HashMapDelta<'Key, 'Value>>) =
@@ -631,8 +643,41 @@ module AdaptiveHashMapImplementation =
                     else
                         None
             ) |> HashMapDelta
+  
+    /// Reader for choose2 operations.
+    [<Sealed>]
+    type Choose2VReader<'Key, 'Value1, 'Value2, 'T>(mapping : OptimizedClosures.FSharpFunc<'Key, voption<'Value1>, voption<'Value2>, voption<'T>>, l : amap<'Key, 'Value1>, r : amap<'Key, 'Value2>) =
+        inherit FSharp.Data.Traceable.AbstractReader<HashMapDelta<'Key, 'T>>(HashMapDelta.empty)
 
-            
+        let lReader = l.GetReader()
+        let rReader = r.GetReader()
+
+        override x.Compute(token : AdaptiveToken) =
+            let lops = lReader.GetChanges token
+            let rops = rReader.GetChanges token
+
+            let merge (key : 'Key) (lop : voption<ElementOperation<'Value1>>) (rop : voption<ElementOperation<'Value2>>) =
+                let lv =
+                    match lop with
+                    | ValueSome (Set lv) -> ValueSome lv
+                    | ValueSome (Remove) -> ValueNone
+                    | ValueNone -> lReader.State.TryFindV key
+                            
+                let rv =
+                    match rop with
+                    | ValueSome (Set rv) -> ValueSome rv
+                    | ValueSome (Remove) -> ValueNone
+                    | ValueNone -> rReader.State.TryFindV key
+
+                if ValueOption.isNone lv && ValueOption.isNone rv then
+                    ValueSome Remove
+                else
+                    match mapping.Invoke(key, lv, rv) with
+                    | ValueSome res -> ValueSome (Set res)
+                    | ValueNone -> ValueSome Remove
+
+            HashMap.choose2V merge lops.Store rops.Store |> HashMapDelta
+   
     /// Reader for mapA operations.
     [<Sealed>]
     type MapAReader<'k, 'a, 'b>(input : amap<'k, 'a>, mapping : 'k -> 'a -> aval<'b>) =
@@ -783,7 +828,6 @@ module AdaptiveHashMapImplementation =
                         changes <- HashMap.add i Remove changes
 
             HashMapDelta.ofHashMap changes
-  
 
 
     /// Reader for union/unionWith operations.
@@ -1202,6 +1246,60 @@ module AMap =
     /// Adaptively filters the set using the given predicate without exposing keys.
     let filter' (predicate : 'Value -> bool) (map : amap<'Key, 'Value>) =
         choose' (fun v -> if predicate v then Some v else None) map
+
+        
+    /// Adaptively merges the two maps using the mapping specified.
+    /// Note that mapping will always receive at least one *Some* argument.
+    let choose2V (mapping : 'K -> voption<'A> -> voption<'B> -> voption<'C>) (a : amap<'K, 'A>) (b : amap<'K, 'B>) =
+        if a.IsConstant && b.IsConstant then
+            (force a, force b) ||> HashMap.choose2V mapping |> ofHashMap
+
+        //elif a.IsConstant then
+        //    let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
+        //    let a = force a
+        //    b |> choose (fun k b -> 
+        //        mapping.Invoke(k, HashMap.tryFindV k a, ValueSome b) |> ValueOption.toOption
+        //    )
+            
+        //elif b.IsConstant then
+        //    let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
+        //    let b = force b
+        //    a |> choose (fun k a -> 
+        //        mapping.Invoke(k, ValueSome a, HashMap.tryFindV k b) |> ValueOption.toOption
+        //    )
+
+        else
+            ofReader <| fun () ->
+                Choose2VReader(OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping, a, b)
+        
+    /// Adaptively merges the two maps using the mapping specified.
+    /// Note that mapping will always receive at least one *Some* argument.    
+    let choose2 (mapping : 'K -> option<'A> -> option<'B> -> option<'C>) (a : amap<'K, 'A>) (b : amap<'K, 'B>) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
+        (a, b) ||> choose2V (fun k a b -> mapping.Invoke(k, ValueOption.toOption a, ValueOption.toOption b) |> Option.toValueOption)
+        
+    /// Adaptively intersects the two maps while applying the given mapping function.
+    let intersectWith (mapping : 'K -> 'A -> 'B -> 'C) (a : amap<'K, 'A>) (b : amap<'K, 'B>) =   
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
+        (a,b) ||> choose2V (fun k a b ->
+            match a with
+            | ValueSome a ->
+                match b with
+                | ValueSome b ->
+                    ValueSome (mapping.Invoke(k,a,b))
+                | _ ->
+                    ValueNone
+            | _ ->
+                ValueNone
+        )
+        
+    /// Adaptively intersects the two maps.
+    let intersect (a : amap<'K, 'A>) (b : amap<'K, 'B>) =
+        (a,b) ||> intersectWith (fun _ a b -> (a,b))
+        
+    /// Adaptively intersects the two maps.
+    let intersectV (a : amap<'K, 'A>) (b : amap<'K, 'B>) =
+        (a,b) ||> intersectWith (fun _ a b -> struct(a,b))
 
 
     /// Adaptively applies the given mapping function to all elements and returns a new amap containing the results.  

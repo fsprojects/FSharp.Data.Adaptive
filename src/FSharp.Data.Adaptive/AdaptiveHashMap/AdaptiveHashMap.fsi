@@ -85,6 +85,24 @@ module AMap =
     /// Adaptively filters the set using the given predicate without exposing keys.
     val filter' : predicate:('Value -> bool) -> map:amap<'Key,'Value> -> amap<'Key,'Value>
 
+    /// Adaptively merges the two maps using the mapping specified.
+    /// Note that mapping will always receive at least one *Some* argument.
+    val choose2V : mapping:('Key -> 'Value1 voption -> 'Value2 voption -> 'T voption) -> amap<'Key, 'Value1> -> amap<'Key, 'Value2> -> amap<'Key, 'T>
+    
+    /// Adaptively merges the two maps using the mapping specified.
+    /// Note that mapping will always receive at least one *Some* argument.
+    val choose2 : mapping:('Key -> 'Value1 option -> 'Value2 option -> 'T option) -> amap<'Key, 'Value1> -> amap<'Key, 'Value2> -> amap<'Key, 'T>
+    
+    /// Adaptively intersects the two maps while applying the given mapping function.
+    val intersectWith : mapping:('Key -> 'Value1 -> 'Value2 -> 'T) -> amap<'Key, 'Value1> -> amap<'Key, 'Value2> -> amap<'Key, 'T>
+    
+    /// Adaptively intersects the two maps.
+    val intersect : amap<'Key, 'Value1> -> amap<'Key, 'Value2> -> amap<'Key, 'Value1 * 'Value2>
+    
+    /// Adaptively intersects the two maps.
+    val intersectV : amap<'Key, 'Value1> -> amap<'Key, 'Value2> -> amap<'Key, struct('Value1 * 'Value2)>
+
+
     /// Adaptively applies the given mapping function to all elements and returns a new amap containing the results.
     val mapA : mapping: ('K -> 'V -> aval<'T>) -> map: amap<'K, 'V> -> amap<'K, 'T>
 

@@ -3547,6 +3547,8 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         else
             x |> Seq.map (sprintf "%A") |> String.concat "; " |> sprintf "HashMap [%s]"
 
+    member private x.AsString = x.ToString()
+
     // ====================================================================================
     // Modifications: add/remove/etc.
     // ====================================================================================
