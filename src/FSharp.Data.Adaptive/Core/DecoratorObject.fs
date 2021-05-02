@@ -16,14 +16,18 @@ type DecoratorObject(input : IAdaptiveObject) =
         )
 
     let getDecorator (caller : IAdaptiveObject) (self : IAdaptiveObject) =
-        lock decorators (fun () ->
-            match decorators.TryGetValue caller.Weak with
-            | (true, d) -> d
-            | _ -> 
-                let o = IndirectOutputObject.Create(caller, self, removeDecorator)
-                decorators.[caller.Weak] <- o
-                o
-        )
+        match caller with
+        | :? IndirectOutputObject as caller ->
+            caller
+        | _ -> 
+            lock decorators (fun () ->
+                match decorators.TryGetValue caller.Weak with
+                | (true, d) -> d
+                | _ -> 
+                    let o = IndirectOutputObject.Create(caller, self, removeDecorator)
+                    decorators.[caller.Weak] <- o
+                    o
+            )
             
     interface IAdaptiveObject with
         member x.AllInputsProcessed(a) = input.AllInputsProcessed(a)
@@ -47,7 +51,7 @@ type DecoratorObject(input : IAdaptiveObject) =
             action token
         else
             let c = getDecorator token.caller x
-            action token
+            action (token.WithCaller c)
                 
     member x.EvaluateIfNeeded (token : AdaptiveToken) (whenUptoDate : 'a) (action : AdaptiveToken -> 'a) =
         x.EvaluateAlways token (fun token ->
