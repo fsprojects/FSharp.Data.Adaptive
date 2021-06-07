@@ -44,6 +44,7 @@
     <Compile Include="CollectionExtensions.fs" />
     <Compile Include="Transaction.fs" />
     <Compile Include="AdaptifyHelpers.fs" />
+    <Compile Include="TLSH.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

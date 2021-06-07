@@ -91,6 +91,56 @@ let ``[CModelMap] update``(m : Map<int, string>) =
     content <- HashMap.empty
     check true
 
+type ReferenceEqualThing = int -> int
+
+type UnmanagedType =
+    { a : int; b : float }
+
+type Union =
+    | A of int
+    | B of ReferenceEqualThing * float
+    | C of UnmanagedType
+
+[<Test>]
+let ``[ShallowEquals] Union``() =
+    let f1 = fun (a : int) -> 2 * a
+    let f2 = fun (a : int) -> 3 * a
+    let r1 = { a = 10; b = 4.0 }
+    let r2 = { a = 10; b = 4.0 }
+    let a = A 10
+    let b = A 10
+    ShallowEqualityComparer.Instance.Equals(a,b)
+    |> should be True
+
+    
+    let a = B(f1, 3.0)
+    let b = B(f1, 3.0)
+    ShallowEqualityComparer.Instance.Equals(a,b)
+    |> should be True
+    
+    let a = B(f1, 3.0)
+    let b = B(f1, 4.0)
+    ShallowEqualityComparer.Instance.Equals(a,b)
+    |> should be False
+    
+    let a = B(f1, 3.0)
+    let b = B(f2, 3.0)
+    ShallowEqualityComparer.Instance.Equals(a,b)
+    |> should be False
+
+    
+    let a = C r1
+    let b = C r2
+    ShallowEqualityComparer.Instance.Equals(a,b)
+    |> should be False
+
+    
+    
+    let a = C r1
+    let b = C r1
+    ShallowEqualityComparer.Instance.Equals(a,b)
+    |> should be True
+
 
 [<Property(EndSize = 10000)>]
 let ``[CModelList] update``(m : list<int>) =
