@@ -669,9 +669,9 @@ module AdaptiveHashMapImplementation =
                     | ValueSome (Remove) -> ValueNone
                     | ValueNone -> rReader.State.TryFindV key
 
-                if ValueOption.isNone lv && ValueOption.isNone rv then
-                    ValueSome Remove
-                else
+                match lv, rv with
+                | ValueNone, ValueNone -> ValueSome Remove
+                | _, _ ->
                     match mapping.Invoke(key, lv, rv) with
                     | ValueSome res -> ValueSome (Set res)
                     | ValueNone -> ValueSome Remove
