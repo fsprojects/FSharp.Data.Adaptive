@@ -551,3 +551,31 @@ let ``[AMap] reduceByA fold``() =
     // (2,0) (3,1) (5,1) = 3
     transact (fun () -> even.Value <- 0; list.[1] <- 2)
     res |> AVal.force |> should equal 2
+
+
+[<Test>]
+let ``[AMap] filterA``() =
+    let map = cmap ["A", 1; "B", 2; "C", 3; "D", 4; "E", 5]
+    let keys = cset ["A"; "C"; "E"]
+
+    let res =
+        map |> AMap.filterA (fun k _ -> keys |> ASet.contains k)
+
+    let r = res.GetReader()
+
+    r.GetChanges AdaptiveToken.Top |> ignore
+    r.State |> should equal (HashMap.ofList ["A", 1; "C", 3; "E", 5])
+
+    transact (fun () ->
+        map.Value <- map.Value |> HashMap.map (fun _ v -> v * 2)
+    )
+    
+    r.GetChanges AdaptiveToken.Top |> ignore
+    r.State |> should equal (HashMap.ofList ["A", 2; "C", 6; "E", 10])
+
+    transact (fun () ->
+        keys.Value <- HashSet.ofList ["A"; "C"; "D"; "E"]
+    )
+    
+    r.GetChanges AdaptiveToken.Top |> ignore
+    r.State |> should equal (HashMap.ofList ["A", 2; "C", 6; "D", 8; "E", 10])
