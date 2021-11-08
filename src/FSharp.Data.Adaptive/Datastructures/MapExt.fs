@@ -3278,6 +3278,14 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
 
     member x.WithMin(min : 'Key) = MapExt(comparer, MapExtImplementation.withMin comparer min root)
     member x.WithMax(max : 'Key) = MapExt(comparer, MapExtImplementation.withMax comparer max root)
+    
+    member x.WithMinExclusive(min : 'Key) = 
+        let n, _, _ = MapExtImplementation.withMinExclusiveN comparer min root
+        MapExt(comparer, n)
+    member x.WithMaxExclusive(min : 'Key) = 
+        let n, _, _ = MapExtImplementation.withMaxExclusiveN comparer min root
+        MapExt(comparer, n)
+
     member x.Slice(min : 'Key, max : 'Key) = MapExt(comparer, MapExtImplementation.slice comparer min max root)
     member x.SliceAt(min : int, max : int) = MapExt(comparer, MapExtImplementation.sliceAt min max root)
     

@@ -1193,6 +1193,87 @@ module internal AdaptiveIndexListImplementation =
             
             delta
 
+    [<Sealed>]
+    type SubReader<'a>(input : alist<'a>, offset : aval<int>, count : aval<int>) =
+        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
+
+        let reader = input.GetReader()
+        let mutable state = MapExt.empty
+        let mutable minIndex = Index.zero
+        let mutable maxIndex = Index.zero
+
+        override x.Compute(token : AdaptiveToken) = 
+            let ops = reader.GetChanges token
+            let offset = offset.GetValue token
+            let count = count.GetValue token
+
+            if MapExt.isEmpty state then
+                let part = reader.State.Content.SliceAt(offset, offset + count - 1)
+                state <- part
+                if not (MapExt.isEmpty state) then
+                    minIndex <- MapExt.minKey state
+                    maxIndex <- MapExt.maxKey state
+                part |> MapExt.map (fun _ v -> Set v) |> IndexListDelta
+                
+            else
+                let part = reader.State.Content.SliceAt(offset, offset + count - 1)
+                if MapExt.isEmpty part then
+                    let delta = 
+                        state 
+                        |> MapExt.map (fun _ _ -> Remove)
+                        |> IndexListDelta
+                    state <- MapExt.empty
+                    minIndex <- Index.zero
+                    maxIndex <- Index.zero
+                    delta
+                else
+                    let newMin = MapExt.minKey part
+                    let newMax = MapExt.maxKey part
+
+                    if newMin > maxIndex || newMax < minIndex then
+                        let ops = 
+                            MapExt.union
+                                (state |> MapExt.map (fun _ _ -> Remove))
+                                (part |> MapExt.map (fun _ v -> Set v))
+                        state <- part
+                        minIndex <- newMin
+                        maxIndex <- newMax
+                        IndexListDelta ops
+                    else
+
+                        let mutable delta = ops.Content.[newMin .. newMax]
+
+
+                        let lDelta =
+                            if minIndex < newMin then 
+                                reader.State.Content.WithMin(minIndex).WithMaxExclusive(newMin)
+                                |> MapExt.map (fun _ _ -> Remove)
+                            elif newMin < minIndex then
+                                reader.State.Content.WithMin(newMin).WithMaxExclusive(minIndex)
+                                |> MapExt.map (fun _ v -> Set v)
+                            else
+                                MapExt.empty
+
+                        let rDelta =
+                            if maxIndex < newMax then
+                                reader.State.Content.WithMinExclusive(maxIndex).WithMax(newMax)
+                                |> MapExt.map (fun _ v -> Set v)
+                            elif newMax < maxIndex then
+                                reader.State.Content.WithMinExclusive(newMax).WithMax(maxIndex)
+                                |> MapExt.map (fun _ _ -> Remove)
+                            else    
+                                MapExt.empty
+
+                        minIndex <- newMin
+                        maxIndex <- newMax
+                        state <- part
+                        MapExt.union lDelta (MapExt.union delta rDelta)
+                        |> IndexListDelta
+
+
+
+
+
 
     /// Gets the current content of the alist as IndexList.
     let inline force (list : alist<'T>) = 
@@ -1522,7 +1603,17 @@ module AList =
             constant (fun () -> force list |> IndexList.pairwiseCyclic)
         else
             ofReader (fun () -> PairwiseReader(list, true))
-        
+
+    let subA (offset: aval<int>) (count: aval<int>) (list: alist<'T>) =
+        if list.IsConstant && offset.IsConstant && count.IsConstant then
+            let offset = AVal.force offset
+            let count = AVal.force count
+            constant (fun () -> (force list).Content.SliceAt(offset, offset + count - 1) |> IndexList.ofMap)
+        else
+            ofReader (fun () -> SubReader(list, offset, count))
+
+    let sub (offset: int) (count: int) (list: alist<'T>) =
+        subA (AVal.constant offset) (AVal.constant count) list
 
 
     /// Adaptively reverses the list
