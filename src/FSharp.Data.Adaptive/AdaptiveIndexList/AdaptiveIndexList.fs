@@ -639,6 +639,14 @@ module internal AdaptiveIndexListImplementation =
                     dirty <- IndexList.remove i dirty
                     match op with
                     | Set v ->
+                        match IndexList.tryGet i old with
+                        | Some ov ->                  
+                            let o = cache.Revoke(i, ov)
+                            let rem, rest = MultiSetMap.remove o i targets
+                            targets <- rest
+                            if rem then o.Outputs.Remove x |> ignore
+                        | None ->
+                            ()
                         let k = cache.Invoke(i,v)
                         let v = k.GetValue t
                         targets <- MultiSetMap.add k i targets

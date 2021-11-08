@@ -880,3 +880,38 @@ let ``[AList] filterA``() =
     
     r.GetChanges AdaptiveToken.Top |> ignore
     r.State |> should equal (IndexList.ofSeqIndexed [a, 2; c, 6; d, 8; e, 10])
+    
+    
+[<Test>]
+let ``[AList] mapA inner change``() =
+
+    let a = Index.after Index.zero
+    let b = Index.after a
+    let c = Index.after b
+    let d = Index.after c
+    let e = Index.after d
+
+    let map = clist (IndexList.ofSeqIndexed [a, 1; b, 2; c, 3; d, 4; e, 5])
+    let keys = cset [a; c; e]
+
+    let res =
+        map |> AList.mapAi (fun k v -> keys |> ASet.contains k |> AVal.map (function true -> v | false -> -1))
+
+    let r = res.GetReader()
+
+    r.GetChanges AdaptiveToken.Top |> ignore
+    r.State |> should equal (IndexList.ofSeqIndexed [a, 1; b, -1; c, 3; d, -1; e, 5])
+
+    transact (fun () ->
+        map.Value <- map.Value |> IndexList.map (fun v -> v * 2)
+    )
+    
+    r.GetChanges AdaptiveToken.Top |> ignore
+    r.State |> should equal (IndexList.ofSeqIndexed [a, 2; b, -1; c, 6; d, -1; e, 10])
+
+    transact (fun () ->
+        keys.Value <- HashSet.ofList [a; c; d; e]
+    )
+    
+    r.GetChanges AdaptiveToken.Top |> ignore
+    r.State |> should equal (IndexList.ofSeqIndexed [a, 2; b, -1; c, 6; d, 8; e, 10])

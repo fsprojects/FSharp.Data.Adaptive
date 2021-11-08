@@ -579,3 +579,34 @@ let ``[AMap] filterA``() =
     
     r.GetChanges AdaptiveToken.Top |> ignore
     r.State |> should equal (HashMap.ofList ["A", 2; "C", 6; "D", 8; "E", 10])
+
+
+[<Test>]
+let ``[AMap] mapA``() =
+    let map = cmap ["A", 1; "B", 2; "C", 3]
+    let flag = cval true
+
+    let res =
+        map |> AMap.mapA (fun _ v ->
+            flag |> AVal.map (function true -> v | false -> -1)
+        )
+
+    res |> AMap.force |> should equal (HashMap.ofList ["A", 1; "B", 2; "C", 3])
+
+    transact (fun () ->
+        flag.Value <- false
+    )
+
+    res |> AMap.force |> should equal (HashMap.ofList ["A", -1; "B", -1; "C", -1])
+
+    transact (fun () ->
+        map.Value <- map.Value |> HashMap.map (fun _ v -> v * 2)
+    )
+
+    res |> AMap.force |> should equal (HashMap.ofList ["A", -1; "B", -1; "C", -1])
+
+    transact (fun () ->
+        flag.Value <- true
+    )
+
+    res |> AMap.force |> should equal (HashMap.ofList ["A", 2; "B", 4; "C", 6])

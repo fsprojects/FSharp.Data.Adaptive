@@ -724,6 +724,15 @@ module AdaptiveHashMapImplementation =
                     dirty <- HashMap.remove i dirty
                     match op with
                     | Set v ->
+                        match HashMap.tryFind i old with
+                        | Some o ->
+                            let o = cache.Revoke(i, o)
+                            let rem, rest = MultiSetMap.remove o i targets
+                            targets <- rest
+                            if rem then o.Outputs.Remove x |> ignore
+                        | None ->
+                            ()
+
                         let k = cache.Invoke(i,v)
                         let v = k.GetValue t
                         targets <- MultiSetMap.add k i targets
