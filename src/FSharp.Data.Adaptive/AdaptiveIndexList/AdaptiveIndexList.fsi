@@ -190,8 +190,23 @@ module AList =
     /// Returns a list of each element tupled with its successor and the last element tupled with the first.
     val pairwiseCyclic : list: alist<'T> -> alist<'T * 'T>
 
+    /// adaptively skips `offset` elements and takes `count`
     val subA : offset : aval<int> -> count : aval<int> -> alist<'T> -> alist<'T>
+    
+    /// adaptively skips `offset` elements and takes `count`
     val sub : offset : int -> count : int -> alist<'T> -> alist<'T>
+    
+    /// adaptively takes `count` elements
+    val take : count : int -> alist<'T> -> alist<'T>
+
+    /// adaptively takes `count` elements
+    val takeA : count : aval<int> -> alist<'T> -> alist<'T>
+    
+    /// adaptively skips `count` elements
+    val skip : count : int -> alist<'T> -> alist<'T>
+    
+    /// adaptively skips `count` elements
+    val skipA : count : aval<int> -> alist<'T> -> alist<'T>
 
     /// Tries to get the element associated to a specific Index from the list.
     /// Note that this operation should not be used extensively since its resulting

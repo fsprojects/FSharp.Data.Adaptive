@@ -6,6 +6,33 @@ open FSharp.Data.Traceable
 [<AutoOpen>]
 module CollectionExtensions =
 
+    type IAdaptiveIndexList<'T> with
+        member x.GetSlice(min : option<int>, max : option<int>) =
+            match min with
+            | Some min ->
+                match max with
+                | Some max -> AList.sub min (1 + max - min) x
+                | None -> AList.skip min x
+            | None ->
+                match max with
+                | Some max -> AList.take (1 + max) x
+                | None -> x
+
+        member x.GetSlice(min : option<aval<int>>, max : option<aval<int>>) =
+            match min with
+            | Some min ->
+                match max with
+                | Some max -> 
+                    let cnt = (min, max) ||> AVal.map2 (fun min max -> 1 + max - min)
+                    AList.subA min cnt x
+                | None -> AList.skipA min x
+            | None ->
+                match max with
+                | Some max -> 
+                    let cnt = max |> AVal.map (fun max -> 1 + max)
+                    AList.takeA cnt x
+                | None -> x
+
     [<AutoOpen>]
     module internal Readers =
         /// Reader for ASet.sortBy

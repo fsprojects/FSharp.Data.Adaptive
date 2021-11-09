@@ -1271,6 +1271,68 @@ module internal AdaptiveIndexListImplementation =
                         |> IndexListDelta
 
 
+    [<Sealed>]
+    type SkipReader<'a>(input : alist<'a>, offset : aval<int>) =
+        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
+
+        let reader = input.GetReader()
+        let mutable state = MapExt.empty
+        let mutable minIndex = Index.zero
+
+        override x.Compute(token : AdaptiveToken) = 
+            let ops = reader.GetChanges token
+            let offset = offset.GetValue token
+
+            if MapExt.isEmpty state then
+                let part = reader.State.Content.SliceAt(offset, reader.State.Count - 1)
+                state <- part
+                if not (MapExt.isEmpty state) then
+                    minIndex <- MapExt.minKey state
+                part |> MapExt.map (fun _ v -> Set v) |> IndexListDelta
+                
+            else
+                let part = reader.State.Content.SliceAt(offset, reader.State.Count - 1)
+                if MapExt.isEmpty part then
+                    let delta = 
+                        state 
+                        |> MapExt.map (fun _ _ -> Remove)
+                        |> IndexListDelta
+                    state <- MapExt.empty
+                    minIndex <- Index.zero
+                    delta
+                else
+                    let newMin = MapExt.minKey part
+                    let newMax = MapExt.maxKey part
+
+                    if newMax < minIndex then
+                        let ops = 
+                            MapExt.union
+                                (state |> MapExt.map (fun _ _ -> Remove))
+                                (part |> MapExt.map (fun _ v -> Set v))
+                        state <- part
+                        minIndex <- newMin
+                        IndexListDelta ops
+                    else
+
+                        let mutable delta = ops.Content.[newMin .. newMax]
+
+
+                        let lDelta =
+                            if minIndex < newMin then 
+                                reader.State.Content.WithMin(minIndex).WithMaxExclusive(newMin)
+                                |> MapExt.map (fun _ _ -> Remove)
+                            elif newMin < minIndex then
+                                reader.State.Content.WithMin(newMin).WithMaxExclusive(minIndex)
+                                |> MapExt.map (fun _ v -> Set v)
+                            else
+                                MapExt.empty
+
+                        minIndex <- newMin
+                        state <- part
+                        MapExt.union lDelta delta
+                        |> IndexListDelta
+
+
 
 
 
@@ -1615,6 +1677,22 @@ module AList =
     let sub (offset: int) (count: int) (list: alist<'T>) =
         subA (AVal.constant offset) (AVal.constant count) list
 
+    let take (count: int) (list: alist<'T>) =
+        sub 0 count list
+        
+    let takeA (count: aval<int>) (list: alist<'T>) =
+        subA (AVal.constant 0) count list
+        
+    let skipA (count: aval<int>) (list: alist<'T>) =
+        if count.IsConstant && list.IsConstant then
+            constant (fun () -> IndexList.skip (AVal.force count) (force list))
+        else
+            ofReader (fun () -> SkipReader(list, count))
+
+    let skip (count: int) (list: alist<'T>) =
+        skipA (AVal.constant count) list
+        
+
 
     /// Adaptively reverses the list
     let rev (list: alist<'T>) =
@@ -1808,3 +1886,4 @@ module AList =
     /// Adaptively computes the product of all entries in the list.
     let inline product (s : alist<'a>) = 
         reduce (AdaptiveReduction.product()) s
+

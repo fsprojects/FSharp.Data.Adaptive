@@ -1,3 +1,7 @@
+### 1.2.7
+* several AList bugfixes
+* added AList slicing utilities
+
 ### 1.2.6
 * added `AMap.choose2(V)` and derived combinators (`intersectWith`, `intersect(V)`)
 

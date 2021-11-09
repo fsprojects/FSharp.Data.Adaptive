@@ -846,6 +846,78 @@ let ``[AList] range systematic int32``() =
 let ``[AList] range systematic int64``() =
     AListRangeSystematic(0L, 4L)
 
+[<Test>]
+let ``[AList] subA``() =
+    let l = clist [1..100]
+
+    let o = cval 0
+    let c = cval 2
+
+    let test(r : IIndexListReader<int>) =
+        r.GetChanges(AdaptiveToken.Top) |> ignore
+        let test = r.State |> IndexList.toList
+        let ref = l.Value |> IndexList.toList
+        test |> should equal ref.[o.Value .. o.Value + c.Value - 1]
+
+
+    let res = l |> AList.subA o c
+    let r = res.GetReader()
+    test r
+    
+    transact (fun () -> o.Value <- 10)
+    test r
+
+    transact (fun () -> c.Value <- 5)
+    test r
+
+    transact (fun () -> l.RemoveAt 11 |> ignore)
+    test r
+    
+    transact (fun () -> l.RemoveAt 0 |> ignore)
+    test r
+    
+    transact (fun () -> l.RemoveAt 70 |> ignore)
+    test r
+    
+    transact (fun () -> o.Value <- 3)
+    test r
+    
+[<Test>]
+let ``[AList] skipA``() =
+    let l = clist [1..100]
+
+    let o = cval 0
+
+    let test(r : IIndexListReader<int>) =
+        r.GetChanges(AdaptiveToken.Top) |> ignore
+        let test = r.State |> IndexList.toList
+        let ref = l.Value |> IndexList.toList
+        test |> should equal ref.[o.Value ..]
+
+
+    let res = l |> AList.skipA o
+    let r = res.GetReader()
+    test r
+    
+    transact (fun () -> o.Value <- 10)
+    test r
+
+    transact (fun () -> l.RemoveAt 11 |> ignore)
+    test r
+    
+    transact (fun () -> l.RemoveAt 0 |> ignore)
+    test r
+    
+    transact (fun () -> l.RemoveAt 70 |> ignore)
+    test r
+    
+    transact (fun () -> o.Value <- 3)
+    test r
+
+
+
+
+
     
 [<Test>]
 let ``[AList] filterA``() =

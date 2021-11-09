@@ -130,6 +130,8 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
                 if c.IsEmpty then IndexList.Empty
                 else IndexList(MapExt.minKey c, MapExt.maxKey c, c)
 
+
+
     /// Appends the given element to the list.
     member x.Add(element : 'T) =
         if content.Count = 0 then
@@ -883,6 +885,7 @@ module IndexList =
         | struct(ValueSome lmax, ValueSome rmin) ->
             IndexList<'T>(list.MinIndex, lmax, l), s, IndexList<'T>(rmin, list.MaxIndex, r)
 
+
     /// updates or creates the element at the given index.
     /// note that out-of-bounds-indices will be ineffective.
     let inline setAt (index : int) (v : 'T) (list : IndexList<'T>) = 
@@ -959,22 +962,39 @@ module IndexList =
         elif index >= list.Count then
             list, None, empty
         else
-            let struct(index,_) = list.Content.GetItemV(index)
-            split index list
+            let (l, s, r) = list.Content.SplitAt(index)
+            ofMap l, Option.map snd s, ofMap r
 
-      
-        
+    /// splits the list at the given index and returns both (possibly empty) halves and (optional) splitting element.
+    let splitAti (index : int) (list : IndexList<'T>) =
+        if index < 0 then
+            empty, None, list
+        elif index >= list.Count then
+            list, None, empty
+        else
+            let (l, s, r) = list.Content.SplitAt(index)
+            ofMap l, s, ofMap r
+
+
     /// gets the optional min-index used by the list.
-    let tryFirstIndex (list : IndexList<'T>) = list.Content.TryMinKey()
+    let tryFirstIndex (list : IndexList<'T>) = 
+        if list.IsEmpty then None
+        else Some list.MinIndex
 
     /// gets the optional max-index used by the list.
-    let tryLastIndex (list : IndexList<'T>) = list.Content.TryMaxKey()
+    let tryLastIndex (list : IndexList<'T>) =
+        if list.IsEmpty then None
+        else Some list.MaxIndex
 
     /// gets the min-index used by the list or fails if empty.
-    let firstIndex (list : IndexList<'T>) = MapExt.minKey list.Content
+    let firstIndex (list : IndexList<'T>) =     
+        if list.IsEmpty then failwith "empty list"
+        else list.MinIndex
     
     /// gets the max-index used by the list or fails if empty.
-    let lastIndex (list : IndexList<'T>) = MapExt.maxKey list.Content
+    let lastIndex (list : IndexList<'T>) = 
+        if list.IsEmpty then failwith "empty list"
+        else list.MaxIndex
 
     /// gets the optional first element from the list.
     let tryFirst (list : IndexList<'T>) = list.Content.TryMinValue()
@@ -1114,6 +1134,14 @@ module IndexList =
         else
             let c = list.Content.Skip n
             IndexList<'T>(MapExt.minKey c, list.MaxIndex, c)
+
+    /// skips `offset` elements and takes `count`
+    let sub (offset : int) (count : int) (list : IndexList<'T>) =
+        if count <= 0 then empty
+        elif offset >= list.Count then empty
+        else
+            list.Content.SliceAt(offset, offset + count - 1)
+            |> ofMap
 
     /// creates a list containing a single element.
     let single (v : 'T) =

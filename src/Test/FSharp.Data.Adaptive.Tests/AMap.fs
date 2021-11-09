@@ -155,6 +155,35 @@ let ``[AMap] mapUse``() =
     !refCount |> should equal 0
 
 
+[<Test>]
+let ``[AMap] toASet``() =
+    let c = cmap (List.init 100 (fun i -> i,i))
+
+    let test = c |> AMap.toASet |> ASet.sortBy snd
+
+    let r = test.GetReader()
+
+    let check (r : IIndexListReader<int * int>) =
+        r.GetChanges AdaptiveToken.Top |> ignore
+        let test = r.State |> IndexList.toList
+        let ref = c.Value |> HashMap.toList |> List.sortBy snd
+        test |> should equal ref
+
+    check r
+
+    transact (fun () -> c.[30] <- 1000)
+    check r
+    
+
+    transact (fun () -> c.Remove 10 |> ignore)
+    check r
+    
+    transact (fun () -> c.[14] <- 10)
+    check r
+
+
+
+
 
 
 [<Test>]

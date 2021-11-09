@@ -294,3 +294,15 @@ let ``[IndexList] computeDeltaToList`` (l1 : list<int>) (l2 : list<int>) =
 
     IndexList.applyDelta a1 d12 |> fst |> IndexList.toList |> should equal l2
     IndexList.applyDelta a2 d21 |> fst |> IndexList.toList |> should equal l1
+
+[<Property(MaxTest = 4000)>]
+let ``[IndexList] sub``(l : list<int>) (NonNegativeInt o) (NonNegativeInt c) =
+    let ll = IndexList.ofList l
+    let o = if ll.Count > 0 then o % ll.Count else 0
+    let c = if ll.Count > 0 then c % ll.Count else 0
+
+    let ref = l.[o .. o + c - 1 ]
+    let test = ll |> IndexList.sub o c
+
+    test |> IndexList.toList |> should equal ref
+    

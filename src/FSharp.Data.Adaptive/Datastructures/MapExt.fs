@@ -1251,6 +1251,32 @@ module internal MapExtImplementation =
         let hasValue = traverse node
         struct(hasValue, left, self, right)
 
+
+    let rec splitAt
+        (index : int)
+        (node : Node<'Key, 'Value>) =
+        if index < 0 then
+            struct(null, None, node)
+        elif isNull node then
+            struct(null, None, null)
+        elif node.Height = 1uy then
+            if index < 0 then struct(null, None, node)
+            elif index > 0 then struct(node, None, null)
+            else struct(null, Some(node.Key, node.Value), null)
+        else
+            let node = node :?> Inner<'Key, 'Value>
+
+            let lc = count node.Left
+            if index = lc then
+                struct(node.Left, Some(node.Key, node.Value), node.Right)
+            elif index > lc then
+                let struct(r0, s, r1) = splitAt (index - lc - 1) node.Right
+                struct(binary node.Left node.Key node.Value r0, s, r1)
+            else
+                let struct(l0, s, l1) = splitAt index node.Left
+                struct(l0, s, binary l1 node.Key node.Value node.Right)
+
+
     let rec private changeWithLeft
         (cmp : IComparer<'Key>)
         (key : 'Key)
@@ -1640,6 +1666,58 @@ module internal MapExtImplementation =
             else (* cMax < 0 *)
                 // max smaller than split-key
                 slice cmp minKey maxKey node.Left
+                
+    let rec sliceEx (cmp : IComparer<'Key>) (minKey : 'Key) (minInclusive : bool) (maxKey : 'Key) (maxInclusive : bool) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            node
+        elif node.Height = 1uy then
+            let cMin = cmp.Compare(minKey, node.Key)
+            if cMin < 0 then
+                let cMax = cmp.Compare(maxKey, node.Key)
+                if cMax > 0 then node
+                elif cMax < 0 then null
+                elif maxInclusive then node
+                else null
+            elif cMin > 0 then null
+            elif minInclusive then node
+            else null
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let cMin = cmp.Compare(minKey, node.Key)
+            let cMax = cmp.Compare(maxKey, node.Key)
+
+            if cMin < 0 && cMax > 0 then
+                // split-key contained
+                let left =
+                    if minInclusive then withMin cmp minKey node.Left
+                    else let (n,_,_) = withMinExclusiveN cmp minKey node.Left in n
+
+                let right =
+                    if maxInclusive then withMax cmp maxKey node.Right
+                    else let (n,_,_) = withMaxExclusiveN cmp maxKey node.Right in n
+                        
+                binary left node.Key node.Value right
+
+            elif cMin = 0 then
+                let right =
+                    if maxInclusive then withMax cmp maxKey node.Right
+                    else let (n,_,_) = withMaxExclusiveN cmp maxKey node.Right in n
+                if minInclusive then unsafeAddMinimum node.Key node.Value right
+                else right
+
+            elif cMax = 0 then
+                let left =
+                    if minInclusive then withMin cmp minKey node.Left
+                    else let (n,_,_) = withMinExclusiveN cmp minKey node.Left in n
+                if maxInclusive then unsafeAddMaximum node.Key node.Value left
+                else left
+
+            elif cMin > 0 then  
+                // min larger than split-key
+                sliceEx cmp minKey minInclusive maxKey maxInclusive node.Right
+            else (* cMax < 0 *)
+                // max smaller than split-key
+                sliceEx cmp minKey minInclusive maxKey maxInclusive node.Left
 
     let rec take (n : int) (node : Node<'Key, 'Value>) =
         if n <= 0 || isNull node then
@@ -3286,9 +3364,15 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
         let n, _, _ = MapExtImplementation.withMaxExclusiveN comparer min root
         MapExt(comparer, n)
 
-    member x.Slice(min : 'Key, max : 'Key) = MapExt(comparer, MapExtImplementation.slice comparer min max root)
-    member x.SliceAt(min : int, max : int) = MapExt(comparer, MapExtImplementation.sliceAt min max root)
+    member x.Slice(min : 'Key, max : 'Key) = 
+        MapExt(comparer, MapExtImplementation.slice comparer min max root)
+
+    member x.SliceAt(min : int, max : int) = 
+        MapExt(comparer, MapExtImplementation.sliceAt min max root)
     
+    member x.Slice(min : 'Key, minInclusive : bool, max : 'Key, maxInclusive : bool) = 
+        MapExt(comparer, MapExtImplementation.sliceEx comparer min minInclusive max maxInclusive root)
+
     
     member x.Take(n : int) =
         MapExt(comparer, MapExtImplementation.take n root)
@@ -3309,6 +3393,17 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
             struct(MapExt(comparer, l), ValueSome s, MapExt(comparer, r))
         else
             struct(MapExt(comparer, l), ValueNone, MapExt(comparer, r))
+
+
+    member x.SplitAt(index : int) =
+        if index < 0 then 
+            empty, None, x
+        elif index >= MapExtImplementation.count root then
+            x, None, empty
+        else
+            let struct(l, s, r) = MapExtImplementation.splitAt index root
+            (MapExt(comparer, l), s, MapExt(comparer, r))
+
 
     
 
