@@ -12,7 +12,7 @@ open FSharp.Data.Traceable
 open FsUnit
 open FsCheck.NUnit
 
-[<Test>]
+[<Test;Ignore("unclear currently")>]
 let ``[AList] sub``() =
 
     let l = clist [0 .. 10]
