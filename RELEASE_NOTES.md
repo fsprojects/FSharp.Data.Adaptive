@@ -1,3 +1,6 @@
+### 1.2.8
+* Index-Deletion now handled via Async/Task instead of its own thread (threads not supported on blazor-wasm)
+
 ### 1.2.7
 * several AList bugfixes
 * added AList slicing utilities

@@ -153,6 +153,57 @@ type IndexNode =
     end
         
 #if !FABLE_COMPILER
+
+type internal AsyncBlockingCollection<'a>() =
+    let store = System.Collections.Generic.Queue<'a>()
+
+    let mutable next : option<Tasks.TaskCompletionSource<unit>> = None //Tasks.TaskCompletionSource<unit>()
+
+    member x.Add(value : 'a) =
+        lock store (fun () ->
+            store.Enqueue value
+            match next with
+            | Some n -> 
+                n.SetResult()
+                next <- None
+            | None -> 
+                ()
+        )
+
+    member x.Take() =
+        Async.FromContinuations (fun (success, error, cancel) ->
+            Monitor.Enter store
+            try
+                if store.Count > 0 then
+                    let value = store.Dequeue()
+                    Monitor.Exit store
+                    success value
+                else
+                    let tcs = 
+                        match next with
+                        | Some n -> n
+                        | None ->
+                            let n = Tasks.TaskCompletionSource<unit>()
+                            next <- Some n
+                            n
+                    Monitor.Exit store
+                    tcs.Task.ContinueWith (fun (_t : Tasks.Task<unit>) ->
+                        Async.StartWithContinuations(x.Take(), success, error, cancel)
+                    ) |> ignore
+            with 
+                | :? OperationCanceledException as e ->
+                    Monitor.Exit store
+                    cancel e
+                | e ->
+                    Monitor.Exit store
+                    error e
+        )
+
+    member x.Clear() =
+        lock store (fun () ->
+            store.Clear()
+        )
+
 /// datastructure representing an abstract index.
 /// supported operations are: Index.zero, Index.after(index), Index.before(index), Index.between(l, r).
 /// this is a 'simple' solution to the order-maintenance problem that has insert in O(log N), delete in O(1) and compare in O(1).
@@ -161,21 +212,16 @@ type IndexNode =
 type Index private(real : IndexNode) =
     do real.AddRef()
 
-    /// we create a thread for deleting the underlying values when Index goes out of scope.
-    /// this way we avoid blocking the finalizer for Index.
-    static let startThread (run : unit -> unit) =
-        let start = System.Threading.ThreadStart(run)
-        let thread = System.Threading.Thread(start, IsBackground = true, Name = "Index cleanup thread")
-        thread.Start()
-        thread
 
-    static let queue = new System.Collections.Concurrent.BlockingCollection<IndexNode>()
-    static let runner =
-        startThread (fun () -> 
+    static let queue = new AsyncBlockingCollection<IndexNode>()
+
+    static do
+        async {
             while true do
-                try queue.Take().Delete()
-                with e -> printfn "Index cleanup thread failed with: %A" e
-        )
+                let! v = queue.Take()
+                do! Async.SwitchToThreadPool()
+                v.Delete()
+        } |> Async.Start
 
     member private x.Value = real
 
