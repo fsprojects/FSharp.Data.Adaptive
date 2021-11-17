@@ -358,6 +358,8 @@ module internal HashImplementation =
 
                     if exists then 
                         state <- SetLinked(delta.Key, restState)
+                    else
+                        state <- restState
 
                     match op with
                     | ValueSome op -> 
@@ -750,6 +752,7 @@ module internal HashImplementation =
                     | ValueSome newValue ->
                         state <- MapLinked(delta.Key, newValue, restState)
                     | ValueNone ->
+                        state <- restState
                         ()
 
                     match op with
