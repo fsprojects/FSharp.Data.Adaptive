@@ -175,20 +175,21 @@ module internal AdaptiveIndexListHelpers =
         let mutable store = MapExt.empty<'k, Index>
 
         member x.Invoke(k : 'k) =
-            let (left, self, right) = MapExt.neighbours k store
-            match self with
-                | Some i -> 
-                    i 
-                | None ->
-                    let result = 
+            let mutable index = Index.zero
+            let inline ret i = index <- i; Some i
+            let newStore =
+                store |> MapExt.changeWithNeighbours k (fun left self right -> 
+                    match self with
+                    | Some i -> ret i
+                    | None -> 
                         match left, right with
-                        | None, None                -> Index.after Index.zero
-                        | Some(_,l), None           -> Index.after l
-                        | None, Some(_,r)           -> Index.before r
-                        | Some (_,l), Some(_,r)     -> Index.between l r
-
-                    store <- MapExt.add k result store
-                    result
+                        | None, None                -> Index.after Index.zero |> ret
+                        | Some(_,l), None           -> Index.after l          |> ret
+                        | None, Some(_,r)           -> Index.before r         |> ret
+                        | Some (_,l), Some(_,r)     -> Index.between l r      |> ret
+                ) 
+            store <- newStore
+            index
 
         member x.Revoke(k : 'k) =
             match MapExt.tryRemove k store with
