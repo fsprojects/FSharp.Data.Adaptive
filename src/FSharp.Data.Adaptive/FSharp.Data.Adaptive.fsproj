@@ -4,6 +4,16 @@
     <OutputType>Library</OutputType>
     <TargetFrameworks>netstandard2.0;netcoreapp3.1</TargetFrameworks>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+
+    <!-- Example ultra-simple styling and generation settings for FsDocs default template-->
+    <PackageLicenseUrl>https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://fsprojects.github.io/FSharp.Data.Adaptive</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master</RepositoryUrl>
+    <FsDocsLogoLink>./index.html</FsDocsLogoLink>
+    <FsDocsLicenseLink>https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE</FsDocsLicenseLink>
+    <FsDocsReleaseNotesLink>https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md</FsDocsReleaseNotesLink>
+    <FsDocsNavbarPosition>fixed-left</FsDocsNavbarPosition>
+    <FsDocsTheme>default</FsDocsTheme>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\..\bin\Debug\</OutputPath>

@@ -1,5 +1,5 @@
 (*** hide ***)
-#I "../../bin/Release/netstandard2.0"
+#I "../bin/Debug/netstandard2.0"
 #r "netstandard"
 #r "FSharp.Data.Adaptive.dll"
 open FSharp.Data.Adaptive
