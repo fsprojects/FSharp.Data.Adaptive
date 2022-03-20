@@ -12,41 +12,43 @@ open FSharp.Data.Traceable
 open FsUnit
 open FsCheck.NUnit
 
-[<Test;Ignore("unclear currently")>]
 let ``[AList] sub``() =
 
     let l = clist [0 .. 10]
 
     let subbed = 
         l
-        |> AList.indexed
-        |> AList.sortBy snd
+        //|> AList.indexed
+        |> AList.sort
         |> AList.sub 0 3
 
-    let thrd = subbed |> AList.force |> IndexList.toArray
-    subbed |> AList.force |> printfn "%A"
-
+    let r = subbed.GetReader()
     transact (fun _ -> 
-        l.[fst thrd.[2]] <- 4
+        l.[2] <- 100
     )
-    subbed |> AList.force |> Seq.toArray |> Array.map snd |> should equal [0;1;4]
-
-
-    transact (fun _ -> 
-        l.[fst thrd.[2]] <- 5
-    )
-    subbed |> AList.force |> should equal [1;2;5]
+    r.GetChanges AdaptiveToken.Top |> ignore
+    r.State |> IndexList.toList |> should equal [0;1;3]
 
 
     transact (fun _ -> 
-        l.[fst thrd.[2]] <- 6
+        l.[3] <- 200
     )
-    subbed |> AList.force |> should equal [1;2;6]
+    r.GetChanges AdaptiveToken.Top |> ignore
+    r.State |> IndexList.toList |> should equal [0;1;4]
+
+
+
+    transact (fun _ -> 
+        l.RemoveAt 1 |> ignore
+    )
+    r.GetChanges AdaptiveToken.Top |> ignore
+    r.State |> IndexList.toList |> should equal [0;4;5]
+
 
 [<EntryPoint>]
 let main _args =
 
-    //``[AList] sub``();
+    ``[AList] sub``();
 
 
     //let a = cval [1;2;3;4]
@@ -84,6 +86,6 @@ let main _args =
     //BenchmarkRunner.Run<Benchmarks.HashMapDeltaEnumeratorBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.MapExtEnumeratorBenchmark>() |> ignore
 
-    BenchmarkRunner.Run<Benchmarks.HashSetDeltaBench>() |> ignore
+    //BenchmarkRunner.Run<Benchmarks.HashSetDeltaBench>() |> ignore
 
     0

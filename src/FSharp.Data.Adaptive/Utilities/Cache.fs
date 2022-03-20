@@ -23,7 +23,7 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
     let cache = DefaultDictionary.create<'T1, 'T2 * ref<int>>()
 
     /// cache for null values (needed for option, unit, etc.)
-    let mutable nullCache = None
+    let mutable nullCache : option<_ * ref<_>> = None
 
     /// Clear removes all entries from the Cache and
     /// executes a function for all removed cache entries.
@@ -46,7 +46,7 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
         if isNull v then
             match nullCache with
                 | Some (r, ref) -> 
-                    ref := !ref + 1
+                    ref.Value <- ref.Value + 1
                     r
                 | None ->
                     let r = mapping v
@@ -55,7 +55,7 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
         else
             match cache.TryGetValue v with
                 | (true, (r, ref)) -> 
-                    ref := !ref + 1
+                    ref.Value <- ref.Value + 1
                     r
                 | _ ->
                     let r = mapping v
@@ -67,8 +67,8 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
         if isNull v then
             match nullCache with
                 | Some (r, ref) -> 
-                    ref := !ref - 1
-                    if !ref = 0 then
+                    ref.Value <- ref.Value - 1
+                    if ref.Value = 0 then
                         nullCache <- None
                         (true, r)
                     else
@@ -77,8 +77,8 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
         else
             match cache.TryGetValue v with
                 | (true, (r, ref)) -> 
-                    ref := !ref - 1
-                    if !ref = 0 then
+                    ref.Value <- ref.Value - 1
+                    if ref.Value = 0 then
                         cache.Remove v |> ignore
                         (true, r)
                     else
@@ -91,8 +91,8 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
         if isNull v then
             match nullCache with
                 | Some (r, ref) -> 
-                    ref := !ref - 1
-                    if !ref = 0 then
+                    ref.Value <- ref.Value - 1
+                    if ref.Value = 0 then
                         nullCache <- None
                         Some (true, r)
                     else
@@ -102,8 +102,8 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
         else
             match cache.TryGetValue v with
                 | (true, (r, ref)) -> 
-                    ref := !ref - 1
-                    if !ref = 0 then
+                    ref.Value <- ref.Value - 1
+                    if ref.Value = 0 then
                         cache.Remove v |> ignore
                         Some(true, r)
                     else

@@ -12,11 +12,11 @@ module internal Operators =
     let resizeArray (r : ref<'a[]>) (l : int) = 
         let len = r.Value.Length
         if l < len then 
-            r := Array.take l r.Value
+            r.Value <- Array.take l r.Value
         elif l > len then 
             let res = Array.zeroCreate l
             res.[0..len-1] <- r.Value
-            r := res
+            r.Value <- res
 
 
 #if FABLE_COMPILER

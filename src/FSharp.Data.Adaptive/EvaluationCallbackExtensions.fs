@@ -17,11 +17,11 @@ module EvaluationCallbackExtensions =
                     let t = Transaction.Running.Value
                     t.AddFinalizer(fun () ->
                         let v = value.GetValueUntyped AdaptiveToken.Top
-                        match !last with
+                        match last.Value with
                         | ValueSome o when DefaultEquality.equals o v -> 
                             ()
                         | _ ->
-                            last := ValueSome v
+                            last.Value <- ValueSome v
                             action v
                     )
                 )
@@ -50,11 +50,11 @@ module EvaluationCallbackExtensions =
                     let t = Transaction.Running.Value
                     t.AddFinalizer(fun () ->
                         let v = AVal.force value
-                        match !last with
+                        match last.Value with
                         | ValueSome o when DefaultEquality.equals o v -> 
                             ()
                         | _ ->
-                            last := ValueSome v
+                            last.Value <- ValueSome v
                             action v
                     )
                 )

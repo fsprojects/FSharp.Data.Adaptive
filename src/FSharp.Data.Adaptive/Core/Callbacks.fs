@@ -64,7 +64,7 @@ type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, 
 
     let remove (x : MultiCallbackObject) (id : int) =
         lock x (fun () ->
-            cbs := HashMap.remove id !cbs
+            cbs.Value <- HashMap.remove id cbs.Value
             check x |> ignore
         )
 
@@ -78,7 +78,7 @@ type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, 
                 
             let id = newId()
             let weakCallback = WeakReference<_>(cb)
-            cbs := HashMap.add id weakCallback !cbs
+            cbs.Value <- HashMap.add id weakCallback cbs.Value
 
             #if !FABLE_COMPILER
             let remove() = remove x id
@@ -92,8 +92,8 @@ type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, 
         )
     
     member x.Mark() =
-        cbs := 
-            !cbs |> HashMap.filter (fun _ cb -> 
+        cbs.Value <- 
+            cbs.Value |> HashMap.filter (fun _ cb -> 
                 try 
                     match cb.TryGetTarget() with
                     | (true, cb) -> cb()

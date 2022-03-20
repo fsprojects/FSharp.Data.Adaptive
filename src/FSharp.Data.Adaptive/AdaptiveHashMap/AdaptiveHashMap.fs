@@ -660,13 +660,13 @@ module AdaptiveHashMapImplementation =
                 let lv =
                     match lop with
                     | ValueSome (Set lv) -> ValueSome lv
-                    | ValueSome (Remove) -> ValueNone
+                    | ValueSome Remove -> ValueNone
                     | ValueNone -> lReader.State.TryFindV key
                             
                 let rv =
                     match rop with
                     | ValueSome (Set rv) -> ValueSome rv
-                    | ValueSome (Remove) -> ValueNone
+                    | ValueSome Remove -> ValueNone
                     | ValueNone -> rReader.State.TryFindV key
 
                 match lv, rv with
@@ -678,6 +678,7 @@ module AdaptiveHashMapImplementation =
 
             HashMap.choose2V merge lops.Store rops.Store |> HashMapDelta
    
+
     /// Reader for mapA operations.
     [<Sealed>]
     type MapAReader<'k, 'a, 'b>(input : amap<'k, 'a>, mapping : 'k -> 'a -> aval<'b>) =
@@ -1395,16 +1396,16 @@ module AMap =
         let set = 
             ofReader (fun () ->
                 let r = new MapUseReader<'K, 'A, 'B>(map, mapping)
-                reader := Some r
+                reader.Value <- Some r
                 r
             )
         let disp =
             { new System.IDisposable with 
                 member x.Dispose() =
-                    match !reader with
+                    match reader.Value with
                     | Some r -> 
                         r.Dispose()
-                        reader := None
+                        reader.Value <- None
                     | None -> 
                         ()
             }
