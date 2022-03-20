@@ -23,3 +23,7 @@ symbolCache.db
 /docs/output
 /node_modules
 /.fable
+/src/Demo/Fable/fable/
+**/node_modules/
+/bin/pack
+**/.DS_Store

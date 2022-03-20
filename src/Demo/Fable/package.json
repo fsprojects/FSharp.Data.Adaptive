@@ -1,0 +1,25 @@
+{
+    "name": "fsharp.data.adaptive",
+    "version": "0.0.1",
+    "description": "FSharp.Data.Adaptive for Fable",
+    "private": true,
+    "scripts": {
+        "postinstall": "dotnet tool restore",
+        "start": "dotnet fable src/Demo/Fable  -s --run webpack serve"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/fsprojects/FSharp.Data.Adaptive.git"
+    },
+    "author": "krauthaufen",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/fsprojects/FSharp.Data.Adaptive/issues"
+    },
+    "homepage": "https://github.com/fsprojects/FSharp.Data.Adaptive#readme",
+    "devDependencies": {
+        "webpack-cli": "^4.9.2",
+        "webpack-dev-server": "^4.7.4",
+        "copy-webpack-plugin": "^10.2.4"
+    }
+}

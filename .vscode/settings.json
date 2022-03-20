@@ -10,13 +10,11 @@
         "**/obj/": true,
         ".paket/": true,
         ".ionide/": true,
-        ".github/": true,
         ".fake/": true,
         ".fable/": true,
         "node_modules/": true,
         "paket-files/": true,
         "packages/": true,
-        "bin/": true,
         "**/BenchmarkDotNet.Artifacts/": true,
     }
 }
