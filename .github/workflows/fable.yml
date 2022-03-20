@@ -27,4 +27,4 @@ jobs:
     - name: Paket Restore
       run: dotnet paket restore
     - name: Build
-      run: dotnet fable FSharp.Data.Adaptive.sln --outDir bin/Fable
+      run: dotnet fable src/Demo/Fable --outDir bin/Fable

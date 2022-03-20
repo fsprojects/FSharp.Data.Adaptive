@@ -29,4 +29,4 @@ jobs:
     - name: Build
       run: dotnet build
     - name: Test
-      run: dotnet test -l "console;verbosity=detailed" --no-build --nologo
+      run: dotnet test -l "console;verbosity=normal" --no-build --nologo
