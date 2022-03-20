@@ -16,5 +16,7 @@
         "paket-files/": true,
         "packages/": true,
         "**/BenchmarkDotNet.Artifacts/": true,
+        ".fsdocs": true,
+        "tmp": true
     }
 }

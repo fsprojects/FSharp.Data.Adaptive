@@ -27,3 +27,6 @@ symbolCache.db
 **/node_modules/
 /bin/pack
 **/.DS_Store
+/tmp/
+/.fsdocs
+/output
