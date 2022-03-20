@@ -16,6 +16,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Install Dotnet
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0.100'
+    - name: Restore Tools
+      run: dotnet tool restore
+    - name: Paket Restore
+      run: dotnet paket restore
     - name: Build
-      run: sh ./build.sh
+      run: dotnet build
+    - name: Test
+      run: dotnet test -l "console;verbosity=detailed" --no-build --nologo
+

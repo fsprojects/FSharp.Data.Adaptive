@@ -1209,8 +1209,8 @@ module internal AdaptiveIndexListImplementation =
 
             let newMinIndex = reader.State.TryGetIndexV offset
             let newMaxIndex = reader.State.TryGetIndexV (offset + count - 1)
-            if ValueOption.isSome newMinIndex then
-                let newMinIndex = ValueOption.get newMinIndex
+            match newMinIndex with
+            | ValueSome newMinIndex ->
                 let newMaxIndex = 
                     match newMaxIndex with
                     | ValueSome i -> i
@@ -1278,14 +1278,15 @@ module internal AdaptiveIndexListImplementation =
                         maxIndex <- newMaxIndex
 
                     IndexListDelta delta
-            elif not (MapExt.isEmpty state) then
-                let delta = state |> MapExt.map (fun _ _ -> Remove) |> IndexListDelta.ofMap
-                state <- MapExt.empty
-                minIndex <- Index.zero
-                maxIndex <- Index.zero
-                delta
-            else
-                IndexListDelta.empty
+            | ValueNone ->
+                if not (MapExt.isEmpty state) then
+                    let delta = state |> MapExt.map (fun _ _ -> Remove) |> IndexListDelta.ofMap
+                    state <- MapExt.empty
+                    minIndex <- Index.zero
+                    maxIndex <- Index.zero
+                    delta
+                else
+                    IndexListDelta.empty
 
     [<Sealed>]
     type SubReader<'a>(input : alist<'a>, offset : aval<int>, count : aval<int>) =
