@@ -97,8 +97,8 @@ type AbstractDirtyReader<'T, 'Delta when 'T :> IAdaptiveObject>(t: Monoid<'Delta
             if x.OutOfDate then
                 let dirty = 
                     lock dirty (fun () ->
-                        let d = !dirty
-                        dirty := DefaultHashSet.create()
+                        let d = dirty.Value
+                        dirty.Value <- DefaultHashSet.create()
                         d
                     )
                 x.Compute(token, dirty) |> x.Apply

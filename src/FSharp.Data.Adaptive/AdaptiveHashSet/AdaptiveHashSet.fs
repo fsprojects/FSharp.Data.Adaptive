@@ -966,7 +966,7 @@ module AdaptiveHashSetImplementation =
             let v = m.GetValue token
             match cache.TryGetValue m with
             | (true, r) ->
-                r := (fst !r + 1, v)
+                r.Value <- (fst r.Value + 1, v)
             | _ ->
                 let r = ref (1, v)
                 cache.[m] <- r
@@ -976,8 +976,8 @@ module AdaptiveHashSetImplementation =
         member x.Invoke2(token : AdaptiveToken, m : aval<'B>) =
             let r = cache.[m]
             let v = m.GetValue token
-            let (rc, o) = !r
-            r := (rc, v)
+            let (rc, o) = r.Value
+            r.Value <- (rc, v)
             o, v
 
         member x.Revoke(v : 'A, dirty : System.Collections.Generic.HashSet<_>) =
@@ -985,14 +985,14 @@ module AdaptiveHashSetImplementation =
                 
             match cache.TryGetValue m with
             | (true, r) -> 
-                let (cnt, v) = !r
+                let (cnt, v) = r.Value
                 if cnt = 1 then
                     cache.Remove m |> ignore
                     dirty.Remove m |> ignore
                     lock m (fun () -> m.Outputs.Remove x |> ignore )
                     v
                 else
-                    r := (cnt - 1, v)
+                    r.Value <- (cnt - 1, v)
                     v
             | _ -> 
                 failwith "[ASet] cannot remove unknown object"
@@ -1031,7 +1031,7 @@ module AdaptiveHashSetImplementation =
 
             match cache.TryGetValue m with
             | (true, r) ->
-                r := (fst !r + 1, v)
+                r.Value <- (fst r.Value + 1, v)
             | _ ->
                 let r = ref (1, v)
                 cache.[m] <- r
@@ -1042,9 +1042,9 @@ module AdaptiveHashSetImplementation =
         member x.Invoke2(token : AdaptiveToken, m : aval<option<'B>>) =
             match cache.TryGetValue m with
             | (true, r) ->
-                let (rc, o) = !r
+                let (rc, o) = r.Value
                 let v = m.GetValue token
-                r := (rc, v)
+                r.Value <- (rc, v)
                 o, v
             | _ ->
                 None, None  
@@ -1053,12 +1053,12 @@ module AdaptiveHashSetImplementation =
             let m = f.Revoke v
             match cache.TryGetValue m with
             | (true, r) -> 
-                let (rc, v) = !r
+                let (rc, v) = r.Value
                 if rc = 1 then
                     cache.Remove m |> ignore
                     lock m (fun () -> m.Outputs.Remove x |> ignore )
                 else
-                    r := (rc - 1, v)
+                    r.Value <- (rc - 1, v)
                 v
             | _ -> 
                 failwith "[ASet] cannot remove unknown object"
@@ -1356,16 +1356,16 @@ module ASet =
         let set = 
             ofReader (fun () ->
                 let r = new MapUseReader<'A, 'B>(set, mapping)
-                reader := Some r
+                reader.Value <- Some r
                 r
             )
         let disp =
             { new System.IDisposable with 
                 member x.Dispose() =
-                    match !reader with
+                    match reader.Value with
                     | Some r -> 
                         r.Dispose()
-                        reader := None
+                        reader.Value <- None
                     | None -> 
                         ()
             }

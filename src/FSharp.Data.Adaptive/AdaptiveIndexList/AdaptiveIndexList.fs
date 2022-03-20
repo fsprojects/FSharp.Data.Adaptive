@@ -1194,6 +1194,100 @@ module internal AdaptiveIndexListImplementation =
             delta
 
     [<Sealed>]
+    type NewSubReader<'a>(input : alist<'a>, offset : aval<int>, count : aval<int>) =
+        inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
+
+        let reader = input.GetReader()
+        let mutable state = MapExt.empty
+        let mutable minIndex = Index.zero
+        let mutable maxIndex = Index.zero
+
+        override x.Compute(token) =
+            let ops = reader.GetChanges token
+            let offset = offset.GetValue token
+            let count = count.GetValue token
+
+            let newMinIndex = reader.State.TryGetIndexV offset
+            let newMaxIndex = reader.State.TryGetIndexV (offset + count - 1)
+            if ValueOption.isSome newMinIndex then
+                let newMinIndex = ValueOption.get newMinIndex
+                let newMaxIndex = 
+                    match newMaxIndex with
+                    | ValueSome i -> i
+                    | ValueNone -> reader.State.MaxIndex
+
+                if MapExt.isEmpty state then
+                    let resultRange = reader.State.Content.[newMinIndex .. newMaxIndex]
+                    let delta = resultRange |> MapExt.map (fun _ v -> Set v) |> IndexListDelta
+                    state <- resultRange
+                    minIndex <- newMinIndex
+                    maxIndex <- newMaxIndex
+                    delta
+                elif newMinIndex > maxIndex || newMaxIndex < minIndex then
+                    let resultRange = reader.State.Content.[newMinIndex .. newMaxIndex]
+                    let delta = 
+                        IndexListDelta (
+                            MapExt.union 
+                                (state |> MapExt.map (fun _ _ -> Remove))
+                                (resultRange |> MapExt.map (fun _ v -> Set v))
+                        )
+                    state <- resultRange
+                    minIndex <- newMinIndex
+                    maxIndex <- newMaxIndex
+                    delta
+                    
+                else
+                    let mutable delta = ops.Content.Slice(minIndex, maxIndex)
+                    let l, d = IndexList.applyDelta (IndexList(minIndex, maxIndex, state)) (IndexListDelta delta)
+                    state <- l.Content
+                    delta <- d.Content
+                    minIndex <- l.MinIndex
+                    maxIndex <- l.MaxIndex
+
+                    if minIndex > newMinIndex then
+                        let newBefore = reader.State.Content.Slice(newMinIndex, true, minIndex, false)
+                        delta <- MapExt.union (newBefore |> MapExt.map (fun _ v -> Set v)) delta
+                        state <- MapExt.union newBefore state
+                        minIndex <- newMinIndex
+                    elif newMinIndex > minIndex then
+                        let (dropFront, s, newState) = state.Split newMinIndex 
+                        let newState = 
+                            match s with
+                            | Some v -> MapExt.add newMinIndex v newState
+                            | None -> newState
+
+                        delta <- MapExt.union (dropFront |> MapExt.map (fun _ _ -> Remove)) delta
+                        state <- newState
+                        minIndex <- newMinIndex
+
+
+                    if maxIndex > newMaxIndex then
+                        let (newState, s, dropBack) = state.Split newMaxIndex 
+                        let newState = 
+                            match s with
+                            | Some v -> MapExt.add newMaxIndex v newState
+                            | None -> newState
+
+                        delta <- MapExt.union (dropBack |> MapExt.map (fun _ _ -> Remove)) delta
+                        state <- newState
+                        maxIndex <- newMaxIndex
+                    elif newMaxIndex > maxIndex then
+                        let newAfter = reader.State.Content.Slice(maxIndex, false, newMaxIndex, true)
+                        delta <- MapExt.union (newAfter |> MapExt.map (fun _ v -> Set v)) delta
+                        state <- MapExt.union newAfter state
+                        maxIndex <- newMaxIndex
+
+                    IndexListDelta delta
+            elif not (MapExt.isEmpty state) then
+                let delta = state |> MapExt.map (fun _ _ -> Remove) |> IndexListDelta.ofMap
+                state <- MapExt.empty
+                minIndex <- Index.zero
+                maxIndex <- Index.zero
+                delta
+            else
+                IndexListDelta.empty
+
+    [<Sealed>]
     type SubReader<'a>(input : alist<'a>, offset : aval<int>, count : aval<int>) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
 
@@ -1582,16 +1676,16 @@ module AList =
         let set = 
             ofReader (fun () ->
                 let r = new MapUseReader<'A, 'B>(list, mapping)
-                reader := Some r
+                reader.Value <- Some r
                 r
             )
         let disp =
             { new System.IDisposable with 
                 member x.Dispose() =
-                    match !reader with
+                    match reader.Value with
                     | Some r -> 
                         r.Dispose()
-                        reader := None
+                        reader.Value <- None
                     | None -> 
                         ()
             }
@@ -1672,7 +1766,7 @@ module AList =
             let count = AVal.force count
             constant (fun () -> (force list).Content.SliceAt(offset, offset + count - 1) |> IndexList.ofMap)
         else
-            ofReader (fun () -> SubReader(list, offset, count))
+            ofReader (fun () -> NewSubReader(list, offset, count))
 
     let sub (offset: int) (count: int) (list: alist<'T>) =
         subA (AVal.constant offset) (AVal.constant count) list

@@ -73,8 +73,8 @@ module private AdaptiveFileSystemUtilities =
         static do
             let run() =
                 for e in destroy.GetConsumingEnumerable() do
-                    for e in !e do e.Dispose()
-                    e := []
+                    for e in e.Value do e.Dispose()
+                    e.Value <- []
             let thread = Thread(ThreadStart(run), IsBackground = true, Name = "WatcherDestroyThread")
             thread.Start()
 
@@ -88,7 +88,7 @@ module private AdaptiveFileSystemUtilities =
                 lock watchers (fun () ->
                     match watchers.TryGetValue path with
                     | (true, (Strong w,r)) -> 
-                        r := !r + 1
+                        r.Value <- r.Value + 1
                         w, r
                     | _ ->
                         let w = new FileSystemWatcher(path)
@@ -109,8 +109,8 @@ module private AdaptiveFileSystemUtilities =
                 { new IDisposable with
                     member x.Dispose() =
                         lock watchers (fun () ->
-                            refCount := !refCount - 1
-                            if !refCount <= 0 then
+                            refCount.Value <- refCount.Value - 1
+                            if refCount.Value <= 0 then
                                 watchers.Remove path |> ignore
                                 watcher.Dispose()
                         )
@@ -160,7 +160,7 @@ module private AdaptiveFileSystemUtilities =
                     match e.ChangeType with
                     | WatcherChangeTypes.Created ->
                         let info = getInfo infoCache e.FullPath
-                        pending := HashSetDelta.combine !pending (HashSetDelta.single (Add info))
+                        pending.Value <- HashSetDelta.combine pending.Value (HashSetDelta.single (Add info))
                     
                         match self.TryGetTarget() with
                         | (true, s) -> transact s.MarkOutdated
@@ -170,7 +170,7 @@ module private AdaptiveFileSystemUtilities =
                         match infoCache.TryGetValue e.FullPath with
                         | (true, info) ->
                             infoCache.Remove e.FullPath |> ignore
-                            pending := HashSetDelta.combine !pending (HashSetDelta.single (Rem info))
+                            pending.Value <- HashSetDelta.combine pending.Value (HashSetDelta.single (Rem info))
                             match self.TryGetTarget() with
                             | (true, s) -> transact s.MarkOutdated
                             | _ -> ()
@@ -182,9 +182,9 @@ module private AdaptiveFileSystemUtilities =
                         match infoCache.TryGetValue e.OldFullPath with
                         | (true, oldInfo) ->
                             infoCache.Remove e.OldFullPath |> ignore
-                            pending := HashSetDelta.combine !pending (HashSetDelta.ofList [Rem oldInfo; Add info])
+                            pending.Value <- HashSetDelta.combine pending.Value (HashSetDelta.ofList [Rem oldInfo; Add info])
                         | _ ->
-                            pending := HashSetDelta.combine !pending (HashSetDelta.single (Add info))
+                            pending.Value <- HashSetDelta.combine pending.Value (HashSetDelta.single (Add info))
                         match self.TryGetTarget() with
                         | (true, s) -> transact s.MarkOutdated
                         | _ -> ()
@@ -211,8 +211,8 @@ module private AdaptiveFileSystemUtilities =
             | Some _ ->
                 let delta = 
                     lock infoCache (fun () ->
-                        let d = !pending
-                        pending := HashSetDelta.empty
+                        let d = pending.Value
+                        pending.Value <- HashSetDelta.empty
                         d
                     )
                 mapDelta delta

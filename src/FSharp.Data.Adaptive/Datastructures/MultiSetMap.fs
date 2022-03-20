@@ -25,12 +25,12 @@ module internal MultiSetMap =
                 | Some old -> 
                     let s = HashSet.remove value old
                     if HashSet.isEmpty s then 
-                        wasLast := true
+                        wasLast.Value <- true
                         None
                     else 
                         Some s
             )
-        !wasLast, result
+        wasLast.Value, result
 
     let find (key: 'k) (m: MultiSetMap<'k, 'v>) =
         match HashMap.tryFind key m with

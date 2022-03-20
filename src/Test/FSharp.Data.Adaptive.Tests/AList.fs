@@ -127,33 +127,33 @@ let ``[AList] mapUse``() =
 
     let disp, set = input |> AList.mapUse (fun v -> newDisposable())
 
-    !refCount |> should equal 0
+    refCount.Value |> should equal 0
 
     let r = set.GetReader()
     r.GetChanges(AdaptiveToken.Top) |> ignore
     r.State.Count |> should equal 4
-    !refCount |> should equal 4
+    refCount.Value |> should equal 4
 
     transact (fun () -> input.RemoveAt 0 |> ignore)
     r.GetChanges(AdaptiveToken.Top) |> ignore
     r.State.Count |> should equal 3
-    !refCount |> should equal 3
+    refCount.Value |> should equal 3
     
     transact (fun () -> input.Add 7 |> ignore)
     r.GetChanges(AdaptiveToken.Top) |> ignore
     r.State.Count |> should equal 4
-    !refCount |> should equal 4
+    refCount.Value |> should equal 4
 
     disp.Dispose()
     r.GetChanges(AdaptiveToken.Top) |> ignore
     r.State.Count |> should equal 0
-    !refCount |> should equal 0
+    refCount.Value |> should equal 0
     
     // double free resistance
     disp.Dispose()
     r.GetChanges(AdaptiveToken.Top) |> ignore
     r.State.Count |> should equal 0
-    !refCount |> should equal 0
+    refCount.Value |> should equal 0
 
 [<Test>]
 let ``[AList] mapA``() =
@@ -856,11 +856,11 @@ let ``[AList] subA``() =
     let test(r : IIndexListReader<int>) =
         r.GetChanges(AdaptiveToken.Top) |> ignore
         let test = r.State |> IndexList.toList
-        let ref = l.Value |> IndexList.toList
+        let ref = l.Value |> IndexList.map ((+) 1) |> IndexList.toList
         test |> should equal ref.[o.Value .. o.Value + c.Value - 1]
 
 
-    let res = l |> AList.subA o c
+    let res = l |> AList.map ((+) 1) |> AList.subA o c
     let r = res.GetReader()
     test r
     
@@ -873,6 +873,9 @@ let ``[AList] subA``() =
     transact (fun () -> l.RemoveAt 11 |> ignore)
     test r
     
+    transact (fun () -> l[11] <- 1111)
+    test r
+
     transact (fun () -> l.RemoveAt 0 |> ignore)
     test r
     
@@ -891,11 +894,11 @@ let ``[AList] skipA``() =
     let test(r : IIndexListReader<int>) =
         r.GetChanges(AdaptiveToken.Top) |> ignore
         let test = r.State |> IndexList.toList
-        let ref = l.Value |> IndexList.toList
+        let ref = l.Value |> IndexList.map ((+) 1) |> IndexList.toList
         test |> should equal ref.[o.Value ..]
 
 
-    let res = l |> AList.skipA o
+    let res = l |> AList.map ((+) 1) |> AList.skipA o
     let r = res.GetReader()
     test r
     

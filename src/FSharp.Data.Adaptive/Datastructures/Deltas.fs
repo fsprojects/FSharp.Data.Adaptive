@@ -61,7 +61,7 @@ module ComputeListDeltaHelpers =
             let cnt = extractCount store
             let v = extractItem (cnt - 1) store
             if cnt = 1 then
-                struct(unbox<DeltaOperation> v, !next)
+                struct(unbox<DeltaOperation> v, next.Value)
             else
                 struct(unbox<DeltaOperation> v, DeltaOperationList64(create (cnt - 1) store, next))
 
