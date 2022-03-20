@@ -1,0 +1,77 @@
+name: Publish
+on:
+  push:
+    branches:
+      - master
+      - newbuild
+    paths:
+      - RELEASE_NOTES.md
+      - .github/workflows/publish.yml  
+jobs:
+  fable:
+    name: Fable
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '6.0.100'
+      - name: Restore Tools
+        run: dotnet tool restore
+      - name: Paket Restore
+        run: dotnet paket restore
+      - name: Build
+        run: dotnet fable src/Demo/Fable --outDir bin/Fable
+  dotnet:
+    name: DotNet
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '6.0.100'
+      - name: Restore Tools
+        run: dotnet tool restore
+      - name: Paket Restore
+        run: dotnet paket restore
+      - name: Build
+        run: dotnet build
+      - name: Test
+        run: dotnet test -l "console;verbosity=normal" --no-build --nologo
+
+
+  publish:
+    name: "Publish"
+    needs: 
+      - fable
+      - dotnet
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '6.0.100'
+      - name: Restore Tools
+        run: dotnet tool restore
+      - name: Paket Restore
+        run: dotnet paket restore
+      - name: Pack
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet aardpack FSharp.Data.Adaptive.sln --notag --norelease
+      - name: Upload Package
+        uses: actions/upload-artifact@v2
+        with:
+          name: packages
+          path: bin\pack
+      # - name: NuGet
+      #   env:
+      #     NUGET_KEY: ${{ secrets.NUGET_KEY }}
+      #   shell: cmd
+      #   run: dotnet nuget push "bin\pack\*.nupkg" -k %NUGET_KEY% -s "https://api.nuget.org/v3/index.json" --skip-duplicate
