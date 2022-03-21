@@ -8,7 +8,7 @@ on:
       - RELEASE_NOTES.md
       - .github/workflows/docs.yml  
 jobs:
-  docs:
+  docs: 
     name: Docs
     runs-on: ubuntu-latest
     steps:
