@@ -1,5 +1,6 @@
 ﻿namespace FSharp.Data.Adaptive
 
+open System.Collections.Generic
 open FSharp.Data.Traceable
 
 /// Changeable adaptive list that allows mutation by user-code and implements alist.
@@ -25,6 +26,25 @@ type ChangeableIndexList<'T> =
     
     /// Sets the current state as List.
     member UpdateTo : target : IndexList<'T> -> bool
+
+    /// Sets the current state as List.
+    member UpdateTo : target : list<'T> * IEqualityComparer<'T> -> bool
+
+    /// Sets the current state as List.
+    member UpdateTo : target : list<'T> -> bool
+
+    /// Sets the current state as Array.
+    member UpdateTo : target : 'T[] * IEqualityComparer<'T> -> bool
+
+    /// Sets the current state as Array.
+    member UpdateTo : target : 'T[] -> bool
+
+
+    /// Sets the current state as Sequence.
+    member UpdateTo : target : seq<'T> * IEqualityComparer<'T> -> bool
+
+    /// Sets the current state as Sequence.
+    member UpdateTo : target : seq<'T> -> bool
     
     /// Performs the given Operations on the List.
     member Perform: IndexListDelta<'T> -> unit

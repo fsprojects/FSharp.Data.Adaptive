@@ -1,3 +1,7 @@
+### 1.2.10
+* added `clist.UpdateTo(seq, list, array)`
+* fixed AssemblyVersions
+
 ### 1.2.9
 * new `AList.sub` implementation
 * switched to `aardpack` based build with CI publishing

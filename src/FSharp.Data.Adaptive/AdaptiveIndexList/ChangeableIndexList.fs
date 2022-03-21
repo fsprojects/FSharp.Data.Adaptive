@@ -1,6 +1,7 @@
 ﻿namespace FSharp.Data.Adaptive
 
 open FSharp.Data.Traceable
+open System.Collections.Generic
 
 /// Changeable adaptive list that allows mutation by user-code and implements alist.
 [<Sealed>]
@@ -61,6 +62,27 @@ type ChangeableIndexList<'T>(elements: IndexList<'T>) =
             history.PerformUnsafe(target, delta)
         else
             false
+
+    /// Sets the current state as Array.
+    member x.UpdateTo(target : 'T[], cmp : IEqualityComparer<'T>) =
+        let ops, newState = IndexList.computeDeltaToArrayAndGetResult cmp history.State target
+        if not (IndexListDelta.isEmpty ops) then 
+            history.PerformUnsafe(newState, ops)
+        else
+            false
+
+    /// Sets the current state as Array.
+    member x.UpdateTo(target : 'T[]) = x.UpdateTo(target, DefaultEqualityComparer.Instance)
+
+    /// Sets the current state as List.
+    member x.UpdateTo(target : list<'T>, cmp : IEqualityComparer<'T>) = x.UpdateTo(List.toArray target, cmp)
+    /// Sets the current state as List.
+    member x.UpdateTo(target : list<'T>) = x.UpdateTo(List.toArray target, DefaultEqualityComparer.Instance)
+    /// Sets the current state as Sequence.
+    member x.UpdateTo(target : seq<'T>, cmp : IEqualityComparer<'T>) = x.UpdateTo(Seq.toArray target, cmp)
+    /// Sets the current state as Sequence.
+    member x.UpdateTo(target : seq<'T>) = x.UpdateTo(Seq.toArray target, DefaultEqualityComparer.Instance)
+
 
     /// Performs the given Operations on the List.
     member x.Perform(operations : IndexListDelta<'T>) =

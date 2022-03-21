@@ -12,7 +12,7 @@
             "program": "${workspaceFolder}/bin/Debug/net6.0/EventInterop.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal",
+            "console": "internalConsole",
             "stopAtEntry": false
         },
         {
@@ -23,7 +23,7 @@
             "program": "${workspaceFolder}/bin/Debug/net6.0/CSharpInterop.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal",
+            "console": "internalConsole",
             "stopAtEntry": false
         },
         {
@@ -34,18 +34,19 @@
             "program": "${workspaceFolder}/bin/Debug/net6.0/FSharp.Data.Adaptive.Tests.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal",
+            "console": "internalConsole",
             "stopAtEntry": false
         },
         {
-            "name": "Fable",
-            "type": "node",
+            "name": "Scratch",
+            "type": "coreclr",
             "request": "launch",
-            "program": "${workspaceFolder}/node_modules/webpack-dev-server/bin/webpack-dev-server.js",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/Scratch.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal",
-            "stopOnEntry": false
+            "console": "internalConsole",
+            "stopAtEntry": false
         }
     ]
 }
