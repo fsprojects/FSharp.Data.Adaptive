@@ -1,4 +1,4 @@
-name: Docs
+name: Documentation
 on:
   push:
     branches:
@@ -7,6 +7,7 @@ on:
     paths:
       - RELEASE_NOTES.md
       - .github/workflows/docs.yml  
+jobs:
   docs:
     name: Docs
     runs-on: ubuntu-latest
