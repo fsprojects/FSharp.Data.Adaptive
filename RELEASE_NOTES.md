@@ -1,3 +1,8 @@
+### 1.2.9
+* new `AList.sub` implementation
+* switched to `aardpack` based build with CI publishing
+* switched to newest fsdocs
+
 ### 1.2.8
 * Index-Deletion now handled via Async/Task instead of its own thread (threads not supported on blazor-wasm)
 

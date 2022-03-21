@@ -864,27 +864,58 @@ let ``[AList] subA``() =
     let r = res.GetReader()
     test r
     
+    // change offset
     transact (fun () -> o.Value <- 10)
     test r
 
+    // change count
     transact (fun () -> c.Value <- 5)
     test r
 
+    // remove in slice
     transact (fun () -> l.RemoveAt 11 |> ignore)
     test r
     
+    // update in sclice
     transact (fun () -> l[11] <- 1111)
     test r
 
+    // remove before slice
     transact (fun () -> l.RemoveAt 0 |> ignore)
     test r
     
+    // remove after slice
     transact (fun () -> l.RemoveAt 70 |> ignore)
     test r
     
+    // change offset
     transact (fun () -> o.Value <- 3)
     test r
-    
+
+    // insert in slice
+    transact (fun () -> l.InsertAt(4, 1234) |> ignore)
+    test r
+
+    // clear list
+    transact (fun () -> l.Clear())
+    test r
+
+    transact (fun () -> c.Value <- 3)
+    test r
+
+    // insert before
+    transact (fun () -> l.AddRange [9;8;7])
+    test r
+
+    // insert less elements
+    transact (fun () -> l.AddRange [6;5])
+    test r
+
+    // insert more elements
+    transact (fun () -> l.AddRange [4;3])
+    test r
+
+
 [<Test>]
 let ``[AList] skipA``() =
     let l = clist [1..100]

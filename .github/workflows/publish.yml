@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - master
-      - updates
     paths:
       - RELEASE_NOTES.md
       - .github/workflows/publish.yml  
@@ -64,7 +63,7 @@ jobs:
       - name: Pack
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: dotnet aardpack FSharp.Data.Adaptive.sln --notag --norelease
+        run: dotnet aardpack FSharp.Data.Adaptive.sln --notag
       - name: Upload Package
         uses: actions/upload-artifact@v2
         with:

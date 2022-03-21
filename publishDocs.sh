@@ -6,8 +6,8 @@ rm -dfr doctmp/**
 cp -R output/** doctmp
 cd doctmp
 
-git config --global user.email "fsdocs@aardvarkians.com"
-git config --global user.name "fsdocs"
+git config --local user.email "fsdocs@aardvarkians.com"
+git config --local user.name "fsdocs"
 git add .
 git commit -m "Update docs"
 git push origin gh-pages
