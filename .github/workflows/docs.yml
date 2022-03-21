@@ -23,4 +23,6 @@ jobs:
       - name: Paket Restore
         run: dotnet paket restore
       - name: Build
+        run: dotnet build
+      - name: Docs
         run: ./docs.sh
