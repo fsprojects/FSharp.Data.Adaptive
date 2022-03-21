@@ -1,8 +1,5 @@
 
-[![CI - Windows](https://github.com/fsprojects/FSharp.Data.Adaptive/workflows/CI%20-%20Windows/badge.svg?branch=master)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions/workflows/windows.yml)
-[![CI - Linux](https://github.com/fsprojects/FSharp.Data.Adaptive/workflows/CI%20-%20Linux/badge.svg?branch=master)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions/workflows/linux.yml)
-[![CI - MacOS](https://github.com/fsprojects/FSharp.Data.Adaptive/workflows/CI%20-%20MacOS/badge.svg?branch=master)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions/workflows/mac.yml)
-[![CI - Fable](https://github.com/fsprojects/FSharp.Data.Adaptive/workflows/CI%20-%20Fable/badge.svg?branch=master)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions/workflows/fable.yml)
+[![Test](https://github.com/fsprojects/FSharp.Data.Adaptive/actions/workflows/test.yml/badge.svg)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions/workflows/test.yml)
 # FSharp.Data.Adaptive
 
 FSharp.Data.Adaptive provides a clean API for handling changeable ("adaptive") data while sticking to *functional* principles. It allows programmers to treat adaptive values just like immutable data while still maintaining efficient updates. Many adaptive data structures and operators are provided.
