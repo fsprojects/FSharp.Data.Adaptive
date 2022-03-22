@@ -209,22 +209,40 @@ let example() =
 
             // finally throw away the ids and just keep the relevant data
             |> AList.map (fun ((_,_,date), va, vb) -> va, vb, date)
-
+            
     let reader = result.GetReader()
 
     let datestr (d : DateTime) = sprintf "%04d-%02d-%02d" d.Year d.Month d.Day
 
     let print() =
-        let oldState = reader.State
+        
+        let oldState = reader.State // fetch the state before updating
         let changes = reader.GetChanges AdaptiveToken.Top
+        let _newState = reader.State // fetch the state after updating
 
+        // print the changes in a human-readable way
         for index, op in changes do
             match op with
             | Set (person, country, date) ->
                 match IndexList.tryGet index oldState with
                 | Some(op, oc, od) ->
-                    printfn "  changed %s %s's visit to %s on %s" op.Name op.Surname oc.Name (datestr od)
-                    printfn "    => %s %s visited %s on %s" person.Name person.Surname country.Name (datestr date)
+                    let personChanged = op <> person
+                    let countryChanged = oc <> country
+                    let dateChanged = od <> date
+
+                    if personChanged then
+                        if countryChanged then
+                            printfn "  deleted %s %s's visit to %s on %s" op.Name op.Surname oc.Name (datestr od)
+                            printfn "  %s %s added a visit to %s on %s" person.Name person.Surname country.Name (datestr date)
+                        else
+                            printfn "  %s %s's name changed to %s %s for the visit to %s on %s" op.Name op.Surname person.Name person.Surname country.Name (datestr od)
+                    elif dateChanged && countryChanged then
+                        printfn "  %s %s's visit to %s on %s changed to %s on %s" person.Name person.Surname oc.Name (datestr od) country.Name (datestr date)
+                    elif dateChanged then
+                        printfn "  %s %s's visit to %s changed from %s to %s" person.Name person.Surname country.Name (datestr od) (datestr date)
+                    elif countryChanged then
+                        printfn "  %s %s's visit on %s changed from %s to %s" person.Name person.Surname (datestr date) oc.Name country.Name
+
                 | None ->
                     printfn "  %s %s added a visit to %s on %s" person.Name person.Surname country.Name (datestr date)
             | Remove ->
@@ -234,15 +252,29 @@ let example() =
                 | None ->
                     ()
     
+        
+
     printfn "initial"
     print()
 
-    transact (fun () -> visited.Append (2,11, DateTime(2022, 1, 1)) |> ignore)
     printfn "links.Append (2,11,2022-01-01)"
+    transact (fun () -> visited.Append (2,11, DateTime(2022, 1, 1)) |> ignore)
     print()
 
-    transact (fun () -> persons.[2] <- { Name = "Johanna"; Surname = "Huber" })
     printfn "Johanna Maier -> Johanna Huber"
+    transact (fun () -> persons.[2] <- { Name = "Johanna"; Surname = "Huber" })
+    print()
+
+    printfn "India -> Brazil"
+    transact (fun () -> visited.[2] <- (1, 6, DateTime(2018, 7, 2)))
+    print()
+
+    printfn "2020-03-04 -> 2012-03-04"
+    transact (fun () -> visited.[3] <- (2, 9, DateTime(2012, 3, 4)))
+    print()
+
+    printfn "delete(Johanna, Argentina)"
+    transact (fun () -> visited.RemoveAt 4 |> ignore)
     print()
 
     printfn "final"
