@@ -130,7 +130,19 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
                 if c.IsEmpty then IndexList.Empty
                 else IndexList(MapExt.minKey c, MapExt.maxKey c, c)
 
+    /// Partitions the IndexList using the predicate.
+    member x.Partition(predicate : Index -> 'T -> bool) =
+        let a, b = MapExt.partition predicate content
 
+        let la =
+            if MapExt.isEmpty a then IndexList.Empty
+            else IndexList(MapExt.minKey a, MapExt.maxKey a, a)
+
+        let lb =
+            if MapExt.isEmpty b then IndexList.Empty
+            else IndexList(MapExt.minKey b, MapExt.maxKey b, b)
+
+        la, lb
 
     /// Appends the given element to the list.
     member x.Add(element : 'T) =
@@ -885,6 +897,13 @@ module IndexList =
         | struct(ValueSome lmax, ValueSome rmin) ->
             IndexList<'T>(list.MinIndex, lmax, l), s, IndexList<'T>(rmin, list.MaxIndex, r)
 
+    /// partitions the list into two lists, the first containing all elements for which the predicate returns true,
+    let partition (predicate : 'T -> bool) (list : IndexList<'T>) =
+        list.Partition (fun _ v -> predicate v)
+
+    /// partitions the list into two lists, the first containing all elements for which the predicate returns true,
+    let partitioni (predicate : Index -> 'T -> bool) (list : IndexList<'T>) =
+        list.Partition predicate
 
     /// updates or creates the element at the given index.
     /// note that out-of-bounds-indices will be ineffective.
