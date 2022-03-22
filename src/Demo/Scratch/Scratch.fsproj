@@ -13,6 +13,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Observable.fs" />
+    <Compile Include="LookupAll.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

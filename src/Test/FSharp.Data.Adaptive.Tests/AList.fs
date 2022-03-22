@@ -853,15 +853,19 @@ let ``[AList] subA``() =
     let o = cval 0
     let c = cval 2
 
+
+    let full = l |> AList.map ((+) 1)
+    let part = full |> AList.subA o c
+
     let test(r : IIndexListReader<int>) =
         r.GetChanges(AdaptiveToken.Top) |> ignore
         let test = r.State |> IndexList.toList
-        let ref = l.Value |> IndexList.map ((+) 1) |> IndexList.toList
-        test |> should equal ref.[o.Value .. o.Value + c.Value - 1]
+        let ref = full |> AList.force |> IndexList.toList
+        if test <> ref.[o.Value .. o.Value + c.Value - 1] then
+            failwithf "is:\n%0A\nshould:\n%0A" test ref.[o.Value .. o.Value + c.Value - 1]
 
 
-    let res = l |> AList.map ((+) 1) |> AList.subA o c
-    let r = res.GetReader()
+    let r = part.GetReader()
     test r
     
     // change offset
@@ -883,9 +887,25 @@ let ``[AList] subA``() =
     // remove before slice
     transact (fun () -> l.RemoveAt 0 |> ignore)
     test r
+
+    // insert before slice
+    transact (fun () -> l.InsertAt(1, 4321) |> ignore)
+    test r
+
+    // update before slice
+    transact (fun () -> l.[0] <- 1337)
+    test r
     
     // remove after slice
     transact (fun () -> l.RemoveAt 70 |> ignore)
+    test r
+    
+    // insert after slice
+    transact (fun () -> l.InsertAt(60, 4321) |> ignore)
+    test r
+
+    // update after slice
+    transact (fun () -> l.[61] <- 7331)
     test r
     
     // change offset
@@ -915,36 +935,58 @@ let ``[AList] subA``() =
     transact (fun () -> l.AddRange [4;3])
     test r
 
-
 [<Test>]
 let ``[AList] skipA``() =
     let l = clist [1..100]
 
+
     let o = cval 0
+    let full = l |> AList.map ((+) 1)
+    let part = full |> AList.skipA o
 
     let test(r : IIndexListReader<int>) =
         r.GetChanges(AdaptiveToken.Top) |> ignore
         let test = r.State |> IndexList.toList
-        let ref = l.Value |> IndexList.map ((+) 1) |> IndexList.toList
-        test |> should equal ref.[o.Value ..]
+        let ref = full |> AList.force |> IndexList.toList
+        if test <> ref.[o.Value ..] then
+            failwithf "is:\n%0A\nshould:\n%0A" test ref.[o.Value ..]
 
-
-    let res = l |> AList.map ((+) 1) |> AList.skipA o
-    let r = res.GetReader()
+    let r = part.GetReader()
     test r
-    
+ 
+    // change offset
     transact (fun () -> o.Value <- 10)
     test r
 
+    // remove in slice
     transact (fun () -> l.RemoveAt 11 |> ignore)
     test r
     
+    // remove before slice
     transact (fun () -> l.RemoveAt 0 |> ignore)
     test r
     
+    // remove in slice
     transact (fun () -> l.RemoveAt 70 |> ignore)
     test r
-    
+
+    // insert before slice
+    transact (fun () -> l.InsertAt(4, 1234) |> ignore)
+    test r
+
+    // insert in slice
+    transact (fun () -> l.InsertAt(20, 4321) |> ignore)
+    test r
+
+    // update in slice
+    transact (fun () -> l.[21] <- 1337)
+    test r
+
+    // update before slice
+    transact (fun () -> l.[4] <- 1337)
+    test r
+
+    // change offset
     transact (fun () -> o.Value <- 3)
     test r
 
