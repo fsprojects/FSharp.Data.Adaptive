@@ -1,6 +1,9 @@
 
 [![DotNet](https://github.com/fsprojects/FSharp.Data.Adaptive/actions/workflows/dotnet.yml/badge.svg)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions/workflows/dotnet.yml)
 [![Fable](https://github.com/fsprojects/FSharp.Data.Adaptive/actions/workflows/fable.yml/badge.svg)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions/workflows/fable.yml)
+[![NuGet](https://badgen.net/nuget/v/FSharp.Data.Adaptive)](https://www.nuget.org/packages/FSharp.Data.Adaptive/)
+[![NuGet](https://badgen.net/nuget/dt/FSharp.Data.Adaptive)](https://www.nuget.org/packages/FSharp.Data.Adaptive/)
+[![Discord](https://badgen.net/discord/online-members/UyecnhM)](https://discord.gg/UyecnhM)
 
 # FSharp.Data.Adaptive
 
