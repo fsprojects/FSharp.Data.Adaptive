@@ -1,5 +1,7 @@
 
-[![Test](https://github.com/fsprojects/FSharp.Data.Adaptive/actions/workflows/test.yml/badge.svg)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions/workflows/test.yml)
+[![DotNet](https://github.com/fsprojects/FSharp.Data.Adaptive/actions/workflows/dotnet.yml/badge.svg)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions/workflows/dotnet.yml)
+[![Fable](https://github.com/fsprojects/FSharp.Data.Adaptive/actions/workflows/fable.yml/badge.svg)](https://github.com/fsprojects/FSharp.Data.Adaptive/actions/workflows/fable.yml)
+
 # FSharp.Data.Adaptive
 
 FSharp.Data.Adaptive provides a clean API for handling changeable ("adaptive") data while sticking to *functional* principles. It allows programmers to treat adaptive values just like immutable data while still maintaining efficient updates. Many adaptive data structures and operators are provided.
