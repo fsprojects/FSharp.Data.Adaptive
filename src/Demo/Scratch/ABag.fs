@@ -298,7 +298,11 @@ module ABag =
                     } :> IOpReader<_>
           
     let unionMany' (bags : #seq<abag<'a>>) =
-        let bags = bags |> Seq.toArray
+        let bags = 
+            match bags :> seq<_> with
+            | :? array<abag<'a>> as a -> a
+            | _ -> bags |> Seq.toArray
+
         if bags |> Array.forall (fun b -> b.IsConstant) then
             constantSeq <| fun () ->
                 seq {
@@ -333,97 +337,100 @@ module ABag =
                 }
 
     let union (a : abag<'a>) (b : abag<'a>) =
-        unionMany' [a;b]
+        unionMany' [|a;b|]
 
     let collect (mapping : 'a -> abag<'b>) (bag : abag<'a>) =
-        ofReader <| fun () ->   
-            let reader = bag.GetReader()
-            let mutable readers = HashMap.empty<int64, abag<'b> * IOpReader<HashMap<int64, 'b>, HashMapDelta<int64, 'b>>>
-            let dirty = ref <| System.Collections.Generic.HashSet()
+        if bag.IsConstant then
+            let bags = bag.Content |> AVal.force |> HashMap.toValueArray |> Array.map mapping 
+            unionMany' bags
+        else
+            ofReader <| fun () ->   
+                let reader = bag.GetReader()
+                let mutable readers = HashMap.empty<int64, abag<'b> * IOpReader<HashMap<int64, 'b>, HashMapDelta<int64, 'b>>>
+                let dirty = ref <| System.Collections.Generic.HashSet()
 
-            { new AbstractReader<HashMapDelta<int64, 'b>>(HashMapDelta.empty) with
-                member x.InputChangedObject(_, o) = 
-                    match o with
-                    | :? IOpReader<HashMap<int64, 'b>, HashMapDelta<int64, 'b>> as r when not (System.Object.ReferenceEquals(r, reader)) ->
-                        lock dirty (fun () -> dirty.Value.Add r |> ignore)
-                    | _ ->
-                        ()
+                { new AbstractReader<HashMapDelta<int64, 'b>>(HashMapDelta.empty) with
+                    member x.InputChangedObject(_, o) = 
+                        match o with
+                        | :? IOpReader<HashMap<int64, 'b>, HashMapDelta<int64, 'b>> as r when not (System.Object.ReferenceEquals(r, reader)) ->
+                            lock dirty (fun () -> dirty.Value.Add r |> ignore)
+                        | _ ->
+                            ()
 
-                member x.Compute(token : AdaptiveToken) =
-                    let dirty =
-                        lock dirty (fun () ->
-                            let d = dirty.Value
-                            dirty.Value <- System.Collections.Generic.HashSet()
-                            d
-                        )
-                    let mutable delta = HashMap.empty
-                    for lid, op in reader.GetChanges token do
-                        match op with
-                        | Set nv ->
-                            let newbag = mapping nv
-
-                            let inline newReader() =
-                                let newReader = newbag.GetReader()
-                                let newCache = IdCache<int64>()
-                                newReader.Tag <- newCache
-                                dirty.Add newReader |> ignore
-                                readers <- HashMap.add lid (newbag, newReader) readers
-
-                            match HashMap.tryRemove lid readers with
-                            | Some ((oldBag, oldReader), _) when oldBag = newbag ->
-                                // replaced with the identical bag
-                                dirty.Add oldReader |> ignore
-
-                            | Some((_, oldReader), rest) ->
-                                // replaced with a new bag =>
-                                //   1. remove the old reader
-                                //   2. add a new reader
-                                readers <- rest
-                                let oldCache = oldReader.Tag :?> IdCache<int64>
-                                dirty.Remove oldReader |> ignore
-                                oldReader.Outputs.Remove x |> ignore
-                                for oid, _ in oldReader.State do
-                                    match oldCache.TryRevoke oid with
-                                    | Some id -> delta <- HashMap.add id Remove delta
-                                    | None -> ()
-
-                                newReader()
-                           
-                            | _ ->
-                                // insert
-                                newReader()
-
-                        | Remove ->
-                            match HashMap.tryRemove lid readers with
-                            | Some((_, oldReader), rest) ->  
-                                let oldCache = oldReader.Tag :?> IdCache<int64>
-                                readers <- rest
-                                dirty.Remove oldReader |> ignore
-                                oldReader.Outputs.Remove x |> ignore
-                                for oid, _ in oldReader.State do
-                                    match oldCache.TryRevoke oid with
-                                    | Some id -> delta <- HashMap.add id Remove delta
-                                    | None -> ()
-                            | _ ->
-                                ()
-
-                    for d in dirty do
-                        let cache = d.Tag :?> IdCache<int64>
-                        let ops = d.GetChanges token
-                        for oid, op in ops do
+                    member x.Compute(token : AdaptiveToken) =
+                        let dirty =
+                            lock dirty (fun () ->
+                                let d = dirty.Value
+                                dirty.Value <- System.Collections.Generic.HashSet()
+                                d
+                            )
+                        let mutable delta = HashMap.empty
+                        for lid, op in reader.GetChanges token do
                             match op with
-                            | Set value ->
-                                let id = cache.Invoke oid
-                                delta <- HashMap.add id (Set value) delta
+                            | Set nv ->
+                                let newbag = mapping nv
+
+                                let inline newReader() =
+                                    let newReader = newbag.GetReader()
+                                    let newCache = IdCache<int64>()
+                                    newReader.Tag <- newCache
+                                    dirty.Add newReader |> ignore
+                                    readers <- HashMap.add lid (newbag, newReader) readers
+
+                                match HashMap.tryRemove lid readers with
+                                | Some ((oldBag, oldReader), _) when oldBag = newbag ->
+                                    // replaced with the identical bag
+                                    dirty.Add oldReader |> ignore
+
+                                | Some((_, oldReader), rest) ->
+                                    // replaced with a new bag =>
+                                    //   1. remove the old reader
+                                    //   2. add a new reader
+                                    readers <- rest
+                                    let oldCache = oldReader.Tag :?> IdCache<int64>
+                                    dirty.Remove oldReader |> ignore
+                                    oldReader.Outputs.Remove x |> ignore
+                                    for oid, _ in oldReader.State do
+                                        match oldCache.TryRevoke oid with
+                                        | Some id -> delta <- HashMap.add id Remove delta
+                                        | None -> ()
+
+                                    newReader()
+                            
+                                | _ ->
+                                    // insert
+                                    newReader()
+
                             | Remove ->
-                                let id = cache.Revoke oid
-                                delta <- HashMap.add id Remove delta
+                                match HashMap.tryRemove lid readers with
+                                | Some((_, oldReader), rest) ->  
+                                    let oldCache = oldReader.Tag :?> IdCache<int64>
+                                    readers <- rest
+                                    dirty.Remove oldReader |> ignore
+                                    oldReader.Outputs.Remove x |> ignore
+                                    for oid, _ in oldReader.State do
+                                        match oldCache.TryRevoke oid with
+                                        | Some id -> delta <- HashMap.add id Remove delta
+                                        | None -> ()
+                                | _ ->
+                                    ()
 
-                    dirty.Clear()
+                        for d in dirty do
+                            let cache = d.Tag :?> IdCache<int64>
+                            let ops = d.GetChanges token
+                            for oid, op in ops do
+                                match op with
+                                | Set value ->
+                                    let id = cache.Invoke oid
+                                    delta <- HashMap.add id (Set value) delta
+                                | Remove ->
+                                    let id = cache.Revoke oid
+                                    delta <- HashMap.add id Remove delta
 
-                    HashMapDelta.ofHashMap delta
-            }
+                        dirty.Clear()
 
+                        HashMapDelta.ofHashMap delta
+                }
 
     let toASet (bag : abag<'a>) =
         if bag.IsConstant then
