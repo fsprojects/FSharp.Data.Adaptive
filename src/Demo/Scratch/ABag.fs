@@ -4,32 +4,56 @@ open System.Collections.Generic
 open FSharp.Data.Adaptive
 open FSharp.Data.Traceable
 
-module Unique =
-    let mutable private currentId = 0L
+[<Struct; CustomEquality; CustomComparison>]
+type Unique private(value : int64) =
+    static let mutable currentId = 0L
+    member private x.Value = value
 
-    let newId() =
-        System.Threading.Interlocked.Increment(&currentId)
+    override x.GetHashCode() = hash value
+    override x.Equals o =
+        match o with
+        | :? Unique as o -> value = o.Value
+        | _ -> false
+
+    override x.ToString() = sprintf "U%04X" value
+
+    member x.CompareTo (o : Unique) =
+        compare value o.Value
+
+    interface System.IComparable with
+        member x.CompareTo o = x.CompareTo (o :?> Unique)
+
+    member x.Equals (o : Unique) =
+        value = o.Value
+
+    static member Invalid = Unique(0L)
+
+    member x.IsValid = value <> 0L
+    member x.IsInvalid = value = 0L
+
+    static member New() =
+        Unique(System.Threading.Interlocked.Increment(&currentId))
 
 type IAdaptiveBag<'T> =
     /// Is the list constant?
     abstract member IsConstant : bool
 
     /// The current content of the list as aval.
-    abstract member Content : aval<HashMap<int64, 'T>>
+    abstract member Content : aval<HashMap<Unique, 'T>>
     
     /// Gets a new reader to the list.
     abstract member GetReader : unit -> IAdaptiveBagReader<'T>
     
     /// Gets the underlying History instance for the alist (if any)
-    abstract member History : option<History<HashMap<int64, 'T>, HashMapDelta<int64, 'T>>>
+    abstract member History : option<History<HashMap<Unique, 'T>, HashMapDelta<Unique, 'T>>>
 
-and IAdaptiveBagReader<'T> = IOpReader<HashMap<int64, 'T>, HashMapDelta<int64, 'T>>
+and IAdaptiveBagReader<'T> = IOpReader<HashMap<Unique, 'T>, HashMapDelta<Unique, 'T>>
 
 and abag<'T> = IAdaptiveBag<'T>
 
 module ABag =
 
-    type AdaptiveBag<'T>(getReader : unit -> IOpReader<HashMapDelta<int64, 'T>>) =
+    type AdaptiveBag<'T>(getReader : unit -> IOpReader<HashMapDelta<Unique, 'T>>) =
         
         let history = new History<_,_>(getReader, HashMap.trace, ignore)
 
@@ -46,7 +70,7 @@ module ABag =
             member x.Content =
                 history :> aval<_>
 
-    type ConstantBag<'T>(content : Lazy<HashMap<int64, 'T>>) =
+    type ConstantBag<'T>(content : Lazy<HashMap<Unique, 'T>>) =
 
         let initialDelta =
             lazy (
@@ -68,19 +92,19 @@ module ABag =
             ConstantBag<'T>(
                 lazy (
                     content
-                    |> Seq.map (fun e -> Unique.newId(), e)
+                    |> Seq.map (fun e -> Unique.New(), e)
                     |> HashMap.ofSeq
                 )
             )
 
     type private IdCache<'a>() =
-        let table = DefaultDictionary.create<'a, int64>()
+        let table = DefaultDictionary.create<'a, Unique>()
 
         member x.Invoke(value : 'a) =
             match table.TryGetValue value with
             | (true, id) -> id
             | _ ->  
-                let id = Unique.newId()
+                let id = Unique.New()
                 table.[value] <- id
                 id
 
@@ -97,14 +121,23 @@ module ABag =
             table.Remove value |> ignore
             id
 
-    let ofReader (create : unit -> #IOpReader<HashMapDelta<int64, 'T>>) =
-        AdaptiveBag(fun () -> create() :> IOpReader<_>) :> abag<_>
-
     let private constantSeq (seq : unit -> seq<'T>) =
         ConstantBag(Seq.delay seq) :> abag<_>
 
-    let private constantMap (seq : unit -> HashMap<int64, 'T>) =
+    let private constantMap (seq : unit -> HashMap<Unique, 'T>) =
         ConstantBag(lazy(seq())) :> abag<_>
+
+    let ofReader (create : unit -> #IOpReader<HashMapDelta<Unique, 'T>>) =
+        AdaptiveBag(fun () -> create() :> IOpReader<_>) :> abag<_>
+
+    let ofSeq (seq : seq<'T>) =
+        constantSeq (fun () -> seq)
+
+    let ofList (list : list<'T>) =
+        constantSeq (fun () -> list)
+
+    let ofArray (arr : 'T[]) =
+        constantSeq (fun () -> arr)
 
     let ofASet (set : aset<'T>) =
         if set.IsConstant then
@@ -128,7 +161,7 @@ module ABag =
                     ) :> IOpReader<_>
                 | None ->
                     let r = set.GetReader()
-                    { new AbstractReader<HashMapDelta<int64, 'T>>(HashMapDelta.empty) with
+                    { new AbstractReader<HashMapDelta<Unique, 'T>>(HashMapDelta.empty) with
                         member x.Compute(token : AdaptiveToken) =
                             let ops = r.GetChanges token
                             let mutable delta = HashMap.empty
@@ -167,7 +200,7 @@ module ABag =
                     ) :> IOpReader<_>
                 | None ->
                     let r = list.GetReader()
-                    { new AbstractReader<HashMapDelta<int64, 'T>>(HashMapDelta.empty) with
+                    { new AbstractReader<HashMapDelta<Unique, 'T>>(HashMapDelta.empty) with
                         member x.Compute(token : AdaptiveToken) =
                             let ops = r.GetChanges token
                             let mutable delta = HashMap.empty
@@ -183,7 +216,6 @@ module ABag =
                                     | _ -> ()
                             HashMapDelta delta
                     } :> IOpReader<_>
-
 
     let mapAMap (mapping : 'K -> 'V -> 'T) (map : amap<'K, 'V>) =
         if map.IsConstant then
@@ -211,7 +243,7 @@ module ABag =
                     history.NewReader(HashMap.trace, mapDelta) :> IOpReader<_>
                 | None ->
                     let r = map.GetReader()
-                    { new AbstractReader<HashMapDelta<int64, 'T>>(HashMapDelta.empty) with
+                    { new AbstractReader<HashMapDelta<Unique, 'T>>(HashMapDelta.empty) with
                         member x.Compute(token : AdaptiveToken) =
                             r.GetChanges token
                             |> mapDelta
@@ -230,7 +262,7 @@ module ABag =
         if bag.IsConstant then
             constantMap <| fun () -> bag.Content |> AVal.force |> HashMap.map (fun _ v -> mapping v) 
         else
-            let inline mapDelta (ops : HashMapDelta<int64, 'T>) =
+            let inline mapDelta (ops : HashMapDelta<Unique, 'T>) =
                 ops
                 |> HashMapDelta.toHashMap
                 |> HashMap.map (fun k op ->
@@ -246,7 +278,7 @@ module ABag =
                     history.NewReader(HashMap.trace, mapDelta) :> IOpReader<_>
                 | None ->
                     let r = bag.GetReader()
-                    { new AbstractReader<HashMapDelta<int64, 'U>>(HashMapDelta.empty) with
+                    { new AbstractReader<HashMapDelta<Unique, 'U>>(HashMapDelta.empty) with
                         member x.Compute(token : AdaptiveToken) =
                             r.GetChanges token
                             |> mapDelta
@@ -259,7 +291,7 @@ module ABag =
             ofReader <| fun () ->
                 let mutable existing = HashSet.empty
 
-                let inline mapDelta (ops : HashMapDelta<int64, 'T>) =
+                let inline mapDelta (ops : HashMapDelta<Unique, 'T>) =
                     ops
                     |> HashMapDelta.toHashMap
                     |> HashMap.choose (fun k op ->
@@ -291,12 +323,57 @@ module ABag =
                     history.NewReader(HashMap.trace, mapDelta) :> IOpReader<_>
                 | None ->
                     let r = bag.GetReader()
-                    { new AbstractReader<HashMapDelta<int64, 'U>>(HashMapDelta.empty) with
+                    { new AbstractReader<HashMapDelta<Unique, 'U>>(HashMapDelta.empty) with
                         member x.Compute(token : AdaptiveToken) =
                             r.GetChanges token
                             |> mapDelta
                     } :> IOpReader<_>
-          
+
+    let filter (predicate : 'T -> bool) (bag : abag<'T>) =
+        if bag.IsConstant then
+            constantMap <| fun () -> bag.Content |> AVal.force |> HashMap.filter (fun _ v -> predicate v) 
+        else
+            ofReader <| fun () ->
+                let mutable existing = HashSet.empty
+
+                let inline mapDelta (ops : HashMapDelta<Unique, 'T>) =
+                    ops
+                    |> HashMapDelta.toHashMap
+                    |> HashMap.choose (fun k op ->
+                        match op with
+                        | Set v -> 
+                            match predicate v with
+                            | true -> 
+                                existing <- HashSet.add k existing
+                                Some (Set v)
+                            | false -> 
+                                match HashSet.tryRemove k existing with
+                                | Some n -> 
+                                    existing <- n
+                                    Some Remove
+                                | None ->   
+                                    None
+                        | Remove -> 
+                            match HashSet.tryRemove k existing with
+                            | Some n -> 
+                                existing <- n
+                                Some Remove
+                            | None ->   
+                                None
+                    )
+                    |> HashMapDelta.ofHashMap
+
+                match bag.History with
+                | Some history ->
+                    history.NewReader(HashMap.trace, mapDelta) :> IOpReader<_>
+                | None ->
+                    let r = bag.GetReader()
+                    { new AbstractReader<HashMapDelta<Unique, 'T>>(HashMapDelta.empty) with
+                        member x.Compute(token : AdaptiveToken) =
+                            r.GetChanges token
+                            |> mapDelta
+                    } :> IOpReader<_>
+
     let unionMany' (bags : #seq<abag<'a>>) =
         let bags = 
             match bags :> seq<_> with
@@ -312,8 +389,8 @@ module ABag =
         else
             ofReader <| fun () ->
                 let readers = bags |> Array.map (fun b -> b.GetReader())
-                let caches = Array.init bags.Length (fun _ -> IdCache<int64>())
-                { new AbstractReader<HashMapDelta<int64, 'a>>(HashMapDelta.empty) with
+                let caches = Array.init bags.Length (fun _ -> IdCache<Unique>())
+                { new AbstractReader<HashMapDelta<Unique, 'a>>(HashMapDelta.empty) with
                     member x.Compute(token : AdaptiveToken) =
                         let mutable res = HashMap.empty
 
@@ -346,13 +423,13 @@ module ABag =
         else
             ofReader <| fun () ->   
                 let reader = bag.GetReader()
-                let mutable readers = HashMap.empty<int64, abag<'b> * IOpReader<HashMap<int64, 'b>, HashMapDelta<int64, 'b>>>
+                let mutable readers = HashMap.empty<Unique, abag<'b> * IOpReader<HashMap<Unique, 'b>, HashMapDelta<Unique, 'b>>>
                 let dirty = ref <| System.Collections.Generic.HashSet()
 
-                { new AbstractReader<HashMapDelta<int64, 'b>>(HashMapDelta.empty) with
+                { new AbstractReader<HashMapDelta<Unique, 'b>>(HashMapDelta.empty) with
                     member x.InputChangedObject(_, o) = 
                         match o with
-                        | :? IOpReader<HashMap<int64, 'b>, HashMapDelta<int64, 'b>> as r when not (System.Object.ReferenceEquals(r, reader)) ->
+                        | :? IOpReader<HashMap<Unique, 'b>, HashMapDelta<Unique, 'b>> as r when not (System.Object.ReferenceEquals(r, reader)) ->
                             lock dirty (fun () -> dirty.Value.Add r |> ignore)
                         | _ ->
                             ()
@@ -372,7 +449,7 @@ module ABag =
 
                                 let inline newReader() =
                                     let newReader = newbag.GetReader()
-                                    let newCache = IdCache<int64>()
+                                    let newCache = IdCache<Unique>()
                                     newReader.Tag <- newCache
                                     dirty.Add newReader |> ignore
                                     readers <- HashMap.add lid (newbag, newReader) readers
@@ -387,7 +464,7 @@ module ABag =
                                     //   1. remove the old reader
                                     //   2. add a new reader
                                     readers <- rest
-                                    let oldCache = oldReader.Tag :?> IdCache<int64>
+                                    let oldCache = oldReader.Tag :?> IdCache<Unique>
                                     dirty.Remove oldReader |> ignore
                                     oldReader.Outputs.Remove x |> ignore
                                     for oid, _ in oldReader.State do
@@ -404,7 +481,7 @@ module ABag =
                             | Remove ->
                                 match HashMap.tryRemove lid readers with
                                 | Some((_, oldReader), rest) ->  
-                                    let oldCache = oldReader.Tag :?> IdCache<int64>
+                                    let oldCache = oldReader.Tag :?> IdCache<Unique>
                                     readers <- rest
                                     dirty.Remove oldReader |> ignore
                                     oldReader.Outputs.Remove x |> ignore
@@ -416,7 +493,7 @@ module ABag =
                                     ()
 
                         for d in dirty do
-                            let cache = d.Tag :?> IdCache<int64>
+                            let cache = d.Tag :?> IdCache<Unique>
                             let ops = d.GetChanges token
                             for oid, op in ops do
                                 match op with
@@ -431,6 +508,9 @@ module ABag =
 
                         HashMapDelta.ofHashMap delta
                 }
+
+    let unionMany (bags : abag<abag<'T>>) =
+        bags |> collect id
 
     let toASet (bag : abag<'a>) =
         if bag.IsConstant then
@@ -484,8 +564,8 @@ module ABag =
                 )
             AList.ofReader <| fun () ->
                 let r = bag.GetReader()
-                let indices = CustomIndexMapping<struct(int64 * 'b)>(cmpt)
-                let mutable cache = HashMap.empty<int64, 'b>
+                let indices = CustomIndexMapping<struct(Unique * 'b)>(cmpt)
+                let mutable cache = HashMap.empty<Unique, 'b>
                 { new AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty) with
                     member x.Compute(token : AdaptiveToken) =
                         let ops = r.GetChanges token 
@@ -532,7 +612,7 @@ module ABag =
 
             AList.ofReader <| fun () ->
                 let r = bag.GetReader()
-                let indices = CustomIndexMapping<struct(int64 * 'a)>(cmpt)
+                let indices = CustomIndexMapping<struct(Unique * 'a)>(cmpt)
                 { new AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty) with
                     member x.Compute(token : AdaptiveToken) =
                         let old = r.State
