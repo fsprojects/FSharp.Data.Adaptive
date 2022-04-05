@@ -37,12 +37,12 @@ module CollectionExtensions =
     module internal Readers =
         /// Reader for ASet.sortBy
         [<Sealed>]
-        type SetSortByReader<'T1, 'T2 when 'T2 : comparison>(set: aset<'T1>, projection: 'T1 -> 'T2) =
+        type SetSortByReader<'T1, 'T2 when 'T2 : comparison>(set: aset<'T1>, projection: 'T1 -> 'T2, cmp : System.Collections.Generic.IComparer<'T2>) =
             inherit AbstractReader<IndexListDelta<'T1>>(IndexListDelta.empty)
 
             let reader = set.GetReader()
             let mapping = IndexMapping<Unique<'T2>>()
-            let cache = Cache<'T1, Unique<'T2>>(projection >> Unique)
+            let cache = Cache<'T1, Unique<'T2>>(fun v -> Unique(projection v, cmp))
 
             override x.Compute(token: AdaptiveToken) =
                 reader.GetChanges token |> Seq.choose (fun op ->
@@ -200,6 +200,56 @@ module CollectionExtensions =
                 |> IndexListDelta.toSeq
                 |> HashMapDelta.ofSeq
 
+        [<Sealed>]
+        type MapSortByReader<'K, 'V, 'T when 'T : comparison>(map : amap<'K, 'V>, cmp : System.Collections.Generic.IComparer<'T>, projection : OptimizedClosures.FSharpFunc<'K, 'V, 'T>) =
+            inherit AbstractReader<IndexListDelta<'K * 'V>>(IndexListDelta.empty)
+
+            let reader = map.GetReader()
+
+            let mapping = 
+                CustomIndexMapping<int * 'T>(fun (k0, t0) (k1, t1) -> 
+                    let c = cmp.Compare(t0, t1)
+                    if c <> 0 then c
+                    else compare k0 k1
+                )
+            let mutable state = HashMap.empty<'K, int * 'T>
+            let mutable currentId = 0
+
+            let newId() =
+                let i = currentId
+                currentId <- i + 1
+                i
+
+            override x.Compute(token : AdaptiveToken) =
+                let ops = reader.GetChanges token
+                let mutable res = MapExt.empty
+                for key, op in ops do
+                    match op with
+                    | Set v ->
+                        let id =
+                            match HashMap.tryFind key state with
+                            | Some (i, _) -> i
+                            | None -> newId()
+
+                        let t = projection.Invoke(key, v)
+                        let index = mapping.Invoke(id, t)
+                        res <- MapExt.add index (Set (key, v)) res
+                        state <- HashMap.add key (id, t) state
+                    | Remove ->
+                        match HashMap.tryRemove key state with
+                        | Some ((id, t), rest) ->
+                            state <- rest
+                            match mapping.Revoke(id, t) with
+                            | Some index -> 
+                                res <- MapExt.add index (Remove) res
+                            | None ->
+                                ()
+                        | None ->
+                            ()
+
+                IndexListDelta(res)
+
+
 
     /// Functional operators for amap<_,_>
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -248,6 +298,37 @@ module CollectionExtensions =
                         | None ->
                             ListToMapReader(list) :> _
                 }
+
+        /// Creates a sorted alist holding Key/Value tuples from the amap using the given projection.
+        let sortBy (projection : 'K -> 'V -> 'T) (map : amap<'K, 'V>) : alist<'K * 'V> =
+            if map.IsConstant then
+                map
+                |> AMap.force
+                |> HashMap.toList
+                |> List.sortBy (fun (k, v) -> projection k v)
+                |> AList.ofList
+            else
+                AList.ofReader <| fun () ->
+                    MapSortByReader(map, LanguagePrimitives.FastGenericComparer, OptimizedClosures.FSharpFunc<_,_,_>.Adapt projection)
+
+        /// Creates a sorted (descending order) alist holding Key/Value tuples from the amap using the given projection.
+        let sortByDescending (projection : 'K -> 'V -> 'T) (map : amap<'K, 'V>) : alist<'K * 'V> =
+            if map.IsConstant then
+                map
+                |> AMap.force
+                |> HashMap.toList
+                |> List.sortByDescending (fun (k, v) -> projection k v)
+                |> AList.ofList
+            else
+                AList.ofReader <| fun () ->
+                    let cmp =
+                        let c = LanguagePrimitives.FastGenericComparer
+                        { new System.Collections.Generic.IComparer<'T> with
+                            member x.Compare(a, b) = c.Compare(b,a)
+                        }
+                    MapSortByReader(map, cmp, OptimizedClosures.FSharpFunc<_,_,_>.Adapt projection)
+
+
 
 
     /// Functional operators for aset<_>
@@ -302,11 +383,31 @@ module CollectionExtensions =
                 |> Seq.map snd
                 |> AList.ofSeq
             else
-                AList.ofReader (fun () -> SetSortByReader(set, projection))
+                AList.ofReader (fun () -> SetSortByReader(set, projection, LanguagePrimitives.FastGenericComparer<'T2>))
 
         /// Sorts the set.
         let inline sort (set: aset<'T>) = sortWith compare set
         
+        /// Sorts the set in descending order.
+        let inline sortDescending (set: aset<'T>) = sortWith (fun a b -> compare b a) set
+        
+        /// Sorts the set using the keys given by projection in descending order.
+        let sortByDescending (projection: 'T1 -> 'T2) (set: aset<'T1>) =
+            if set.IsConstant then
+                set.Content 
+                |> AVal.force
+                |> Seq.indexed
+                |> Seq.sortByDescending (fun (i,v) -> projection v, -i) 
+                |> Seq.map snd
+                |> AList.ofSeq
+            else
+                let cmp =
+                    let c = LanguagePrimitives.FastGenericComparer<'T2>
+                    { new System.Collections.Generic.IComparer<'T2> with
+                        member x.Compare(a,b) = c.Compare(b,a)
+                    }
+                AList.ofReader (fun () -> SetSortByReader(set, projection, cmp))
+
         /// Creates an alist from the set with undefined element order.
         let toAList (set: aset<'T>) =
             if set.IsConstant then

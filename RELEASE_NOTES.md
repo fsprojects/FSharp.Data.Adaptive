@@ -1,4 +1,9 @@
 ### 1.2.10
+* added `HashSet.ChooseToMap(V)`
+* added `ASet.sort(By)Descending`
+* added `AMap.sortBy(Descending)`
+
+### 1.2.10
 * added `clist.UpdateTo(seq, list, array)`
 * fixed AssemblyVersions
 

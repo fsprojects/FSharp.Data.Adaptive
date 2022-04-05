@@ -269,7 +269,7 @@ module internal AdaptiveIndexListHelpers =
 
         new(f : Index -> 'a -> 'b) = IndexCache(f, ignore)
 
-    type Unique<'b when 'b : comparison>(value : 'b) =
+    type Unique<'b>(value : 'b, cmp : IComparer<'b>) =
         static let mutable currentId = 0
         static let newId() = 
             #if FABLE_COMPILER
@@ -295,11 +295,16 @@ module internal AdaptiveIndexListHelpers =
             member x.CompareTo o =
                 match o with
                 | :? Unique<'b> as o ->
-                    let c = compare value o.Value
+                    let c = cmp.Compare(value, o.Value)
                     if c = 0 then compare id o.Id
                     else c
                 | _ ->
                     failwith "uncomparable"
+        member x.CompareTo (o : Unique<'b>) =
+            let c = cmp.Compare(value, o.Value)
+            if c = 0 then compare id o.Id
+            else c
+            
 
 
 module internal RangeDelta =

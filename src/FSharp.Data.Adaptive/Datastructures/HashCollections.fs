@@ -3241,6 +3241,23 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         let root = SetNode.mapToMap mapping root
         HashMap<'K, 'V>(comparer, root)
         
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.ChooseToMap(mapping : 'K -> option<'V>) =  
+        let vmapping v =
+            match mapping v with
+            | Some v -> ValueSome v
+            | None -> ValueNone
+
+        let root = SetNode.chooseToMapV vmapping root
+        HashMap<'K, 'V>(comparer, root)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.ChooseToMapV(mapping : 'K -> voption<'V>) =  
+        let root = SetNode.chooseToMapV mapping root
+        HashMap<'K, 'V>(comparer, root)
+        
+
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ChooseV(mapping : 'K -> voption<'T>) =
         let cmp = DefaultEqualityComparer<'T>.Instance
