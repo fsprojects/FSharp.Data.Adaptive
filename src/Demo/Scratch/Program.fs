@@ -3,6 +3,7 @@ open System.Collections.Generic
 open FSharp.Data.Adaptive
 open FSharp.Data.Traceable
 
-ABag.run()
+//ABag.run()
 //Observable.run()
 //LookupAll.example()
+AListSub.run()
