@@ -1,3 +1,6 @@
+### 1.2.11
+* fixed `AList.sub` problem
+
 ### 1.2.10
 * added `HashSet.ChooseToMap(V)`
 * added `ASet.sort(By)Descending`
