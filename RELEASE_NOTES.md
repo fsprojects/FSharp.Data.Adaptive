@@ -1,3 +1,6 @@
+### 1.2.12
+* fixed KeyNotFoundException in async evaluation of `ASet.mapA` and `ASet.flattenA` (issue #103)
+
 ### 1.2.11
 * fixed `AList.sub` problem
 

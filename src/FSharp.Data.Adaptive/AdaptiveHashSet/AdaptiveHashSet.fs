@@ -918,12 +918,6 @@ module AdaptiveHashSetImplementation =
             cache.[m] <- v
             v
 
-        member x.Invoke2(token : AdaptiveToken, m : aval<'T>) =
-            let o = cache.[m]
-            let v = m.GetValue token
-            cache.[m] <- v
-            o, v
-
         member x.Revoke(m : aval<'T>, dirty : System.Collections.Generic.HashSet<_>) =
             match cache.TryGetValue m with
             | (true, v) -> 
@@ -944,9 +938,14 @@ module AdaptiveHashSetImplementation =
                 )
 
             for d in dirty do
-                let o, n = x.Invoke2(token, d)
-                if not (DefaultEquality.equals o n) then
-                    deltas <- HashSetDelta.combine deltas (HashSetDelta.ofList [Add n; Rem o])
+                match cache.TryGetValue d with
+                | (true, o) ->
+                    let n = d.GetValue token
+                    cache.[d] <- n
+                    if not (DefaultEquality.equals o n) then
+                        deltas <- HashSetDelta.combine deltas (HashSetDelta.ofArray [| Add n; Rem o |])
+                | _ -> ()
+                                
 
             deltas
             
@@ -970,15 +969,8 @@ module AdaptiveHashSetImplementation =
             | _ ->
                 let r = ref (1, v)
                 cache.[m] <- r
-
             v
 
-        member x.Invoke2(token : AdaptiveToken, m : aval<'B>) =
-            let r = cache.[m]
-            let v = m.GetValue token
-            let (rc, o) = r.Value
-            r.Value <- (rc, v)
-            o, v
 
         member x.Revoke(v : 'A, dirty : System.Collections.Generic.HashSet<_>) =
             let m = mapping.Revoke v
@@ -1007,9 +999,15 @@ module AdaptiveHashSetImplementation =
                 )
 
             for d in dirty do
-                let o, n = x.Invoke2(token, d)
-                if not (DefaultEquality.equals o n) then
-                    deltas <- HashSetDelta.combine deltas (HashSetDelta.ofList [Add n; Rem o])
+                match cache.TryGetValue d with
+                | (true, r) ->
+                    let n = d.GetValue token
+                    let (rc, o) = r.Value
+                    r.Value <- (rc, n)
+                    if not (DefaultEquality.equals o n) then
+                        deltas <- HashSetDelta.combine deltas (HashSetDelta.ofArray [| Add n; Rem o |])
+                | _ -> ()
+                
 
             deltas
             
@@ -1210,7 +1208,7 @@ module ASet =
             else constant (fun () -> HashSet.union va vb)
         else
             // TODO: can be optimized in case one of the two sets is constant.
-            ofReader (fun () -> UnionConstantReader (HashSet.ofList [a;b]))
+            ofReader (fun () -> UnionConstantReader (HashSet.ofArray [| a; b |]))
             
     /// Adaptively subtracts the given sets.
     let difference (a : aset<'A>) (b : aset<'A>) =
