@@ -636,5 +636,82 @@ let ``[ASet] content bind``() =
         cnt |> should equal set.Count
     
 
+[<Test>]
+let ``[ASet] mapA/flattenA/chooseA async``() =
+    
+    let set = cset<cval<int>>()
+    
+    let out1 = set |> ASet.mapA (fun x -> x)
+    let out2 = set |> ASet.map(fun x -> x :> IAdaptiveValue<_>) |> ASet.flattenA
+    let out3 = set |> ASet.chooseA (fun x -> x |> AVal.map (fun v -> if (v % 2) = 0 then Some v else None))
 
+    let sw = System.Diagnostics.Stopwatch.StartNew()
+
+    System.Threading.Thread(System.Threading.ThreadStart(fun x -> 
+                                        while sw.ElapsedMilliseconds < 5000 do
+                                            let res = out1 |> ASet.force
+                                            //printfn "set count: %d   output count: %d" set.Count res.Count
+                                            //System.Threading.Thread.Sleep(1)
+                                            ()
+        )).Start()
+
+    System.Threading.Thread(System.Threading.ThreadStart(fun x -> 
+                                        while sw.ElapsedMilliseconds < 5000 do
+                                            let res = out2 |> ASet.force
+                                            //printfn "set count: %d   output count: %d" set.Count res.Count
+                                            //System.Threading.Thread.Sleep(1)
+                                            ()
+        )).Start()
+
+    System.Threading.Thread(System.Threading.ThreadStart(fun x -> 
+                                        while sw.ElapsedMilliseconds < 5000 do
+                                            let res = out3 |> ASet.force
+                                            //printfn "set count: %d   output count: %d" set.Count res.Count
+                                            //System.Threading.Thread.Sleep(1)
+                                            ()
+        )).Start()
+
+    let rnd = System.Random(2)
+    while sw.ElapsedMilliseconds < 5000 do
+        //System.Threading.Thread.Sleep(1)
+
+        transact(fun () ->
+
+            let rndAction = rnd.Next(10)
+                        
+            if rndAction = 0 then // add
+                //printfn "add"
+                let value = rnd.Next() % 100
+                let addItem = cval<int>(value)
+                set.Add(addItem) |> ignore
+
+            elif rndAction = 1 then // rem
+                if set.Count > 10 then
+                    //printfn "rem"
+                    let remIndex = rnd.Next(set.Count)
+                    let remItem = set.Value.ToArray()[remIndex]
+                    set.Remove(remItem) |> ignore
+
+            elif rndAction = 2 then // rem + change
+                if set.Count > 1 then
+                    // !! potential crash !!
+                    //printfn "change + rem"
+                    let ind = rnd.Next(set.Count)
+                    let item = set.Value.ToArray()[ind]
+                    // NOTE: order of value change and remove does not matter, both variants cause the exception
+                    item.Value <- rnd.Next() % 100 
+                    set.Remove(item) |> ignore
+                    
+            elif set.Count > 0 then // change
+                //printfn "change"
+                let changeIndex = rnd.Next(set.Count)
+                let changeItem = set.Value.ToArray()[changeIndex]
+                changeItem.Value <- rnd.Next() % 100
+            )
+
+        //let res = out |> ASet.force
+
+        ()
+
+    ()
 

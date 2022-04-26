@@ -48,7 +48,9 @@ let ``[AList] sub``() =
 [<EntryPoint>]
 let main _args =
 
-    ``[AList] sub``();
+    ASet.``[ASet] mapA/flattenA/chooseA async``()
+
+    //``[AList] sub``();
 
 
     //let a = cval [1;2;3;4]
