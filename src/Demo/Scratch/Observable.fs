@@ -78,6 +78,14 @@ module AList =
             member x.Dispose() = shutdown()
         }
 
+    let toObservable (list : alist<'a>) =
+        { new IObservable<IndexList<'a> * IndexListDelta<'a> * IndexList<'a>> with
+            member x.Subscribe(obs : IObserver<IndexList<'a> * IndexListDelta<'a> * IndexList<'a>>) =
+                list |> observe (fun o d n ->
+                    obs.OnNext(o,d,n)
+                )
+        }
+
 module ASet =
     let observe (action : HashSet<'a> -> HashSetDelta<'a> -> HashSet<'a> -> unit) (set : aset<'a>) =
         let reader = set.GetReader()
@@ -112,6 +120,14 @@ module ASet =
 
         { new IDisposable with
             member x.Dispose() = shutdown()
+        }
+
+    let toObservable (set : aset<'a>) =
+        { new IObservable<HashSet<'a> * HashSetDelta<'a> * HashSet<'a>> with
+            member x.Subscribe(obs : IObserver<HashSet<'a> * HashSetDelta<'a> * HashSet<'a>>) =
+                set |> observe (fun o d n ->
+                    obs.OnNext(o,d,n)
+                )
         }
 
 module AMap =
@@ -149,6 +165,56 @@ module AMap =
         { new IDisposable with
             member x.Dispose() = shutdown()
         }
+
+    let toObservable (map : amap<'a, 'b>) =
+        { new IObservable<HashMap<'a, 'b> * HashMapDelta<'a, 'b> * HashMap<'a, 'b>> with
+            member x.Subscribe(obs : IObserver<HashMap<'a, 'b> * HashMapDelta<'a, 'b> * HashMap<'a, 'b>>) =
+                map |> observe (fun o d n ->
+                    obs.OnNext(o,d,n)
+                )
+        }
+
+module AVal =
+    let observe (action : option<'a> -> 'a -> unit) (value : aval<'a>) =
+        let action = OptimizedClosures.FSharpFunc<_,_,_>.Adapt action
+        let mutable running = true
+        let signal = AsyncSignal(true)
+        let sub = value.AddMarkingCallback signal.Pulse
+
+        Async.Start <|
+            async {
+                let mutable old = None
+                while running do
+                    do! Async.AwaitTask (signal.Wait())
+                    if running then
+                        do! Async.SwitchToThreadPool()
+
+                        let v = value.GetValue AdaptiveToken.Top
+                        match old with
+                        | Some o when DefaultEquality.equals o v -> ()
+                        | _ ->
+                            action.Invoke(old, v)
+                            old <- Some v
+
+            }
+
+        let shutdown() =
+            sub.Dispose()
+            running <- false
+            signal.Pulse()
+
+        { new IDisposable with
+            member x.Dispose() = shutdown()
+        }
+
+    let toObservable (value : aval<'a>) =
+        { new IObservable<option<'a> * 'a> with
+            member x.Subscribe(obs : IObserver<option<'a> * 'a>) =
+                value |> observe (fun o n ->
+                    obs.OnNext(o,n)
+                )
+        }
+
 
 
 let run() =
