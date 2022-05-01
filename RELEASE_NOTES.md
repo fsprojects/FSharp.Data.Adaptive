@@ -1,3 +1,6 @@
+### 1.2.13
+* made FSharp.Data.Adaptive trimmable via `<IsTrimmable>true</IsTrimmable>`
+
 ### 1.2.12
 * fixed KeyNotFoundException in async evaluation of `ASet.mapA` and `ASet.flattenA` (issue #103)
 
