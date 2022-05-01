@@ -2,8 +2,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFrameworks>netstandard2.0;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net5.0;net6.0</TargetFrameworks>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+
+    <TrimMode>link</TrimMode>
+    <IsTrimmable>true</IsTrimmable>
 
     <!-- Example ultra-simple styling and generation settings for FsDocs default template-->
     <PackageLicenseUrl>https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE</PackageLicenseUrl>
