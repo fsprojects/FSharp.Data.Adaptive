@@ -30,3 +30,4 @@ symbolCache.db
 /tmp/
 /.fsdocs
 /output
+/.idea

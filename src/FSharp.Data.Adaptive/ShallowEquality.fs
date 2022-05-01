@@ -1,4 +1,5 @@
 ﻿namespace FSharp.Data.Adaptive
+open System.Diagnostics.CodeAnalysis
 
 
 #if FABLE_COMPILER
@@ -84,7 +85,9 @@ type private HashCodeHelpers private() =
         )
 
     static member CombineMethod = combineMeth
-
+    #if NET5_0
+    [<RequiresUnreferencedCode("used by ShallowEqualityComparer")>]
+    #endif
     static member Combine(a : int, b : int) =   
         uint32 a ^^^ uint32 b + 0x9e3779b9u + ((uint32 a) <<< 6) + ((uint32 a) >>> 2) |> int
 
@@ -313,7 +316,7 @@ type ShallowEqualityComparer<'a> private() =
                 let del = meth.CreateDelegate(typeof<ShallowEqDelegate<'a>>) |> unbox<ShallowEqDelegate<'a>>
                 fun (a : 'a) (b : 'a) -> del.Invoke(a, b)
             else
-                /// TODO: better way?
+                // TODO: better way?
                 fun (a : 'a) (b : 'a) -> false
         elif FSharpType.IsUnion(typ, true) && DynamicMethod.IsSupported && not isRecursive then
             let cases = FSharpType.GetUnionCases(typ, true)
