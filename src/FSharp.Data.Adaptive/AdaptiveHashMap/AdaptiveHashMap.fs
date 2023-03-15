@@ -755,7 +755,85 @@ module AdaptiveHashMapImplementation =
                 changes <- HashMap.add i (Set v) changes
 
             HashMapDelta.ofHashMap changes
-     
+
+    /// Reader for deltaA operations.
+    [<Sealed>]
+    type DeltaAReader<'k, 'a, 'b>(input : amap<'k, 'a>, mapping : HashMap<'k,'a> -> HashMap<'k, aval<'b>>) =
+        inherit AbstractReader<HashMapDelta<'k, 'b>>(HashMapDelta.empty)
+
+        let reader = input.GetReader()
+        do reader.Tag <- "input"
+        let cacheLock = obj()
+        let mutable cache: HashMap<'k, aval<'b>> = HashMap.Empty
+        let mutable targets = MultiSetMap.empty<aval<'b>, 'k>
+        let mutable dirty = HashMap.empty<'k, aval<'b>>
+
+        let consumeDirty() =
+            lock cacheLock (fun () ->
+                let d = dirty
+                dirty <- HashMap.empty
+                d
+            )
+
+        override x.InputChangedObject(t, o) =
+            #if FABLE_COMPILER
+            if isNull o.Tag then
+                let o = unbox<aval<'b>> o
+                for i in MultiSetMap.find o targets do
+                    dirty <- HashMap.add i o dirty
+            #else
+            match o with
+            | :? aval<'b> as o ->
+                lock cacheLock (fun () ->
+                    for i in MultiSetMap.find o targets do
+                        dirty <- HashMap.add i o dirty
+                )
+            | _ ->
+                ()
+            #endif
+
+        override x.Compute t =
+            let mutable dirty = consumeDirty()
+            let old = reader.State
+            let ops = reader.GetChanges t |> HashMapDelta.toHashMap
+
+            let setOps, removeOps =
+                ((HashMap.empty, HashMap.empty), ops)
+                ||> HashMap.fold(fun (sets, rems) i op ->
+                    dirty <- HashMap.remove i dirty
+                    cache <- 
+                        match HashMap.tryRemove i cache with
+                        | Some (o, remaingCache) -> 
+                            let rem, rest = MultiSetMap.remove o i targets
+                            targets <- rest
+                            if rem then o.Outputs.Remove x |> ignore
+                            remaingCache
+                        | None -> cache
+                    match op with
+                    | Set v -> 
+                        HashMap.add i v sets, rems
+                    | Remove -> 
+                        sets, HashMap.add i Remove rems
+                )
+            
+            let mutable changes =
+                setOps
+                |> mapping
+                |> HashMap.map(fun i k ->
+                    cache <- HashMap.add i k cache
+                    let v = k.GetValue t
+                    targets <- MultiSetMap.add k i targets
+                    Set v
+                )
+
+
+            for i, d in dirty do
+                let v = d.GetValue t
+                changes <- HashMap.add i (Set v) changes
+
+            HashMap.union removeOps changes
+            |> HashMapDelta
+
     /// Reader for chooseA operations.
     [<Sealed>]
     type ChooseAReader<'k, 'a, 'b>(input : amap<'k, 'a>, mapping : 'k -> 'a -> aval<Option<'b>>) =
@@ -1332,6 +1410,19 @@ module AMap =
                 create (fun () -> MapAReader(ofHashMap map, fun _ v -> v))
         else
             create (fun () -> MapAReader(map, mapping))
+
+    /// Adaptively applies the given mapping to all changes.
+    let deltaA (mapping: HashMap<'K,'T1> -> HashMap<'K,aval<'T2>>) (map: amap<'K, 'T1>) =
+        if map.IsConstant then
+            let map = force map |> mapping
+            if map |> HashMap.forall (fun _ v -> v.IsConstant) then
+                constant (fun () -> map |> HashMap.map (fun _ v -> AVal.force v))
+            else
+                // TODO better impl possible
+                create (fun () -> MapAReader(ofHashMap map, fun _ v -> v))
+        else
+            create (fun () -> DeltaAReader(map, mapping))
+
 
     /// Adaptively chooses all elements returned by mapping.  
     let chooseA (mapping: 'K ->'T1 -> aval<Option<'T2>>) (map: amap<'K, 'T1>) =
