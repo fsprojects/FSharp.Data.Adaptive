@@ -106,7 +106,7 @@ module AMap =
     val mapA : mapping: ('K -> 'V -> aval<'T>) -> map: amap<'K, 'V> -> amap<'K, 'T>
 
     /// Adaptively applies the given mapping to all changes.
-    val deltaA : mapping: (HashMap<'K,'T1> -> HashMap<'K,aval<'T2>>) -> map: amap<'K, 'T1> -> amap<'K, 'T2>
+    val batchRecalcDirty : mapping: (HashMap<'K,'T1> -> HashMap<'K,aval<'T2>>) -> map: amap<'K, 'T1> -> amap<'K, 'T2>
 
     /// Adaptively chooses all elements returned by mapping.  
     val chooseA : mapping: ('K -> 'V -> aval<option<'T>>) -> map: amap<'K, 'V> -> amap<'K, 'T>

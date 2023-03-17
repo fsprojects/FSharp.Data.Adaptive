@@ -756,9 +756,9 @@ module AdaptiveHashMapImplementation =
 
             HashMapDelta.ofHashMap changes
 
-    /// Reader for deltaA operations.
+    /// Reader for batchRecalc operations.
     [<Sealed>]
-    type DeltaAReader<'k, 'a, 'b>(input : amap<'k, 'a>, mapping : HashMap<'k,'a> -> HashMap<'k, aval<'b>>) =
+    type BatchRecalculateDirty<'k, 'a, 'b>(input : amap<'k, 'a>, mapping : HashMap<'k,'a> -> HashMap<'k, aval<'b>>) =
         inherit AbstractReader<HashMapDelta<'k, 'b>>(HashMapDelta.empty)
 
         let reader = input.GetReader()
@@ -787,6 +787,7 @@ module AdaptiveHashMapImplementation =
                 lock cacheLock (fun () ->
                     for i in MultiSetMap.find o targets do
                         dirty <- HashMap.add i o dirty
+                    
                 )
             | _ ->
                 ()
@@ -816,19 +817,22 @@ module AdaptiveHashMapImplementation =
                         sets, HashMap.add i Remove rems
                 )
             
-            let mutable changes =
-                setOps
-                |> mapping
-                |> HashMap.map(fun i k ->
-                    cache <- HashMap.add i k cache
-                    let v = k.GetValue t
-                    targets <- MultiSetMap.add k i targets
-                    Set v
+
+            let mutable changes = HashMap.empty
+            let setOps =
+                (setOps, dirty)
+                ||> HashMap.fold(fun s k v -> 
+                    match HashMap.tryFind k old with
+                    | Some v ->
+                        HashMap.add k v s
+                    | None ->
+                        s
                 )
 
-
-            for i, d in dirty do
-                let v = d.GetValue t
+            for i, k in mapping setOps   do
+                cache <- HashMap.add i k cache
+                let v = k.GetValue t
+                targets <- MultiSetMap.add k i targets
                 changes <- HashMap.add i (Set v) changes
 
             HashMap.union removeOps changes
@@ -1411,17 +1415,17 @@ module AMap =
         else
             create (fun () -> MapAReader(map, mapping))
 
-    /// Adaptively applies the given mapping to all changes.
-    let deltaA (mapping: HashMap<'K,'T1> -> HashMap<'K,aval<'T2>>) (map: amap<'K, 'T1>) =
+    /// Adaptively applies the given mapping to all changes and reapplies mapping on dirty outputs
+    let batchRecalcDirty (mapping: HashMap<'K,'T1> -> HashMap<'K,aval<'T2>>) (map: amap<'K, 'T1>) =
         if map.IsConstant then
             let map = force map |> mapping
             if map |> HashMap.forall (fun _ v -> v.IsConstant) then
                 constant (fun () -> map |> HashMap.map (fun _ v -> AVal.force v))
             else
                 // TODO better impl possible
-                create (fun () -> MapAReader(ofHashMap map, fun _ v -> v))
+                create (fun () -> BatchRecalculateDirty(ofHashMap map, id))
         else
-            create (fun () -> DeltaAReader(map, mapping))
+            create (fun () -> BatchRecalculateDirty(map, mapping))
 
 
     /// Adaptively chooses all elements returned by mapping.  

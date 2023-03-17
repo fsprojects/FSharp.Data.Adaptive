@@ -8,6 +8,8 @@ open FsUnit
 open FsCheck.NUnit
 open FSharp.Data
 open Generators
+open System.IO
+open System
 
 [<Property(MaxTest = 500, Arbitrary = [| typeof<Generators.AdaptiveGenerators> |]); Timeout(60000)>]
 let ``[AMap] reference impl``() ({ mreal = real; mref = ref; mexpression = str; mchanges = changes } : VMap<int, int>) =
@@ -641,34 +643,110 @@ let ``[AMap] mapA``() =
     res |> AMap.force |> should equal (HashMap.ofList ["A", 2; "B", 4; "C", 6])
 
 
-    
+
+/// <summary>
+/// Calls a mapping function which creates additional dependencies to be tracked.
+/// </summary>
+let mapWithAdditionalDependenies (mapping: 'a -> 'b * #seq<#IAdaptiveValue>) (value: aval<'a>) : aval<'b> =
+    let mutable lastDeps = HashSet.empty
+
+    { new AVal.AbstractVal<'b>() with
+        member x.Compute(token: AdaptiveToken) =
+          let input = value.GetValue token
+
+          // re-evaluate the mapping based on the (possibly new input)
+          let result, deps = mapping input
+
+          // compute the change in the additional dependencies and adjust the graph accordingly
+          let newDeps = HashSet.ofSeq deps
+
+          for op in HashSet.computeDelta lastDeps newDeps do
+            match op with
+            | Add(_, d) ->
+              // the new dependency needs to be evaluated with our token, s.t. we depend on it in the future
+              d.GetValueUntyped token |> ignore
+            | Rem(_, d) ->
+              // we no longer need to depend on the old dependency so we can remove ourselves from its outputs
+              lock d.Outputs (fun () -> d.Outputs.Remove x) |> ignore
+
+          lastDeps <- newDeps
+
+          result }
+    :> aval<_>
+
 [<Test>]
-let ``[AMap] deltaA``() =
-    let map = cmap ["A", 1; "B", 2; "C", 3]
-    let flag = cval true
+let ``[AMap] batchRecalcDirty``() =
 
+    let file1 = "File1.fs"
+    let file1Cval = cval 1
+    let file1DepCval = cval 1
+    let file2 = "File2.fs"
+    let file2Cval = cval 2
+    let file2DepCval = cval 1
+    let file3 = "File3.fs"
+    let file3Cval = cval 3
+    let file3DepCval = cval 1
+
+    let m = Map [file1, file1DepCval; file2, file2DepCval; file3, file3DepCval]
+
+    let projs = 
+        [
+            file1, file1Cval
+            file2, file2Cval
+            file3, file3Cval
+        ] 
+        |> AMap.ofList
+        |> AMap.mapA(fun _ v -> v)
+
+    let mutable lastBatch = Unchecked.defaultof<_>
     let res =
-        map |> AMap.deltaA (fun d ->
-            d
-            |> HashMap.map(fun _ v -> flag |> AVal.map (function true -> v | false -> -1))
+        projs
+        |> AMap.batchRecalcDirty(fun d ->
+            lastBatch <- d
+            HashMap.ofList [
+                for k,v in d do
+                    k, (AVal.constant <| Guid.NewGuid()) |> mapWithAdditionalDependenies(fun a -> a, [m.[k]])
+            ]
         )
+    let firstResult = res |> AMap.force
+    lastBatch |> should haveCount 3
 
-    res |> AMap.force |> should equal (HashMap.ofList ["A", 1; "B", 2; "C", 3])
+    transact(fun () -> file1Cval.Value <- file1Cval.Value + 1)
 
-    transact (fun () ->
-        flag.Value <- false
-    )
+    let secondResult = res |> AMap.force
+    lastBatch |> should haveCount 1
+    
+    firstResult.[file1] |> should not' (equal secondResult.[file1])
+    firstResult.[file2] |> should equal secondResult.[file2]
+    firstResult.[file3] |> should equal secondResult.[file3]
 
-    res |> AMap.force |> should equal (HashMap.ofList ["A", -1; "B", -1; "C", -1])
 
-    transact (fun () ->
-        map.Value <- map.Value |> HashMap.map (fun _ v -> v * 2)
-    )
+    transact(fun () -> 
+        file1Cval.Value <- file1Cval.Value + 1
+        file3Cval.Value <- file3Cval.Value + 1)
+    
+    let thirdResult = res |> AMap.force
+    lastBatch |> should haveCount 2
 
-    res |> AMap.force |> should equal (HashMap.ofList ["A", -1; "B", -1; "C", -1])
+    secondResult.[file1] |> should not' (equal thirdResult.[file1])
+    secondResult.[file2] |> should equal thirdResult.[file2]
+    secondResult.[file3] |> should not' (equal thirdResult.[file3])
 
-    transact (fun () ->
-        flag.Value <- true
-    )
 
-    res |> AMap.force |> should equal (HashMap.ofList ["A", 2; "B", 4; "C", 6])
+    transact(fun () -> file1DepCval.Value <- file1DepCval.Value + 1)
+
+    let fourthResult = res |> AMap.force
+    lastBatch |> should haveCount 1
+    
+    thirdResult.[file1] |> should not' (equal fourthResult.[file1])
+
+    transact(fun () -> 
+        file1DepCval.Value <- file1DepCval.Value + 1
+        file1Cval.Value <- file1Cval.Value)
+
+    let fifthResult = res |> AMap.force
+    lastBatch |> should haveCount 1
+    
+    fourthResult.[file1] |> should not' (equal fifthResult.[file1])
+
+    ()
