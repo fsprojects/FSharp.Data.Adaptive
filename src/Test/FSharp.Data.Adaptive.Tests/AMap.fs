@@ -643,36 +643,47 @@ let ``[AMap] mapA``() =
     res |> AMap.force |> should equal (HashMap.ofList ["A", 2; "B", 4; "C", 6])
 
 
+module AVal =
 
-/// <summary>
-/// Calls a mapping function which creates additional dependencies to be tracked.
-/// </summary>
-let mapWithAdditionalDependenies (mapping: 'a -> 'b * #seq<#IAdaptiveValue>) (value: aval<'a>) : aval<'b> =
-    let mutable lastDeps = HashSet.empty
+    /// <summary>
+    /// Calls a mapping function which creates additional dependencies to be tracked.
+    /// </summary>
+    let mapWithAdditionalDependenies (mapping: 'a -> 'b * #seq<#IAdaptiveValue>) (value: aval<'a>) : aval<'b> =
+        let mutable lastDeps = HashSet.empty
 
-    { new AVal.AbstractVal<'b>() with
-        member x.Compute(token: AdaptiveToken) =
-          let input = value.GetValue token
+        { new AVal.AbstractVal<'b>() with
+            member x.Compute(token: AdaptiveToken) =
+                let input = value.GetValue token
 
-          // re-evaluate the mapping based on the (possibly new input)
-          let result, deps = mapping input
+                // re-evaluate the mapping based on the (possibly new input)
+                let result, deps = mapping input
 
-          // compute the change in the additional dependencies and adjust the graph accordingly
-          let newDeps = HashSet.ofSeq deps
+                // compute the change in the additional dependencies and adjust the graph accordingly
+                let newDeps = HashSet.ofSeq deps
 
-          for op in HashSet.computeDelta lastDeps newDeps do
-            match op with
-            | Add(_, d) ->
-              // the new dependency needs to be evaluated with our token, s.t. we depend on it in the future
-              d.GetValueUntyped token |> ignore
-            | Rem(_, d) ->
-              // we no longer need to depend on the old dependency so we can remove ourselves from its outputs
-              lock d.Outputs (fun () -> d.Outputs.Remove x) |> ignore
+                for op in HashSet.computeDelta lastDeps newDeps do
+                    match op with
+                    | Add(_, d) ->
+                    // the new dependency needs to be evaluated with our token, s.t. we depend on it in the future
+                        d.GetValueUntyped token |> ignore
+                    | Rem(_, d) ->
+                        // we no longer need to depend on the old dependency so we can remove ourselves from its outputs
+                        lock d.Outputs (fun () -> d.Outputs.Remove x) |> ignore
 
-          lastDeps <- newDeps
+                lastDeps <- newDeps
 
-          result }
-    :> aval<_>
+                result }
+        :> aval<_>
+
+module AMap =
+    let mapWithAdditionalDependenies (mapping: HashMap<'K, 'T1> -> HashMap<'K, 'T2 * #seq<#IAdaptiveValue>>) (map: amap<'K, 'T1>) =
+        let mapping =
+            mapping
+            >> HashMap.map(fun _ v ->
+            AVal.constant v |> AVal.mapWithAdditionalDependenies (id)
+            )
+        AMap.batchRecalcDirty mapping map
+
 
 [<Test>]
 let ``[AMap] batchRecalcDirty``() =
@@ -687,7 +698,7 @@ let ``[AMap] batchRecalcDirty``() =
     let file3Cval = cval 3
     let file3DepCval = cval 1
 
-    let m = Map [file1, file1DepCval; file2, file2DepCval; file3, file3DepCval]
+    let dependencies = Map [file1, file1DepCval; file2, file2DepCval; file3, file3DepCval]
 
     let projs = 
         [
@@ -701,11 +712,11 @@ let ``[AMap] batchRecalcDirty``() =
     let mutable lastBatch = Unchecked.defaultof<_>
     let res =
         projs
-        |> AMap.batchRecalcDirty(fun d ->
+        |> AMap.mapWithAdditionalDependenies(fun d ->
             lastBatch <- d
             HashMap.ofList [
                 for k,v in d do
-                    k, (AVal.constant <| Guid.NewGuid()) |> mapWithAdditionalDependenies(fun a -> a, [m.[k]])
+                    k,  (Guid.NewGuid(), [dependencies.[k]])
             ]
         )
     let firstResult = res |> AMap.force
@@ -739,14 +750,30 @@ let ``[AMap] batchRecalcDirty``() =
     lastBatch |> should haveCount 1
     
     thirdResult.[file1] |> should not' (equal fourthResult.[file1])
+    thirdResult.[file2] |> should equal fourthResult.[file2]
+    thirdResult.[file3] |> should equal fourthResult.[file3]
 
     transact(fun () -> 
         file1DepCval.Value <- file1DepCval.Value + 1
-        file1Cval.Value <- file1Cval.Value)
+        file1Cval.Value <- file1Cval.Value + 1)
 
     let fifthResult = res |> AMap.force
     lastBatch |> should haveCount 1
     
     fourthResult.[file1] |> should not' (equal fifthResult.[file1])
+    fourthResult.[file2] |> should equal fifthResult.[file2]
+    fourthResult.[file3] |> should equal fifthResult.[file3]
+
+    
+    transact(fun () -> 
+        file2DepCval.Value <- file2DepCval.Value + 1
+        file3Cval.Value <- file3Cval.Value + 1)
+
+    let sixthResult = res |> AMap.force
+    lastBatch |> should haveCount 2
+    
+    fifthResult.[file1] |> should equal sixthResult.[file1]
+    fifthResult.[file2] |> should not' (equal sixthResult.[file2])
+    fifthResult.[file3] |> should not' (equal sixthResult.[file3])
 
     ()

@@ -821,7 +821,7 @@ module AdaptiveHashMapImplementation =
             let mutable changes = HashMap.empty
             let setOps =
                 (setOps, dirty)
-                ||> HashMap.fold(fun s k v -> 
+                ||> HashMap.fold(fun s k _ -> 
                     match HashMap.tryFind k old with
                     | Some v ->
                         HashMap.add k v s
@@ -1416,7 +1416,7 @@ module AMap =
             create (fun () -> MapAReader(map, mapping))
 
     /// Adaptively applies the given mapping to all changes and reapplies mapping on dirty outputs
-    let batchRecalcDirty (mapping: HashMap<'K,'T1> -> HashMap<'K,aval<'T2>>) (map: amap<'K, 'T1>) =
+    let batchRecalcDirty (mapping: HashMap<'K, 'T1> -> HashMap<'K, aval<'T2>>) (map: amap<'K, 'T1>) =
         if map.IsConstant then
             let map = force map |> mapping
             if map |> HashMap.forall (fun _ v -> v.IsConstant) then
