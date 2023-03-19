@@ -643,44 +643,13 @@ let ``[AMap] mapA``() =
     res |> AMap.force |> should equal (HashMap.ofList ["A", 2; "B", 4; "C", 6])
 
 
-module AVal =
-
-    /// <summary>
-    /// Calls a mapping function which creates additional dependencies to be tracked.
-    /// </summary>
-    let mapWithAdditionalDependenies (mapping: 'a -> 'b * #seq<#IAdaptiveValue>) (value: aval<'a>) : aval<'b> =
-        let mutable lastDeps = HashSet.empty
-
-        { new AVal.AbstractVal<'b>() with
-            member x.Compute(token: AdaptiveToken) =
-                let input = value.GetValue token
-
-                // re-evaluate the mapping based on the (possibly new input)
-                let result, deps = mapping input
-
-                // compute the change in the additional dependencies and adjust the graph accordingly
-                let newDeps = HashSet.ofSeq deps
-
-                for op in HashSet.computeDelta lastDeps newDeps do
-                    match op with
-                    | Add(_, d) ->
-                    // the new dependency needs to be evaluated with our token, s.t. we depend on it in the future
-                        d.GetValueUntyped token |> ignore
-                    | Rem(_, d) ->
-                        // we no longer need to depend on the old dependency so we can remove ourselves from its outputs
-                        lock d.Outputs (fun () -> d.Outputs.Remove x) |> ignore
-
-                lastDeps <- newDeps
-
-                result }
-        :> aval<_>
 
 module AMap =
-    let mapWithAdditionalDependenies (mapping: HashMap<'K, 'T1> -> HashMap<'K, 'T2 * #seq<#IAdaptiveValue>>) (map: amap<'K, 'T1>) =
+    let mapWithAdditionalDependencies (mapping: HashMap<'K, 'T1> -> HashMap<'K, 'T2 * #seq<#IAdaptiveValue>>) (map: amap<'K, 'T1>) =
         let mapping =
             mapping
             >> HashMap.map(fun _ v ->
-            AVal.constant v |> AVal.mapWithAdditionalDependenies (id)
+            AVal.constant v |> AVal.mapWithAdditionalDependencies (id)
             )
         AMap.batchRecalcDirty mapping map
 
@@ -712,7 +681,7 @@ let ``[AMap] batchRecalcDirty``() =
     let mutable lastBatch = Unchecked.defaultof<_>
     let res =
         projs
-        |> AMap.mapWithAdditionalDependenies(fun d ->
+        |> AMap.mapWithAdditionalDependencies(fun d ->
             lastBatch <- d
             HashMap.ofList [
                 for k,v in d do
