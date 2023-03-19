@@ -408,7 +408,7 @@ module AVal =
     /// Additionally fsproj files have dependencies, such as project.assets.json, that can't be determined until loaded with msbuild 
     /// but should be reloaded if those dependent files change. 
     /// </remarks>
-    let mapWithAdditionalDependencies (mapping: 'a -> 'b * seq<#IAdaptiveValue>) (value: aval<'a>) : aval<'b> =
+    let mapWithAdditionalDependencies (mapping: 'a -> 'b * #seq<#IAdaptiveValue>) (value: aval<'a>) : aval<'b> =
         let mutable lastDeps = HashSet.empty
 
         { new AbstractVal<'b>() with

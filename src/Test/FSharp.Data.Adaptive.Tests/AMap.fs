@@ -651,11 +651,11 @@ module AMap =
             >> HashMap.map(fun _ v ->
             AVal.constant v |> AVal.mapWithAdditionalDependencies (id)
             )
-        AMap.batchRecalcDirty mapping map
+        AMap.batchMap mapping map
 
 
 [<Test>]
-let ``[AMap] batchRecalcDirty``() =
+let ``[AMap] batchMap``() =
 
     let file1 = "File1.fs"
     let file1Cval = cval 1

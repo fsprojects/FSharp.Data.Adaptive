@@ -756,9 +756,9 @@ module AdaptiveHashMapImplementation =
 
             HashMapDelta.ofHashMap changes
 
-    /// Reader for batchRecalc operations.
+    /// Reader for batchMap operations.
     [<Sealed>]
-    type BatchRecalculateDirty<'k, 'a, 'b>(input : amap<'k, 'a>, mapping : HashMap<'k,'a> -> HashMap<'k, aval<'b>>) =
+    type BatchMap<'k, 'a, 'b>(input : amap<'k, 'a>, mapping : HashMap<'k,'a> -> HashMap<'k, aval<'b>>) =
         inherit AbstractReader<HashMapDelta<'k, 'b>>(HashMapDelta.empty)
 
         let reader = input.GetReader()
@@ -1415,17 +1415,17 @@ module AMap =
         else
             create (fun () -> MapAReader(map, mapping))
 
-    /// Adaptively applies the given mapping to all changes and reapplies mapping on dirty outputs
-    let batchRecalcDirty (mapping: HashMap<'K, 'T1> -> HashMap<'K, aval<'T2>>) (map: amap<'K, 'T1>) =
+    /// Adaptively applies the given mapping to batches of all changes and reapplies mapping on dirty outputs
+    let batchMap (mapping: HashMap<'K, 'T1> -> HashMap<'K, aval<'T2>>) (map: amap<'K, 'T1>) =
         if map.IsConstant then
             let map = force map |> mapping
             if map |> HashMap.forall (fun _ v -> v.IsConstant) then
                 constant (fun () -> map |> HashMap.map (fun _ v -> AVal.force v))
             else
                 // TODO better impl possible
-                create (fun () -> BatchRecalculateDirty(ofHashMap map, id))
+                create (fun () -> BatchMap(ofHashMap map, id))
         else
-            create (fun () -> BatchRecalculateDirty(map, mapping))
+            create (fun () -> BatchMap(map, mapping))
 
 
     /// Adaptively chooses all elements returned by mapping.  

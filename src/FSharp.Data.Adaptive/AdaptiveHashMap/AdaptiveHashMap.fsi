@@ -105,8 +105,8 @@ module AMap =
     /// Adaptively applies the given mapping function to all elements and returns a new amap containing the results.
     val mapA : mapping: ('K -> 'V -> aval<'T>) -> map: amap<'K, 'V> -> amap<'K, 'T>
 
-    /// Adaptively applies the given mapping to all changes.
-    val batchRecalcDirty : mapping: (HashMap<'K,'T1> -> HashMap<'K,aval<'T2>>) -> map: amap<'K, 'T1> -> amap<'K, 'T2>
+    /// Adaptively applies the given mapping to batches of all changes and reapplies mapping on dirty outputs
+    val batchMap : mapping: (HashMap<'K,'T1> -> HashMap<'K,aval<'T2>>) -> map: amap<'K, 'T1> -> amap<'K, 'T2>
 
     /// Adaptively chooses all elements returned by mapping.  
     val chooseA : mapping: ('K -> 'V -> aval<option<'T>>) -> map: amap<'K, 'V> -> amap<'K, 'T>

@@ -116,7 +116,7 @@ module AVal =
     /// Additionally fsproj files have dependencies, such as project.assets.json, that can't be determined until loaded with msbuild 
     /// but should be reloaded if those dependent files change. 
     /// </remarks>
-    val mapWithAdditionalDependencies : mapping :( 'T1 -> 'T2 * seq<#IAdaptiveValue>) -> value: aval<'T1> -> aval<'T2> 
+    val mapWithAdditionalDependencies : mapping :( 'T1 -> 'T2 * #seq<#IAdaptiveValue>) -> value: aval<'T1> -> aval<'T2> 
 
     /// Returns a new adaptive value that adaptively applies the mapping function to the given 
     /// input and adaptively depends on the resulting adaptive value.
