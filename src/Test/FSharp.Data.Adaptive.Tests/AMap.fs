@@ -644,18 +644,100 @@ let ``[AMap] mapA``() =
 
 
 
-module AMap =
-    let mapWithAdditionalDependencies (mapping: HashMap<'K, 'T1> -> HashMap<'K, 'T2 * #seq<#IAdaptiveValue>>) (map: amap<'K, 'T1>) =
-        let mapping =
-            mapping
-            >> HashMap.map(fun _ v ->
-            AVal.constant v |> AVal.mapWithAdditionalDependencies (id)
-            )
-        AMap.batchMap mapping map
-
 
 [<Test>]
 let ``[AMap] batchMap``() =
+
+    let file1 = "File1.fs"
+    let file1Cval = cval 1
+    let file1DepCval = cval DateTime.UtcNow
+    let file2 = "File2.fs"
+    let file2Cval = cval 2
+    let file2DepCval = cval DateTime.UtcNow
+    let file3 = "File3.fs"
+    let file3Cval = cval 3
+    let file3DepCval = cval DateTime.UtcNow
+    
+    let file4 = "File4.fs"
+    let file4Cval = cval 3
+    let file4DepCval = cval DateTime.UtcNow
+
+    let dependencies = Map [file1, file1DepCval; file2, file2DepCval; file3, file3DepCval; file4, file4DepCval]
+
+    let filesCmap = 
+        cmap
+            [
+                file1, file1Cval
+                file2, file2Cval
+                file3, file3Cval
+                // file4 added later
+            ] 
+    let files =
+        filesCmap
+        |> AMap.mapA(fun _ v -> v)
+
+    let mutable lastBatch = Unchecked.defaultof<_>
+    let res =
+        files
+        |> AMap.batchMap(fun d ->
+            lastBatch <- d
+            HashMap.ofList [
+                for k,v in d do
+                    k,  (dependencies.[k] :> aval<_>)
+            ]
+        )
+
+    let firstResult = res |> AMap.force
+    lastBatch |> should haveCount 3
+
+    transact(fun () -> file1Cval.Value <- file1Cval.Value + 1)
+
+    let secondResult = res |> AMap.force
+    lastBatch |> should haveCount 1
+    
+    firstResult.[file1] |> should equal secondResult.[file1]
+    firstResult.[file2] |> should equal secondResult.[file2]
+    firstResult.[file3] |> should equal secondResult.[file3]
+
+    transact(fun () -> file1DepCval.Value <- DateTime.UtcNow)
+
+    let thirdResult = res |> AMap.force
+    lastBatch |> should haveCount 1
+    
+    secondResult.[file1] |> should not' (equal thirdResult.[file1])
+    secondResult.[file2] |> should equal thirdResult.[file2]
+    secondResult.[file3] |> should equal thirdResult.[file3]
+
+    transact(fun () -> 
+        file1DepCval.Value <- DateTime.UtcNow
+        file2Cval.Value <- file2Cval.Value + 1
+    )
+
+    let fourthResult = res |> AMap.force
+    lastBatch |> should haveCount 2
+    
+    thirdResult.[file1] |> should not' (equal fourthResult.[file1])
+    thirdResult.[file2] |> should equal fourthResult.[file2]
+    thirdResult.[file3] |> should equal fourthResult.[file3]
+
+    transact(fun () -> 
+        file1Cval.Value <- file1Cval.Value + 1
+        file2DepCval.Value <- DateTime.UtcNow
+        filesCmap.Add(file4, file4Cval) |> ignore
+    )
+
+    let fifthResult = res |> AMap.force
+    lastBatch |> should haveCount 3
+
+    fourthResult.[file1] |> should equal fifthResult.[file1]
+    fourthResult.[file2] |> should not' (equal fifthResult.[file2])
+    fourthResult.[file3] |> should equal fifthResult.[file3]
+    fifthResult.[file4] |> should equal file4DepCval.Value
+
+
+
+[<Test>]
+let ``[AMap] batchMapWithAdditionalDependencies``() =
 
     let file1 = "File1.fs"
     let file1Cval = cval 1
@@ -669,7 +751,7 @@ let ``[AMap] batchMap``() =
 
     let dependencies = Map [file1, file1DepCval; file2, file2DepCval; file3, file3DepCval]
 
-    let projs = 
+    let files = 
         [
             file1, file1Cval
             file2, file2Cval
@@ -680,8 +762,8 @@ let ``[AMap] batchMap``() =
 
     let mutable lastBatch = Unchecked.defaultof<_>
     let res =
-        projs
-        |> AMap.mapWithAdditionalDependencies(fun d ->
+        files
+        |> AMap.batchMapWithAdditionalDependencies(fun d ->
             lastBatch <- d
             HashMap.ofList [
                 for k,v in d do

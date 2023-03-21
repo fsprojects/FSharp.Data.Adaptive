@@ -1415,7 +1415,7 @@ module AMap =
         else
             create (fun () -> MapAReader(map, mapping))
 
-    /// Adaptively applies the given mapping to batches of all changes and reapplies mapping on dirty outputs
+    /// Adaptively applies the given mapping to batches of all changes and e-executes the mapping on dirty outputs
     let batchMap (mapping: HashMap<'K, 'T1> -> HashMap<'K, aval<'T2>>) (map: amap<'K, 'T1>) =
         if map.IsConstant then
             let map = force map |> mapping
@@ -1426,6 +1426,17 @@ module AMap =
                 create (fun () -> BatchMap(ofHashMap map, id))
         else
             create (fun () -> BatchMap(map, mapping))
+
+    /// <summary>
+    /// Adaptively applies the given mapping to batches of all changes, re-executes the mapping on dirty outputs, including the additional dependencies to be tracked. 
+    /// </summary>
+    let batchMapWithAdditionalDependencies (mapping: HashMap<'K, 'T1> -> HashMap<'K, 'T2 * #seq<#IAdaptiveValue>>) (map: amap<'K, 'T1>) =
+        let mapping =
+            mapping
+            >> HashMap.map(fun _ v ->
+            AVal.constant v |> AVal.mapWithAdditionalDependencies (id)
+            )
+        batchMap mapping map
 
 
     /// Adaptively chooses all elements returned by mapping.  
