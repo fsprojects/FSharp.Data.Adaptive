@@ -794,6 +794,29 @@ module internal HashImplementation =
                         restDelta
 
             struct(result, state)
+                  
+        let rec mapDelta
+            (cmp : IEqualityComparer<'K>)
+            (apply : OptimizedClosures.FSharpFunc<'K, voption<'V>, 'D, voption<'DOut>>)
+            (mapping : OptimizedClosures.FSharpFunc<'K, 'D, voption<'DOut>>)
+            (delta : MapLinked<'K, 'D>) 
+            (state : MapLinked<'K, 'V>) =
+
+            if isNull state then
+                chooseV mapping delta
+            elif isNull delta then
+                null
+            else
+                let struct(wasExisting, st) = tryRemove cmp delta.Key state
+                let op = apply.Invoke(delta.Key, wasExisting, delta.Value)
+                let restDelta = mapDelta cmp apply mapping delta.MapNext st
+
+                match op with
+                | ValueSome op -> 
+                    MapLinked(delta.Key, op, restDelta)
+                | ValueNone -> 
+                    restDelta
+
 
     module SetNode =
 
@@ -2950,6 +2973,117 @@ module internal HashImplementation =
 
             struct(result, state)
 
+
+        let rec mapDelta
+            (cmp : IEqualityComparer<'K>)
+            (apply : OptimizedClosures.FSharpFunc<'K, voption<'V>, 'D, voption<'DOut>>)
+            (mapping : OptimizedClosures.FSharpFunc<'K, 'D, voption<'DOut>>)
+            (state : SetNode<'K>)
+            (delta : SetNode<'K>) =
+
+            if isNull delta then
+                null
+
+            elif isNull state then
+                chooseV mapping delta
+
+            elif delta.IsLeaf then  
+                let d = delta :?> MapLeaf<'K, 'D>
+                if state.IsLeaf then
+                    let s = state :?> MapLeaf<'K, 'V>
+                    if s.Hash = d.Hash then
+                        // TODO: avoid allocating Linkeds here
+                        let lstate = MapLinked(s.Key, s.Value, s.MapNext)
+                        let ldelta = MapLinked(d.Key, d.Value, d.MapNext)
+                        let ldelta = MapLinked.mapDelta cmp apply mapping ldelta lstate
+
+                        if isNull ldelta then null
+                        else MapLeaf(d.Hash, ldelta.Key, ldelta.Value, ldelta.MapNext) :> SetNode<_>
+                    else
+                        chooseV mapping delta
+
+                else
+                    // delta in state
+                    let s = state :?> Inner<'K>
+                    match matchPrefixAndGetBit d.Hash s.Prefix s.Mask with
+                    | 0u ->
+                        let l = s.Left
+                        mapDelta cmp apply mapping l delta
+                    | 1u ->
+                        let r = s.Right
+                        mapDelta cmp apply mapping r delta
+                    | _ ->
+                        chooseV mapping delta
+
+            elif state.IsLeaf then
+                // state in delta
+                let s = state :?> MapLeaf<'K, 'V>
+                let d = delta :?> Inner<'K>
+
+                match matchPrefixAndGetBit s.Hash d.Prefix d.Mask with
+                | 0u ->
+                    let ls = state
+                    let rs = null
+                    let ld = mapDelta cmp apply mapping ls d.Left
+                    let rd = mapDelta cmp apply mapping rs d.Right
+                    newInner d.Prefix d.Mask ld rd
+                | 1u -> 
+                    let ls = null
+                    let rs = state
+                    let ld = mapDelta cmp apply mapping ls d.Left
+                    let rd = mapDelta cmp apply mapping rs d.Right
+                    newInner d.Prefix d.Mask ld rd
+                | _ ->
+                    chooseV mapping delta
+                        
+
+            else
+                let d = delta :?> Inner<'K>
+                let s = state :?> Inner<'K>
+
+                let cc = compareMasks d.Mask s.Mask
+                if cc > 0 then
+                    // delta in state
+                    match matchPrefixAndGetBit d.Prefix s.Prefix s.Mask with
+                    | 0u ->
+                        let l = s.Left
+                        mapDelta cmp apply mapping l delta
+                    | 1u ->
+                        let r = s.Right
+                        mapDelta cmp apply mapping r delta
+                    | _ ->
+                        chooseV mapping delta
+
+                elif cc < 0 then
+                    // state in delta
+                    match matchPrefixAndGetBit s.Prefix d.Prefix d.Mask with
+                    | 0u ->
+                        let ls = state
+                        let rs = null
+                        let ld = mapDelta cmp apply mapping ls d.Left
+                        let rd = mapDelta cmp apply mapping rs d.Right
+                        newInner d.Prefix d.Mask ld rd
+                    | 1u -> 
+                        let ls = null
+                        let rs = state
+                        let ld = mapDelta cmp apply mapping ls d.Left
+                        let rd = mapDelta cmp apply mapping rs d.Right
+                        newInner d.Prefix d.Mask ld rd
+                    | _ ->
+                        chooseV mapping delta
+
+                elif s.Prefix = d.Prefix then
+                    let ls = s.Left
+                    let rs = s.Right
+                    let ld = mapDelta cmp apply mapping ls d.Left
+                    let rd = mapDelta cmp apply mapping rs d.Right
+                    newInner d.Prefix d.Mask ld rd
+
+                else
+                    chooseV mapping delta
+
+
+
 open HashImplementation
 
 [<Struct>]
@@ -3689,6 +3823,15 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let state = HashMap<'K, 'V>(a.Comparer, state)
         let delta = HashMap<'K, 'U>(a.Comparer, delta)
         state, delta
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member MapDelta(a : HashMap<'K, 'V>, b : HashMap<'K, 'T>, mapping : 'K -> voption<'V> -> 'T -> voption<'U>) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
+        let mapNoState = OptimizedClosures.FSharpFunc<_,_,_>.Adapt (fun k op -> mapping.Invoke(k, ValueNone, op))
+        let state = a.Root
+        let delta = MapNode.mapDelta a.Comparer mapping mapNoState state b.Root
+        let delta = HashMap<'K, 'U>(a.Comparer, delta)
+        delta
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Choose2V(other : HashMap<'K, 'T>, mapping : 'K -> voption<'V> -> voption<'T> -> voption<'U>) =

@@ -10,6 +10,7 @@
     <None Include="paket.template" />
     <Compile Include="AsyncAdaptive\CancelableTask.fs" />
     <Compile Include="AsyncAdaptive\AsyncAdaptive.fs" />
+    <Compile Include="Batch\BatchMap.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FSharp.Data.Adaptive\FSharp.Data.Adaptive.fsproj" />
