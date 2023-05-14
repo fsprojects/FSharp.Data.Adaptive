@@ -208,6 +208,31 @@ let ``[HashMap] map2/choose2`` (lm : Map<int, int>) (rm : Map<int, int>) =
         equal (HashMap.choose2 (fun k l r -> add k l r |> Some) l r) (map2 add lm rm)
         equal (HashMap.choose2 add2 l r) (choose2 add2 lm rm)
     ]
+  
+  
+[<Property(EndSize = 1000)>]
+let ``[HashMap] intersect`` (lm : Map<int, int>) (rm : Map<int, int>) =
+    let l = lm |> Map.toList |> HashMap.ofList
+    let r = rm |> Map.toList |> HashMap.ofList
+
+    let fintersect (l : Map<'K, 'A>) (r : Map<'K, 'B>) =
+        let mutable res = Map.empty
+
+        for (lk, lv) in Map.toSeq l do
+            match Map.tryFind lk r with
+            | Some rv -> res <- Map.add lk (lv, rv) res
+            | None -> ()
+
+        res
+
+    let equal (l : HashMap<'K, 'V>) (r : Map<'K, 'V>) =
+        let l = l |> HashMap.toList |> List.sortBy fst
+        let r = r |> Map.toList
+        l = r
+
+    List.all [
+        equal (HashMap.intersect l r) (fintersect lm rm)
+    ]
     
 [<Property(EndSize = 10000)>]
 let ``[HashMap] enumerator correct`` (m : Map<int, int>) =

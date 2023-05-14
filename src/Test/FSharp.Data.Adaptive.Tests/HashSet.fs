@@ -743,6 +743,20 @@ let ``[HashSet] intersect`` (fset1 : Set<int>) (fset2 : Set<int>) =
     HashSet.intersect set1 empty |> should setequal empty
 
 [<Property(EndSize = 10000)>]
+let ``[HashSet] intersectionCount`` (fset1 : Set<int>) (fset2 : Set<int>) =
+    let empty : HashSet<int> = HashSet.empty
+    let set1 = HashSet.ofSeq fset1
+    let set2 = HashSet.ofSeq fset2
+    let cnt = Set.intersect fset1 fset2 |> Set.count
+    
+    HashSet.intersectionCount set1 set2 |> should equal cnt
+    HashSet.intersectionCount set1 empty |> should equal 0
+    HashSet.intersectionCount empty set2 |> should equal 0
+    HashSet.intersectionCount set2 set2 |> should equal set2.Count
+
+
+
+[<Property(EndSize = 10000)>]
 let ``[HashSet] xor`` (fset1 : Set<int>) (fset2 : Set<int>) =
     let empty : HashSet<int> = HashSet.empty
     let set1 = HashSet.ofSeq fset1

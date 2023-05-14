@@ -1,3 +1,6 @@
+### 1.2.14
+* added some combinators for HashSet/HashMap
+
 ### 1.2.13
 * made FSharp.Data.Adaptive trimmable via `<IsTrimmable>true</IsTrimmable>`
 

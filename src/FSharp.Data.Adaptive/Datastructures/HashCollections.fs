@@ -320,6 +320,19 @@ module internal HashImplementation =
                 else
                     intersect cmp a.SetNext b
 
+        let rec intersectionCount 
+            (cmp : IEqualityComparer<'K>)
+            (acc : int)
+            (a : SetLinked<'K>) (b : SetLinked<'K>) =
+            if isNull a || isNull b then
+                acc
+            else
+                let struct(ok, b) = tryRemove cmp a.Key b
+                if ok then intersectionCount cmp (acc + 1) a.SetNext b
+                else intersectionCount cmp acc a.SetNext b
+                
+        
+        
         let rec computeDelta 
             (cmp : IEqualityComparer<'K>)
             (onlyLeft : 'K -> voption<'OP>) 
@@ -595,7 +608,23 @@ module internal HashImplementation =
                     MapLinked(node.Key, v, chooseV mapping node.MapNext)
                 | ValueNone ->
                     chooseV mapping node.MapNext
-                    
+
+
+        let rec intersect 
+            (cmp : IEqualityComparer<'K>)
+            (resolve : OptimizedClosures.FSharpFunc<'K, 'A, 'B, 'C>)
+            (a : MapLinked<'K, 'A>) (b : MapLinked<'K, 'B>) =
+            if isNull a || isNull b then null
+            else
+                let struct(ok, b) = tryRemove cmp a.Key b
+                match ok with
+                | ValueSome vb ->
+                    let value = resolve.Invoke(a.Key, a.Value, vb)
+                    MapLinked(a.Key, value, intersect cmp resolve a.MapNext b)
+                | ValueNone ->
+                    intersect cmp resolve a.MapNext b
+
+                            
         let rec choose2VLeft
             (mapping : OptimizedClosures.FSharpFunc<'K, voption<'A>, voption<'B>, voption<'C>>)
             (a : MapLinked<'K, 'A>)  =
@@ -1378,6 +1407,58 @@ module internal HashImplementation =
                 else
                     null
 
+        let rec intersectionCount
+            (cmp : IEqualityComparer<'K>)
+            (acc : int)
+            (na : SetNode<'K>) (nb : SetNode<'K>) =
+            
+            if isNull na || isNull nb then acc
+            elif System.Object.ReferenceEquals(na, nb) then acc + size na
+            elif na.IsLeaf then
+                let a = na :?> SetLeaf<'K>
+                if nb.IsLeaf then
+                    let b = nb :?> SetLeaf<'K>
+                    if a.Hash = b.Hash then
+                        SetLinked.intersectionCount cmp acc (SetLinked(a.Key, a.SetNext)) (SetLinked(b.Key, b.SetNext))
+                    else
+                        acc
+                else
+                    let b = nb :?> Inner<'K>
+                    match matchPrefixAndGetBit a.Hash b.Prefix b.Mask with
+                    | 0u -> intersectionCount cmp acc na b.Left
+                    | 1u -> intersectionCount cmp acc na b.Right
+                    | _ -> acc
+            elif nb.IsLeaf then
+                let a = na :?> Inner<'K>
+                let b = nb :?> SetLeaf<'K>
+                match matchPrefixAndGetBit b.Hash a.Prefix a.Mask with
+                | 0u -> intersectionCount cmp acc a.Left nb
+                | 1u -> intersectionCount cmp acc a.Right nb
+                | _ -> acc
+            else
+                let a = na :?> Inner<'K>
+                let b = nb :?> Inner<'K>
+
+                let cc = compareMasks a.Mask b.Mask
+                if cc > 0 then 
+                    // a in b
+                    match matchPrefixAndGetBit a.Prefix b.Prefix b.Mask with
+                    | 0u -> intersectionCount cmp acc na b.Left
+                    | 1u -> intersectionCount cmp acc na b.Right
+                    | _ -> acc
+                elif cc < 0 then
+                    // b in a
+                    match matchPrefixAndGetBit b.Prefix a.Prefix a.Mask with
+                    | 0u -> intersectionCount cmp acc a.Left nb
+                    | 1u -> intersectionCount cmp acc a.Right nb
+                    | _ -> acc
+                elif a.Prefix = b.Prefix then
+                    let acc = intersectionCount cmp acc a.Left b.Left
+                    intersectionCount cmp acc a.Right b.Right
+                else
+                    acc
+        
+        
         let rec xor
             (cmp : IEqualityComparer<'K>)
             (na : SetNode<'K>) (nb : SetNode<'K>) =
@@ -2453,6 +2534,59 @@ module internal HashImplementation =
                     let vb = choose2VRight mapping nb
                     join a.Prefix va b.Prefix vb
              
+        let rec intersect
+            (cmp : IEqualityComparer<'K>)
+            (resolve : OptimizedClosures.FSharpFunc<'K, 'A, 'B, 'C>)
+            (na : SetNode<'K>) (nb : SetNode<'K>) =
+            
+            if isNull na || isNull nb then null
+            elif na.IsLeaf then
+                let a = na :?> MapLeaf<'K, 'A>
+                if nb.IsLeaf then
+                    let b = nb :?> MapLeaf<'K, 'B>
+                    if a.Hash = b.Hash then
+                        // TODO: avoid allocating SetLinkeds
+                        let la = MapLinked(a.Key, a.Value, a.MapNext)
+                        let lb = MapLinked(b.Key, b.Value, b.MapNext)
+                        let res = MapLinked.intersect cmp resolve la lb
+                        if isNull res then null
+                        else MapLeaf(a.Hash, res.Key, res.Value, res.MapNext) :> SetNode<_>
+                    else
+                        null
+                else
+                    let b = nb :?> Inner<'K>
+                    match matchPrefixAndGetBit a.Hash b.Prefix b.Mask with
+                    | 0u -> intersect cmp resolve na b.Left
+                    | 1u -> intersect cmp resolve na b.Right
+                    | _ -> null
+            elif nb.IsLeaf then
+                let a = na :?> Inner<'K>
+                let b = nb :?> SetLeaf<'K>
+                match matchPrefixAndGetBit b.Hash a.Prefix a.Mask with
+                | 0u -> intersect cmp resolve a.Left nb
+                | 1u -> intersect cmp resolve a.Right nb
+                | _ -> null
+            else    
+                let a = na :?> Inner<'K>
+                let b = nb :?> Inner<'K>
+
+                let cc = compareMasks a.Mask b.Mask
+                if cc > 0 then 
+                    // a in b
+                    match matchPrefixAndGetBit a.Prefix b.Prefix b.Mask with
+                    | 0u -> intersect cmp resolve na b.Left
+                    | 1u -> intersect cmp resolve na b.Right
+                    | _ -> null
+                elif cc < 0 then
+                    // b in a
+                    match matchPrefixAndGetBit b.Prefix a.Prefix a.Mask with
+                    | 0u -> intersect cmp resolve a.Left nb
+                    | 1u -> intersect cmp resolve a.Right nb
+                    | _ -> null
+                elif a.Prefix = b.Prefix then
+                    newInner a.Prefix a.Mask (intersect cmp resolve a.Left b.Left) (intersect cmp resolve a.Right b.Right)
+                else
+                    null
 
              
         let rec unionWithSelfV<'K, 'V>
@@ -3399,6 +3533,10 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         HashSet<'K>(comparer, SetNode.intersect comparer root other.Root)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.IntersectionCount(other : HashSet<'K>) =
+        SetNode.intersectionCount comparer 0 root other.Root
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.ComputeDeltaAsHashMap(other : HashSet<'K>) =
         let delta = SetNode.computeDelta comparer remOp addOp root other.Root
         HashMap<'K, int>(comparer, delta)
@@ -3694,6 +3832,21 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
     member x.Choose2V(other : HashMap<'K, 'T>, mapping : 'K -> voption<'V> -> voption<'T> -> voption<'U>) =
         let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt mapping
         HashMap<'K, 'U>(comparer, MapNode.choose2V comparer mapping root other.Root)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.IntersectWith(other : HashMap<'K, 'T>, resolve : 'K -> 'V -> 'T -> 'U) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt resolve
+        HashMap<'K, 'U>(comparer, MapNode.intersect comparer mapping root other.Root)
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.Intersect(other : HashMap<'K, 'T>) =
+        let mapping = OptimizedClosures.FSharpFunc<'K,'V,'T,_>.Adapt (fun _ a b -> (a, b))
+        HashMap<'K, 'V * 'T>(comparer, MapNode.intersect comparer mapping root other.Root)
+        
+        
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.IntersectionCount(other : HashMap<'K, 'T>) =
+        SetNode.intersectionCount comparer 0 root other.Root
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Choose2(other : HashMap<'K, 'T>, mapping : 'K -> option<'V> -> option<'T> -> option<'U>) =
@@ -4063,7 +4216,7 @@ module HashSet =
     let inline toArray (set : HashSet<'K>) = set.ToArray()
         
     /// Creates a Set holding all entries contained in the HashSet.
-    /// `O(N)`
+    /// `O(N * log N)`
     let inline toSet (set: HashSet<'T>) =
         set |> Set.ofSeq
 
@@ -4082,6 +4235,9 @@ module HashSet =
     /// Creates a new set containing all elements from set1 that are not int set2.
     /// `O(N + M)`  
     let inline difference (set1 : HashSet<'T>) (set2 : HashSet<'T>) = set1.ExceptWith set2
+    
+    /// Returns the number of elements that are in both sets.
+    let inline intersectionCount (set1 : HashSet<'T>) (set2 : HashSet<'T>) = set1.IntersectionCount set2
     
     /// Creates a new set containing all elements that are in at least one of the given sets.
     let unionMany (sets : #seq<HashSet<'T>>) =
@@ -4298,6 +4454,15 @@ module HashMap =
     
     /// Applies the given mapping function to all elements of the two maps. `O(N + M)`
     let inline choose2 (mapping : 'K -> option<'T1> -> option<'T2> -> option<'R>) (l : HashMap<'K, 'T1>) (r : HashMap<'K, 'T2>) = l.Choose2(r, mapping)
+    
+    /// returns only the keys that are in both maps together with their tuples values. `O(N + M)`
+    let inline intersect (l : HashMap<'K, 'T1>) (r : HashMap<'K, 'T2>) = l.Intersect(r)
+    
+    /// Applies the given mapping function to overlapping elements of the two maps. `O(N + M)`
+    let inline intersectWith (mapping : 'K -> 'T1 -> 'T2 -> 'R) (l : HashMap<'K, 'T1>) (r : HashMap<'K, 'T2>) = l.IntersectWith(r, mapping)
+    
+    /// Returns the number of elements that are in both sets.
+    let inline intersectionCount (map1 : HashMap<'K, 'T1>) (map2 : HashMap<'K, 'T2>) = map1.IntersectionCount map2
     
     /// Applies the given mapping function to all elements of the two maps. `O(N + M)`
     let inline map2V (mapping : 'K -> voption<'T1> -> voption<'T2> -> 'R) (l : HashMap<'K, 'T1>) (r : HashMap<'K, 'T2>) = l.Map2V(r, mapping)
