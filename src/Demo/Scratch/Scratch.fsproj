@@ -17,9 +17,11 @@
     <Compile Include="LookupAll.fs" />
     <Compile Include="ABag.fs" />
     <Compile Include="AListSub.fs" />
+    <Compile Include="Arr.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\FSharp.Data.Adaptive.Experimental\FSharp.Data.Adaptive.Experimental.fsproj" />
     <ProjectReference Include="..\..\FSharp.Data.Adaptive\FSharp.Data.Adaptive.fsproj" />
   </ItemGroup>
   <Import Project="..\..\..\.paket\Paket.Restore.targets" />

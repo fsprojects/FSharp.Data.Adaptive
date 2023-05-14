@@ -286,21 +286,19 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
         
     /// Applies the mapping function to all elements of the list and returns a new list containing all Some entries.
     member x.Choose(mapping : Index -> 'T -> option<'T2>) =
-        let res = MapExt.choose mapping content
+        let res, imin, imax = content.ChooseWithMinMax(mapping)
         if res.IsEmpty then 
             IndexList.Empty
         else
-            // TODO: min/max could be maintained during mapping
-            IndexList(res.GetMinKey(), res.GetMaxKey(), res)
+            IndexList(imin, imax, res)
 
     /// Filters the list using the given predicate.
     member x.Filter(predicate : Index -> 'T -> bool) =
-        let res = MapExt.filter predicate content
+        let res, imin, imax = content.FilterWithMinMax predicate
         if res.IsEmpty then 
             IndexList.Empty
         else
-            // TODO: min/max could be maintained during mapping
-            IndexList(res.GetMinKey(), res.GetMaxKey(), res)
+            IndexList(imin, imax, res)
 
     /// Tries to find the smallest index for the given element.
     member x.TryFind(element : 'T) : option<Index> =

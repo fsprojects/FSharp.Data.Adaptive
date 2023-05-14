@@ -816,7 +816,6 @@ module internal MapExtImplementation =
                 | None ->
                     unsafeJoin node.Left node.Right
 
-
     let rec copyToV (array : struct('Key * 'Value)[]) (index : int) (node : Node<'Key, 'Value>) =
         if isNull node then
             index
@@ -1061,6 +1060,31 @@ module internal MapExtImplementation =
             | Some s -> binary l node.Key s r
             | None -> join l r
 
+    let rec chooseWithMinMax (mapping : OptimizedClosures.FSharpFunc<'Key, 'Value, option<'T>>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            null, Unchecked.defaultof<'Key>, Unchecked.defaultof<'Key>
+        elif node.Height = 1uy then
+            match mapping.Invoke(node.Key, node.Value) with
+            | Some v -> Node(node.Key, v), node.Key, node.Key
+            | None -> null, Unchecked.defaultof<'Key>, Unchecked.defaultof<'Key>
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let l, lmin, lmax = chooseWithMinMax mapping node.Left
+            let s = mapping.Invoke(node.Key, node.Value)
+            let r, rmin, rmax = chooseWithMinMax mapping node.Right
+            match s with
+            | Some s ->
+                let min = if not (isNull l) then lmin else node.Key
+                let max = if not (isNull r) then rmax else node.Key
+                binary l node.Key s r, min, max
+            | None ->
+                if isNull l then
+                    r, rmin, rmax
+                elif isNull r then
+                    l, lmin, lmax
+                else
+                    join l r, lmin, rmax
+
     let rec filter (predicate : OptimizedClosures.FSharpFunc<'Key, 'Value, bool>) (node : Node<'Key, 'Value>) =
         if isNull node then
             null
@@ -1076,6 +1100,31 @@ module internal MapExtImplementation =
             let r = filter predicate node.Right
             if s then binary l node.Key node.Value r
             else join l r
+         
+    let rec filterWithMinMax (predicate : OptimizedClosures.FSharpFunc<'Key, 'Value, bool>) (node : Node<'Key, 'Value>) =
+        if isNull node then
+            null, Unchecked.defaultof<'Key>, Unchecked.defaultof<'Key>
+        elif node.Height = 1uy then
+            if predicate.Invoke(node.Key, node.Value) then
+                node, node.Key, node.Key
+            else
+                null, Unchecked.defaultof<'Key>, Unchecked.defaultof<'Key>
+        else
+            let node = node :?> Inner<'Key, 'Value>
+            let l, lmin, lmax = filterWithMinMax predicate node.Left
+            let s = predicate.Invoke(node.Key, node.Value)
+            let r, rmin, rmax = filterWithMinMax predicate node.Right
+            if s then
+                let min = if not (isNull l) then lmin else node.Key
+                let max = if not (isNull r) then rmax else node.Key
+                binary l node.Key node.Value r, min, max
+            else 
+                if isNull l then
+                    r, rmin, rmax
+                elif isNull r then
+                    l, lmin, lmax
+                else
+                    join l r, lmin, rmax
             
     let rec tryPickBack (mapping : OptimizedClosures.FSharpFunc<'Key, 'Value, option<'T>>) (node : Node<'Key, 'Value>) =
         if isNull node then
@@ -3318,9 +3367,19 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
         let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
         MapExt(comparer, MapExtImplementation.choose mapping root)
 
+    member x.ChooseWithMinMax(mapping : 'Key -> 'Value -> option<'T>) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
+        let r, kmin, kmax = MapExtImplementation.chooseWithMinMax mapping root
+        MapExt(comparer, r), kmin, kmax
+
     member x.Filter(predicate : 'Key -> 'Value -> bool) =
         let predicate = OptimizedClosures.FSharpFunc<_,_,_>.Adapt predicate
         MapExt(comparer, MapExtImplementation.filter predicate root)
+        
+    member x.FilterWithMinMax(predicate : 'Key -> 'Value -> bool) =
+        let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt predicate
+        let r, kmin, kmax = MapExtImplementation.filterWithMinMax mapping root
+        MapExt(comparer, r), kmin, kmax
         
     member x.TryPick(mapping : 'Key -> 'Value -> option<'T>) =
         let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
