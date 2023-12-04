@@ -1,3 +1,6 @@
+### 1.2.15
+* updated MultiCallbackObject with proper locking https://github.com/fsprojects/FSharp.Data.Adaptive/pull/113
+
 ### 1.2.14
 * added some combinators for HashSet/HashMap
 
