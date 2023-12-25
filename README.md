@@ -75,18 +75,15 @@ Communicate via:
 
 [![Discord](https://discordapp.com/api/guilds/611129394764840960/widget.png) Discord](https://discord.gg/UyecnhM)
 
-[Gitter](https://gitter.im/aardvark-platform/Lobby)
-
 [Github issues](https://github.com/fsprojects/FSharp.Data.Adaptive/issues)
 
-
-about things like bugs, feature requests, use cases or your own implementations of adaptive data structures. We're looking forward to talking to you!
+about things like bugs, feature requests, use cases or your own implementations of adaptive data structures. We're looking forward to having a conversation!
 
 # Documentation
 
-[Find the repository documentation here](https://fsprojects.github.io/FSharp.Data.Adaptive/reference/index.html). It contains a full list of adaptive data structures and operators as well as descriptions of their implementations.
+[Find the FSharp.Data.Adaptive technical documentation here](https://fsprojects.github.io/FSharp.Data.Adaptive/reference/index.html). It contains a full list of adaptive data structures and operators as well as descriptions of their implementations. 
 
-# Projects
+# Projects and Resources
 
 * in-depth tutorial: https://fsprojects.github.io/FSharp.Data.Adaptive
 * [TodoMVC](https://aardvarkians.com/demo/TodoMVC/) implemented in [Fable.Elmish.Adaptive](https://github.com/krauthaufen/Fable.Elmish.Adaptive)
@@ -94,6 +91,9 @@ about things like bugs, feature requests, use cases or your own implementations 
 * [Lightning talk slides and 10 line demo script by @dsyme](https://github.com/dsyme/fsharp-presentations/tree/master/2019-09-27-openfsharp)
 * [Nuget Package](https://www.nuget.org/packages/FSharp.Data.Adaptive/)
 * [Functional Data that Adapts to Change by @dsyme at NDC Oslo 2020](https://www.youtube.com/watch?v=us4dp7Ksly0)
+* [Presentation at fsharpConf 2023](https://www.youtube.com/watch?v=UThMnaRNvHQ)
+* [An example calling the library from C#](https://github.com/aardvark-platform/aardvark.base/blob/master/src/Demo/IncrementalDemo.CSharp/Program.cs)
+  
 # History
 
 The project started back in 2013 at the [VRVis Research Center](https://www.vrvis.at) and was mainly developed for the [Aardvark.Platform](https://aardvarkians.com). Over time it became more and more apparent that adaptive data has the potential to benefit many different applications, so we decided to move it to this standalone library (outside the Aardvark world). If you're interested in the development history, the last stable aardvark-implementation (and most of its history) can be found in [Aardvark.Base.Incremental](https://github.com/aardvark-platform/aardvark.base/tree/v4/src/Aardvark.Base.Incremental). 
