@@ -75,16 +75,15 @@ Communicate via:
 
 [![Discord](https://discordapp.com/api/guilds/611129394764840960/widget.png) Discord](https://discord.gg/UyecnhM)
 
-[Gitter](https://gitter.im/aardvark-platform/Lobby)
-
 [Github issues](https://github.com/fsprojects/FSharp.Data.Adaptive/issues)
-
 
 about things like bugs, feature requests, use cases or your own implementations of adaptive data structures. We're looking forward to talking to you!
 
 # Documentation
 
-[Find the repository documentation here](https://fsprojects.github.io/FSharp.Data.Adaptive/reference/index.html). It contains a full list of adaptive data structures and operators as well as descriptions of their implementations.
+[Find the FSharp.Data.Adaptive technical documentation here](https://fsprojects.github.io/FSharp.Data.Adaptive/reference/index.html). It contains a full list of adaptive data structures and operators as well as descriptions of their implementations. 
+
+An example calling the library [from C# can be found here](https://github.com/aardvark-platform/aardvark.base/blob/master/src/Demo/IncrementalDemo.CSharp/Program.cs). 
 
 # Projects
 
