@@ -15,16 +15,16 @@
       ]
     },
     "aardpack": {
-        "version": "1.0.11",
-        "commands": [
-          "aardpack"
-        ]
+      "version": "1.0.11",
+      "commands": [
+        "aardpack"
+      ]
     },
     "fsdocs-tool": {
-        "version": "15.0.0",
-        "commands": [
-            "fsdocs"
-        ]
+      "version": "20.0.0-beta-002",
+      "commands": [
+        "fsdocs"
+      ]
     }
   }
 }
