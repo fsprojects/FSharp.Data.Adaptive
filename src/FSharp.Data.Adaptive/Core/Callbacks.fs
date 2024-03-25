@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data.Adaptive
+namespace FSharp.Data.Adaptive
 
 open System
 open System.Threading
@@ -139,7 +139,7 @@ type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, 
         // this loop allows us to move through the callbacks even if more are being added
         // we check each callback to see if it is still alive and then if we are to retain
         // it after executing
-        for (KeyValue(k,cb)) in cbs do // using a for loop here to indicate we doing some mutable code here
+        for (KeyValue(k,cb)) in cbs.Value do // using a for loop here to indicate we doing some mutable code here
                          // since this is usually considered a code smell in F# this indicates
                          // that you should pay attention here. Please see the note where cbs
                          // is declared regarding the behavior an enumerator on the 
@@ -150,7 +150,8 @@ type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, 
                 | _ -> false
             if not filter then
                 // remove this entry
-                let success,_ = cbs.TryRemove(k) 
+                let success,rest = cbs.Value.TryRemove(k) 
+                cbs.Value <- rest
                 assert success // we assert that we successfully removed the entry, this shouldn't normally fail
         #else
         cbs.Value <- 
