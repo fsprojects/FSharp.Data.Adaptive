@@ -8,6 +8,8 @@ open FsUnit
 open FsCheck.NUnit
 open FSharp.Data
 open Generators
+open System.IO
+open System
 
 [<Property(MaxTest = 500, Arbitrary = [| typeof<Generators.AdaptiveGenerators> |]); Timeout(60000)>]
 let ``[AMap] reference impl``() ({ mreal = real; mref = ref; mexpression = str; mchanges = changes } : VMap<int, int>) =
@@ -639,3 +641,190 @@ let ``[AMap] mapA``() =
     )
 
     res |> AMap.force |> should equal (HashMap.ofList ["A", 2; "B", 4; "C", 6])
+
+
+
+
+[<Test>]
+let ``[AMap] batchMap``() =
+
+    let file1 = "File1.fs"
+    let file1Cval = cval 1
+    let file1DepCval = cval DateTime.UtcNow
+    let file2 = "File2.fs"
+    let file2Cval = cval 2
+    let file2DepCval = cval DateTime.UtcNow
+    let file3 = "File3.fs"
+    let file3Cval = cval 3
+    let file3DepCval = cval DateTime.UtcNow
+    
+    let file4 = "File4.fs"
+    let file4Cval = cval 3
+    let file4DepCval = cval DateTime.UtcNow
+
+    let dependencies = Map [file1, file1DepCval; file2, file2DepCval; file3, file3DepCval; file4, file4DepCval]
+
+    let filesCmap = 
+        cmap
+            [
+                file1, file1Cval
+                file2, file2Cval
+                file3, file3Cval
+                // file4 added later
+            ] 
+    let files =
+        filesCmap
+        |> AMap.mapA(fun _ v -> v)
+
+    let mutable lastBatch = Unchecked.defaultof<_>
+    let res =
+        files
+        |> AMap.batchMap(fun d ->
+            lastBatch <- d
+            HashMap.ofList [
+                for k,v in d do
+                    k,  (dependencies.[k] :> aval<_>)
+            ]
+        )
+
+    let firstResult = res |> AMap.force
+    lastBatch |> should haveCount 3
+
+    transact(fun () -> file1Cval.Value <- file1Cval.Value + 1)
+
+    let secondResult = res |> AMap.force
+    lastBatch |> should haveCount 1
+    
+    firstResult.[file1] |> should equal secondResult.[file1]
+    firstResult.[file2] |> should equal secondResult.[file2]
+    firstResult.[file3] |> should equal secondResult.[file3]
+
+    transact(fun () -> file1DepCval.Value <- DateTime.UtcNow)
+
+    let thirdResult = res |> AMap.force
+    lastBatch |> should haveCount 1
+    
+    secondResult.[file1] |> should not' (equal thirdResult.[file1])
+    secondResult.[file2] |> should equal thirdResult.[file2]
+    secondResult.[file3] |> should equal thirdResult.[file3]
+
+    transact(fun () -> 
+        file1DepCval.Value <- DateTime.UtcNow
+        file2Cval.Value <- file2Cval.Value + 1
+    )
+
+    let fourthResult = res |> AMap.force
+    lastBatch |> should haveCount 2
+    
+    thirdResult.[file1] |> should not' (equal fourthResult.[file1])
+    thirdResult.[file2] |> should equal fourthResult.[file2]
+    thirdResult.[file3] |> should equal fourthResult.[file3]
+
+    transact(fun () -> 
+        file1Cval.Value <- file1Cval.Value + 1
+        file2DepCval.Value <- DateTime.UtcNow
+        filesCmap.Add(file4, file4Cval) |> ignore
+    )
+
+    let fifthResult = res |> AMap.force
+    lastBatch |> should haveCount 3
+
+    fourthResult.[file1] |> should equal fifthResult.[file1]
+    fourthResult.[file2] |> should not' (equal fifthResult.[file2])
+    fourthResult.[file3] |> should equal fifthResult.[file3]
+    fifthResult.[file4] |> should equal file4DepCval.Value
+
+
+
+[<Test>]
+let ``[AMap] batchMapWithAdditionalDependencies``() =
+
+    let file1 = "File1.fs"
+    let file1Cval = cval 1
+    let file1DepCval = cval 1
+    let file2 = "File2.fs"
+    let file2Cval = cval 2
+    let file2DepCval = cval 1
+    let file3 = "File3.fs"
+    let file3Cval = cval 3
+    let file3DepCval = cval 1
+
+    let dependencies = Map [file1, file1DepCval; file2, file2DepCval; file3, file3DepCval]
+
+    let files = 
+        [
+            file1, file1Cval
+            file2, file2Cval
+            file3, file3Cval
+        ] 
+        |> AMap.ofList
+        |> AMap.mapA(fun _ v -> v)
+
+    let mutable lastBatch = Unchecked.defaultof<_>
+    let res =
+        files
+        |> AMap.batchMapWithAdditionalDependencies(fun d ->
+            lastBatch <- d
+            HashMap.ofList [
+                for k,v in d do
+                    k,  (Guid.NewGuid(), [dependencies.[k]])
+            ]
+        )
+    let firstResult = res |> AMap.force
+    lastBatch |> should haveCount 3
+
+    transact(fun () -> file1Cval.Value <- file1Cval.Value + 1)
+
+    let secondResult = res |> AMap.force
+    lastBatch |> should haveCount 1
+    
+    firstResult.[file1] |> should not' (equal secondResult.[file1])
+    firstResult.[file2] |> should equal secondResult.[file2]
+    firstResult.[file3] |> should equal secondResult.[file3]
+
+
+    transact(fun () -> 
+        file1Cval.Value <- file1Cval.Value + 1
+        file3Cval.Value <- file3Cval.Value + 1)
+    
+    let thirdResult = res |> AMap.force
+    lastBatch |> should haveCount 2
+
+    secondResult.[file1] |> should not' (equal thirdResult.[file1])
+    secondResult.[file2] |> should equal thirdResult.[file2]
+    secondResult.[file3] |> should not' (equal thirdResult.[file3])
+
+
+    transact(fun () -> file1DepCval.Value <- file1DepCval.Value + 1)
+
+    let fourthResult = res |> AMap.force
+    lastBatch |> should haveCount 1
+    
+    thirdResult.[file1] |> should not' (equal fourthResult.[file1])
+    thirdResult.[file2] |> should equal fourthResult.[file2]
+    thirdResult.[file3] |> should equal fourthResult.[file3]
+
+    transact(fun () -> 
+        file1DepCval.Value <- file1DepCval.Value + 1
+        file1Cval.Value <- file1Cval.Value + 1)
+
+    let fifthResult = res |> AMap.force
+    lastBatch |> should haveCount 1
+    
+    fourthResult.[file1] |> should not' (equal fifthResult.[file1])
+    fourthResult.[file2] |> should equal fifthResult.[file2]
+    fourthResult.[file3] |> should equal fifthResult.[file3]
+
+    
+    transact(fun () -> 
+        file2DepCval.Value <- file2DepCval.Value + 1
+        file3Cval.Value <- file3Cval.Value + 1)
+
+    let sixthResult = res |> AMap.force
+    lastBatch |> should haveCount 2
+    
+    fifthResult.[file1] |> should equal sixthResult.[file1]
+    fifthResult.[file2] |> should not' (equal sixthResult.[file2])
+    fifthResult.[file3] |> should not' (equal sixthResult.[file3])
+
+    ()

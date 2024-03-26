@@ -108,6 +108,16 @@ module AVal =
     /// adaptive inputs.
     val map3 : mapping : ('T1 -> 'T2 -> 'T3 -> 'T4) -> value1 : aval<'T1> -> value2 : aval<'T2> -> value3 : aval<'T3> -> aval<'T4>
 
+    /// <summary>
+    /// Calls a mapping function which creates additional dependencies to be tracked.
+    /// </summary>
+    /// <remarks>
+    /// Usecase for this is when a file, such as a .fsproj file changes, it needs to be reloaded in msbuild.
+    /// Additionally fsproj files have dependencies, such as project.assets.json, that can't be determined until loaded with msbuild 
+    /// but should be reloaded if those dependent files change. 
+    /// </remarks>
+    val mapWithAdditionalDependencies : mapping :( 'T1 -> 'T2 * #seq<#IAdaptiveValue>) -> value: aval<'T1> -> aval<'T2> 
+
     /// Returns a new adaptive value that adaptively applies the mapping function to the given 
     /// input and adaptively depends on the resulting adaptive value.
     /// The resulting adaptive value  will hold the latest value of the aval<_> returned by mapping.
