@@ -135,11 +135,11 @@ type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, 
         )
     
     member x.Mark() =
-        #if !FABLE_COMPILE
+        #if !FABLE_COMPILER
         // this loop allows us to move through the callbacks even if more are being added
         // we check each callback to see if it is still alive and then if we are to retain
         // it after executing
-        for (KeyValue(k,cb)) in cbs.Value do // using a for loop here to indicate we doing some mutable code here
+        for (KeyValue(k,cb)) in cbs do // using a for loop here to indicate we doing some mutable code here
                          // since this is usually considered a code smell in F# this indicates
                          // that you should pay attention here. Please see the note where cbs
                          // is declared regarding the behavior an enumerator on the 
@@ -150,8 +150,7 @@ type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, 
                 | _ -> false
             if not filter then
                 // remove this entry
-                let success,rest = cbs.Value.TryRemove(k) 
-                cbs.Value <- rest
+                let success,_ = cbs.TryRemove(k) 
                 assert success // we assert that we successfully removed the entry, this shouldn't normally fail
         #else
         cbs.Value <- 
