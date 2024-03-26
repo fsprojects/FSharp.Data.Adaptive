@@ -1,59 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="en" data-root="https://fsprojects.github.io/FSharp.Data.Adaptive/">
 <head>
-    <meta charset="utf-8">
-    <title>HashMapEnumerator<'K, 'V, 'T> (FSharp.Data.Adaptive)</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="author" content="FSharp.Data.Adaptive">
-
-    <link rel="stylesheet" id="theme_link" href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/4.6.0/materia/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
-
-    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
-
-    <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico">
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/navbar-fixed-left.css" />
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-default.css" />
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-custom.css" />
-    <script type="text/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-tips.js"></script>
-    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
-    <!--[if lt IE 9]>
-      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.css" />
-    <!-- END SEARCH BOX: this adds support for the search box -->
+    <meta charset="UTF-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="FSharp.Data.Adaptive" name="author">
+    <!-- Opengraph properties (https://ogp.me/) -->
+    <meta property="og:site_name" content="FSharp.Data.Adaptive">
+    <meta property="og:title" content="HashMapEnumerator<'K, 'V, 'T> (FSharp.Data.Adaptive)" />
+    <meta property="og:url" content="https://fsprojects.github.io/FSharp.Data.Adaptive/{{fsdocs-source-basename}}.html">
+    <meta property="og:type" content="website" />
+    <!-- Twitter cards (https://developer.twitter.com/en/docs/twitter-for-websites/cards/overview/summary-card-with-large-image) -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="https://fsprojects.github.io/FSharp.Data.Adaptive/">
+    <meta name="twitter:title" content="HashMapEnumerator<'K, 'V, 'T> (FSharp.Data.Adaptive)">
+    
+    <title>HashMapEnumerator<'K, 'V, 'T> (FSharp.Data.Adaptive) | FSharp.Data.Adaptive</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/img/favicon.ico" rel="icon" sizes="32x32" type="image/png"/>
+    <script type="application/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme-set-dark.js"></script>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-default.css" rel="stylesheet" type="text/css"/>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme.css" rel="stylesheet" type="text/css"/>
+    
     
 </head>
-
-<body>
-    <nav class="navbar navbar-expand-md navbar-light bg-secondary fixed-left" id="fsdocs-nav">
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse navbar-nav-scroll" id="navbarsExampleDefault">
-            <a href="./index.html"><img id="fsdocs-logo" src="https://fsprojects.github.io/FSharp.Data.Adaptive/img/logo.png" /></a>
-            <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-            <div id="header">
-                <div class="searchbox" id="fsdocs-searchbox">
-                    <label for="search-by">
-                        <i class="fas fa-search"></i>
-                    </label>
-                    <input data-search-input="" id="search-by" type="search" placeholder="Search..." />
-                    <span data-search-clear="">
-                        <i class="fas fa-times"></i>
-                    </span>
-                </div>
-            </div>
-
-            <!-- END SEARCH BOX: this adds support for the search box -->
-            <ul class="navbar-nav">
+<body class="api-docs">
+<header>
+    <div class="start">
+        <div id="menu-toggle">
+            <iconify-icon class="icon closed" height="22" icon="eva:menu-fill" width="22"></iconify-icon>
+            <iconify-icon class="icon open" height="22" icon="mi:close" width="22"></iconify-icon>
+            <input type="checkbox" name="mobile-menu" />
+            <ul class="menu">
                 <li class="nav-header">Links</li>
-                <li class="nav-item" id="fsdocs-license-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a></li>
-                <li class="nav-item" id="fsdocs-release-notes-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
-                <li class="nav-item" id="fsdocs-repository-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source Repository</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a>
+                </li>
+                <li class="nav-item"><a class="nav-link"
+                                        href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release
+                    Notes</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source
+                    Repository</a></li>
                 
                 <li class="nav-header">
   API Reference
@@ -65,14 +54,43 @@
 </li>
             </ul>
         </div>
-    </nav>
-    <div class="container">
-        <div class="masthead">
-            <h3 class="muted"><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/">FSharp.Data.Adaptive</a></h3>
-        </div>
-        <hr />
-        <div class="container" id="fsdocs-content">
-            <div>
+        <a href="./index.html">
+            <img alt="Header menu logo" src="https://fsprojects.github.io/FSharp.Data.Adaptive/img/logo.png">
+            <strong>FSharp.Data.Adaptive</strong>
+        </a>
+    </div>
+    <div class="end">
+        <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/" target="_blank">
+            <iconify-icon icon="uil:github" width="26" height="26"></iconify-icon>
+        </a>
+        <iconify-icon id="search-btn" icon="carbon:search" class="search" width="24" height="24"></iconify-icon>
+        <fsdocs-theme-toggle></fsdocs-theme-toggle>
+    </div>
+</header>
+<aside id="fsdocs-main-menu">
+    <ul class="menu">
+        <li class="nav-header">Links</li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a>
+        </li>
+        <li class="nav-item"><a class="nav-link"
+                                href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release
+            Notes</a></li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source
+            Repository</a></li>
+        
+        <li class="nav-header">
+  API Reference
+</li>             
+<li class="nav-item">
+  <a class="nav-link" href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/index.html">
+    All Namespaces
+  </a>
+</li>
+    </ul>
+</aside>
+<main>
+    <div id="content">
+        <div>
   <h2>
     HashMapEnumerator<'K, 'V, 'T> Type
   </h2>
@@ -88,19 +106,19 @@
     </dt>
     <dt>
       Base Type: 
-      <code><a href="https://docs.microsoft.com/dotnet/api/system.valuetype">ValueType</a></code>
+      <code><a href="https://learn.microsoft.com/dotnet/api/system.valuetype">ValueType</a></code>
     </dt>
     <dt>
       All Interfaces: 
-      <code><span><a href="https://docs.microsoft.com/dotnet/api/system.iequatable-1">IEquatable</a>&lt;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-hashmapenumerator-3.html">HashMapEnumerator</a>&lt;<span>'K,&#32;'V,&#32;'T</span>&gt;</span>&gt;</span></code>
+      <code><span><a href="https://learn.microsoft.com/dotnet/api/system.iequatable-1">IEquatable</a>&lt;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-hashmapenumerator-3.html">HashMapEnumerator</a>&lt;<span>'K,&#32;'V,&#32;'T</span>&gt;</span>&gt;</span></code>
       , 
-      <code><a href="https://docs.microsoft.com/dotnet/api/system.collections.istructuralequatable">IStructuralEquatable</a></code>
+      <code><a href="https://learn.microsoft.com/dotnet/api/system.collections.istructuralequatable">IStructuralEquatable</a></code>
       , 
-      <code><span><a href="https://docs.microsoft.com/dotnet/api/system.collections.generic.ienumerator-1">IEnumerator</a>&lt;'T&gt;</span></code>
+      <code><span><a href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ienumerator-1">IEnumerator</a>&lt;'T&gt;</span></code>
       , 
-      <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+      <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
       , 
-      <code><a href="https://docs.microsoft.com/dotnet/api/system.collections.ienumerator">IEnumerator</a></code>
+      <code><a href="https://learn.microsoft.com/dotnet/api/system.collections.ienumerator">IEnumerator</a></code>
     </dt>
     <dt>
       Kind: Struct
@@ -136,7 +154,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '852', 852)" onmouseover="showTip(event, '852', 852)">
+              <code onmouseout="hideTip(event, '868', 868)" onmouseover="showTip(event, '868', 868)">
                 <p>
                   <a id="Head">
                     <a href="#Head">
@@ -145,7 +163,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="852">
+              <div class="fsdocs-tip" id="868">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code>Head</code>
@@ -164,15 +182,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L3026-3026" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-returns">
               <dt>
                 <span class="fsdocs-return-name">
@@ -187,7 +196,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '853', 853)" onmouseover="showTip(event, '853', 853)">
+              <code onmouseout="hideTip(event, '869', 869)" onmouseover="showTip(event, '869', 869)">
                 <p>
                   <a id="Mapping">
                     <a href="#Mapping">
@@ -196,7 +205,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="853">
+              <div class="fsdocs-tip" id="869">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code>Mapping</code>
@@ -215,15 +224,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L3029-3029" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-returns">
               <dt>
                 <span class="fsdocs-return-name">
@@ -238,7 +238,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '854', 854)" onmouseover="showTip(event, '854', 854)">
+              <code onmouseout="hideTip(event, '870', 870)" onmouseover="showTip(event, '870', 870)">
                 <p>
                   <a id="Next">
                     <a href="#Next">
@@ -247,7 +247,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="854">
+              <div class="fsdocs-tip" id="870">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code>Next</code>
@@ -266,15 +266,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L3028-3028" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-returns">
               <dt>
                 <span class="fsdocs-return-name">
@@ -289,7 +280,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '855', 855)" onmouseover="showTip(event, '855', 855)">
+              <code onmouseout="hideTip(event, '871', 871)" onmouseover="showTip(event, '871', 871)">
                 <p>
                   <a id="Root">
                     <a href="#Root">
@@ -298,7 +289,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="855">
+              <div class="fsdocs-tip" id="871">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code>Root</code>
@@ -317,15 +308,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L3025-3025" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-returns">
               <dt>
                 <span class="fsdocs-return-name">
@@ -340,7 +322,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '856', 856)" onmouseover="showTip(event, '856', 856)">
+              <code onmouseout="hideTip(event, '872', 872)" onmouseover="showTip(event, '872', 872)">
                 <p>
                   <a id="Tail">
                     <a href="#Tail">
@@ -349,7 +331,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="856">
+              <div class="fsdocs-tip" id="872">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code>Tail</code>
@@ -368,15 +350,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L3027-3027" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-returns">
               <dt>
                 <span class="fsdocs-return-name">
@@ -391,7 +364,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '857', 857)" onmouseover="showTip(event, '857', 857)">
+              <code onmouseout="hideTip(event, '873', 873)" onmouseover="showTip(event, '873', 873)">
                 <p>
                   <a id="Value">
                     <a href="#Value">
@@ -400,7 +373,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="857">
+              <div class="fsdocs-tip" id="873">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code>Value</code>
@@ -419,15 +392,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L3030-3030" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-returns">
               <dt>
                 <span class="fsdocs-return-name">
@@ -463,7 +427,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '858', 858)" onmouseover="showTip(event, '858', 858)">
+              <code onmouseout="hideTip(event, '874', 874)" onmouseover="showTip(event, '874', 874)">
                 <p>
                   <a id="Current">
                     <a href="#Current">
@@ -472,7 +436,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="858">
+              <div class="fsdocs-tip" id="874">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.Current</span></code>
@@ -488,23 +452,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:P:FSharp.Data.Adaptive.HashMapEnumerator`3.Current``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:FSharp.Data.Adaptive.HashMapEnumerator`3.Current\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L3059-3059" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-returns">
               <dt>
                 <span class="fsdocs-return-name">
@@ -519,7 +466,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '859', 859)" onmouseover="showTip(event, '859', 859)">
+              <code onmouseout="hideTip(event, '875', 875)" onmouseover="showTip(event, '875', 875)">
                 <p>
                   <a id="Dispose">
                     <a href="#Dispose">
@@ -528,7 +475,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="859">
+              <div class="fsdocs-tip" id="875">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.Dispose</span></code>
@@ -541,16 +488,13 @@
           <td class="fsdocs-member-xmldoc">
             <div class="fsdocs-summary">
               <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.HashMapEnumerator`3.Dispose``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+                <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
               </div>
               <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.HashMapEnumerator`3.Dispose\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+                <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
               </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L3067-3067" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L3201-3201" class="fsdocs-source-link" title="Source on GitHub">
+                <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
               </a>
               <p class="fsdocs-summary">
                 
@@ -561,7 +505,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '860', 860)" onmouseover="showTip(event, '860', 860)">
+              <code onmouseout="hideTip(event, '876', 876)" onmouseover="showTip(event, '876', 876)">
                 <p>
                   <a id="MoveNext">
                     <a href="#MoveNext">
@@ -570,7 +514,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="860">
+              <div class="fsdocs-tip" id="876">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.MoveNext</span></code>
@@ -586,23 +530,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.HashMapEnumerator`3.MoveNext``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.HashMapEnumerator`3.MoveNext\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L3033-3033" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-returns">
               <dt>
                 <span class="fsdocs-return-name">
@@ -617,7 +544,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '861', 861)" onmouseover="showTip(event, '861', 861)">
+              <code onmouseout="hideTip(event, '877', 877)" onmouseover="showTip(event, '877', 877)">
                 <p>
                   <a id="Reset">
                     <a href="#Reset">
@@ -626,7 +553,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="861">
+              <div class="fsdocs-tip" id="877">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.Reset</span></code>
@@ -639,16 +566,13 @@
           <td class="fsdocs-member-xmldoc">
             <div class="fsdocs-summary">
               <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.HashMapEnumerator`3.Reset``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+                <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
               </div>
               <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.HashMapEnumerator`3.Reset\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+                <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
               </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L3061-3061" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Datastructures/HashCollections.fs#L3195-3195" class="fsdocs-source-link" title="Source on GitHub">
+                <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
               </a>
               <p class="fsdocs-summary">
                 
@@ -661,17 +585,24 @@
   </div>
   <div></div>
 </div>
-            
-        </div>
-
-        <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.css" />
-        <script type="text/javascript">var fsdocs_search_baseurl = 'https://fsprojects.github.io/FSharp.Data.Adaptive/';</script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.8/lunr.min.js"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.min.js"></script>
-        <script type="text/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-search.js"></script>
-        <!-- END SEARCH BOX: this adds support for the search box -->
+        
     </div>
-</body>
+</main>
+<aside id="fsdocs-page-menu">
+    <p id="on-this-page">On this page</p>
+    <div class="empty"></div>
+</aside>
+<dialog>
+    <input type="search" placeholder="Search docs" />
+    <div class="results">
+        <ul></ul>
+        <p class="empty">Type something to start searching.</p>
+    </div>
+</dialog>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-tips.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme-toggle.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-search.js"></script>
 
+</body>
 </html>

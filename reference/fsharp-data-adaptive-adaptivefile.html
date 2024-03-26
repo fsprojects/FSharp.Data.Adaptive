@@ -1,59 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="en" data-root="https://fsprojects.github.io/FSharp.Data.Adaptive/">
 <head>
-    <meta charset="utf-8">
-    <title>AdaptiveFile (FSharp.Data.Adaptive)</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="author" content="FSharp.Data.Adaptive">
-
-    <link rel="stylesheet" id="theme_link" href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/4.6.0/materia/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
-
-    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
-
-    <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico">
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/navbar-fixed-left.css" />
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-default.css" />
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-custom.css" />
-    <script type="text/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-tips.js"></script>
-    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
-    <!--[if lt IE 9]>
-      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.css" />
-    <!-- END SEARCH BOX: this adds support for the search box -->
+    <meta charset="UTF-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="FSharp.Data.Adaptive" name="author">
+    <!-- Opengraph properties (https://ogp.me/) -->
+    <meta property="og:site_name" content="FSharp.Data.Adaptive">
+    <meta property="og:title" content="AdaptiveFile (FSharp.Data.Adaptive)" />
+    <meta property="og:url" content="https://fsprojects.github.io/FSharp.Data.Adaptive/{{fsdocs-source-basename}}.html">
+    <meta property="og:type" content="website" />
+    <!-- Twitter cards (https://developer.twitter.com/en/docs/twitter-for-websites/cards/overview/summary-card-with-large-image) -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="https://fsprojects.github.io/FSharp.Data.Adaptive/">
+    <meta name="twitter:title" content="AdaptiveFile (FSharp.Data.Adaptive)">
+    
+    <title>AdaptiveFile (FSharp.Data.Adaptive) | FSharp.Data.Adaptive</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/img/favicon.ico" rel="icon" sizes="32x32" type="image/png"/>
+    <script type="application/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme-set-dark.js"></script>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-default.css" rel="stylesheet" type="text/css"/>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme.css" rel="stylesheet" type="text/css"/>
+    
     
 </head>
-
-<body>
-    <nav class="navbar navbar-expand-md navbar-light bg-secondary fixed-left" id="fsdocs-nav">
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse navbar-nav-scroll" id="navbarsExampleDefault">
-            <a href="./index.html"><img id="fsdocs-logo" src="https://fsprojects.github.io/FSharp.Data.Adaptive/img/logo.png" /></a>
-            <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-            <div id="header">
-                <div class="searchbox" id="fsdocs-searchbox">
-                    <label for="search-by">
-                        <i class="fas fa-search"></i>
-                    </label>
-                    <input data-search-input="" id="search-by" type="search" placeholder="Search..." />
-                    <span data-search-clear="">
-                        <i class="fas fa-times"></i>
-                    </span>
-                </div>
-            </div>
-
-            <!-- END SEARCH BOX: this adds support for the search box -->
-            <ul class="navbar-nav">
+<body class="api-docs">
+<header>
+    <div class="start">
+        <div id="menu-toggle">
+            <iconify-icon class="icon closed" height="22" icon="eva:menu-fill" width="22"></iconify-icon>
+            <iconify-icon class="icon open" height="22" icon="mi:close" width="22"></iconify-icon>
+            <input type="checkbox" name="mobile-menu" />
+            <ul class="menu">
                 <li class="nav-header">Links</li>
-                <li class="nav-item" id="fsdocs-license-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a></li>
-                <li class="nav-item" id="fsdocs-release-notes-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
-                <li class="nav-item" id="fsdocs-repository-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source Repository</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a>
+                </li>
+                <li class="nav-item"><a class="nav-link"
+                                        href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release
+                    Notes</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source
+                    Repository</a></li>
                 
                 <li class="nav-header">
   API Reference
@@ -65,14 +54,43 @@
 </li>
             </ul>
         </div>
-    </nav>
-    <div class="container">
-        <div class="masthead">
-            <h3 class="muted"><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/">FSharp.Data.Adaptive</a></h3>
-        </div>
-        <hr />
-        <div class="container" id="fsdocs-content">
-            <div>
+        <a href="./index.html">
+            <img alt="Header menu logo" src="https://fsprojects.github.io/FSharp.Data.Adaptive/img/logo.png">
+            <strong>FSharp.Data.Adaptive</strong>
+        </a>
+    </div>
+    <div class="end">
+        <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/" target="_blank">
+            <iconify-icon icon="uil:github" width="26" height="26"></iconify-icon>
+        </a>
+        <iconify-icon id="search-btn" icon="carbon:search" class="search" width="24" height="24"></iconify-icon>
+        <fsdocs-theme-toggle></fsdocs-theme-toggle>
+    </div>
+</header>
+<aside id="fsdocs-main-menu">
+    <ul class="menu">
+        <li class="nav-header">Links</li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a>
+        </li>
+        <li class="nav-item"><a class="nav-link"
+                                href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release
+            Notes</a></li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source
+            Repository</a></li>
+        
+        <li class="nav-header">
+  API Reference
+</li>             
+<li class="nav-item">
+  <a class="nav-link" href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/index.html">
+    All Namespaces
+  </a>
+</li>
+    </ul>
+</aside>
+<main>
+    <div id="content">
+        <div>
   <h2>
     AdaptiveFile Type
   </h2>
@@ -94,9 +112,7 @@
   <div class="fsdocs-xmldoc">
     <div>
       <p class="fsdocs-summary">
-        
- Adaptive functions for handling files.
-
+         Adaptive functions for handling files.
       </p>
     </div>
   </div>
@@ -127,7 +143,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '726', 726)" onmouseover="showTip(event, '726', 726)">
+              <code onmouseout="hideTip(event, '736', 736)" onmouseover="showTip(event, '736', 736)">
                 <p>
                   <a id="Exists">
                     <a href="#Exists">
@@ -136,7 +152,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="726">
+              <div class="fsdocs-tip" id="736">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>AdaptiveFile.Exists<span><span>(<span>path</span>)</span></span></span></code>
@@ -164,50 +180,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.Exists`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.Exists\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L411-411" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adaptively determines whether the specified file exists.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  path
-                </span>
-                :
-                <code>string</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;bool&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.Exists`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.Exists\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L411-411" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adaptively determines whether the specified file exists.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    path
+                  </span>
+                  :
+                  <code>string</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;bool&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '727', 727)" onmouseover="showTip(event, '727', 727)">
+              <code onmouseout="hideTip(event, '737', 737)" onmouseover="showTip(event, '737', 737)">
                 <p>
                   <a id="GetAttributes">
                     <a href="#GetAttributes">
@@ -216,7 +231,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="727">
+              <div class="fsdocs-tip" id="737">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>AdaptiveFile.GetAttributes<span><span>(<span>path</span>)</span></span></span></code>
@@ -236,7 +251,7 @@
                   <br/>
                   <span>
                     Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://docs.microsoft.com/dotnet/api/system.io.fileattributes">FileAttributes</a>&gt;</span></code>
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://learn.microsoft.com/dotnet/api/system.io.fileattributes">FileAttributes</a>&gt;</span></code>
                   </span>
                   <br/>
                 </div>
@@ -244,50 +259,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.GetAttributes`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.GetAttributes\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L417-417" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adaptively get the FileAttributes for the path.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  path
-                </span>
-                :
-                <code>string</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://docs.microsoft.com/dotnet/api/system.io.fileattributes">FileAttributes</a>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.GetAttributes`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.GetAttributes\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L417-417" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adaptively get the FileAttributes for the path.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    path
+                  </span>
+                  :
+                  <code>string</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://learn.microsoft.com/dotnet/api/system.io.fileattributes">FileAttributes</a>&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '728', 728)" onmouseover="showTip(event, '728', 728)">
+              <code onmouseout="hideTip(event, '738', 738)" onmouseover="showTip(event, '738', 738)">
                 <p>
                   <a id="GetCreationTime">
                     <a href="#GetCreationTime">
@@ -296,7 +310,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="728">
+              <div class="fsdocs-tip" id="738">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>AdaptiveFile.GetCreationTime<span><span>(<span>path</span>)</span></span></span></code>
@@ -316,7 +330,7 @@
                   <br/>
                   <span>
                     Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://docs.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://learn.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
                   </span>
                   <br/>
                 </div>
@@ -324,50 +338,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.GetCreationTime`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.GetCreationTime\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L424-424" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adaptively gets the creation time for the specified file.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  path
-                </span>
-                :
-                <code>string</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://docs.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.GetCreationTime`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.GetCreationTime\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L424-424" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adaptively gets the creation time for the specified file.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    path
+                  </span>
+                  :
+                  <code>string</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://learn.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '729', 729)" onmouseover="showTip(event, '729', 729)">
+              <code onmouseout="hideTip(event, '739', 739)" onmouseover="showTip(event, '739', 739)">
                 <p>
                   <a id="GetCreationTimeUtc">
                     <a href="#GetCreationTimeUtc">
@@ -376,7 +389,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="729">
+              <div class="fsdocs-tip" id="739">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>AdaptiveFile.GetCreationTimeUtc<span><span>(<span>path</span>)</span></span></span></code>
@@ -396,7 +409,7 @@
                   <br/>
                   <span>
                     Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://docs.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://learn.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
                   </span>
                   <br/>
                 </div>
@@ -404,50 +417,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.GetCreationTimeUtc`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.GetCreationTimeUtc\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L430-430" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adaptively gets the creation time (in UTC) for the specified file.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  path
-                </span>
-                :
-                <code>string</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://docs.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.GetCreationTimeUtc`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.GetCreationTimeUtc\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L430-430" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adaptively gets the creation time (in UTC) for the specified file.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    path
+                  </span>
+                  :
+                  <code>string</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://learn.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '730', 730)" onmouseover="showTip(event, '730', 730)">
+              <code onmouseout="hideTip(event, '740', 740)" onmouseover="showTip(event, '740', 740)">
                 <p>
                   <a id="GetLastAccessTime">
                     <a href="#GetLastAccessTime">
@@ -456,7 +468,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="730">
+              <div class="fsdocs-tip" id="740">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>AdaptiveFile.GetLastAccessTime<span><span>(<span>path</span>)</span></span></span></code>
@@ -476,7 +488,7 @@
                   <br/>
                   <span>
                     Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://docs.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://learn.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
                   </span>
                   <br/>
                 </div>
@@ -484,50 +496,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.GetLastAccessTime`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.GetLastAccessTime\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L436-436" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adaptively gets last access time for the specified file.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  path
-                </span>
-                :
-                <code>string</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://docs.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.GetLastAccessTime`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.GetLastAccessTime\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L436-436" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adaptively gets last access time for the specified file.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    path
+                  </span>
+                  :
+                  <code>string</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://learn.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '731', 731)" onmouseover="showTip(event, '731', 731)">
+              <code onmouseout="hideTip(event, '741', 741)" onmouseover="showTip(event, '741', 741)">
                 <p>
                   <a id="GetLastAccessTimeUtc">
                     <a href="#GetLastAccessTimeUtc">
@@ -536,7 +547,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="731">
+              <div class="fsdocs-tip" id="741">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>AdaptiveFile.GetLastAccessTimeUtc<span><span>(<span>path</span>)</span></span></span></code>
@@ -556,7 +567,7 @@
                   <br/>
                   <span>
                     Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://docs.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://learn.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
                   </span>
                   <br/>
                 </div>
@@ -564,50 +575,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.GetLastAccessTimeUtc`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.GetLastAccessTimeUtc\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L442-442" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adaptively gets last access time (in UTC) for the specified file.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  path
-                </span>
-                :
-                <code>string</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://docs.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.GetLastAccessTimeUtc`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.GetLastAccessTimeUtc\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L442-442" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adaptively gets last access time (in UTC) for the specified file.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    path
+                  </span>
+                  :
+                  <code>string</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://learn.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '732', 732)" onmouseover="showTip(event, '732', 732)">
+              <code onmouseout="hideTip(event, '742', 742)" onmouseover="showTip(event, '742', 742)">
                 <p>
                   <a id="GetLastWriteTime">
                     <a href="#GetLastWriteTime">
@@ -616,7 +626,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="732">
+              <div class="fsdocs-tip" id="742">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>AdaptiveFile.GetLastWriteTime<span><span>(<span>path</span>)</span></span></span></code>
@@ -636,7 +646,7 @@
                   <br/>
                   <span>
                     Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://docs.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://learn.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
                   </span>
                   <br/>
                 </div>
@@ -644,50 +654,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.GetLastWriteTime`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.GetLastWriteTime\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L448-448" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adaptively gets last write time for the specified file.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  path
-                </span>
-                :
-                <code>string</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://docs.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.GetLastWriteTime`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.GetLastWriteTime\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L448-448" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adaptively gets last write time for the specified file.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    path
+                  </span>
+                  :
+                  <code>string</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://learn.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '733', 733)" onmouseover="showTip(event, '733', 733)">
+              <code onmouseout="hideTip(event, '743', 743)" onmouseover="showTip(event, '743', 743)">
                 <p>
                   <a id="GetLastWriteTimeUtc">
                     <a href="#GetLastWriteTimeUtc">
@@ -696,7 +705,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="733">
+              <div class="fsdocs-tip" id="743">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>AdaptiveFile.GetLastWriteTimeUtc<span><span>(<span>path</span>)</span></span></span></code>
@@ -716,7 +725,7 @@
                   <br/>
                   <span>
                     Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://docs.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://learn.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
                   </span>
                   <br/>
                 </div>
@@ -724,50 +733,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.GetLastWriteTimeUtc`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.GetLastWriteTimeUtc\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L454-454" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adaptively gets last write time (in UTC) for the specified file.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  path
-                </span>
-                :
-                <code>string</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://docs.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.GetLastWriteTimeUtc`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.GetLastWriteTimeUtc\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L454-454" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adaptively gets last write time (in UTC) for the specified file.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    path
+                  </span>
+                  :
+                  <code>string</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<a href="https://learn.microsoft.com/dotnet/api/system.datetime">DateTime</a>&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '734', 734)" onmouseover="showTip(event, '734', 734)">
+              <code onmouseout="hideTip(event, '744', 744)" onmouseover="showTip(event, '744', 744)">
                 <p>
                   <a id="ReadAllBytes">
                     <a href="#ReadAllBytes">
@@ -776,7 +784,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="734">
+              <div class="fsdocs-tip" id="744">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>AdaptiveFile.ReadAllBytes<span><span>(<span>path</span>)</span></span></span></code>
@@ -804,50 +812,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.ReadAllBytes`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.ReadAllBytes\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L472-472" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adaptively reads the file's content as aval<byte[]>.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  path
-                </span>
-                :
-                <code>string</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>byte[]</span>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.ReadAllBytes`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.ReadAllBytes\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L472-472" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adaptively reads the file's content as aval<byte[]>.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    path
+                  </span>
+                  :
+                  <code>string</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>byte[]</span>&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '735', 735)" onmouseover="showTip(event, '735', 735)">
+              <code onmouseout="hideTip(event, '745', 745)" onmouseover="showTip(event, '745', 745)">
                 <p>
                   <a id="ReadAllLines">
                     <a href="#ReadAllLines">
@@ -856,7 +863,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="735">
+              <div class="fsdocs-tip" id="745">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>AdaptiveFile.ReadAllLines<span><span>(<span>path</span>)</span></span></span></code>
@@ -884,50 +891,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.ReadAllLines`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.ReadAllLines\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L480-480" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adaptively reads the file's lines as aval<string[]>.   
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  path
-                </span>
-                :
-                <code>string</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>string[]</span>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.ReadAllLines`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.ReadAllLines\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L480-480" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adaptively reads the file's lines as aval<string[]>.   
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    path
+                  </span>
+                  :
+                  <code>string</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>string[]</span>&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '736', 736)" onmouseover="showTip(event, '736', 736)">
+              <code onmouseout="hideTip(event, '746', 746)" onmouseover="showTip(event, '746', 746)">
                 <p>
                   <a id="ReadAllLinesAList">
                     <a href="#ReadAllLinesAList">
@@ -936,7 +942,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="736">
+              <div class="fsdocs-tip" id="746">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>AdaptiveFile.ReadAllLinesAList<span><span>(<span>path</span>)</span></span></span></code>
@@ -964,50 +970,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.ReadAllLinesAList`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.ReadAllLinesAList\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L484-484" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adaptively reads the file's lines as alist<string>.   
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  path
-                </span>
-                :
-                <code>string</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-alist-1.html">alist</a>&lt;string&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.ReadAllLinesAList`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.ReadAllLinesAList\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L484-484" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adaptively reads the file's lines as alist<string>.   
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    path
+                  </span>
+                  :
+                  <code>string</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-alist-1.html">alist</a>&lt;string&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '737', 737)" onmouseover="showTip(event, '737', 737)">
+              <code onmouseout="hideTip(event, '747', 747)" onmouseover="showTip(event, '747', 747)">
                 <p>
                   <a id="ReadAllText">
                     <a href="#ReadAllText">
@@ -1016,7 +1021,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="737">
+              <div class="fsdocs-tip" id="747">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>AdaptiveFile.ReadAllText<span><span>(<span>path</span>)</span></span></span></code>
@@ -1044,50 +1049,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.ReadAllText`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.ReadAllText\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L464-464" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adaptively reads the file's content as aval<string>.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  path
-                </span>
-                :
-                <code>string</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;string&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.ReadAllText`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.ReadAllText\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L464-464" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adaptively reads the file's content as aval<string>.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    path
+                  </span>
+                  :
+                  <code>string</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;string&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '738', 738)" onmouseover="showTip(event, '738', 738)">
+              <code onmouseout="hideTip(event, '748', 748)" onmouseover="showTip(event, '748', 748)">
                 <p>
                   <a id="TryReadAllBytes">
                     <a href="#TryReadAllBytes">
@@ -1096,7 +1100,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="738">
+              <div class="fsdocs-tip" id="748">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>AdaptiveFile.TryReadAllBytes<span><span>(<span>path</span>)</span></span></span></code>
@@ -1124,50 +1128,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.TryReadAllBytes`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.TryReadAllBytes\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L468-468" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adaptively tries to read the file's content as aval<option<byte[]>>.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  path
-                </span>
-                :
-                <code>string</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span><span>byte[]</span>&#32;option</span>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.TryReadAllBytes`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.TryReadAllBytes\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L468-468" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adaptively tries to read the file's content as aval<option<byte[]>>.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    path
+                  </span>
+                  :
+                  <code>string</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span><span>byte[]</span>&#32;option</span>&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '739', 739)" onmouseover="showTip(event, '739', 739)">
+              <code onmouseout="hideTip(event, '749', 749)" onmouseover="showTip(event, '749', 749)">
                 <p>
                   <a id="TryReadAllLines">
                     <a href="#TryReadAllLines">
@@ -1176,7 +1179,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="739">
+              <div class="fsdocs-tip" id="749">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>AdaptiveFile.TryReadAllLines<span><span>(<span>path</span>)</span></span></span></code>
@@ -1204,50 +1207,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.TryReadAllLines`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.TryReadAllLines\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L476-476" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adaptively tries to read the file's lines as aval<option<string[]>>.    
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  path
-                </span>
-                :
-                <code>string</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span><span>string[]</span>&#32;option</span>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.TryReadAllLines`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.TryReadAllLines\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L476-476" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adaptively tries to read the file's lines as aval<option<string[]>>.    
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    path
+                  </span>
+                  :
+                  <code>string</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span><span>string[]</span>&#32;option</span>&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '740', 740)" onmouseover="showTip(event, '740', 740)">
+              <code onmouseout="hideTip(event, '750', 750)" onmouseover="showTip(event, '750', 750)">
                 <p>
                   <a id="TryReadAllText">
                     <a href="#TryReadAllText">
@@ -1256,7 +1258,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="740">
+              <div class="fsdocs-tip" id="750">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>AdaptiveFile.TryReadAllText<span><span>(<span>path</span>)</span></span></span></code>
@@ -1284,61 +1286,67 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.TryReadAllText`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.TryReadAllText\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L460-460" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adaptively tries to read the file's content as aval<option<string>>.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  path
-                </span>
-                :
-                <code>string</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>string&#32;option</span>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.AdaptiveFile.TryReadAllText`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.AdaptiveFile.TryReadAllText\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveTools/AdaptiveFileSystem.fs#L460-460" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adaptively tries to read the file's content as aval<option<string>>.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    path
+                  </span>
+                  :
+                  <code>string</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>string&#32;option</span>&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
       </tbody>
     </table>
   </div>
 </div>
-            
-        </div>
-
-        <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.css" />
-        <script type="text/javascript">var fsdocs_search_baseurl = 'https://fsprojects.github.io/FSharp.Data.Adaptive/';</script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.8/lunr.min.js"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.min.js"></script>
-        <script type="text/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-search.js"></script>
-        <!-- END SEARCH BOX: this adds support for the search box -->
+        
     </div>
-</body>
+</main>
+<aside id="fsdocs-page-menu">
+    <p id="on-this-page">On this page</p>
+    <div class="empty"></div>
+</aside>
+<dialog>
+    <input type="search" placeholder="Search docs" />
+    <div class="results">
+        <ul></ul>
+        <p class="empty">Type something to start searching.</p>
+    </div>
+</dialog>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-tips.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme-toggle.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-search.js"></script>
 
+</body>
 </html>

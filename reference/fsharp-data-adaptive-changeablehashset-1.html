@@ -1,59 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="en" data-root="https://fsprojects.github.io/FSharp.Data.Adaptive/">
 <head>
-    <meta charset="utf-8">
-    <title>ChangeableHashSet<'T> (FSharp.Data.Adaptive)</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="author" content="FSharp.Data.Adaptive">
-
-    <link rel="stylesheet" id="theme_link" href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/4.6.0/materia/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
-
-    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
-
-    <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico">
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/navbar-fixed-left.css" />
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-default.css" />
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-custom.css" />
-    <script type="text/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-tips.js"></script>
-    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
-    <!--[if lt IE 9]>
-      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.css" />
-    <!-- END SEARCH BOX: this adds support for the search box -->
+    <meta charset="UTF-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="FSharp.Data.Adaptive" name="author">
+    <!-- Opengraph properties (https://ogp.me/) -->
+    <meta property="og:site_name" content="FSharp.Data.Adaptive">
+    <meta property="og:title" content="ChangeableHashSet<'T> (FSharp.Data.Adaptive)" />
+    <meta property="og:url" content="https://fsprojects.github.io/FSharp.Data.Adaptive/{{fsdocs-source-basename}}.html">
+    <meta property="og:type" content="website" />
+    <!-- Twitter cards (https://developer.twitter.com/en/docs/twitter-for-websites/cards/overview/summary-card-with-large-image) -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="https://fsprojects.github.io/FSharp.Data.Adaptive/">
+    <meta name="twitter:title" content="ChangeableHashSet<'T> (FSharp.Data.Adaptive)">
+    
+    <title>ChangeableHashSet<'T> (FSharp.Data.Adaptive) | FSharp.Data.Adaptive</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/img/favicon.ico" rel="icon" sizes="32x32" type="image/png"/>
+    <script type="application/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme-set-dark.js"></script>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-default.css" rel="stylesheet" type="text/css"/>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme.css" rel="stylesheet" type="text/css"/>
+    
     
 </head>
-
-<body>
-    <nav class="navbar navbar-expand-md navbar-light bg-secondary fixed-left" id="fsdocs-nav">
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse navbar-nav-scroll" id="navbarsExampleDefault">
-            <a href="./index.html"><img id="fsdocs-logo" src="https://fsprojects.github.io/FSharp.Data.Adaptive/img/logo.png" /></a>
-            <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-            <div id="header">
-                <div class="searchbox" id="fsdocs-searchbox">
-                    <label for="search-by">
-                        <i class="fas fa-search"></i>
-                    </label>
-                    <input data-search-input="" id="search-by" type="search" placeholder="Search..." />
-                    <span data-search-clear="">
-                        <i class="fas fa-times"></i>
-                    </span>
-                </div>
-            </div>
-
-            <!-- END SEARCH BOX: this adds support for the search box -->
-            <ul class="navbar-nav">
+<body class="api-docs">
+<header>
+    <div class="start">
+        <div id="menu-toggle">
+            <iconify-icon class="icon closed" height="22" icon="eva:menu-fill" width="22"></iconify-icon>
+            <iconify-icon class="icon open" height="22" icon="mi:close" width="22"></iconify-icon>
+            <input type="checkbox" name="mobile-menu" />
+            <ul class="menu">
                 <li class="nav-header">Links</li>
-                <li class="nav-item" id="fsdocs-license-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a></li>
-                <li class="nav-item" id="fsdocs-release-notes-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
-                <li class="nav-item" id="fsdocs-repository-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source Repository</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a>
+                </li>
+                <li class="nav-item"><a class="nav-link"
+                                        href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release
+                    Notes</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source
+                    Repository</a></li>
                 
                 <li class="nav-header">
   API Reference
@@ -65,14 +54,43 @@
 </li>
             </ul>
         </div>
-    </nav>
-    <div class="container">
-        <div class="masthead">
-            <h3 class="muted"><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/">FSharp.Data.Adaptive</a></h3>
-        </div>
-        <hr />
-        <div class="container" id="fsdocs-content">
-            <div>
+        <a href="./index.html">
+            <img alt="Header menu logo" src="https://fsprojects.github.io/FSharp.Data.Adaptive/img/logo.png">
+            <strong>FSharp.Data.Adaptive</strong>
+        </a>
+    </div>
+    <div class="end">
+        <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/" target="_blank">
+            <iconify-icon icon="uil:github" width="26" height="26"></iconify-icon>
+        </a>
+        <iconify-icon id="search-btn" icon="carbon:search" class="search" width="24" height="24"></iconify-icon>
+        <fsdocs-theme-toggle></fsdocs-theme-toggle>
+    </div>
+</header>
+<aside id="fsdocs-main-menu">
+    <ul class="menu">
+        <li class="nav-header">Links</li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a>
+        </li>
+        <li class="nav-item"><a class="nav-link"
+                                href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release
+            Notes</a></li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source
+            Repository</a></li>
+        
+        <li class="nav-header">
+  API Reference
+</li>             
+<li class="nav-item">
+  <a class="nav-link" href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/index.html">
+    All Namespaces
+  </a>
+</li>
+    </ul>
+</aside>
+<main>
+    <div id="content">
+        <div>
   <h2>
     ChangeableHashSet<'T> Type
   </h2>
@@ -92,13 +110,13 @@
     </dt>
     <dt>
       All Interfaces: 
-      <code><span><a href="https://docs.microsoft.com/dotnet/api/system.collections.generic.iset-1">ISet</a>&lt;'T&gt;</span></code>
+      <code><span><a href="https://learn.microsoft.com/dotnet/api/system.collections.generic.iset-1">ISet</a>&lt;'T&gt;</span></code>
       , 
-      <code><span><a href="https://docs.microsoft.com/dotnet/api/system.collections.generic.icollection-1">ICollection</a>&lt;'T&gt;</span></code>
+      <code><span><a href="https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection-1">ICollection</a>&lt;'T&gt;</span></code>
       , 
-      <code><span><a href="https://docs.microsoft.com/dotnet/api/system.collections.generic.ienumerable-1">IEnumerable</a>&lt;'T&gt;</span></code>
+      <code><span><a href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ienumerable-1">IEnumerable</a>&lt;'T&gt;</span></code>
       , 
-      <code><a href="https://docs.microsoft.com/dotnet/api/system.collections.ienumerable">IEnumerable</a></code>
+      <code><a href="https://learn.microsoft.com/dotnet/api/system.collections.ienumerable">IEnumerable</a></code>
       , 
       <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivehashset-1.html">IAdaptiveHashSet</a>&lt;'T&gt;</span></code>
     </dt>
@@ -106,9 +124,7 @@
   <div class="fsdocs-xmldoc">
     <div>
       <p class="fsdocs-summary">
-        
- Changeable adaptive set that allows mutation by user-code and implements aset.
-
+         Changeable adaptive set that allows mutation by user-code and implements aset.
       </p>
     </div>
   </div>
@@ -137,7 +153,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '782', 782)" onmouseover="showTip(event, '782', 782)">
+              <code onmouseout="hideTip(event, '792', 792)" onmouseover="showTip(event, '792', 792)">
                 <p>
                   <a id="``.ctor``">
                     <a href="#``.ctor``">
@@ -146,7 +162,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="782">
+              <div class="fsdocs-tip" id="792">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>ChangeableHashSet<span><span>(<span>arg1</span>)</span></span></span></code>
@@ -174,50 +190,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.#ctor``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.#ctor\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L8-8" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Creates a new cset containing all the given elements.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  arg0
-                </span>
-                :
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashset-1.html">HashSet</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-cset-1.html">cset</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.#ctor``')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.#ctor\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L8-8" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Creates a new cset containing all the given elements.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    arg0
+                  </span>
+                  :
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashset-1.html">HashSet</a>&lt;'T&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-cset-1.html">cset</a>&lt;'T&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '783', 783)" onmouseover="showTip(event, '783', 783)">
+              <code onmouseout="hideTip(event, '793', 793)" onmouseover="showTip(event, '793', 793)">
                 <p>
                   <a id="``.ctor``">
                     <a href="#``.ctor``">
@@ -226,7 +241,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="783">
+              <div class="fsdocs-tip" id="793">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>ChangeableHashSet<span><span>(<span>arg1</span>)</span></span></span></code>
@@ -239,7 +254,7 @@
                         arg0
                       </b>
                       :
-                      <code><span>seq&lt;'T&gt;</span></code>
+                      <code><span>'T&#32;seq</span></code>
                     </span>
                     <br/>
                   </ul>
@@ -254,50 +269,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.#ctor``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.#ctor\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L163-163" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Creates a new cset containing all the given elements.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  arg0
-                </span>
-                :
-                <code><span>seq&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-cset-1.html">cset</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.#ctor``')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.#ctor\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L163-163" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Creates a new cset containing all the given elements.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    arg0
+                  </span>
+                  :
+                  <code><span>'T&#32;seq</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-cset-1.html">cset</a>&lt;'T&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '784', 784)" onmouseover="showTip(event, '784', 784)">
+              <code onmouseout="hideTip(event, '794', 794)" onmouseover="showTip(event, '794', 794)">
                 <p>
                   <a id="``.ctor``">
                     <a href="#``.ctor``">
@@ -306,7 +320,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="784">
+              <div class="fsdocs-tip" id="794">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>ChangeableHashSet<span>()</span></span></code>
@@ -322,34 +336,33 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.#ctor``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.#ctor\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L160-160" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Creates a new empty cset.
-
-              </p>
-            </div>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-cset-1.html">cset</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.#ctor``')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.#ctor\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L160-160" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Creates a new empty cset.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-cset-1.html">cset</a>&lt;'T&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
       </tbody>
@@ -374,7 +387,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '785', 785)" onmouseover="showTip(event, '785', 785)">
+              <code onmouseout="hideTip(event, '795', 795)" onmouseover="showTip(event, '795', 795)">
                 <p>
                   <a id="Add">
                     <a href="#Add">
@@ -383,7 +396,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="785">
+              <div class="fsdocs-tip" id="795">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.Add</span></code>
@@ -411,50 +424,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.Add``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.Add\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L51-51" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adds a value and returns whether the element was new.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  value
-                </span>
-                :
-                <code>'T</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code>bool</code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.Add``')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.Add\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L51-51" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adds a value and returns whether the element was new.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    value
+                  </span>
+                  :
+                  <code>'T</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code>bool</code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '786', 786)" onmouseover="showTip(event, '786', 786)">
+              <code onmouseout="hideTip(event, '796', 796)" onmouseover="showTip(event, '796', 796)">
                 <p>
                   <a id="Clear">
                     <a href="#Clear">
@@ -463,7 +475,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="786">
+              <div class="fsdocs-tip" id="796">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.Clear</span></code>
@@ -476,21 +488,16 @@
           <td class="fsdocs-member-xmldoc">
             <div class="fsdocs-summary">
               <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.Clear``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+                <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
               </div>
               <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.Clear\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+                <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
               </div>
               <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L59-59" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+                <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
               </a>
               <p class="fsdocs-summary">
-                
- Clears the set.
-
+                 Clears the set.
               </p>
             </div>
           </td>
@@ -498,7 +505,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '787', 787)" onmouseover="showTip(event, '787', 787)">
+              <code onmouseout="hideTip(event, '797', 797)" onmouseover="showTip(event, '797', 797)">
                 <p>
                   <a id="Contains">
                     <a href="#Contains">
@@ -507,7 +514,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="787">
+              <div class="fsdocs-tip" id="797">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.Contains</span></code>
@@ -535,50 +542,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.Contains``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.Contains\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L27-27" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Checks whether the given value is contained.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  value
-                </span>
-                :
-                <code>'T</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code>bool</code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.Contains``')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.Contains\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L27-27" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Checks whether the given value is contained.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    value
+                  </span>
+                  :
+                  <code>'T</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code>bool</code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '788', 788)" onmouseover="showTip(event, '788', 788)">
+              <code onmouseout="hideTip(event, '798', 798)" onmouseover="showTip(event, '798', 798)">
                 <p>
                   <a id="Count">
                     <a href="#Count">
@@ -587,7 +593,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="788">
+              <div class="fsdocs-tip" id="798">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.Count</span></code>
@@ -603,40 +609,39 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:P:FSharp.Data.Adaptive.ChangeableHashSet`1.Count``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:FSharp.Data.Adaptive.ChangeableHashSet`1.Count\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L19-19" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- The number of entries currently in the set.
-
-              </p>
-            </div>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code>int</code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:P:FSharp.Data.Adaptive.ChangeableHashSet`1.Count``')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:FSharp.Data.Adaptive.ChangeableHashSet`1.Count\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L19-19" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     The number of entries currently in the set.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code>int</code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '789', 789)" onmouseover="showTip(event, '789', 789)">
+              <code onmouseout="hideTip(event, '799', 799)" onmouseover="showTip(event, '799', 799)">
                 <p>
                   <a id="ExceptWith">
                     <a href="#ExceptWith">
@@ -645,7 +650,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="789">
+              <div class="fsdocs-tip" id="799">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.ExceptWith</span></code>
@@ -658,7 +663,7 @@
                         other
                       </b>
                       :
-                      <code><span>seq&lt;'T&gt;</span></code>
+                      <code><span>'T&#32;seq</span></code>
                     </span>
                     <br/>
                   </ul>
@@ -668,41 +673,40 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.ExceptWith``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.ExceptWith\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L70-70" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Removes all the given elements from the set.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  other
-                </span>
-                :
-                <code><span>seq&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.ExceptWith``')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.ExceptWith\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L70-70" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Removes all the given elements from the set.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    other
+                  </span>
+                  :
+                  <code><span>'T&#32;seq</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '790', 790)" onmouseover="showTip(event, '790', 790)">
+              <code onmouseout="hideTip(event, '800', 800)" onmouseover="showTip(event, '800', 800)">
                 <p>
                   <a id="GetEnumerator">
                     <a href="#GetEnumerator">
@@ -711,7 +715,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="790">
+              <div class="fsdocs-tip" id="800">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.GetEnumerator</span></code>
@@ -727,23 +731,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.GetEnumerator``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.GetEnumerator\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L109-109" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-returns">
               <dt>
                 <span class="fsdocs-return-name">
@@ -758,7 +745,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '791', 791)" onmouseover="showTip(event, '791', 791)">
+              <code onmouseout="hideTip(event, '801', 801)" onmouseover="showTip(event, '801', 801)">
                 <p>
                   <a id="GetReader">
                     <a href="#GetReader">
@@ -767,7 +754,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="791">
+              <div class="fsdocs-tip" id="801">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.GetReader</span></code>
@@ -783,40 +770,39 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.GetReader``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.GetReader\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L106-106" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Creates an adaptive reader for the set.
-
-              </p>
-            </div>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-ihashsetreader-1.html">IHashSetReader</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.GetReader``')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.GetReader\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L106-106" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Creates an adaptive reader for the set.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-ihashsetreader-1.html">IHashSetReader</a>&lt;'T&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '792', 792)" onmouseover="showTip(event, '792', 792)">
+              <code onmouseout="hideTip(event, '802', 802)" onmouseover="showTip(event, '802', 802)">
                 <p>
                   <a id="IntersectWith">
                     <a href="#IntersectWith">
@@ -825,7 +811,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="792">
+              <div class="fsdocs-tip" id="802">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.IntersectWith</span></code>
@@ -838,7 +824,7 @@
                         other
                       </b>
                       :
-                      <code><span>seq&lt;'T&gt;</span></code>
+                      <code><span>'T&#32;seq</span></code>
                     </span>
                     <br/>
                   </ul>
@@ -848,41 +834,40 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.IntersectWith``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.IntersectWith\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L92-92" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Removes all elements from the set that are not also contained in other.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  other
-                </span>
-                :
-                <code><span>seq&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.IntersectWith``')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.IntersectWith\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L92-92" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Removes all elements from the set that are not also contained in other.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    other
+                  </span>
+                  :
+                  <code><span>'T&#32;seq</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '793', 793)" onmouseover="showTip(event, '793', 793)">
+              <code onmouseout="hideTip(event, '803', 803)" onmouseover="showTip(event, '803', 803)">
                 <p>
                   <a id="IsEmpty">
                     <a href="#IsEmpty">
@@ -891,7 +876,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="793">
+              <div class="fsdocs-tip" id="803">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.IsEmpty</span></code>
@@ -907,40 +892,39 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:P:FSharp.Data.Adaptive.ChangeableHashSet`1.IsEmpty``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:FSharp.Data.Adaptive.ChangeableHashSet`1.IsEmpty\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L23-23" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Is the set currently empty?
-
-              </p>
-            </div>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code>bool</code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:P:FSharp.Data.Adaptive.ChangeableHashSet`1.IsEmpty``')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:FSharp.Data.Adaptive.ChangeableHashSet`1.IsEmpty\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L23-23" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Is the set currently empty?
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code>bool</code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '794', 794)" onmouseover="showTip(event, '794', 794)">
+              <code onmouseout="hideTip(event, '804', 804)" onmouseover="showTip(event, '804', 804)">
                 <p>
                   <a id="Perform">
                     <a href="#Perform">
@@ -949,7 +933,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="794">
+              <div class="fsdocs-tip" id="804">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.Perform</span></code>
@@ -972,41 +956,40 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.Perform``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.Perform\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L46-46" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Performs the given Operations on the Set.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  operations
-                </span>
-                :
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashsetdelta-1.html">HashSetDelta</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.Perform``')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.Perform\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L46-46" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Performs the given Operations on the Set.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    operations
+                  </span>
+                  :
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashsetdelta-1.html">HashSetDelta</a>&lt;'T&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '795', 795)" onmouseover="showTip(event, '795', 795)">
+              <code onmouseout="hideTip(event, '805', 805)" onmouseover="showTip(event, '805', 805)">
                 <p>
                   <a id="Remove">
                     <a href="#Remove">
@@ -1015,7 +998,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="795">
+              <div class="fsdocs-tip" id="805">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.Remove</span></code>
@@ -1043,50 +1026,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.Remove``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.Remove\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L55-55" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Removes a value and returns whether the element was deleted.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  value
-                </span>
-                :
-                <code>'T</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code>bool</code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.Remove``')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.Remove\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L55-55" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Removes a value and returns whether the element was deleted.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    value
+                  </span>
+                  :
+                  <code>'T</code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code>bool</code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '796', 796)" onmouseover="showTip(event, '796', 796)">
+              <code onmouseout="hideTip(event, '806', 806)" onmouseover="showTip(event, '806', 806)">
                 <p>
                   <a id="UnionWith">
                     <a href="#UnionWith">
@@ -1095,7 +1077,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="796">
+              <div class="fsdocs-tip" id="806">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.UnionWith</span></code>
@@ -1108,7 +1090,7 @@
                         other
                       </b>
                       :
-                      <code><span>seq&lt;'T&gt;</span></code>
+                      <code><span>'T&#32;seq</span></code>
                     </span>
                     <br/>
                   </ul>
@@ -1118,41 +1100,40 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.UnionWith``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.UnionWith\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L65-65" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adds all the given values to the set.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  other
-                </span>
-                :
-                <code><span>seq&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.UnionWith``')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.UnionWith\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L65-65" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adds all the given values to the set.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    other
+                  </span>
+                  :
+                  <code><span>'T&#32;seq</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '797', 797)" onmouseover="showTip(event, '797', 797)">
+              <code onmouseout="hideTip(event, '807', 807)" onmouseover="showTip(event, '807', 807)">
                 <p>
                   <a id="UpdateTo">
                     <a href="#UpdateTo">
@@ -1161,7 +1142,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="797">
+              <div class="fsdocs-tip" id="807">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.UpdateTo</span></code>
@@ -1189,50 +1170,49 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.UpdateTo``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.UpdateTo\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L38-38" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Sets the current state as HashSet.
-
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  arg0
-                </span>
-                :
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashset-1.html">HashSet</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code>bool</code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:M:FSharp.Data.Adaptive.ChangeableHashSet`1.UpdateTo``')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ChangeableHashSet`1.UpdateTo\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L38-38" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Sets the current state as HashSet.
+                  </p>
+                </div>
+              </summary>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    arg0
+                  </span>
+                  :
+                  <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashset-1.html">HashSet</a>&lt;'T&gt;</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code>bool</code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '798', 798)" onmouseover="showTip(event, '798', 798)">
+              <code onmouseout="hideTip(event, '808', 808)" onmouseover="showTip(event, '808', 808)">
                 <p>
                   <a id="Value">
                     <a href="#Value">
@@ -1241,7 +1221,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="798">
+              <div class="fsdocs-tip" id="808">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.Value</span></code>
@@ -1254,21 +1234,16 @@
           <td class="fsdocs-member-xmldoc">
             <div class="fsdocs-summary">
               <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:P:FSharp.Data.Adaptive.ChangeableHashSet`1.Value``')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+                <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
               </div>
               <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:FSharp.Data.Adaptive.ChangeableHashSet`1.Value\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+                <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
               </div>
               <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptiveHashSet/ChangeableHashSet.fs#L31-31" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+                <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
               </a>
               <p class="fsdocs-summary">
-                
- Gets or sets the current state as HashSet.
-
+                 Gets or sets the current state as HashSet.
               </p>
             </div>
           </td>
@@ -1278,17 +1253,24 @@
   </div>
   <div></div>
 </div>
-            
-        </div>
-
-        <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.css" />
-        <script type="text/javascript">var fsdocs_search_baseurl = 'https://fsprojects.github.io/FSharp.Data.Adaptive/';</script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.8/lunr.min.js"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.min.js"></script>
-        <script type="text/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-search.js"></script>
-        <!-- END SEARCH BOX: this adds support for the search box -->
+        
     </div>
-</body>
+</main>
+<aside id="fsdocs-page-menu">
+    <p id="on-this-page">On this page</p>
+    <div class="empty"></div>
+</aside>
+<dialog>
+    <input type="search" placeholder="Search docs" />
+    <div class="results">
+        <ul></ul>
+        <p class="empty">Type something to start searching.</p>
+    </div>
+</dialog>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-tips.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme-toggle.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-search.js"></script>
 
+</body>
 </html>

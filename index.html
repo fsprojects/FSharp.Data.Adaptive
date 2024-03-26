@@ -1,60 +1,51 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="en" data-root="https://fsprojects.github.io/FSharp.Data.Adaptive/">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="FSharp.Data.Adaptive" name="author">
+    <!-- Opengraph properties (https://ogp.me/) -->
+    <meta property="og:site_name" content="FSharp.Data.Adaptive">
+    <meta property="og:title" content="FSharp.Data.Adaptive: adaptive data for F#
+" />
+    <meta property="og:url" content="https://fsprojects.github.io/FSharp.Data.Adaptive/index.html">
+    <meta property="og:type" content="website" />
+    <!-- Twitter cards (https://developer.twitter.com/en/docs/twitter-for-websites/cards/overview/summary-card-with-large-image) -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="https://fsprojects.github.io/FSharp.Data.Adaptive/">
+    <meta name="twitter:title" content="FSharp.Data.Adaptive: adaptive data for F#
+">
+    
     <title>FSharp.Data.Adaptive: adaptive data for F#
-</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="author" content="FSharp.Data.Adaptive">
-
-    <link rel="stylesheet" id="theme_link" href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/4.6.0/materia/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
-
-    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
-
-    <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico">
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/navbar-fixed-left.css" />
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-default.css" />
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-custom.css" />
-    <script type="text/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-tips.js"></script>
-    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
-    <!--[if lt IE 9]>
-      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.css" />
-    <!-- END SEARCH BOX: this adds support for the search box -->
+ | FSharp.Data.Adaptive</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/img/favicon.ico" rel="icon" sizes="32x32" type="image/png"/>
+    <script type="application/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme-set-dark.js"></script>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-default.css" rel="stylesheet" type="text/css"/>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme.css" rel="stylesheet" type="text/css"/>
+    
     
 </head>
-
-<body>
-    <nav class="navbar navbar-expand-md navbar-light bg-secondary fixed-left" id="fsdocs-nav">
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse navbar-nav-scroll" id="navbarsExampleDefault">
-            <a href="./index.html"><img id="fsdocs-logo" src="https://fsprojects.github.io/FSharp.Data.Adaptive/img/logo.png" /></a>
-            <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-            <div id="header">
-                <div class="searchbox" id="fsdocs-searchbox">
-                    <label for="search-by">
-                        <i class="fas fa-search"></i>
-                    </label>
-                    <input data-search-input="" id="search-by" type="search" placeholder="Search..." />
-                    <span data-search-clear="">
-                        <i class="fas fa-times"></i>
-                    </span>
-                </div>
-            </div>
-
-            <!-- END SEARCH BOX: this adds support for the search box -->
-            <ul class="navbar-nav">
+<body class="content">
+<header>
+    <div class="start">
+        <div id="menu-toggle">
+            <iconify-icon class="icon closed" height="22" icon="eva:menu-fill" width="22"></iconify-icon>
+            <iconify-icon class="icon open" height="22" icon="mi:close" width="22"></iconify-icon>
+            <input type="checkbox" name="mobile-menu" />
+            <ul class="menu">
                 <li class="nav-header">Links</li>
-                <li class="nav-item" id="fsdocs-license-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a></li>
-                <li class="nav-item" id="fsdocs-release-notes-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
-                <li class="nav-item" id="fsdocs-repository-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source Repository</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a>
+                </li>
+                <li class="nav-item"><a class="nav-link"
+                                        href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release
+                    Notes</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source
+                    Repository</a></li>
                 
                 <li class="nav-header">
   API Reference
@@ -66,14 +57,43 @@
 </li>
             </ul>
         </div>
-    </nav>
-    <div class="container">
-        <div class="masthead">
-            <h3 class="muted"><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/">FSharp.Data.Adaptive</a></h3>
-        </div>
-        <hr />
-        <div class="container" id="fsdocs-content">
-            <h1><a name="FSharp-Data-Adaptive-adaptive-data-for-F" class="anchor" href="#FSharp-Data-Adaptive-adaptive-data-for-F">FSharp.Data.Adaptive: adaptive data for F#</a></h1>
+        <a href="./index.html">
+            <img alt="Header menu logo" src="https://fsprojects.github.io/FSharp.Data.Adaptive/img/logo.png">
+            <strong>FSharp.Data.Adaptive</strong>
+        </a>
+    </div>
+    <div class="end">
+        <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/" target="_blank">
+            <iconify-icon icon="uil:github" width="26" height="26"></iconify-icon>
+        </a>
+        <iconify-icon id="search-btn" icon="carbon:search" class="search" width="24" height="24"></iconify-icon>
+        <fsdocs-theme-toggle></fsdocs-theme-toggle>
+    </div>
+</header>
+<aside id="fsdocs-main-menu">
+    <ul class="menu">
+        <li class="nav-header">Links</li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a>
+        </li>
+        <li class="nav-item"><a class="nav-link"
+                                href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release
+            Notes</a></li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source
+            Repository</a></li>
+        
+        <li class="nav-header">
+  API Reference
+</li>             
+<li class="nav-item">
+  <a class="nav-link" href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/index.html">
+    All Namespaces
+  </a>
+</li>
+    </ul>
+</aside>
+<main>
+    <div id="content">
+        <h1><a name="FSharp-Data-Adaptive-adaptive-data-for-F" class="anchor" href="#FSharp-Data-Adaptive-adaptive-data-for-F">FSharp.Data.Adaptive: adaptive data for F#</a></h1>
 <p>This library provides a simple yet powerful way to
 write incremental functional computations that can be connected to
 imperative sources on both input and output.</p>
@@ -278,16 +298,13 @@ Here's an example illustrating our system's behaviour in such a circumstance:</p
 </code></pre>
 <p>Note that the <code>v * 10</code> function doesn't get executed after the change, even though its result has been marked <em>outOfDate</em>. The system understood that the output wouldn't have changed either way.</p>
 
-            <div class="fsdocs-tip" id="fs1">Multiple items<br />namespace FSharp<br /><br />--------------------<br />namespace Microsoft.FSharp</div>
+        <div class="fsdocs-tip" id="fs1">Multiple items<br />namespace FSharp<br /><br />--------------------<br />namespace Microsoft.FSharp</div>
 <div class="fsdocs-tip" id="fs2">Multiple items<br />namespace FSharp.Data<br /><br />--------------------<br />namespace Microsoft.FSharp.Data</div>
 <div class="fsdocs-tip" id="fs3">namespace FSharp.Data.Adaptive</div>
 <div class="fsdocs-tip" id="fs4">val timeToFloor: height: float -&gt; gravity: float -&gt; float</div>
 <div class="fsdocs-tip" id="fs5">val height: float</div>
 <div class="fsdocs-tip" id="fs6">val gravity: float</div>
-<div class="fsdocs-tip" id="fs7">val sqrt: value: &#39;T -&gt; &#39;U (requires member Sqrt)<br /><em>&lt;summary&gt;Square root of the given number&lt;/summary&gt;<br />&lt;param name=&quot;value&quot;&gt;The input value.&lt;/param&gt;<br />&lt;returns&gt;The square root of the input.&lt;/returns&gt;<br />&lt;example id=&quot;log-example&quot;&gt;&lt;code lang=&quot;fsharp&quot;&gt;
- sqrt 2.0  //  Evaluates to 1.414213562
- sqrt 100.0  //  Evaluates to 10.0
- &lt;/code&gt;&lt;/example&gt;</em></div>
+<div class="fsdocs-tip" id="fs7">val sqrt: value: &#39;T -&gt; &#39;U (requires member Sqrt)</div>
 <div class="fsdocs-tip" id="fs8">val adaptiveTimeToFloor: height: aval&lt;float&gt; -&gt; gravity: aval&lt;float&gt; -&gt; aval&lt;float&gt;</div>
 <div class="fsdocs-tip" id="fs9">val height: aval&lt;float&gt;</div>
 <div class="fsdocs-tip" id="fs10">val gravity: aval&lt;float&gt;</div>
@@ -311,7 +328,7 @@ from FSharp.Data.Adaptive<br /><em>&lt;summary&gt;
 &lt;/summary&gt;</em></div>
 <div class="fsdocs-tip" id="fs17">val gravity: cval&lt;float&gt;</div>
 <div class="fsdocs-tip" id="fs18">val dropTime: aval&lt;float&gt;</div>
-<div class="fsdocs-tip" id="fs19">val printfn: format: Printf.TextWriterFormat&lt;&#39;T&gt; -&gt; &#39;T<br /><em>&lt;summary&gt;Print to &lt;c&gt;stdout&lt;/c&gt; using the given format, and add a newline.&lt;/summary&gt;<br />&lt;param name=&quot;format&quot;&gt;The formatter.&lt;/param&gt;<br />&lt;returns&gt;The formatted result.&lt;/returns&gt;<br />&lt;example&gt;See &lt;c&gt;Printf.printfn&lt;/c&gt; (link: &lt;see cref=&quot;M:Microsoft.FSharp.Core.PrintfModule.PrintFormatLine``1&quot; /&gt;) for examples.&lt;/example&gt;</em></div>
+<div class="fsdocs-tip" id="fs19">val printfn: format: Printf.TextWriterFormat&lt;&#39;T&gt; -&gt; &#39;T</div>
 <div class="fsdocs-tip" id="fs20">val force: value: aval&lt;&#39;T&gt; -&gt; &#39;T<br /><em>&lt;summary&gt;
  Evaluates the given adaptive value and returns its current value.
  This should not be used inside the adaptive evaluation
@@ -337,31 +354,23 @@ from FSharp.Data.Adaptive<br /><em>&lt;summary&gt;
  Set the associated key to a specific value.
 &lt;/summary&gt;</em><br /><br />--------------------<br />module Set
 
-from Microsoft.FSharp.Collections<br /><em>&lt;summary&gt;Contains operations for working with values of type &lt;see cref=&quot;T:Microsoft.FSharp.Collections.Set`1&quot; /&gt;.&lt;/summary&gt;</em><br /><br />--------------------<br />type Set&lt;&#39;T (requires comparison)&gt; =
+from Microsoft.FSharp.Collections<br /><br />--------------------<br />type Set&lt;&#39;T (requires comparison)&gt; =
   interface IReadOnlyCollection&lt;&#39;T&gt;
+  interface IStructuralEquatable
   interface IComparable
   interface IEnumerable
   interface IEnumerable&lt;&#39;T&gt;
   interface ICollection&lt;&#39;T&gt;
-  new: elements: seq&lt;&#39;T&gt; -&gt; Set&lt;&#39;T&gt;
+  new: elements: &#39;T seq -&gt; Set&lt;&#39;T&gt;
   member Add: value: &#39;T -&gt; Set&lt;&#39;T&gt;
   member Contains: value: &#39;T -&gt; bool
   override Equals: obj -&gt; bool
-  member IsProperSubsetOf: otherSet: Set&lt;&#39;T&gt; -&gt; bool
-  ...<br /><em>&lt;summary&gt;Immutable sets based on binary trees, where elements are ordered by F# generic comparison. By default
- comparison is the F# structural comparison function or uses implementations of the IComparable interface on element values.&lt;/summary&gt;<br />&lt;remarks&gt;See the &lt;see cref=&quot;T:Microsoft.FSharp.Collections.SetModule&quot; /&gt; module for further operations on sets.
-
- All members of this class are thread-safe and may be used concurrently from multiple threads.&lt;/remarks&gt;</em><br /><br />--------------------<br />new: elements: seq&lt;&#39;T&gt; -&gt; Set&lt;&#39;T&gt;</div>
+  ...<br /><br />--------------------<br />new: elements: &#39;T seq -&gt; Set&lt;&#39;T&gt;</div>
 <div class="fsdocs-tip" id="fs28">val map: mapping: (&#39;T1 -&gt; &#39;T2) -&gt; value: aval&lt;&#39;T1&gt; -&gt; aval&lt;&#39;T2&gt;<br /><em>&lt;summary&gt;
  Returns a new adaptive value that adaptively applies the mapping function to the given 
  adaptive inputs.
 &lt;/summary&gt;</em></div>
-<div class="fsdocs-tip" id="fs29">val map: mapping: (&#39;T -&gt; &#39;U) -&gt; set: Set&lt;&#39;T&gt; -&gt; Set&lt;&#39;U&gt; (requires comparison and comparison)<br /><em>&lt;summary&gt;Returns a new collection containing the results of applying the
- given function to each element of the input set.&lt;/summary&gt;<br />&lt;param name=&quot;mapping&quot;&gt;The function to transform elements of the input set.&lt;/param&gt;<br />&lt;param name=&quot;set&quot;&gt;The input set.&lt;/param&gt;<br />&lt;returns&gt;A set containing the transformed elements.&lt;/returns&gt;<br />&lt;example id=&quot;set-map&quot;&gt;&lt;code lang=&quot;fsharp&quot;&gt;
- let set = Set.empty.Add(1).Add(2).Add(3)
- printfn $&quot;The set with doubled values is {Set.map (fun x -&amp;gt; x * 2) set}&quot; 
- &lt;/code&gt;
- The sample evaluates to the following output: &lt;c&gt;The set with doubled values is set [2; 4; 6]&lt;/c&gt;&lt;/example&gt;</em></div>
+<div class="fsdocs-tip" id="fs29">val map: mapping: (&#39;T -&gt; &#39;U) -&gt; set: Set&lt;&#39;T&gt; -&gt; Set&lt;&#39;U&gt; (requires comparison and comparison)</div>
 <div class="fsdocs-tip" id="fs30">val inputSet: cset&lt;int&gt;</div>
 <div class="fsdocs-tip" id="fs31">type cset&lt;&#39;T&gt; = ChangeableHashSet&lt;&#39;T&gt;<br /><em>&lt;summary&gt;
  An abbreviation for ChangeableHashSet
@@ -380,7 +389,7 @@ from FSharp.Data.Adaptive<br /><em>&lt;summary&gt;
  Adaptively maps over the given set.
 &lt;/summary&gt;</em></div>
 <div class="fsdocs-tip" id="fs35">val v: int</div>
-<div class="fsdocs-tip" id="fs36">val printf: format: Printf.TextWriterFormat&lt;&#39;T&gt; -&gt; &#39;T<br /><em>&lt;summary&gt;Print to &lt;c&gt;stdout&lt;/c&gt; using the given format.&lt;/summary&gt;<br />&lt;param name=&quot;format&quot;&gt;The formatter.&lt;/param&gt;<br />&lt;returns&gt;The formatted result.&lt;/returns&gt;<br />&lt;example&gt;See &lt;c&gt;Printf.printf&lt;/c&gt; (link: &lt;see cref=&quot;M:Microsoft.FSharp.Core.PrintfModule.PrintFormat``1&quot; /&gt;) for examples.&lt;/example&gt;</em></div>
+<div class="fsdocs-tip" id="fs36">val printf: format: Printf.TextWriterFormat&lt;&#39;T&gt; -&gt; &#39;T</div>
 <div class="fsdocs-tip" id="fs37">property IAdaptiveHashSet.Content: aval&lt;HashSet&lt;int&gt;&gt; with get<br /><em>&lt;summary&gt;
  The current content of the set as aval.
 &lt;/summary&gt;</em></div>
@@ -388,15 +397,8 @@ from FSharp.Data.Adaptive<br /><em>&lt;summary&gt;
 <div class="fsdocs-tip" id="fs39">member ChangeableHashSet.Remove: value: &#39;T -&gt; bool</div>
 <div class="fsdocs-tip" id="fs40">val calcHeight: t: float -&gt; h0: float -&gt; g: float -&gt; float</div>
 <div class="fsdocs-tip" id="fs41">val t: float</div>
-<div class="fsdocs-tip" id="fs42">Multiple items<br />val float: value: &#39;T -&gt; float (requires member op_Explicit)<br /><em>&lt;summary&gt;Converts the argument to 64-bit float. This is a direct conversion for all 
- primitive numeric types. For strings, the input is converted using &lt;c&gt;Double.Parse()&lt;/c&gt;  
- with InvariantCulture settings. Otherwise the operation requires an appropriate
- static conversion method on the input type.&lt;/summary&gt;<br />&lt;param name=&quot;value&quot;&gt;The input value.&lt;/param&gt;<br />&lt;returns&gt;The converted float&lt;/returns&gt;<br />&lt;example id=&quot;float-example&quot;&gt;&lt;code lang=&quot;fsharp&quot;&gt;&lt;/code&gt;&lt;/example&gt;</em><br /><br />--------------------<br />[&lt;Struct&gt;]
-type float = System.Double<br /><em>&lt;summary&gt;An abbreviation for the CLI type &lt;see cref=&quot;T:System.Double&quot; /&gt;.&lt;/summary&gt;<br />&lt;category&gt;Basic Types&lt;/category&gt;</em><br /><br />--------------------<br />type float&lt;&#39;Measure&gt; =
-  float<br /><em>&lt;summary&gt;The type of double-precision floating point numbers, annotated with a unit of measure.
- The unit of measure is erased in compiled code and when values of this type
- are analyzed using reflection. The type is representationally equivalent to
- &lt;see cref=&quot;T:System.Double&quot; /&gt;.&lt;/summary&gt;<br />&lt;category index=&quot;6&quot;&gt;Basic Types with Units of Measure&lt;/category&gt;</em></div>
+<div class="fsdocs-tip" id="fs42">Multiple items<br />val float: value: &#39;T -&gt; float (requires member op_Explicit)<br /><br />--------------------<br />type float = System.Double<br /><br />--------------------<br />type float&lt;&#39;Measure&gt; =
+  float</div>
 <div class="fsdocs-tip" id="fs43">val h0: float</div>
 <div class="fsdocs-tip" id="fs44">val time: cval&lt;float&gt;</div>
 <div class="fsdocs-tip" id="fs45">val currentHeight: aval&lt;float&gt;</div>
@@ -427,16 +429,59 @@ type float = System.Double<br /><em>&lt;summary&gt;An abbreviation for the CLI t
  Setting the value requires a Transaction to be active using `transact`.
 &lt;/summary&gt;</em></div>
 
-        </div>
-
-        <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.css" />
-        <script type="text/javascript">var fsdocs_search_baseurl = 'https://fsprojects.github.io/FSharp.Data.Adaptive/';</script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.8/lunr.min.js"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.min.js"></script>
-        <script type="text/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-search.js"></script>
-        <!-- END SEARCH BOX: this adds support for the search box -->
     </div>
-</body>
+</main>
+<aside id="fsdocs-page-menu">
+    <p id="on-this-page">On this page</p>
+    <ul>
+  <li class="level-1">
+    <a href="#FSharp-Data-Adaptive-adaptive-data-for-F">
+      FSharp.Data.Adaptive: adaptive data for F#
+    </a>
+  </li>
+  <li class="level-2">
+    <a href="#Adaptive-Values">
+      Adaptive Values
+    </a>
+  </li>
+  <li class="level-2">
+    <a href="#Adaptive-Collections">
+      Adaptive Collections
+    </a>
+  </li>
+  <li class="level-2">
+    <a href="#Dynamic-computation-graphs-and-dynamic-dependencies">
+      Dynamic computation graphs and dynamic dependencies
+    </a>
+  </li>
+  <li class="level-1">
+    <a href="#Implementation-Details">
+      Implementation Details
+    </a>
+  </li>
+  <li class="level-2">
+    <a href="#Changeable-Adaptive-and-Constant">
+      Changeable, Adaptive and Constant
+    </a>
+  </li>
+  <li class="level-2">
+    <a href="#Evaluation-strategy-avoidance-of-re-execution">
+      Evaluation strategy, avoidance of re-execution
+    </a>
+  </li>
+</ul>
+</aside>
+<dialog>
+    <input type="search" placeholder="Search docs" />
+    <div class="results">
+        <ul></ul>
+        <p class="empty">Type something to start searching.</p>
+    </div>
+</dialog>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-tips.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme-toggle.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-search.js"></script>
 
+</body>
 </html>

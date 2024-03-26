@@ -1,59 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="en" data-root="https://fsprojects.github.io/FSharp.Data.Adaptive/">
 <head>
-    <meta charset="utf-8">
-    <title>FSharp.Data.Traceable</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="author" content="FSharp.Data.Adaptive">
-
-    <link rel="stylesheet" id="theme_link" href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/4.6.0/materia/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
-
-    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
-
-    <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico">
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/navbar-fixed-left.css" />
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-default.css" />
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-custom.css" />
-    <script type="text/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-tips.js"></script>
-    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
-    <!--[if lt IE 9]>
-      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.css" />
-    <!-- END SEARCH BOX: this adds support for the search box -->
+    <meta charset="UTF-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="FSharp.Data.Adaptive" name="author">
+    <!-- Opengraph properties (https://ogp.me/) -->
+    <meta property="og:site_name" content="FSharp.Data.Adaptive">
+    <meta property="og:title" content="FSharp.Data.Traceable" />
+    <meta property="og:url" content="https://fsprojects.github.io/FSharp.Data.Adaptive/{{fsdocs-source-basename}}.html">
+    <meta property="og:type" content="website" />
+    <!-- Twitter cards (https://developer.twitter.com/en/docs/twitter-for-websites/cards/overview/summary-card-with-large-image) -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="https://fsprojects.github.io/FSharp.Data.Adaptive/">
+    <meta name="twitter:title" content="FSharp.Data.Traceable">
+    
+    <title>FSharp.Data.Traceable | FSharp.Data.Adaptive</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/img/favicon.ico" rel="icon" sizes="32x32" type="image/png"/>
+    <script type="application/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme-set-dark.js"></script>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-default.css" rel="stylesheet" type="text/css"/>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme.css" rel="stylesheet" type="text/css"/>
+    
     
 </head>
-
-<body>
-    <nav class="navbar navbar-expand-md navbar-light bg-secondary fixed-left" id="fsdocs-nav">
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse navbar-nav-scroll" id="navbarsExampleDefault">
-            <a href="./index.html"><img id="fsdocs-logo" src="https://fsprojects.github.io/FSharp.Data.Adaptive/img/logo.png" /></a>
-            <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-            <div id="header">
-                <div class="searchbox" id="fsdocs-searchbox">
-                    <label for="search-by">
-                        <i class="fas fa-search"></i>
-                    </label>
-                    <input data-search-input="" id="search-by" type="search" placeholder="Search..." />
-                    <span data-search-clear="">
-                        <i class="fas fa-times"></i>
-                    </span>
-                </div>
-            </div>
-
-            <!-- END SEARCH BOX: this adds support for the search box -->
-            <ul class="navbar-nav">
+<body class="api-docs">
+<header>
+    <div class="start">
+        <div id="menu-toggle">
+            <iconify-icon class="icon closed" height="22" icon="eva:menu-fill" width="22"></iconify-icon>
+            <iconify-icon class="icon open" height="22" icon="mi:close" width="22"></iconify-icon>
+            <input type="checkbox" name="mobile-menu" />
+            <ul class="menu">
                 <li class="nav-header">Links</li>
-                <li class="nav-item" id="fsdocs-license-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a></li>
-                <li class="nav-item" id="fsdocs-release-notes-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
-                <li class="nav-item" id="fsdocs-repository-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source Repository</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a>
+                </li>
+                <li class="nav-item"><a class="nav-link"
+                                        href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release
+                    Notes</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source
+                    Repository</a></li>
                 
                 <li class="nav-header">
   API Reference
@@ -65,14 +54,43 @@
 </li>
             </ul>
         </div>
-    </nav>
-    <div class="container">
-        <div class="masthead">
-            <h3 class="muted"><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/">FSharp.Data.Adaptive</a></h3>
-        </div>
-        <hr />
-        <div class="container" id="fsdocs-content">
-            <div>
+        <a href="./index.html">
+            <img alt="Header menu logo" src="https://fsprojects.github.io/FSharp.Data.Adaptive/img/logo.png">
+            <strong>FSharp.Data.Adaptive</strong>
+        </a>
+    </div>
+    <div class="end">
+        <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/" target="_blank">
+            <iconify-icon icon="uil:github" width="26" height="26"></iconify-icon>
+        </a>
+        <iconify-icon id="search-btn" icon="carbon:search" class="search" width="24" height="24"></iconify-icon>
+        <fsdocs-theme-toggle></fsdocs-theme-toggle>
+    </div>
+</header>
+<aside id="fsdocs-main-menu">
+    <ul class="menu">
+        <li class="nav-header">Links</li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a>
+        </li>
+        <li class="nav-item"><a class="nav-link"
+                                href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release
+            Notes</a></li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source
+            Repository</a></li>
+        
+        <li class="nav-header">
+  API Reference
+</li>             
+<li class="nav-item">
+  <a class="nav-link" href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/index.html">
+    All Namespaces
+  </a>
+</li>
+    </ul>
+</aside>
+<main>
+    <div id="content">
+        <div>
   <h2 id="fsharp-data-traceable">
     FSharp.Data.Traceable Namespace
   </h2>
@@ -102,21 +120,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:T:FSharp.Data.Traceable.AbstractDirtyReader`2``')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.AbstractDirtyReader`2\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/History.fs#L72-72" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- Abstract base class for implementing IOpReader<_> when dirty inputs are needed on evaluation.
-
+               Abstract base class for implementing IOpReader<_> when dirty inputs are needed on evaluation.
             </p>
           </div>
         </td>
@@ -134,21 +147,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:T:FSharp.Data.Traceable.AbstractReader`1``')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.AbstractReader`1\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/History.fs#L28-28" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- Abstract base class for implementing IOpReader<_>
-
+               Abstract base class for implementing IOpReader<_>
             </p>
           </div>
         </td>
@@ -166,21 +174,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:T:FSharp.Data.Traceable.AbstractReader`2``')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.AbstractReader`2\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/History.fs#L52-52" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- Abstract base class for implementing IOpReader<_,_>
-
+               Abstract base class for implementing IOpReader<_,_>
             </p>
           </div>
         </td>
@@ -198,21 +201,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:T:FSharp.Data.Traceable.AbstractVal`1``')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.AbstractVal`1\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/AbstractVal.fs#L8-8" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- Base class for standard avals
-
+               Base class for standard avals
             </p>
           </div>
         </td>
@@ -230,16 +228,13 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:T:FSharp.Data.Traceable.ChangeableLazyVal`1``')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.ChangeableLazyVal`1\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptifyHelpers.fs#L109-109" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
               
@@ -260,16 +255,13 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:T:FSharp.Data.Traceable.ChangeableModelList`3``')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.ChangeableModelList`3\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptifyHelpers.fs#L57-57" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
               
@@ -290,16 +282,13 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:T:FSharp.Data.Traceable.ChangeableModelMap`4``')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.ChangeableModelMap`4\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/AdaptifyHelpers.fs#L6-6" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
               
@@ -320,21 +309,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:T:FSharp.Data.Traceable.CountingHashSetModule`')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.CountingHashSetModule\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/CountingHashSet.fs#L375-375" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- Functional operators for CountingHashSet.
-
+               Functional operators for CountingHashSet.
             </p>
           </div>
         </td>
@@ -352,21 +336,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:T:FSharp.Data.Traceable.CountingHashSet`1``')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.CountingHashSet`1\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/CountingHashSet.fs#L30-30" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- A reference counting set, used for tracing the unions of sets with elements in common.
-
+               A reference counting set, used for tracing the unions of sets with elements in common.
             </p>
           </div>
         </td>
@@ -384,21 +363,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:T:FSharp.Data.Traceable.HashMap`')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.HashMap\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/Instances.fs#L73-73" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- Functional operators for HashMap.
-
+               Functional operators for HashMap.
             </p>
           </div>
         </td>
@@ -416,21 +390,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:T:FSharp.Data.Traceable.HashMapDelta`')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.HashMapDelta\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/Instances.fs#L38-38" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- Functional operators for HashMapDelta.
-
+               Functional operators for HashMapDelta.
             </p>
           </div>
         </td>
@@ -448,21 +417,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:T:FSharp.Data.Traceable.HashSet`')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.HashSet\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/Instances.fs#L54-54" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- Functional operators for HashSet.
-
+               Functional operators for HashSet.
             </p>
           </div>
         </td>
@@ -480,21 +444,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:T:FSharp.Data.Traceable.HashSetDelta`')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.HashSetDelta\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/Instances.fs#L6-6" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- Functional operators for HashSetDelta.
-
+               Functional operators for HashSetDelta.
             </p>
           </div>
         </td>
@@ -512,21 +471,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:T:FSharp.Data.Traceable.History`')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.History\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/History.fs#L509-509" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- Functional operators related to the History<_,_> type.
-
+               Functional operators related to the History<_,_> type.
             </p>
           </div>
         </td>
@@ -544,23 +498,18 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:T:FSharp.Data.Traceable.History`2``')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.History`2\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/History.fs#L128-128" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- History and HistoryReader are the central implementation for traceable data-types.
+               History and HistoryReader are the central implementation for traceable data-types.
  The allow to construct a dependent History (by passing an input-reader) or imperatively
  performing operations on the history while keeping track of all output-versions that may exist.
-
             </p>
           </div>
         </td>
@@ -578,21 +527,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:T:FSharp.Data.Traceable.IndexList`')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.IndexList\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/Instances.fs#L92-92" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- Functional operators for IndexList.
-
+               Functional operators for IndexList.
             </p>
           </div>
         </td>
@@ -610,21 +554,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:T:FSharp.Data.Traceable.IndexListDelta`')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.IndexListDelta\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/Instances.fs#L22-22" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- Functional operators for IndexListDelta.
-
+               Functional operators for IndexListDelta.
             </p>
           </div>
         </td>
@@ -642,21 +581,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:T:FSharp.Data.Traceable.IOpReader`1``')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.IOpReader`1\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/History.fs#L8-8" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- An adaptive reader that allows to get operations since the last evaluation
-
+               An adaptive reader that allows to get operations since the last evaluation
             </p>
           </div>
         </td>
@@ -674,21 +608,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:T:FSharp.Data.Traceable.IOpReader`2``')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.IOpReader`2\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/History.fs#L16-16" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- An adaptive reader thath allows to get operations and also exposes its current state.
-
+               An adaptive reader thath allows to get operations and also exposes its current state.
             </p>
           </div>
         </td>
@@ -706,21 +635,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:T:FSharp.Data.Traceable.Monoid`1``')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.Monoid`1\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/Traceable.fs#L4-4" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- Function table for a monoid instance
-
+               Function table for a monoid instance
             </p>
           </div>
         </td>
@@ -738,21 +662,16 @@
         <td class="fsdocs-entity-xmldoc">
           <div>
             <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('``cref:T:FSharp.Data.Traceable.Traceable`2``')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
             </div>
             <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'T:FSharp.Data.Traceable.Traceable`2\'/>')">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+              <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
             </div>
             <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/Traceable/Traceable.fs#L17-17" class="fsdocs-source-link" title="Source on GitHub">
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-              <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
+              <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
             </a>
             <p class="fsdocs-summary">
-              
- Function table for a traceable instance
-
+               Function table for a traceable instance
             </p>
           </div>
         </td>
@@ -760,17 +679,24 @@
     </tbody>
   </table>
 </div>
-            
-        </div>
-
-        <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.css" />
-        <script type="text/javascript">var fsdocs_search_baseurl = 'https://fsprojects.github.io/FSharp.Data.Adaptive/';</script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.8/lunr.min.js"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.min.js"></script>
-        <script type="text/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-search.js"></script>
-        <!-- END SEARCH BOX: this adds support for the search box -->
+        
     </div>
-</body>
+</main>
+<aside id="fsdocs-page-menu">
+    <p id="on-this-page">On this page</p>
+    <div class="empty"></div>
+</aside>
+<dialog>
+    <input type="search" placeholder="Search docs" />
+    <div class="results">
+        <ul></ul>
+        <p class="empty">Type something to start searching.</p>
+    </div>
+</dialog>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-tips.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme-toggle.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-search.js"></script>
 
+</body>
 </html>

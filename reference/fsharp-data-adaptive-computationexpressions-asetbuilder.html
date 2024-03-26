@@ -1,59 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="en" data-root="https://fsprojects.github.io/FSharp.Data.Adaptive/">
 <head>
-    <meta charset="utf-8">
-    <title>ASetBuilder (FSharp.Data.Adaptive)</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="author" content="FSharp.Data.Adaptive">
-
-    <link rel="stylesheet" id="theme_link" href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/4.6.0/materia/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
-
-    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
-
-    <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico">
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/navbar-fixed-left.css" />
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-default.css" />
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-custom.css" />
-    <script type="text/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-tips.js"></script>
-    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
-    <!--[if lt IE 9]>
-      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.css" />
-    <!-- END SEARCH BOX: this adds support for the search box -->
+    <meta charset="UTF-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="FSharp.Data.Adaptive" name="author">
+    <!-- Opengraph properties (https://ogp.me/) -->
+    <meta property="og:site_name" content="FSharp.Data.Adaptive">
+    <meta property="og:title" content="ASetBuilder (FSharp.Data.Adaptive)" />
+    <meta property="og:url" content="https://fsprojects.github.io/FSharp.Data.Adaptive/{{fsdocs-source-basename}}.html">
+    <meta property="og:type" content="website" />
+    <!-- Twitter cards (https://developer.twitter.com/en/docs/twitter-for-websites/cards/overview/summary-card-with-large-image) -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="https://fsprojects.github.io/FSharp.Data.Adaptive/">
+    <meta name="twitter:title" content="ASetBuilder (FSharp.Data.Adaptive)">
+    
+    <title>ASetBuilder (FSharp.Data.Adaptive) | FSharp.Data.Adaptive</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/img/favicon.ico" rel="icon" sizes="32x32" type="image/png"/>
+    <script type="application/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme-set-dark.js"></script>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-default.css" rel="stylesheet" type="text/css"/>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme.css" rel="stylesheet" type="text/css"/>
+    
     
 </head>
-
-<body>
-    <nav class="navbar navbar-expand-md navbar-light bg-secondary fixed-left" id="fsdocs-nav">
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse navbar-nav-scroll" id="navbarsExampleDefault">
-            <a href="./index.html"><img id="fsdocs-logo" src="https://fsprojects.github.io/FSharp.Data.Adaptive/img/logo.png" /></a>
-            <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-            <div id="header">
-                <div class="searchbox" id="fsdocs-searchbox">
-                    <label for="search-by">
-                        <i class="fas fa-search"></i>
-                    </label>
-                    <input data-search-input="" id="search-by" type="search" placeholder="Search..." />
-                    <span data-search-clear="">
-                        <i class="fas fa-times"></i>
-                    </span>
-                </div>
-            </div>
-
-            <!-- END SEARCH BOX: this adds support for the search box -->
-            <ul class="navbar-nav">
+<body class="api-docs">
+<header>
+    <div class="start">
+        <div id="menu-toggle">
+            <iconify-icon class="icon closed" height="22" icon="eva:menu-fill" width="22"></iconify-icon>
+            <iconify-icon class="icon open" height="22" icon="mi:close" width="22"></iconify-icon>
+            <input type="checkbox" name="mobile-menu" />
+            <ul class="menu">
                 <li class="nav-header">Links</li>
-                <li class="nav-item" id="fsdocs-license-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a></li>
-                <li class="nav-item" id="fsdocs-release-notes-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
-                <li class="nav-item" id="fsdocs-repository-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source Repository</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a>
+                </li>
+                <li class="nav-item"><a class="nav-link"
+                                        href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release
+                    Notes</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source
+                    Repository</a></li>
                 
                 <li class="nav-header">
   API Reference
@@ -65,14 +54,43 @@
 </li>
             </ul>
         </div>
-    </nav>
-    <div class="container">
-        <div class="masthead">
-            <h3 class="muted"><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/">FSharp.Data.Adaptive</a></h3>
-        </div>
-        <hr />
-        <div class="container" id="fsdocs-content">
-            <div>
+        <a href="./index.html">
+            <img alt="Header menu logo" src="https://fsprojects.github.io/FSharp.Data.Adaptive/img/logo.png">
+            <strong>FSharp.Data.Adaptive</strong>
+        </a>
+    </div>
+    <div class="end">
+        <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/" target="_blank">
+            <iconify-icon icon="uil:github" width="26" height="26"></iconify-icon>
+        </a>
+        <iconify-icon id="search-btn" icon="carbon:search" class="search" width="24" height="24"></iconify-icon>
+        <fsdocs-theme-toggle></fsdocs-theme-toggle>
+    </div>
+</header>
+<aside id="fsdocs-main-menu">
+    <ul class="menu">
+        <li class="nav-header">Links</li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a>
+        </li>
+        <li class="nav-item"><a class="nav-link"
+                                href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release
+            Notes</a></li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source
+            Repository</a></li>
+        
+        <li class="nav-header">
+  API Reference
+</li>             
+<li class="nav-item">
+  <a class="nav-link" href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/index.html">
+    All Namespaces
+  </a>
+</li>
+    </ul>
+</aside>
+<main>
+    <div id="content">
+        <div>
   <h2>
     ASetBuilder Type
   </h2>
@@ -100,9 +118,7 @@
   <div class="fsdocs-xmldoc">
     <div>
       <p class="fsdocs-summary">
-        
- ComputationExpression builder for aset.
-
+         ComputationExpression builder for aset.
       </p>
     </div>
   </div>
@@ -131,7 +147,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '664', 664)" onmouseover="showTip(event, '664', 664)">
+              <code onmouseout="hideTip(event, '674', 674)" onmouseover="showTip(event, '674', 674)">
                 <p>
                   <a id="``.ctor``">
                     <a href="#``.ctor``">
@@ -140,7 +156,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="664">
+              <div class="fsdocs-tip" id="674">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>ASetBuilder<span>()</span></span></code>
@@ -156,23 +172,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.#ctor`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.#ctor\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L42-42" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-returns">
               <dt>
                 <span class="fsdocs-return-name">
@@ -206,7 +205,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '665', 665)" onmouseover="showTip(event, '665', 665)">
+              <code onmouseout="hideTip(event, '675', 675)" onmouseover="showTip(event, '675', 675)">
                 <p>
                   <a id="Bind">
                     <a href="#Bind">
@@ -215,7 +214,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="665">
+              <div class="fsdocs-tip" id="675">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.Bind</span></code>
@@ -256,23 +255,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.Bind``2```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.Bind``2\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L69-69" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-params">
               <dt class="fsdocs-param">
                 <span class="fsdocs-param-name">
@@ -305,7 +287,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '666', 666)" onmouseover="showTip(event, '666', 666)">
+              <code onmouseout="hideTip(event, '676', 676)" onmouseover="showTip(event, '676', 676)">
                 <p>
                   <a id="Combine">
                     <a href="#Combine">
@@ -314,7 +296,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="666">
+              <div class="fsdocs-tip" id="676">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.Combine</span></code>
@@ -355,23 +337,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.Combine``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.Combine``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L108-108" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-params">
               <dt class="fsdocs-param">
                 <span class="fsdocs-param-name">
@@ -404,7 +369,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '667', 667)" onmouseover="showTip(event, '667', 667)">
+              <code onmouseout="hideTip(event, '677', 677)" onmouseover="showTip(event, '677', 677)">
                 <p>
                   <a id="Delay">
                     <a href="#Delay">
@@ -413,7 +378,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="667">
+              <div class="fsdocs-tip" id="677">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.Delay</span></code>
@@ -446,23 +411,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.Delay``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.Delay``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L109-109" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-params">
               <dt class="fsdocs-param">
                 <span class="fsdocs-param-name">
@@ -487,7 +435,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '668', 668)" onmouseover="showTip(event, '668', 668)">
+              <code onmouseout="hideTip(event, '678', 678)" onmouseover="showTip(event, '678', 678)">
                 <p>
                   <a id="For">
                     <a href="#For">
@@ -496,7 +444,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="668">
+              <div class="fsdocs-tip" id="678">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.For</span></code>
@@ -537,23 +485,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``2```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``2\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L104-104" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-params">
               <dt class="fsdocs-param">
                 <span class="fsdocs-param-name">
@@ -586,7 +517,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '669', 669)" onmouseover="showTip(event, '669', 669)">
+              <code onmouseout="hideTip(event, '679', 679)" onmouseover="showTip(event, '679', 679)">
                 <p>
                   <a id="For">
                     <a href="#For">
@@ -595,7 +526,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="669">
+              <div class="fsdocs-tip" id="679">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.For</span></code>
@@ -636,23 +567,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``2```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``2\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L101-101" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-params">
               <dt class="fsdocs-param">
                 <span class="fsdocs-param-name">
@@ -685,7 +599,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '670', 670)" onmouseover="showTip(event, '670', 670)">
+              <code onmouseout="hideTip(event, '680', 680)" onmouseover="showTip(event, '680', 680)">
                 <p>
                   <a id="For">
                     <a href="#For">
@@ -694,7 +608,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="670">
+              <div class="fsdocs-tip" id="680">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.For</span></code>
@@ -735,23 +649,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``2```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``2\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L98-98" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-params">
               <dt class="fsdocs-param">
                 <span class="fsdocs-param-name">
@@ -784,7 +681,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '671', 671)" onmouseover="showTip(event, '671', 671)">
+              <code onmouseout="hideTip(event, '681', 681)" onmouseover="showTip(event, '681', 681)">
                 <p>
                   <a id="For">
                     <a href="#For">
@@ -793,7 +690,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="671">
+              <div class="fsdocs-tip" id="681">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.For</span></code>
@@ -806,7 +703,7 @@
                         elements
                       </b>
                       :
-                      <code><span>seq&lt;'T1&gt;</span></code>
+                      <code><span>'T1&#32;seq</span></code>
                     </span>
                     <br/>
                     <span>
@@ -834,30 +731,13 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``2```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``2\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L95-95" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-params">
               <dt class="fsdocs-param">
                 <span class="fsdocs-param-name">
                   elements
                 </span>
                 :
-                <code><span>seq&lt;'T1&gt;</span></code>
+                <code><span>'T1&#32;seq</span></code>
               </dt>
               <dd class="fsdocs-param-docs"></dd>
               <dt class="fsdocs-param">
@@ -883,7 +763,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '672', 672)" onmouseover="showTip(event, '672', 672)">
+              <code onmouseout="hideTip(event, '682', 682)" onmouseover="showTip(event, '682', 682)">
                 <p>
                   <a id="For">
                     <a href="#For">
@@ -892,7 +772,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="672">
+              <div class="fsdocs-tip" id="682">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.For</span></code>
@@ -933,23 +813,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``3```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``3\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L92-92" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-params">
               <dt class="fsdocs-param">
                 <span class="fsdocs-param-name">
@@ -982,7 +845,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '673', 673)" onmouseover="showTip(event, '673', 673)">
+              <code onmouseout="hideTip(event, '683', 683)" onmouseover="showTip(event, '683', 683)">
                 <p>
                   <a id="For">
                     <a href="#For">
@@ -991,7 +854,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="673">
+              <div class="fsdocs-tip" id="683">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.For</span></code>
@@ -1032,23 +895,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``2```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``2\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L89-89" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-params">
               <dt class="fsdocs-param">
                 <span class="fsdocs-param-name">
@@ -1081,7 +927,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '674', 674)" onmouseover="showTip(event, '674', 674)">
+              <code onmouseout="hideTip(event, '684', 684)" onmouseover="showTip(event, '684', 684)">
                 <p>
                   <a id="For">
                     <a href="#For">
@@ -1090,7 +936,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="674">
+              <div class="fsdocs-tip" id="684">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.For</span></code>
@@ -1131,23 +977,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``2```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``2\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L86-86" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-params">
               <dt class="fsdocs-param">
                 <span class="fsdocs-param-name">
@@ -1180,7 +1009,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '675', 675)" onmouseover="showTip(event, '675', 675)">
+              <code onmouseout="hideTip(event, '685', 685)" onmouseover="showTip(event, '685', 685)">
                 <p>
                   <a id="For">
                     <a href="#For">
@@ -1189,7 +1018,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="675">
+              <div class="fsdocs-tip" id="685">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.For</span></code>
@@ -1230,23 +1059,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``2```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``2\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L83-83" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-params">
               <dt class="fsdocs-param">
                 <span class="fsdocs-param-name">
@@ -1279,7 +1091,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '676', 676)" onmouseover="showTip(event, '676', 676)">
+              <code onmouseout="hideTip(event, '686', 686)" onmouseover="showTip(event, '686', 686)">
                 <p>
                   <a id="For">
                     <a href="#For">
@@ -1288,7 +1100,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="676">
+              <div class="fsdocs-tip" id="686">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.For</span></code>
@@ -1329,23 +1141,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``2```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``2\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L78-78" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-params">
               <dt class="fsdocs-param">
                 <span class="fsdocs-param-name">
@@ -1378,7 +1173,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '677', 677)" onmouseover="showTip(event, '677', 677)">
+              <code onmouseout="hideTip(event, '687', 687)" onmouseover="showTip(event, '687', 687)">
                 <p>
                   <a id="For">
                     <a href="#For">
@@ -1387,7 +1182,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="677">
+              <div class="fsdocs-tip" id="687">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.For</span></code>
@@ -1421,28 +1216,13 @@
                   Modifiers: 
                   inline
                   <br/>
+                  Type parameters: 
+                  &#39;a, &#39;T1, &#39;T2
                 </div>
               </div>
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``3```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.For``3\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L72-72" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-params">
               <dt class="fsdocs-param">
                 <span class="fsdocs-param-name">
@@ -1475,7 +1255,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '678', 678)" onmouseover="showTip(event, '678', 678)">
+              <code onmouseout="hideTip(event, '688', 688)" onmouseover="showTip(event, '688', 688)">
                 <p>
                   <a id="Yield">
                     <a href="#Yield">
@@ -1484,7 +1264,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="678">
+              <div class="fsdocs-tip" id="688">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.Yield</span></code>
@@ -1517,23 +1297,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.Yield``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.Yield``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L43-43" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-params">
               <dt class="fsdocs-param">
                 <span class="fsdocs-param-name">
@@ -1541,836 +1304,6 @@
                 </span>
                 :
                 <code>'T</code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
-          </td>
-        </tr>
-        <tr>
-          <td class="fsdocs-member-usage">
-            <div>
-              <code onmouseout="hideTip(event, '679', 679)" onmouseover="showTip(event, '679', 679)">
-                <p>
-                  <a id="YieldFrom">
-                    <a href="#YieldFrom">
-                      <code><span>this.YieldFrom</span></code>
-                    </a>
-                  </a>
-                </p>
-              </code>
-              <div class="fsdocs-tip" id="679">
-                <div class="member-tooltip">
-                  Full Usage: 
-                  <code><span>this.YieldFrom</span></code>
-                  <br/>
-                  <br/>
-                  Parameters: 
-                  <ul>
-                    <span>
-                      <b>
-                        values
-                      </b>
-                      :
-                      <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>'T&#32;array</span>&gt;</span></code>
-                    </span>
-                    <br/>
-                  </ul>
-                  <br/>
-                  <span>
-                    Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-                  </span>
-                  <br/>
-                  Modifiers: 
-                  inline
-                  <br/>
-                  Type parameters: 
-                  &#39;T
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L66-66" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  values
-                </span>
-                :
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>'T&#32;array</span>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
-          </td>
-        </tr>
-        <tr>
-          <td class="fsdocs-member-usage">
-            <div>
-              <code onmouseout="hideTip(event, '680', 680)" onmouseover="showTip(event, '680', 680)">
-                <p>
-                  <a id="YieldFrom">
-                    <a href="#YieldFrom">
-                      <code><span>this.YieldFrom</span></code>
-                    </a>
-                  </a>
-                </p>
-              </code>
-              <div class="fsdocs-tip" id="680">
-                <div class="member-tooltip">
-                  Full Usage: 
-                  <code><span>this.YieldFrom</span></code>
-                  <br/>
-                  <br/>
-                  Parameters: 
-                  <ul>
-                    <span>
-                      <b>
-                        values
-                      </b>
-                      :
-                      <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>'T&#32;list</span>&gt;</span></code>
-                    </span>
-                    <br/>
-                  </ul>
-                  <br/>
-                  <span>
-                    Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-                  </span>
-                  <br/>
-                  Modifiers: 
-                  inline
-                  <br/>
-                  Type parameters: 
-                  &#39;T
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L63-63" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  values
-                </span>
-                :
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>'T&#32;list</span>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
-          </td>
-        </tr>
-        <tr>
-          <td class="fsdocs-member-usage">
-            <div>
-              <code onmouseout="hideTip(event, '681', 681)" onmouseover="showTip(event, '681', 681)">
-                <p>
-                  <a id="YieldFrom">
-                    <a href="#YieldFrom">
-                      <code><span>this.YieldFrom</span></code>
-                    </a>
-                  </a>
-                </p>
-              </code>
-              <div class="fsdocs-tip" id="681">
-                <div class="member-tooltip">
-                  Full Usage: 
-                  <code><span>this.YieldFrom</span></code>
-                  <br/>
-                  <br/>
-                  Parameters: 
-                  <ul>
-                    <span>
-                      <b>
-                        values
-                      </b>
-                      :
-                      <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>seq&lt;'T&gt;</span>&gt;</span></code>
-                    </span>
-                    <br/>
-                  </ul>
-                  <br/>
-                  <span>
-                    Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-                  </span>
-                  <br/>
-                  Modifiers: 
-                  inline
-                  <br/>
-                  Type parameters: 
-                  &#39;T
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L60-60" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  values
-                </span>
-                :
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>seq&lt;'T&gt;</span>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
-          </td>
-        </tr>
-        <tr>
-          <td class="fsdocs-member-usage">
-            <div>
-              <code onmouseout="hideTip(event, '682', 682)" onmouseover="showTip(event, '682', 682)">
-                <p>
-                  <a id="YieldFrom">
-                    <a href="#YieldFrom">
-                      <code><span>this.YieldFrom</span></code>
-                    </a>
-                  </a>
-                </p>
-              </code>
-              <div class="fsdocs-tip" id="682">
-                <div class="member-tooltip">
-                  Full Usage: 
-                  <code><span>this.YieldFrom</span></code>
-                  <br/>
-                  <br/>
-                  Parameters: 
-                  <ul>
-                    <span>
-                      <b>
-                        values
-                      </b>
-                      :
-                      <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashset-1.html">HashSet</a>&lt;'T&gt;</span>&gt;</span></code>
-                    </span>
-                    <br/>
-                  </ul>
-                  <br/>
-                  <span>
-                    Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-                  </span>
-                  <br/>
-                  Modifiers: 
-                  inline
-                  <br/>
-                  Type parameters: 
-                  &#39;T
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L57-57" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  values
-                </span>
-                :
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashset-1.html">HashSet</a>&lt;'T&gt;</span>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
-          </td>
-        </tr>
-        <tr>
-          <td class="fsdocs-member-usage">
-            <div>
-              <code onmouseout="hideTip(event, '683', 683)" onmouseover="showTip(event, '683', 683)">
-                <p>
-                  <a id="YieldFrom">
-                    <a href="#YieldFrom">
-                      <code><span>this.YieldFrom</span></code>
-                    </a>
-                  </a>
-                </p>
-              </code>
-              <div class="fsdocs-tip" id="683">
-                <div class="member-tooltip">
-                  Full Usage: 
-                  <code><span>this.YieldFrom</span></code>
-                  <br/>
-                  <br/>
-                  Parameters: 
-                  <ul>
-                    <span>
-                      <b>
-                        values
-                      </b>
-                      :
-                      <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-amap-2.html">amap</a>&lt;<span>'K,&#32;'V</span>&gt;</span></code>
-                    </span>
-                    <br/>
-                  </ul>
-                  <br/>
-                  <span>
-                    Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;<span>'K&#32;*&#32;'V</span>&gt;</span></code>
-                  </span>
-                  <br/>
-                  Modifiers: 
-                  inline
-                  <br/>
-                  Type parameters: 
-                  &#39;K, &#39;V
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``2```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``2\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L54-54" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  values
-                </span>
-                :
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-amap-2.html">amap</a>&lt;<span>'K,&#32;'V</span>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;<span>'K&#32;*&#32;'V</span>&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
-          </td>
-        </tr>
-        <tr>
-          <td class="fsdocs-member-usage">
-            <div>
-              <code onmouseout="hideTip(event, '684', 684)" onmouseover="showTip(event, '684', 684)">
-                <p>
-                  <a id="YieldFrom">
-                    <a href="#YieldFrom">
-                      <code><span>this.YieldFrom</span></code>
-                    </a>
-                  </a>
-                </p>
-              </code>
-              <div class="fsdocs-tip" id="684">
-                <div class="member-tooltip">
-                  Full Usage: 
-                  <code><span>this.YieldFrom</span></code>
-                  <br/>
-                  <br/>
-                  Parameters: 
-                  <ul>
-                    <span>
-                      <b>
-                        values
-                      </b>
-                      :
-                      <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-alist-1.html">alist</a>&lt;'T&gt;</span></code>
-                    </span>
-                    <br/>
-                  </ul>
-                  <br/>
-                  <span>
-                    Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-                  </span>
-                  <br/>
-                  Modifiers: 
-                  inline
-                  <br/>
-                  Type parameters: 
-                  &#39;T
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L51-51" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  values
-                </span>
-                :
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-alist-1.html">alist</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
-          </td>
-        </tr>
-        <tr>
-          <td class="fsdocs-member-usage">
-            <div>
-              <code onmouseout="hideTip(event, '685', 685)" onmouseover="showTip(event, '685', 685)">
-                <p>
-                  <a id="YieldFrom">
-                    <a href="#YieldFrom">
-                      <code><span>this.YieldFrom</span></code>
-                    </a>
-                  </a>
-                </p>
-              </code>
-              <div class="fsdocs-tip" id="685">
-                <div class="member-tooltip">
-                  Full Usage: 
-                  <code><span>this.YieldFrom</span></code>
-                  <br/>
-                  <br/>
-                  Parameters: 
-                  <ul>
-                    <span>
-                      <b>
-                        values
-                      </b>
-                      :
-                      <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashset-1.html">HashSet</a>&lt;'T&gt;</span></code>
-                    </span>
-                    <br/>
-                  </ul>
-                  <br/>
-                  <span>
-                    Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-                  </span>
-                  <br/>
-                  Modifiers: 
-                  inline
-                  <br/>
-                  Type parameters: 
-                  &#39;T
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L49-49" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  values
-                </span>
-                :
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashset-1.html">HashSet</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
-          </td>
-        </tr>
-        <tr>
-          <td class="fsdocs-member-usage">
-            <div>
-              <code onmouseout="hideTip(event, '686', 686)" onmouseover="showTip(event, '686', 686)">
-                <p>
-                  <a id="YieldFrom">
-                    <a href="#YieldFrom">
-                      <code><span>this.YieldFrom</span></code>
-                    </a>
-                  </a>
-                </p>
-              </code>
-              <div class="fsdocs-tip" id="686">
-                <div class="member-tooltip">
-                  Full Usage: 
-                  <code><span>this.YieldFrom</span></code>
-                  <br/>
-                  <br/>
-                  Parameters: 
-                  <ul>
-                    <span>
-                      <b>
-                        values
-                      </b>
-                      :
-                      <code><span>'T[]</span></code>
-                    </span>
-                    <br/>
-                  </ul>
-                  <br/>
-                  <span>
-                    Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-                  </span>
-                  <br/>
-                  Modifiers: 
-                  inline
-                  <br/>
-                  Type parameters: 
-                  &#39;T
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L48-48" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  values
-                </span>
-                :
-                <code><span>'T[]</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
-          </td>
-        </tr>
-        <tr>
-          <td class="fsdocs-member-usage">
-            <div>
-              <code onmouseout="hideTip(event, '687', 687)" onmouseover="showTip(event, '687', 687)">
-                <p>
-                  <a id="YieldFrom">
-                    <a href="#YieldFrom">
-                      <code><span>this.YieldFrom</span></code>
-                    </a>
-                  </a>
-                </p>
-              </code>
-              <div class="fsdocs-tip" id="687">
-                <div class="member-tooltip">
-                  Full Usage: 
-                  <code><span>this.YieldFrom</span></code>
-                  <br/>
-                  <br/>
-                  Parameters: 
-                  <ul>
-                    <span>
-                      <b>
-                        values
-                      </b>
-                      :
-                      <code><span>'T&#32;list</span></code>
-                    </span>
-                    <br/>
-                  </ul>
-                  <br/>
-                  <span>
-                    Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-                  </span>
-                  <br/>
-                  Modifiers: 
-                  inline
-                  <br/>
-                  Type parameters: 
-                  &#39;T
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L47-47" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  values
-                </span>
-                :
-                <code><span>'T&#32;list</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
-          </td>
-        </tr>
-        <tr>
-          <td class="fsdocs-member-usage">
-            <div>
-              <code onmouseout="hideTip(event, '688', 688)" onmouseover="showTip(event, '688', 688)">
-                <p>
-                  <a id="YieldFrom">
-                    <a href="#YieldFrom">
-                      <code><span>this.YieldFrom</span></code>
-                    </a>
-                  </a>
-                </p>
-              </code>
-              <div class="fsdocs-tip" id="688">
-                <div class="member-tooltip">
-                  Full Usage: 
-                  <code><span>this.YieldFrom</span></code>
-                  <br/>
-                  <br/>
-                  Parameters: 
-                  <ul>
-                    <span>
-                      <b>
-                        values
-                      </b>
-                      :
-                      <code><span>seq&lt;'T&gt;</span></code>
-                    </span>
-                    <br/>
-                  </ul>
-                  <br/>
-                  <span>
-                    Returns: 
-                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
-                  </span>
-                  <br/>
-                  Modifiers: 
-                  inline
-                  <br/>
-                  Type parameters: 
-                  &#39;T
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L46-46" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  values
-                </span>
-                :
-                <code><span>seq&lt;'T&gt;</span></code>
               </dt>
               <dd class="fsdocs-param-docs"></dd>
             </dl>
@@ -2410,7 +1343,7 @@
                         values
                       </b>
                       :
-                      <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-cset-1.html">cset</a>&lt;'T&gt;</span></code>
+                      <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>'T&#32;array</span>&gt;</span></code>
                     </span>
                     <br/>
                   </ul>
@@ -2430,30 +1363,13 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L45-45" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-params">
               <dt class="fsdocs-param">
                 <span class="fsdocs-param-name">
                   values
                 </span>
                 :
-                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-cset-1.html">cset</a>&lt;'T&gt;</span></code>
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>'T&#32;array</span>&gt;</span></code>
               </dt>
               <dd class="fsdocs-param-docs"></dd>
             </dl>
@@ -2493,6 +1409,666 @@
                         values
                       </b>
                       :
+                      <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>'T&#32;list</span>&gt;</span></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+                  </span>
+                  <br/>
+                  Modifiers: 
+                  inline
+                  <br/>
+                  Type parameters: 
+                  &#39;T
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  values
+                </span>
+                :
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>'T&#32;list</span>&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '691', 691)" onmouseover="showTip(event, '691', 691)">
+                <p>
+                  <a id="YieldFrom">
+                    <a href="#YieldFrom">
+                      <code><span>this.YieldFrom</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="691">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.YieldFrom</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        values
+                      </b>
+                      :
+                      <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>'T&#32;seq</span>&gt;</span></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+                  </span>
+                  <br/>
+                  Modifiers: 
+                  inline
+                  <br/>
+                  Type parameters: 
+                  &#39;T
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  values
+                </span>
+                :
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span>'T&#32;seq</span>&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '692', 692)" onmouseover="showTip(event, '692', 692)">
+                <p>
+                  <a id="YieldFrom">
+                    <a href="#YieldFrom">
+                      <code><span>this.YieldFrom</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="692">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.YieldFrom</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        values
+                      </b>
+                      :
+                      <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashset-1.html">HashSet</a>&lt;'T&gt;</span>&gt;</span></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+                  </span>
+                  <br/>
+                  Modifiers: 
+                  inline
+                  <br/>
+                  Type parameters: 
+                  &#39;T
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  values
+                </span>
+                :
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aval-1.html">aval</a>&lt;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashset-1.html">HashSet</a>&lt;'T&gt;</span>&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '693', 693)" onmouseover="showTip(event, '693', 693)">
+                <p>
+                  <a id="YieldFrom">
+                    <a href="#YieldFrom">
+                      <code><span>this.YieldFrom</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="693">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.YieldFrom</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        values
+                      </b>
+                      :
+                      <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-amap-2.html">amap</a>&lt;<span>'K,&#32;'V</span>&gt;</span></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;<span>'K&#32;*&#32;'V</span>&gt;</span></code>
+                  </span>
+                  <br/>
+                  Modifiers: 
+                  inline
+                  <br/>
+                  Type parameters: 
+                  &#39;K, &#39;V
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  values
+                </span>
+                :
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-amap-2.html">amap</a>&lt;<span>'K,&#32;'V</span>&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;<span>'K&#32;*&#32;'V</span>&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '694', 694)" onmouseover="showTip(event, '694', 694)">
+                <p>
+                  <a id="YieldFrom">
+                    <a href="#YieldFrom">
+                      <code><span>this.YieldFrom</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="694">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.YieldFrom</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        values
+                      </b>
+                      :
+                      <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-alist-1.html">alist</a>&lt;'T&gt;</span></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+                  </span>
+                  <br/>
+                  Modifiers: 
+                  inline
+                  <br/>
+                  Type parameters: 
+                  &#39;T
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  values
+                </span>
+                :
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-alist-1.html">alist</a>&lt;'T&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '695', 695)" onmouseover="showTip(event, '695', 695)">
+                <p>
+                  <a id="YieldFrom">
+                    <a href="#YieldFrom">
+                      <code><span>this.YieldFrom</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="695">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.YieldFrom</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        values
+                      </b>
+                      :
+                      <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashset-1.html">HashSet</a>&lt;'T&gt;</span></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+                  </span>
+                  <br/>
+                  Modifiers: 
+                  inline
+                  <br/>
+                  Type parameters: 
+                  &#39;T
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  values
+                </span>
+                :
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashset-1.html">HashSet</a>&lt;'T&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '696', 696)" onmouseover="showTip(event, '696', 696)">
+                <p>
+                  <a id="YieldFrom">
+                    <a href="#YieldFrom">
+                      <code><span>this.YieldFrom</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="696">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.YieldFrom</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        values
+                      </b>
+                      :
+                      <code><span>'T[]</span></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+                  </span>
+                  <br/>
+                  Modifiers: 
+                  inline
+                  <br/>
+                  Type parameters: 
+                  &#39;T
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  values
+                </span>
+                :
+                <code><span>'T[]</span></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '697', 697)" onmouseover="showTip(event, '697', 697)">
+                <p>
+                  <a id="YieldFrom">
+                    <a href="#YieldFrom">
+                      <code><span>this.YieldFrom</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="697">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.YieldFrom</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        values
+                      </b>
+                      :
+                      <code><span>'T&#32;list</span></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+                  </span>
+                  <br/>
+                  Modifiers: 
+                  inline
+                  <br/>
+                  Type parameters: 
+                  &#39;T
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  values
+                </span>
+                :
+                <code><span>'T&#32;list</span></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '698', 698)" onmouseover="showTip(event, '698', 698)">
+                <p>
+                  <a id="YieldFrom">
+                    <a href="#YieldFrom">
+                      <code><span>this.YieldFrom</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="698">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.YieldFrom</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        values
+                      </b>
+                      :
+                      <code><span>'T&#32;seq</span></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+                  </span>
+                  <br/>
+                  Modifiers: 
+                  inline
+                  <br/>
+                  Type parameters: 
+                  &#39;T
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  values
+                </span>
+                :
+                <code><span>'T&#32;seq</span></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '699', 699)" onmouseover="showTip(event, '699', 699)">
+                <p>
+                  <a id="YieldFrom">
+                    <a href="#YieldFrom">
+                      <code><span>this.YieldFrom</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="699">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.YieldFrom</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        values
+                      </b>
+                      :
+                      <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-cset-1.html">cset</a>&lt;'T&gt;</span></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+                  </span>
+                  <br/>
+                  Modifiers: 
+                  inline
+                  <br/>
+                  Type parameters: 
+                  &#39;T
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  values
+                </span>
+                :
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-cset-1.html">cset</a>&lt;'T&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '700', 700)" onmouseover="showTip(event, '700', 700)">
+                <p>
+                  <a id="YieldFrom">
+                    <a href="#YieldFrom">
+                      <code><span>this.YieldFrom</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="700">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.YieldFrom</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        values
+                      </b>
+                      :
                       <code><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-aset-1.html">aset</a>&lt;'T&gt;</span></code>
                     </span>
                     <br/>
@@ -2513,23 +2089,6 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.YieldFrom``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L44-44" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-params">
               <dt class="fsdocs-param">
                 <span class="fsdocs-param-name">
@@ -2554,7 +2113,7 @@
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '691', 691)" onmouseover="showTip(event, '691', 691)">
+              <code onmouseout="hideTip(event, '701', 701)" onmouseover="showTip(event, '701', 701)">
                 <p>
                   <a id="Zero">
                     <a href="#Zero">
@@ -2563,7 +2122,7 @@
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="691">
+              <div class="fsdocs-tip" id="701">
                 <div class="member-tooltip">
                   Full Usage: 
                   <code><span>this.Zero</span></code>
@@ -2577,28 +2136,13 @@
                   Modifiers: 
                   inline
                   <br/>
+                  Type parameters: 
+                  &#39;a
                 </div>
               </div>
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.Zero``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.ComputationExpressions.ASetBuilder.Zero``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/ComputationExpressions.fs#L107-107" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
-              </p>
-            </div>
             <dl class="fsdocs-returns">
               <dt>
                 <span class="fsdocs-return-name">
@@ -2615,17 +2159,24 @@
   </div>
   <div></div>
 </div>
-            
-        </div>
-
-        <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.css" />
-        <script type="text/javascript">var fsdocs_search_baseurl = 'https://fsprojects.github.io/FSharp.Data.Adaptive/';</script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.8/lunr.min.js"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.min.js"></script>
-        <script type="text/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-search.js"></script>
-        <!-- END SEARCH BOX: this adds support for the search box -->
+        
     </div>
-</body>
+</main>
+<aside id="fsdocs-page-menu">
+    <p id="on-this-page">On this page</p>
+    <div class="empty"></div>
+</aside>
+<dialog>
+    <input type="search" placeholder="Search docs" />
+    <div class="results">
+        <ul></ul>
+        <p class="empty">Type something to start searching.</p>
+    </div>
+</dialog>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-tips.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme-toggle.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-search.js"></script>
 
+</body>
 </html>

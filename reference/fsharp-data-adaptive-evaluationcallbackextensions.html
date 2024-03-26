@@ -1,59 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="en" data-root="https://fsprojects.github.io/FSharp.Data.Adaptive/">
 <head>
-    <meta charset="utf-8">
-    <title>EvaluationCallbackExtensions (FSharp.Data.Adaptive)</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="author" content="FSharp.Data.Adaptive">
-
-    <link rel="stylesheet" id="theme_link" href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/4.6.0/materia/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
-
-    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
-
-    <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico">
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/navbar-fixed-left.css" />
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-default.css" />
-    <link type="text/css" rel="stylesheet" href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-custom.css" />
-    <script type="text/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-tips.js"></script>
-    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
-    <!--[if lt IE 9]>
-      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.css" />
-    <!-- END SEARCH BOX: this adds support for the search box -->
+    <meta charset="UTF-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="FSharp.Data.Adaptive" name="author">
+    <!-- Opengraph properties (https://ogp.me/) -->
+    <meta property="og:site_name" content="FSharp.Data.Adaptive">
+    <meta property="og:title" content="EvaluationCallbackExtensions (FSharp.Data.Adaptive)" />
+    <meta property="og:url" content="https://fsprojects.github.io/FSharp.Data.Adaptive/{{fsdocs-source-basename}}.html">
+    <meta property="og:type" content="website" />
+    <!-- Twitter cards (https://developer.twitter.com/en/docs/twitter-for-websites/cards/overview/summary-card-with-large-image) -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="https://fsprojects.github.io/FSharp.Data.Adaptive/">
+    <meta name="twitter:title" content="EvaluationCallbackExtensions (FSharp.Data.Adaptive)">
+    
+    <title>EvaluationCallbackExtensions (FSharp.Data.Adaptive) | FSharp.Data.Adaptive</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/img/favicon.ico" rel="icon" sizes="32x32" type="image/png"/>
+    <script type="application/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme-set-dark.js"></script>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-default.css" rel="stylesheet" type="text/css"/>
+    <link href="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme.css" rel="stylesheet" type="text/css"/>
+    
     
 </head>
-
-<body>
-    <nav class="navbar navbar-expand-md navbar-light bg-secondary fixed-left" id="fsdocs-nav">
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse navbar-nav-scroll" id="navbarsExampleDefault">
-            <a href="./index.html"><img id="fsdocs-logo" src="https://fsprojects.github.io/FSharp.Data.Adaptive/img/logo.png" /></a>
-            <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-            <div id="header">
-                <div class="searchbox" id="fsdocs-searchbox">
-                    <label for="search-by">
-                        <i class="fas fa-search"></i>
-                    </label>
-                    <input data-search-input="" id="search-by" type="search" placeholder="Search..." />
-                    <span data-search-clear="">
-                        <i class="fas fa-times"></i>
-                    </span>
-                </div>
-            </div>
-
-            <!-- END SEARCH BOX: this adds support for the search box -->
-            <ul class="navbar-nav">
+<body class="api-docs">
+<header>
+    <div class="start">
+        <div id="menu-toggle">
+            <iconify-icon class="icon closed" height="22" icon="eva:menu-fill" width="22"></iconify-icon>
+            <iconify-icon class="icon open" height="22" icon="mi:close" width="22"></iconify-icon>
+            <input type="checkbox" name="mobile-menu" />
+            <ul class="menu">
                 <li class="nav-header">Links</li>
-                <li class="nav-item" id="fsdocs-license-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a></li>
-                <li class="nav-item" id="fsdocs-release-notes-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
-                <li class="nav-item" id="fsdocs-repository-link"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source Repository</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a>
+                </li>
+                <li class="nav-item"><a class="nav-link"
+                                        href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release
+                    Notes</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source
+                    Repository</a></li>
                 
                 <li class="nav-header">
   API Reference
@@ -65,14 +54,43 @@
 </li>
             </ul>
         </div>
-    </nav>
-    <div class="container">
-        <div class="masthead">
-            <h3 class="muted"><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/">FSharp.Data.Adaptive</a></h3>
-        </div>
-        <hr />
-        <div class="container" id="fsdocs-content">
-            <div>
+        <a href="./index.html">
+            <img alt="Header menu logo" src="https://fsprojects.github.io/FSharp.Data.Adaptive/img/logo.png">
+            <strong>FSharp.Data.Adaptive</strong>
+        </a>
+    </div>
+    <div class="end">
+        <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/" target="_blank">
+            <iconify-icon icon="uil:github" width="26" height="26"></iconify-icon>
+        </a>
+        <iconify-icon id="search-btn" icon="carbon:search" class="search" width="24" height="24"></iconify-icon>
+        <fsdocs-theme-toggle></fsdocs-theme-toggle>
+    </div>
+</header>
+<aside id="fsdocs-main-menu">
+    <ul class="menu">
+        <li class="nav-header">Links</li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE">License</a>
+        </li>
+        <li class="nav-item"><a class="nav-link"
+                                href="https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md">Release
+            Notes</a></li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/">Source
+            Repository</a></li>
+        
+        <li class="nav-header">
+  API Reference
+</li>             
+<li class="nav-item">
+  <a class="nav-link" href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/index.html">
+    All Namespaces
+  </a>
+</li>
+    </ul>
+</aside>
+<main>
+    <div id="content">
+        <div>
   <h2>
     EvaluationCallbackExtensions Module
   </h2>
@@ -91,8 +109,6 @@
     <div>
       <p class="fsdocs-summary">
         
- Callback Extensions for adaptive datatypes.
-
       </p>
     </div>
   </div>
@@ -113,348 +129,6 @@
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td class="fsdocs-member-usage">
-            <div>
-              <code onmouseout="hideTip(event, '290', 290)" onmouseover="showTip(event, '290', 290)">
-                <p>
-                  <a id="AddCallback">
-                    <a href="#AddCallback">
-                      <code><span>this.AddCallback</span></code>
-                    </a>
-                  </a>
-                </p>
-              </code>
-              <div class="fsdocs-tip" id="290">
-                <div class="member-tooltip">
-                  Full Usage: 
-                  <code><span>this.AddCallback</span></code>
-                  <br/>
-                  <br/>
-                  Parameters: 
-                  <ul>
-                    <span>
-                      <b>
-                        action
-                      </b>
-                      :
-                      <code><span>obj&#32;->&#32;unit</span></code>
-                    </span>
-                    <br/>
-                  </ul>
-                  <br/>
-                  <span>
-                    Returns: 
-                    <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-                  </span>
-                  <br/>
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveValue.AddCallback`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveValue.AddCallback\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L37-37" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adds a disposable callback to the aval that will be executed whenever the
- avals value changed.
-
-              </p>
-            </div>
-            <p>
-              Extended Type: 
-              <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivevalue.html">IAdaptiveValue</a></code>
-            </p>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  action
-                </span>
-                :
-                <code><span>obj&#32;->&#32;unit</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
-          </td>
-        </tr>
-        <tr>
-          <td class="fsdocs-member-usage">
-            <div>
-              <code onmouseout="hideTip(event, '291', 291)" onmouseover="showTip(event, '291', 291)">
-                <p>
-                  <a id="AddCallback">
-                    <a href="#AddCallback">
-                      <code><span>this.AddCallback</span></code>
-                    </a>
-                  </a>
-                </p>
-              </code>
-              <div class="fsdocs-tip" id="291">
-                <div class="member-tooltip">
-                  Full Usage: 
-                  <code><span>this.AddCallback</span></code>
-                  <br/>
-                  <br/>
-                  Parameters: 
-                  <ul>
-                    <span>
-                      <b>
-                        action
-                      </b>
-                      :
-                      <code><span>'T&#32;->&#32;unit</span></code>
-                    </span>
-                    <br/>
-                  </ul>
-                  <br/>
-                  <span>
-                    Returns: 
-                    <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-                  </span>
-                  <br/>
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveValue`1.AddCallback``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveValue`1.AddCallback``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L70-70" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adds a disposable callback to the aval that will be executed whenever the
- avals value changed.
-
-              </p>
-            </div>
-            <p>
-              Extended Type: 
-              <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivevalue-1.html">IAdaptiveValue</a></code>
-            </p>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  action
-                </span>
-                :
-                <code><span>'T&#32;->&#32;unit</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
-          </td>
-        </tr>
-        <tr>
-          <td class="fsdocs-member-usage">
-            <div>
-              <code onmouseout="hideTip(event, '292', 292)" onmouseover="showTip(event, '292', 292)">
-                <p>
-                  <a id="AddCallback">
-                    <a href="#AddCallback">
-                      <code><span>this.AddCallback</span></code>
-                    </a>
-                  </a>
-                </p>
-              </code>
-              <div class="fsdocs-tip" id="292">
-                <div class="member-tooltip">
-                  Full Usage: 
-                  <code><span>this.AddCallback</span></code>
-                  <br/>
-                  <br/>
-                  Parameters: 
-                  <ul>
-                    <span>
-                      <b>
-                        action
-                      </b>
-                      :
-                      <code><span>'State&#32;->&#32;'Delta&#32;->&#32;unit</span></code>
-                    </span>
-                    <br/>
-                  </ul>
-                  <br/>
-                  <span>
-                    Returns: 
-                    <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-                  </span>
-                  <br/>
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IOpReader`2.AddCallback``2```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IOpReader`2.AddCallback``2\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L103-103" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adds a disposable callback to the reader that will be executed whenever
- changes exist on the reader. The given action will be called with the
- readers state prior to the change and all changes applied to that state.
-
-              </p>
-            </div>
-            <p>
-              Extended Type: 
-              <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-traceable-iopreader-2.html">IOpReader</a></code>
-            </p>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  action
-                </span>
-                :
-                <code><span>'State&#32;->&#32;'Delta&#32;->&#32;unit</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
-          </td>
-        </tr>
-        <tr>
-          <td class="fsdocs-member-usage">
-            <div>
-              <code onmouseout="hideTip(event, '293', 293)" onmouseover="showTip(event, '293', 293)">
-                <p>
-                  <a id="AddCallback">
-                    <a href="#AddCallback">
-                      <code><span>this.AddCallback</span></code>
-                    </a>
-                  </a>
-                </p>
-              </code>
-              <div class="fsdocs-tip" id="293">
-                <div class="member-tooltip">
-                  Full Usage: 
-                  <code><span>this.AddCallback</span></code>
-                  <br/>
-                  <br/>
-                  Parameters: 
-                  <ul>
-                    <span>
-                      <b>
-                        action
-                      </b>
-                      :
-                      <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-traceable-countinghashset-1.html">CountingHashSet</a>&lt;'T&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashsetdelta-1.html">HashSetDelta</a>&lt;'T&gt;</span>&#32;->&#32;unit</span></code>
-                    </span>
-                    <br/>
-                  </ul>
-                  <br/>
-                  <span>
-                    Returns: 
-                    <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-                  </span>
-                  <br/>
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveHashSet`1.AddCallback``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveHashSet`1.AddCallback``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L114-114" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adds a disposable callback to the aset that will be executed whenever
- changes happen to the aset. The given action will be called with the
- asets state prior to the change and all changes applied to that state.
-
-              </p>
-            </div>
-            <p>
-              Extended Type: 
-              <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivehashset-1.html">IAdaptiveHashSet</a></code>
-            </p>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  action
-                </span>
-                :
-                <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-traceable-countinghashset-1.html">CountingHashSet</a>&lt;'T&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashsetdelta-1.html">HashSetDelta</a>&lt;'T&gt;</span>&#32;->&#32;unit</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
-          </td>
-        </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
@@ -480,14 +154,14 @@
                         action
                       </b>
                       :
-                      <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashmap-2.html">HashMap</a>&lt;<span>'Key,&#32;'Value</span>&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashmapdelta-2.html">HashMapDelta</a>&lt;<span>'Key,&#32;'Value</span>&gt;</span>&#32;->&#32;unit</span></code>
+                      <code><span>obj&#32;->&#32;unit</span></code>
                     </span>
                     <br/>
                   </ul>
                   <br/>
                   <span>
                     Returns: 
-                    <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                    <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
                   </span>
                   <br/>
                 </div>
@@ -495,50 +169,48 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveHashMap`2.AddCallback``2```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveHashMap`2.AddCallback``2\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L129-129" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adds a disposable callback to the amap that will be executed whenever
- changes happen to the amap. The given action will be called with the
- amaps state prior to the change and all changes applied to that state.
-
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveValue.AddCallback`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveValue.AddCallback\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L37-37" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adds a disposable callback to the aval that will be executed whenever the
+ avals value changed.
+                  </p>
+                </div>
+              </summary>
+              <p>
+                Extended Type: 
+                <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivevalue.html">IAdaptiveValue</a></code>
               </p>
-            </div>
-            <p>
-              Extended Type: 
-              <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivehashmap-2.html">IAdaptiveHashMap</a></code>
-            </p>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  action
-                </span>
-                :
-                <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashmap-2.html">HashMap</a>&lt;<span>'Key,&#32;'Value</span>&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashmapdelta-2.html">HashMapDelta</a>&lt;<span>'Key,&#32;'Value</span>&gt;</span>&#32;->&#32;unit</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    action
+                  </span>
+                  :
+                  <code><span>obj&#32;->&#32;unit</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
@@ -566,177 +238,6 @@
                         action
                       </b>
                       :
-                      <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-indexlist-1.html">IndexList</a>&lt;'T&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-indexlistdelta-1.html">IndexListDelta</a>&lt;'T&gt;</span>&#32;->&#32;unit</span></code>
-                    </span>
-                    <br/>
-                  </ul>
-                  <br/>
-                  <span>
-                    Returns: 
-                    <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-                  </span>
-                  <br/>
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveIndexList`1.AddCallback``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveIndexList`1.AddCallback``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L144-144" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adds a disposable callback to the alist that will be executed whenever
- changes happen to the alist. The given action will be called with the
- alists state prior to the change and all changes applied to that state.
-
-              </p>
-            </div>
-            <p>
-              Extended Type: 
-              <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptiveindexlist-1.html">IAdaptiveIndexList</a></code>
-            </p>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  action
-                </span>
-                :
-                <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-indexlist-1.html">IndexList</a>&lt;'T&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-indexlistdelta-1.html">IndexListDelta</a>&lt;'T&gt;</span>&#32;->&#32;unit</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
-          </td>
-        </tr>
-        <tr>
-          <td class="fsdocs-member-usage">
-            <div>
-              <code onmouseout="hideTip(event, '296', 296)" onmouseover="showTip(event, '296', 296)">
-                <p>
-                  <a id="AddWeakCallback">
-                    <a href="#AddWeakCallback">
-                      <code><span>this.AddWeakCallback</span></code>
-                    </a>
-                  </a>
-                </p>
-              </code>
-              <div class="fsdocs-tip" id="296">
-                <div class="member-tooltip">
-                  Full Usage: 
-                  <code><span>this.AddWeakCallback</span></code>
-                  <br/>
-                  <br/>
-                  Parameters: 
-                  <ul>
-                    <span>
-                      <b>
-                        action
-                      </b>
-                      :
-                      <code><span>obj&#32;->&#32;unit</span></code>
-                    </span>
-                    <br/>
-                  </ul>
-                  <br/>
-                  <span>
-                    Returns: 
-                    <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-                  </span>
-                  <br/>
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveValue.AddWeakCallback`')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveValue.AddWeakCallback\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L41-41" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adds a disposable callback to the aval that will be executed whenever the
- avals value changed.
-
-              </p>
-            </div>
-            <p>
-              Extended Type: 
-              <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivevalue.html">IAdaptiveValue</a></code>
-            </p>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  action
-                </span>
-                :
-                <code><span>obj&#32;->&#32;unit</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
-          </td>
-        </tr>
-        <tr>
-          <td class="fsdocs-member-usage">
-            <div>
-              <code onmouseout="hideTip(event, '297', 297)" onmouseover="showTip(event, '297', 297)">
-                <p>
-                  <a id="AddWeakCallback">
-                    <a href="#AddWeakCallback">
-                      <code><span>this.AddWeakCallback</span></code>
-                    </a>
-                  </a>
-                </p>
-              </code>
-              <div class="fsdocs-tip" id="297">
-                <div class="member-tooltip">
-                  Full Usage: 
-                  <code><span>this.AddWeakCallback</span></code>
-                  <br/>
-                  <br/>
-                  Parameters: 
-                  <ul>
-                    <span>
-                      <b>
-                        action
-                      </b>
-                      :
                       <code><span>'T&#32;->&#32;unit</span></code>
                     </span>
                     <br/>
@@ -744,7 +245,7 @@
                   <br/>
                   <span>
                     Returns: 
-                    <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                    <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
                   </span>
                   <br/>
                 </div>
@@ -752,67 +253,66 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveValue`1.AddWeakCallback``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveValue`1.AddWeakCallback``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L74-74" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adds a disposable callback to the aval that will be executed whenever the
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveValue`1.AddCallback``1```')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveValue`1.AddCallback``1\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L70-70" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adds a disposable callback to the aval that will be executed whenever the
  avals value changed.
-
+                  </p>
+                </div>
+              </summary>
+              <p>
+                Extended Type: 
+                <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivevalue-1.html">IAdaptiveValue</a></code>
               </p>
-            </div>
-            <p>
-              Extended Type: 
-              <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivevalue-1.html">IAdaptiveValue</a></code>
-            </p>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  action
-                </span>
-                :
-                <code><span>'T&#32;->&#32;unit</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    action
+                  </span>
+                  :
+                  <code><span>'T&#32;->&#32;unit</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '298', 298)" onmouseover="showTip(event, '298', 298)">
+              <code onmouseout="hideTip(event, '296', 296)" onmouseover="showTip(event, '296', 296)">
                 <p>
-                  <a id="AddWeakCallback">
-                    <a href="#AddWeakCallback">
-                      <code><span>this.AddWeakCallback</span></code>
+                  <a id="AddCallback">
+                    <a href="#AddCallback">
+                      <code><span>this.AddCallback</span></code>
                     </a>
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="298">
+              <div class="fsdocs-tip" id="296">
                 <div class="member-tooltip">
                   Full Usage: 
-                  <code><span>this.AddWeakCallback</span></code>
+                  <code><span>this.AddCallback</span></code>
                   <br/>
                   <br/>
                   Parameters: 
@@ -829,7 +329,7 @@
                   <br/>
                   <span>
                     Returns: 
-                    <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                    <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
                   </span>
                   <br/>
                 </div>
@@ -837,68 +337,67 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IOpReader`2.AddWeakCallback``2```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IOpReader`2.AddWeakCallback``2\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L108-108" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adds a disposable callback to the reader that will be executed whenever
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IOpReader`2.AddCallback``2```')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IOpReader`2.AddCallback``2\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L103-103" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adds a disposable callback to the reader that will be executed whenever
  changes exist on the reader. The given action will be called with the
  readers state prior to the change and all changes applied to that state.
-
+                  </p>
+                </div>
+              </summary>
+              <p>
+                Extended Type: 
+                <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-traceable-iopreader-2.html">IOpReader</a></code>
               </p>
-            </div>
-            <p>
-              Extended Type: 
-              <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-traceable-iopreader-2.html">IOpReader</a></code>
-            </p>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  action
-                </span>
-                :
-                <code><span>'State&#32;->&#32;'Delta&#32;->&#32;unit</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    action
+                  </span>
+                  :
+                  <code><span>'State&#32;->&#32;'Delta&#32;->&#32;unit</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
           <td class="fsdocs-member-usage">
             <div>
-              <code onmouseout="hideTip(event, '299', 299)" onmouseover="showTip(event, '299', 299)">
+              <code onmouseout="hideTip(event, '297', 297)" onmouseover="showTip(event, '297', 297)">
                 <p>
-                  <a id="AddWeakCallback">
-                    <a href="#AddWeakCallback">
-                      <code><span>this.AddWeakCallback</span></code>
+                  <a id="AddCallback">
+                    <a href="#AddCallback">
+                      <code><span>this.AddCallback</span></code>
                     </a>
                   </a>
                 </p>
               </code>
-              <div class="fsdocs-tip" id="299">
+              <div class="fsdocs-tip" id="297">
                 <div class="member-tooltip">
                   Full Usage: 
-                  <code><span>this.AddWeakCallback</span></code>
+                  <code><span>this.AddCallback</span></code>
                   <br/>
                   <br/>
                   Parameters: 
@@ -915,7 +414,7 @@
                   <br/>
                   <span>
                     Returns: 
-                    <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                    <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
                   </span>
                   <br/>
                 </div>
@@ -923,50 +422,219 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveHashSet`1.AddWeakCallback``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveHashSet`1.AddWeakCallback``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L121-121" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adds a disposable callback to the aset that will be executed whenever
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveHashSet`1.AddCallback``1```')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveHashSet`1.AddCallback``1\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L114-114" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adds a disposable callback to the aset that will be executed whenever
  changes happen to the aset. The given action will be called with the
  asets state prior to the change and all changes applied to that state.
-
+                  </p>
+                </div>
+              </summary>
+              <p>
+                Extended Type: 
+                <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivehashset-1.html">IAdaptiveHashSet</a></code>
               </p>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    action
+                  </span>
+                  :
+                  <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-traceable-countinghashset-1.html">CountingHashSet</a>&lt;'T&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashsetdelta-1.html">HashSetDelta</a>&lt;'T&gt;</span>&#32;->&#32;unit</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '298', 298)" onmouseover="showTip(event, '298', 298)">
+                <p>
+                  <a id="AddCallback">
+                    <a href="#AddCallback">
+                      <code><span>this.AddCallback</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="298">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.AddCallback</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        action
+                      </b>
+                      :
+                      <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashmap-2.html">HashMap</a>&lt;<span>'Key,&#32;'Value</span>&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashmapdelta-2.html">HashMapDelta</a>&lt;<span>'Key,&#32;'Value</span>&gt;</span>&#32;->&#32;unit</span></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
             </div>
-            <p>
-              Extended Type: 
-              <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivehashset-1.html">IAdaptiveHashSet</a></code>
-            </p>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  action
-                </span>
-                :
-                <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-traceable-countinghashset-1.html">CountingHashSet</a>&lt;'T&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashsetdelta-1.html">HashSetDelta</a>&lt;'T&gt;</span>&#32;->&#32;unit</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveHashMap`2.AddCallback``2```')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveHashMap`2.AddCallback``2\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L129-129" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adds a disposable callback to the amap that will be executed whenever
+ changes happen to the amap. The given action will be called with the
+ amaps state prior to the change and all changes applied to that state.
+                  </p>
+                </div>
+              </summary>
+              <p>
+                Extended Type: 
+                <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivehashmap-2.html">IAdaptiveHashMap</a></code>
+              </p>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    action
+                  </span>
+                  :
+                  <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashmap-2.html">HashMap</a>&lt;<span>'Key,&#32;'Value</span>&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashmapdelta-2.html">HashMapDelta</a>&lt;<span>'Key,&#32;'Value</span>&gt;</span>&#32;->&#32;unit</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '299', 299)" onmouseover="showTip(event, '299', 299)">
+                <p>
+                  <a id="AddCallback">
+                    <a href="#AddCallback">
+                      <code><span>this.AddCallback</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="299">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.AddCallback</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        action
+                      </b>
+                      :
+                      <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-indexlist-1.html">IndexList</a>&lt;'T&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-indexlistdelta-1.html">IndexListDelta</a>&lt;'T&gt;</span>&#32;->&#32;unit</span></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveIndexList`1.AddCallback``1```')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveIndexList`1.AddCallback``1\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L144-144" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adds a disposable callback to the alist that will be executed whenever
+ changes happen to the alist. The given action will be called with the
+ alists state prior to the change and all changes applied to that state.
+                  </p>
+                </div>
+              </summary>
+              <p>
+                Extended Type: 
+                <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptiveindexlist-1.html">IAdaptiveIndexList</a></code>
+              </p>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    action
+                  </span>
+                  :
+                  <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-indexlist-1.html">IndexList</a>&lt;'T&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-indexlistdelta-1.html">IndexListDelta</a>&lt;'T&gt;</span>&#32;->&#32;unit</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
@@ -994,14 +662,14 @@
                         action
                       </b>
                       :
-                      <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashmap-2.html">HashMap</a>&lt;<span>'Key,&#32;'Value</span>&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashmapdelta-2.html">HashMapDelta</a>&lt;<span>'Key,&#32;'Value</span>&gt;</span>&#32;->&#32;unit</span></code>
+                      <code><span>obj&#32;->&#32;unit</span></code>
                     </span>
                     <br/>
                   </ul>
                   <br/>
                   <span>
                     Returns: 
-                    <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                    <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
                   </span>
                   <br/>
                 </div>
@@ -1009,50 +677,48 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveHashMap`2.AddWeakCallback``2```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
-              </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveHashMap`2.AddWeakCallback``2\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
-              </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L136-136" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adds a disposable callback to the amap that will be executed whenever
- changes happen to the amap. The given action will be called with the
- amaps state prior to the change and all changes applied to that state.
-
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveValue.AddWeakCallback`')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveValue.AddWeakCallback\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L41-41" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adds a disposable callback to the aval that will be executed whenever the
+ avals value changed.
+                  </p>
+                </div>
+              </summary>
+              <p>
+                Extended Type: 
+                <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivevalue.html">IAdaptiveValue</a></code>
               </p>
-            </div>
-            <p>
-              Extended Type: 
-              <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivehashmap-2.html">IAdaptiveHashMap</a></code>
-            </p>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  action
-                </span>
-                :
-                <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashmap-2.html">HashMap</a>&lt;<span>'Key,&#32;'Value</span>&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashmapdelta-2.html">HashMapDelta</a>&lt;<span>'Key,&#32;'Value</span>&gt;</span>&#32;->&#32;unit</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    action
+                  </span>
+                  :
+                  <code><span>obj&#32;->&#32;unit</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
         <tr>
@@ -1080,14 +746,14 @@
                         action
                       </b>
                       :
-                      <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-indexlist-1.html">IndexList</a>&lt;'T&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-indexlistdelta-1.html">IndexListDelta</a>&lt;'T&gt;</span>&#32;->&#32;unit</span></code>
+                      <code><span>'T&#32;->&#32;unit</span></code>
                     </span>
                     <br/>
                   </ul>
                   <br/>
                   <span>
                     Returns: 
-                    <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                    <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
                   </span>
                   <br/>
                 </div>
@@ -1095,50 +761,388 @@
             </div>
           </td>
           <td class="fsdocs-member-xmldoc">
-            <div class="fsdocs-summary">
-              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveIndexList`1.AddWeakCallback``1```')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-md-hover.png" class="hover"/>
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveValue`1.AddWeakCallback``1```')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveValue`1.AddWeakCallback``1\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L74-74" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adds a disposable callback to the aval that will be executed whenever the
+ avals value changed.
+                  </p>
+                </div>
+              </summary>
+              <p>
+                Extended Type: 
+                <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivevalue-1.html">IAdaptiveValue</a></code>
+              </p>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    action
+                  </span>
+                  :
+                  <code><span>'T&#32;->&#32;unit</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '302', 302)" onmouseover="showTip(event, '302', 302)">
+                <p>
+                  <a id="AddWeakCallback">
+                    <a href="#AddWeakCallback">
+                      <code><span>this.AddWeakCallback</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="302">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.AddWeakCallback</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        action
+                      </b>
+                      :
+                      <code><span>'State&#32;->&#32;'Delta&#32;->&#32;unit</span></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                  </span>
+                  <br/>
+                </div>
               </div>
-              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveIndexList`1.AddWeakCallback``1\'/>')">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/copy-xml-hover.png" class="hover"/>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IOpReader`2.AddWeakCallback``2```')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IOpReader`2.AddWeakCallback``2\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L108-108" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adds a disposable callback to the reader that will be executed whenever
+ changes exist on the reader. The given action will be called with the
+ readers state prior to the change and all changes applied to that state.
+                  </p>
+                </div>
+              </summary>
+              <p>
+                Extended Type: 
+                <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-traceable-iopreader-2.html">IOpReader</a></code>
+              </p>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    action
+                  </span>
+                  :
+                  <code><span>'State&#32;->&#32;'Delta&#32;->&#32;unit</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '303', 303)" onmouseover="showTip(event, '303', 303)">
+                <p>
+                  <a id="AddWeakCallback">
+                    <a href="#AddWeakCallback">
+                      <code><span>this.AddWeakCallback</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="303">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.AddWeakCallback</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        action
+                      </b>
+                      :
+                      <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-traceable-countinghashset-1.html">CountingHashSet</a>&lt;'T&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashsetdelta-1.html">HashSetDelta</a>&lt;'T&gt;</span>&#32;->&#32;unit</span></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                  </span>
+                  <br/>
+                </div>
               </div>
-              <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L151-151" class="fsdocs-source-link" title="Source on GitHub">
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github.png" class="normal"/>
-                <img src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/img/github-hover.png" class="hover"/>
-              </a>
-              <p class="fsdocs-summary">
-                
- Adds a disposable callback to the alist that will be executed whenever
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveHashSet`1.AddWeakCallback``1```')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveHashSet`1.AddWeakCallback``1\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L121-121" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adds a disposable callback to the aset that will be executed whenever
+ changes happen to the aset. The given action will be called with the
+ asets state prior to the change and all changes applied to that state.
+                  </p>
+                </div>
+              </summary>
+              <p>
+                Extended Type: 
+                <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivehashset-1.html">IAdaptiveHashSet</a></code>
+              </p>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    action
+                  </span>
+                  :
+                  <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-traceable-countinghashset-1.html">CountingHashSet</a>&lt;'T&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashsetdelta-1.html">HashSetDelta</a>&lt;'T&gt;</span>&#32;->&#32;unit</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '304', 304)" onmouseover="showTip(event, '304', 304)">
+                <p>
+                  <a id="AddWeakCallback">
+                    <a href="#AddWeakCallback">
+                      <code><span>this.AddWeakCallback</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="304">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.AddWeakCallback</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        action
+                      </b>
+                      :
+                      <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashmap-2.html">HashMap</a>&lt;<span>'Key,&#32;'Value</span>&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashmapdelta-2.html">HashMapDelta</a>&lt;<span>'Key,&#32;'Value</span>&gt;</span>&#32;->&#32;unit</span></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveHashMap`2.AddWeakCallback``2```')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveHashMap`2.AddWeakCallback``2\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L136-136" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adds a disposable callback to the amap that will be executed whenever
+ changes happen to the amap. The given action will be called with the
+ amaps state prior to the change and all changes applied to that state.
+                  </p>
+                </div>
+              </summary>
+              <p>
+                Extended Type: 
+                <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptivehashmap-2.html">IAdaptiveHashMap</a></code>
+              </p>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    action
+                  </span>
+                  :
+                  <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashmap-2.html">HashMap</a>&lt;<span>'Key,&#32;'Value</span>&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-fsharphashmapdelta-2.html">HashMapDelta</a>&lt;<span>'Key,&#32;'Value</span>&gt;</span>&#32;->&#32;unit</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '305', 305)" onmouseover="showTip(event, '305', 305)">
+                <p>
+                  <a id="AddWeakCallback">
+                    <a href="#AddWeakCallback">
+                      <code><span>this.AddWeakCallback</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="305">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.AddWeakCallback</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        action
+                      </b>
+                      :
+                      <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-indexlist-1.html">IndexList</a>&lt;'T&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-indexlistdelta-1.html">IndexListDelta</a>&lt;'T&gt;</span>&#32;->&#32;unit</span></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <details>
+              <summary>
+                <div class="fsdocs-summary">
+                  <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('```cref:M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveIndexList`1.AddWeakCallback``1```')">
+                    <iconify-icon icon="bi:filetype-md" height="24" width="24"></iconify-icon>
+                  </div>
+                  <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:FSharp.Data.Adaptive.EvaluationCallbackExtensions.IAdaptiveIndexList`1.AddWeakCallback``1\'/>')">
+                    <iconify-icon icon="bi:filetype-xml" height="24" width="24"></iconify-icon>
+                  </div>
+                  <a href="https://github.com/fsprojects/FSharp.Data.Adaptive/tree/master/src/FSharp.Data.Adaptive/EvaluationCallbackExtensions.fs#L151-151" class="fsdocs-source-link" title="Source on GitHub">
+                    <iconify-icon icon="ri:github-fill" height="24" width="24"></iconify-icon>
+                  </a>
+                  <p class="fsdocs-summary">
+                     Adds a disposable callback to the alist that will be executed whenever
  changes happen to the alist. The given action will be called with the
  alists state prior to the change and all changes applied to that state.
-
+                  </p>
+                </div>
+              </summary>
+              <p>
+                Extended Type: 
+                <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptiveindexlist-1.html">IAdaptiveIndexList</a></code>
               </p>
-            </div>
-            <p>
-              Extended Type: 
-              <code><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-iadaptiveindexlist-1.html">IAdaptiveIndexList</a></code>
-            </p>
-            <dl class="fsdocs-params">
-              <dt class="fsdocs-param">
-                <span class="fsdocs-param-name">
-                  action
-                </span>
-                :
-                <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-indexlist-1.html">IndexList</a>&lt;'T&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-indexlistdelta-1.html">IndexListDelta</a>&lt;'T&gt;</span>&#32;->&#32;unit</span></code>
-              </dt>
-              <dd class="fsdocs-param-docs"></dd>
-            </dl>
-            <dl class="fsdocs-returns">
-              <dt>
-                <span class="fsdocs-return-name">
-                  Returns: 
-                </span>
-                <code><a href="https://docs.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
-              </dt>
-              <dd class="fsdocs-return-docs"></dd>
-            </dl>
+              <dl class="fsdocs-params">
+                <dt class="fsdocs-param">
+                  <span class="fsdocs-param-name">
+                    action
+                  </span>
+                  :
+                  <code><span><span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-indexlist-1.html">IndexList</a>&lt;'T&gt;</span>&#32;->&#32;<span><a href="https://fsprojects.github.io/FSharp.Data.Adaptive/reference/fsharp-data-adaptive-indexlistdelta-1.html">IndexListDelta</a>&lt;'T&gt;</span>&#32;->&#32;unit</span></code>
+                </dt>
+                <dd class="fsdocs-param-docs"></dd>
+              </dl>
+              <dl class="fsdocs-returns">
+                <dt>
+                  <span class="fsdocs-return-name">
+                    Returns: 
+                  </span>
+                  <code><a href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></code>
+                </dt>
+                <dd class="fsdocs-return-docs"></dd>
+              </dl>
+            </details>
           </td>
         </tr>
       </tbody>
@@ -1152,17 +1156,24 @@
   <div></div>
   <div></div>
 </div>
-            
-        </div>
-
-        <!-- BEGIN SEARCH BOX: this adds support for the search box -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.css" />
-        <script type="text/javascript">var fsdocs_search_baseurl = 'https://fsprojects.github.io/FSharp.Data.Adaptive/';</script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.8/lunr.min.js"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.min.js"></script>
-        <script type="text/javascript" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-search.js"></script>
-        <!-- END SEARCH BOX: this adds support for the search box -->
+        
     </div>
-</body>
+</main>
+<aside id="fsdocs-page-menu">
+    <p id="on-this-page">On this page</p>
+    <div class="empty"></div>
+</aside>
+<dialog>
+    <input type="search" placeholder="Search docs" />
+    <div class="results">
+        <ul></ul>
+        <p class="empty">Type something to start searching.</p>
+    </div>
+</dialog>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-tips.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme-toggle.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-theme.js"></script>
+<script type="module" src="https://fsprojects.github.io/FSharp.Data.Adaptive/content/fsdocs-search.js"></script>
 
+</body>
 </html>
