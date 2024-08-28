@@ -75,6 +75,9 @@ module AList =
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
     val mapi : mapping: (Index -> 'T1 -> 'T2) -> list: alist<'T1> -> alist<'T2>
 
+    val mapIndex : mapping: (aval<int> -> 'T1 -> 'T2) -> list : alist<'T1> -> alist<'T2>
+    val lift : list : alist<'T1> -> alist<aval<'T1>>
+    
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
     val map : mapping: ('T1 -> 'T2) -> list: alist<'T1> -> alist<'T2>
     

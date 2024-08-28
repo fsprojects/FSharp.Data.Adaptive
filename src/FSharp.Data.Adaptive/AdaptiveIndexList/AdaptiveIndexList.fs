@@ -451,7 +451,81 @@ module internal AdaptiveIndexListImplementation =
                 | Remove -> Remove
                 | Set v -> Set (mapping i v)
             )
+            
+    /// Reader for map operations.
+    [<Sealed>]
+    type MapIndexedReader<'a, 'b>(input : alist<'a>, mapping : aval<int> -> 'a -> 'b) =
+        inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
+        let reader = input.GetReader()
+
+        let indexCache =
+            Cache<Index, aval<int>>(fun i ->
+                input.Content |> AVal.map (fun list ->
+                    match MapExt.tryGetIndexV i list.Content with
+                    | ValueSome idx -> idx
+                    | ValueNone -> -1
+                )
+            )
+        
+        override x.Compute(token) =
+            reader.GetChanges token |> IndexListDelta.map (fun i op ->
+                match op with
+                | Remove ->
+                    let index = indexCache.Revoke i
+                    index.Outputs.Clear()
+                    Remove
+                | Set v ->
+                    let index = indexCache.Invoke i
+                    Set (mapping index v)
+            )
+
+          
+    /// Reader for map operations.
+    [<Sealed>]
+    type NestedChangeReader<'a>(input : alist<'a>) =
+        inherit AbstractReader<IndexListDelta<aval<'a>>>(IndexListDelta.empty)
+
+        let reader = input.GetReader()
+
+        let mutable valueCache = IndexList.empty<cval<'a>>
+        
+        override x.Compute(token) =
+            let oldState = reader.State
+            reader.GetChanges token |> IndexListDelta.choose (fun i op ->
+                match op with
+                | Remove ->
+                    match IndexList.tryRemove i valueCache with
+                    | Some (index, rest) ->
+                        valueCache <- rest
+                        index.Outputs.Clear()
+                        Some Remove
+                    | None ->
+                        None
+                | Set v ->
+                    let mutable res = Unchecked.defaultof<cval<'a>>
+                    valueCache <- 
+                        valueCache |> IndexList.alter  i (function
+                            | Some o ->
+                                res <- o
+                                Some o
+                            | None ->
+                                res <- cval v
+                                Some res
+                        )
+                    
+                    
+                    if not (DefaultEquality.equals v res.Value) then
+                        transact (fun () -> res.Value <- v)
+                        
+                    if MapExt.containsKey i oldState.Content then
+                        None
+                    else
+                        Some (Set (res :> aval<_>))
+            )
+        
+        
+    
     /// Reader for mapUse operations.
     [<Sealed>]
     type MapUseReader<'a, 'b when 'b :> System.IDisposable>(input : alist<'a>, mapping : Index -> 'a -> 'b) =
@@ -1340,6 +1414,7 @@ module AList =
                     compute t x.State
             }
         )
+        
 
 
     /// The empty alist.
@@ -1388,7 +1463,27 @@ module AList =
                 ofReader (fun () -> history.NewReader(IndexList.trace, MapReader.DeltaMapping mapping))
             | None -> 
                 ofReader (fun () -> MapReader(list, mapping))
+                
+    /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
+    let mapIndex (mapping: aval<int> -> 'T1 -> 'T2) (list : alist<'T1>) =
+        if list.IsConstant then
+            constant (fun () ->
+                let mutable i = 0
+                list |> force |> IndexList.map (fun v ->
+                    try mapping (AVal.constant i) v
+                    finally i <- i + 1
+                )
+            )
+        else
+            ofReader (fun () -> MapIndexedReader(list, mapping))
 
+    
+    let lift (list : alist<'a>) : alist<aval<'a>> =
+        if list.IsConstant then
+            constant (fun () -> list |> force |> IndexList.map AVal.constant)
+        else
+            ofReader (fun () -> NestedChangeReader(list))
+    
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
     let map (mapping: 'T1 -> 'T2) (list : alist<'T1>) =
         if list.IsConstant then
