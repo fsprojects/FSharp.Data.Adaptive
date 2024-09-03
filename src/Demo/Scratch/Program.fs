@@ -1192,63 +1192,393 @@ module AdaptiveTree =
         print()
         
         
-        exit 0
+  
+module AdaptiveTree2 =
+    
+    [<Struct>]
+    type Id = { Value : Guid }
+    
+    module Id =
+        let create() = { Value = Guid.NewGuid() }
+    
+    [<RequireQualifiedAccess>]
+    type IdOrValue<'a> =
+        | Id of Id
+        | Value of 'a
+    
+    type Node<'tag, 'att, 'value> =
+        {
+            Tag : option<'tag>
+            Attributes : HashMap<string, 'att>
+            Children : IndexList<IdOrValue<'value>>
+            Parents : HashSet<Id>
+        }
         
+    type Tree<'tag, 'att, 'value> =
+        {
+            Nodes   : HashMap<Id, Node<'tag, 'att, 'value>>
+            Root    : option<Id>
+        }
+        
+    module Node =
+        [<GeneralizableValue>]
+        let empty<'tag, 'att, 'value> : Node<'tag, 'att, 'value> =
+            {
+                Tag = None
+                Attributes = HashMap.empty
+                Children = IndexList.empty
+                Parents = HashSet.empty
+            }
+
+        
+    let tryGetIdWithParent (index : list<Index>) (tree : Tree<'tag, 'att, 'value>) =
+        let rec tryGetId (parentId : option<Id>) (idx : Index) (currentId : IdOrValue<'value>) (index : list<Index>)  =
+            match index with
+            | [] -> Some (parentId, idx, currentId)
+            | h :: t ->
+                match currentId with
+                | IdOrValue.Id currentId ->
+                    let node = tree.Nodes.[currentId]
+                    match node.Children.TryGet h with
+                    | Some childId -> tryGetId (Some currentId) h childId t
+                    | _ -> None
+                | IdOrValue.Value _ ->
+                    None
+        match tree.Root with
+        | Some root ->
+            tryGetId None Index.zero (IdOrValue.Id root) index
+        | None ->
+            None
+      
+    let tryGetId (index : list<Index>) (tree : Tree<'tag, 'att, 'value>) =
+        let rec tryGetId (currentId : IdOrValue<'value>) (index : list<Index>)  =
+            match index with
+            | [] ->
+                match currentId with
+                | IdOrValue.Id id -> Some id
+                | _ -> None
+            | h :: t ->
+                match currentId with
+                | IdOrValue.Id currentId ->
+                    let node = tree.Nodes.[currentId]
+                    match node.Children.TryGet h with
+                    | Some childId -> tryGetId childId t
+                    | _ -> None
+                | IdOrValue.Value _ ->
+                    None
+        match tree.Root with
+        | Some root ->
+            tryGetId (IdOrValue.Id root) index
+        | None ->
+            None
+      
+    let fold (action : 's -> Choice<'value, Id * Node<'tag, 'att, 'value>> -> 's) (state : 's) (tree : Tree<'tag, 'att, 'value>) =
+        let rec fold (id : Id) (state : 's) (action : 's -> Choice<'value, Id * Node<'tag, 'att, 'value>>-> 's) (node : Node<'tag, 'att, 'value>) =
+            let state = action state (Choice2Of2 (id, node))
+            (state, node.Children) ||> IndexList.fold (fun s n ->
+                match n with
+                | IdOrValue.Id id ->
+                    let child = tree.Nodes.[id]
+                    fold id s action child
+                | IdOrValue.Value v ->
+                    action s (Choice1Of2 v)
+            )
+        match tree.Root with
+        | Some root -> fold root state action tree.Nodes.[root]
+        | None -> state
+ 
+    let iter (action : Choice<'value, Node<'tag, 'att, 'value>> -> unit) (tree : Tree<'tag, 'att, 'value>) =
+        let rec iter (action : Choice<'value, Node<'tag, 'att, 'value>> -> unit) (node : Node<'tag, 'att, 'value>) =
+            action (Choice2Of2 node)
+            node.Children |> IndexList.iter (fun n ->
+                match n with
+                | IdOrValue.Id id ->
+                    let child = tree.Nodes.[id]
+                    iter action child
+                | IdOrValue.Value v ->
+                    action (Choice1Of2 v)
+            )
+        match tree.Root with
+        | Some root -> iter action tree.Nodes.[root]
+        | None -> ()
+        
+    let iter2 (before : Choice<'value, Node<'tag, 'att, 'value>> -> unit) (after : Choice<'value, Node<'tag, 'att, 'value>> -> unit) (tree : Tree<'tag, 'att, 'value>) =
+        let rec iter (node : Node<'tag, 'att, 'value>) =
+            before (Choice2Of2 node)
+            node.Children |> IndexList.iter (fun n ->
+                match n with
+                | IdOrValue.Id id ->
+                    let child = tree.Nodes.[id]
+                    iter child
+                | IdOrValue.Value v ->
+                    before (Choice1Of2 v)
+                    after (Choice1Of2 v)
+            )
+            after (Choice2Of2 node)
+        match tree.Root with
+        | Some root -> iter tree.Nodes.[root]
+        | None -> ()
             
-        printNode "" None t0
-        let t1 =
-            { t0 with attributes = HashMap.add "color" "green" t0.attributes }
-            
-        let t2 =
-            let newChild =
-                node {
-                    yield Value 25
-                    yield Value 356
+    let print (t : Tree<'tag, 'att, 'value>) =
+        let mutable indent = ""
+        t |> iter2
+            (fun n ->
+                match n with
+                | Choice1Of2 v ->
+                    printfn "%s%A" indent v 
+                | Choice2Of2 n ->
+                    
+                    let tag = n.Tag |> Option.map string |> Option.defaultValue "group"
+                    let att =
+                        if HashMap.isEmpty n.Attributes then
+                            ""
+                        else
+                            n.Attributes |> Seq.map (fun (k, v) -> sprintf " %s=\"%s\"" k (string v)) |> String.concat ""
+                    
+                    
+                    if not (IndexList.isEmpty n.Children) then
+                        printfn "%s<%s%s>" indent (string tag) att
+                        indent <- indent + "  "
+                    else
+                        printfn "%s<%s%s />" indent (string tag) att
+            )
+            (fun n ->
+                match n with
+                | Choice2Of2 n ->
+                    if not (IndexList.isEmpty n.Children) then
+                        indent <- indent.Substring(0, indent.Length - 2)
+                        let tag = n.Tag |> Option.map string |> Option.defaultValue "group"
+                        printfn "%s</%s>" indent (string tag)
+                | _ ->
+                    ()
+            )
+        
+    let cleanup (t : Tree<'tag, 'att, 'value>) =
+        let newNodes = 
+            (HashMap.empty, t) ||> fold (fun s n ->
+                match n with
+                | Choice2Of2 (id, _) ->
+                    match HashMap.tryFind id t.Nodes with
+                    | Some n -> HashMap.add id n s
+                    | None -> s
+                | _ -> s
+            )
+        { t with Nodes = newNodes }
+        
+    let alterIndex (index : list<Index>) (update : option<IdOrValue<'value>> -> option<IdOrValue<'value>>) (tree : Tree<'tag, 'att, 'value>) =
+        match tryGetIdWithParent index tree with
+        | Some (pid, idx, id) ->
+            match update (Some id) with
+            | Some newValue ->
+                match pid with
+                | Some pid ->
+                    let newNodes =
+                        tree.Nodes |> HashMap.alter pid (function
+                            | Some p -> Some { p with Children = IndexList.set idx newValue p.Children }
+                            | None -> None
+                        )
+                    { tree with Nodes = newNodes }
+                | None ->
+                    match newValue with
+                    | IdOrValue.Id id ->
+                        cleanup { tree with Root = Some id }
+                    | _ ->
+                        failwith "cannot replace root with value"
+            | None ->
+                match pid with
+                | Some pid ->
+                    // remove the child from the parent
+                    let newNodes =
+                        tree.Nodes |> HashMap.alter pid (function
+                            | Some p -> Some { p with Children = IndexList.remove idx p.Children }
+                            | None -> None
+                        )
+                        
+                    // remove the parent-pointer (if the element was a node)
+                    match id with
+                    | IdOrValue.Id id ->
+                        let self = newNodes.[id]
+                        let newParents = self.Parents |> HashSet.remove pid
+                        if newParents.IsEmpty then
+                            { tree with Nodes = HashMap.add id { self with Parents = newParents } newNodes }
+                        else
+                            { tree with Nodes = HashMap.remove id newNodes }
+                    | _ ->
+                        { tree with Nodes = newNodes }
+                | _ ->
+                    { Root = None; Nodes = HashMap.empty }
+        | None ->
+            match update None with
+            | None -> tree
+            | Some result ->
+                let rec build (index : list<Index>) (id : Id) (node : Node<_,_,_>) (tree : Tree<_,_,_>) =
+                    match index with
+                    | [i] ->
+                        let newNode = { node with Children = IndexList.set i result node.Children }
+                        { tree with Nodes = HashMap.add id newNode tree.Nodes }
+                    | [] ->
+                        failwith "unreachable"
+                    | h :: t ->
+                        match IndexList.tryGet h node.Children with
+                        | Some (IdOrValue.Id cid) ->
+                            build t cid tree.Nodes.[cid] tree
+                        | Some (IdOrValue.Value _) ->
+                            failwith "cannot insert into value"
+                        | None ->
+                            let cid = Id.create()
+                            let childNode = { Tag = None; Attributes = HashMap.empty; Children = IndexList.empty; Parents = HashSet.single id }
+                            let newNodes =
+                                tree.Nodes
+                                |> HashMap.add id { node with Children = IndexList.set h (IdOrValue.Id cid) node.Children }
+                                |> HashMap.add cid childNode
+                                
+                            build t cid childNode { tree with Nodes = newNodes }
+                            
+                          
+                let tree, root = 
+                    match tree.Root with
+                    | Some root -> tree, root
+                    | None ->
+                        let n = Node.empty
+                        let id = Id.create()
+                        { tree with Nodes = HashMap.single id n; Root = Some id }, id
+                        
+                build index root tree.Nodes.[root] tree
+      
+    let alterId (id : Id) (update : option<Node<_,_,_>> -> option<Node<_,_,_>>) (tree : Tree<_,_,_>) =
+        { tree with Nodes = tree.Nodes |> HashMap.alter id update }
+      
+    let alloc (tag : option<'tag>) (attributes : HashMap<string, 'att>) (tree : Tree<_,_,_>) =
+        let id = Id.create()
+        let node = { Tag = tag; Children = IndexList.empty; Attributes = attributes; Parents = HashSet.empty }
+        id, { tree with Nodes = HashMap.add id node tree.Nodes }
+
+      
+                
+    module Tree =
+        [<GeneralizableValue>]
+        let empty<'tag, 'att, 'value> : Tree<'tag, 'att, 'value> =
+            {
+                Root = None
+                Nodes = HashMap.empty
+            }
+          
+        let leaf (attributes : HashMap<string, 'att>) (values : IndexList<'value>) =
+            let id = Id.create()
+            let n = { Node.empty with Attributes = attributes; Children = values |> IndexList.map IdOrValue.Value }
+            {
+                Root = Some id
+                Nodes = HashMap.single id n
+            }
+          
+        let node (attributes : HashMap<string, 'att>) (children : IndexList<Tree<'tag, 'att, 'value>>) =
+            let id = Id.create()
+            let n =
+                { Node.empty with
+                    Attributes = attributes
+                    Children = children |> IndexList.choose (fun t -> match t.Root with | Some id -> Some (IdOrValue.Id id) | None -> None)
                 }
-            { t1 with children = IndexList.add newChild t1.children }
-                  
-        let t3 =
-            { t2 with children = IndexList.removeAt 0 t2.children }
+                
+            {
+                Root = Some id
+                Nodes = children |> Seq.map (fun t -> t.Nodes) |> HashMap.unionMany |> HashMap.add id n
+            }
+      
+        let add (index : list<Index>) (newChild : Choice<'value, Tree<_,_,_>>) (tree : Tree<_,_,_>) =
+            match newChild with
+            | Choice1Of2 v ->
+                tree |> alterIndex index (fun _ -> Some (IdOrValue.Value v))
+            | Choice2Of2 newChild ->
+                match newChild.Root with
+                | Some root ->
+                    let tree = { tree with Nodes = HashMap.union tree.Nodes newChild.Nodes }
+                    tree |> alterIndex index (fun _ -> Some (IdOrValue.Id root))
+                | None ->
+                    tree
+      
+        let remove (index : list<Index>) (tree : Tree<_,_,_>) =
+            match tryGetIdWithParent index tree with
+            | Some (pid, idx, id) ->
+                match pid with
+                | Some pid ->
+                    let tree =
+                        match id with
+                        | IdOrValue.Id id ->
+                            let rec removeParent (parent : Id) (id : Id) (n : Node<_,_,_>) (tree : Tree<_,_,_>) =
+                                let ps = n.Parents |> HashSet.remove parent
+                                let tree = 
+                                    if ps.IsEmpty then { tree with Nodes = HashMap.remove id tree.Nodes }
+                                    else { tree with Nodes = HashMap.add id { n with Parents = ps} tree.Nodes }
+                                    
+                                (tree, IndexList.toArrayIndexed n.Children) ||> Array.fold (fun tree (idx, c) ->
+                                    match c with
+                                    | IdOrValue.Id cid ->
+                                        removeParent id cid tree.Nodes.[cid] tree
+                                    | _ ->
+                                        tree
+                                )
+                                 
+                            removeParent pid id tree.Nodes.[id] tree
+                        | _ ->
+                            tree
+                    
+                    let newNodes = tree.Nodes |> HashMap.alter pid (function Some o -> Some { o with Children = IndexList.remove idx o.Children } | None -> None)   
+                    { tree with Nodes = newNodes }
+                | None ->
+                    { Root = None; Nodes = HashMap.empty }
+            | None ->
+                tree
+       
+    let test() =
+        
+        let t = Tree.empty
+        
+        let i3 = Index.after Index.zero
+        let i2 = Index.between Index.zero i3
+        let i1 = Index.between Index.zero i2
+        let i0 = Index.between Index.zero i1
+        
+        
+        let id0, t =
+            alloc (Some "n0") (HashMap.single "color" "red") t
             
-        printNode "" None t0
-        printNode "" None t1
-        printNode "" None t2
-        let test = ctree t0
-        let list = ATree.flatten test
-        
-        let r = list.GetReader()
-        
-        let print() =
-            let ops = r.GetChanges AdaptiveToken.Top
-            r.State |> Seq.map (fun (att, v) -> sprintf "%s: %A" att.["color"] v) |> String.concat "; " |> printfn "state: [%s]"
-            ops |> Seq.map (fun (idx, op) -> match op with | Remove -> sprintf "Remove(%A)" idx | Set (att, v) -> sprintf "Set(%A, %s, %A)" idx att.["color"] v) |> String.concat "; " |> printfn "ops:   [%s]"
-        
-        print()
-        
-        transact(fun () -> test.Value <- t1)
-        print()
-        
-        transact(fun () -> test.Value <- t2)
-        print()
-        
-        
-        transact(fun () -> test.Value <- t3)
-        print()
-        
-        transact(fun () -> test.Value <- t0)
-        print()
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        let id1, t =
+            alloc (Some "n1") (HashMap.single "color" "blue") t
             
+        let id2, t =
+            alloc (Some "n2") (HashMap.single "color" "green") t
             
-        ()
+        let t = 
+            t
+            |> alterIndex [i0] (fun _ -> Some (IdOrValue.Id id0))
+            |> alterIndex [i1] (fun _ -> Some (IdOrValue.Id id1))
+            |> alterIndex [i3] (fun _ -> Some (IdOrValue.Id id2))
+            |> alterIndex [i0; i0] (fun _ -> Some (IdOrValue.Id id2))
+            |> alterIndex [i2] (fun _ -> Some (IdOrValue.Value "hans"))
+        print t
+            
+        let t =
+            t
+            |> alterIndex [i0; i0; i0] (fun _ -> Some (IdOrValue.Value "sepp"))
+        
+        print t
+        let t =
+            t |> alterId id2 (function Some n -> Some { n with Children = IndexList.prepend (IdOrValue.Value "hansi") n.Children } | None -> None)
+        
+        
+        
+        print t
+        
+        
+        let t = t |> Tree.remove [i0]
+        
+        for (k, v) in t.Nodes do
+            printfn "%A: %A" k v.Tag
+            
+        print t
+        
+        
+        
         
         
 open AdaptiveTree
