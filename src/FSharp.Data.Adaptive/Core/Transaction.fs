@@ -181,7 +181,12 @@ type Transaction() =
                 e.AllInputsProcessed(x)
 
             else
+                // WPF Synchronization-Context inlines code in contending locks.
+                // https://stackoverflow.com/questions/8431221/why-did-entering-a-lock-on-a-ui-thread-trigger-an-onpaint-event
+                // Therefore we treat the "inlined" code as if it were running on a different thread (without a current transaction)
+                Transaction.RunningTransaction <- ValueNone
                 e.EnterWrite()
+                Transaction.RunningTransaction <- ValueSome x
                 try
                     outputCount <- 0
 

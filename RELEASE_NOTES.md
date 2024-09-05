@@ -1,3 +1,6 @@
+### 1.2.16 
+* avoid WPF contention-inline problems with transaction
+
 ### 1.2.15 
 * updated MultiCallbackObject with proper locking https://github.com/fsprojects/FSharp.Data.Adaptive/pull/113
 
