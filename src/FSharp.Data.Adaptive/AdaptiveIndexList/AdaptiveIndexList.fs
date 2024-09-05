@@ -669,7 +669,88 @@ module internal AdaptiveIndexListImplementation =
                 )
 
             changes
-     
+
+       
+    /// Reader for mapA operations.
+    [<Sealed>]
+    type BatchMapReader<'a, 'b>(input : alist<'a>, mapping : IndexList<'a> -> IndexList<aval<'b>>) =
+        inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
+
+        let reader = input.GetReader()
+        do reader.Tag <- "input"
+        
+        let cacheLock = obj()
+        let mutable cache = IndexList.empty<aval<'b>>
+        let mutable targets = MultiSetMap.empty<aval<'b>, Index>
+        let mutable dirty = IndexList.empty<aval<'b>>
+
+        let consumeDirty() =
+            lock cacheLock (fun () ->
+                let d = dirty
+                dirty <- IndexList.empty
+                d
+            )
+
+        override x.InputChangedObject(t, o) =
+            #if FABLE_COMPILER
+            if isNull o.Tag then
+                let o = unbox<aval<'b>> o
+                for i in MultiSetMap.find o targets do
+                    dirty <- IndexList.set i o dirty
+            #else
+            match o with
+            | :? aval<'b> as o ->
+                lock cacheLock (fun () ->
+                    for i in MultiSetMap.find o targets do
+                        dirty <- IndexList.set i o dirty
+                )
+            | _ ->
+                ()
+            #endif
+
+        override x.Compute t =
+            let mutable dirty = consumeDirty()
+            let old = reader.State
+            let ops = reader.GetChanges t 
+            let mutable setOps, changes = IndexList.empty, IndexListDelta.empty
+
+            for (i, op) in ops do 
+                dirty <- IndexList.remove i dirty
+                cache <-
+                    match IndexList.tryRemove i cache with
+                    | Some (o, remainingCache) ->
+                        let rem, rest = MultiSetMap.remove o i targets
+                        targets <- rest
+                        if rem then o.Outputs.Remove x |> ignore
+                        remainingCache
+                    | None -> cache
+                match op with
+                | Set v ->
+                    setOps <- IndexList.set i v setOps
+                | Remove -> 
+                    changes <- IndexListDelta.add i Remove changes
+
+            dirty 
+            |> IndexList.iteri(fun i _ ->
+                match IndexList.tryGet i old with
+                | Some v ->
+                    setOps <- IndexList.set i v setOps
+                | None ->
+                    ()
+            )   
+            
+            mapping setOps
+            |> IndexList.iteri(fun i k ->
+                cache <- IndexList.set i k cache
+                let v = k.GetValue t
+                targets <- MultiSetMap.add k i targets
+                changes <- IndexListDelta.add i (Set v) changes
+            
+            )
+            
+            changes
+
+
     /// Reader for chooseA operations.
     [<Sealed>]
     type ChooseAReader<'a, 'b>(input : alist<'a>, mapping : Index -> 'a -> aval<Option<'b>>) =
@@ -1460,6 +1541,18 @@ module AList =
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.  
     let mapA (mapping: 'T1 -> aval<'T2>) (list: alist<'T1>) =
         mapAi (fun _ v -> mapping v) list
+
+    /// Adaptively applies the given mapping to batches of all changes and e-executes the mapping on dirty outputs
+    let batchMap (mapping: IndexList<'T1> -> IndexList<aval<'T2>>) (list: alist<'T1>) =
+        if list.IsConstant then
+            let map = force list |> mapping
+            if map |> Seq.forall (fun v -> v.IsConstant) then
+                constant (fun () -> map |> IndexList.map (fun v -> AVal.force v))
+            else
+                // TODO better impl possible
+                ofReader (fun () -> BatchMapReader(ofIndexList map, id))
+        else
+            ofReader (fun () -> BatchMapReader(list, mapping))
 
     /// Adaptively chooses all elements returned by mapping.  
     let chooseAi (mapping: Index ->'T1 -> aval<Option<'T2>>) (list: alist<'T1>) =
