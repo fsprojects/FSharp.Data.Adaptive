@@ -55,25 +55,25 @@ module internal Reductions =
                             let index, op = e.Current
                             match op with
                             | Set a ->
-                                match IndexList.tryGet index state with
-                                | Some old ->
+                                match IndexList.tryGetV index state with
+                                | ValueSome old ->
                                     match reduction.sub sum old with
                                     | ValueSome s -> sum <- s
                                     | ValueNone -> working <- false
-                                | None ->
+                                | ValueNone ->
                                     ()
 
                                 sum <- reduction.add sum a
                                 state <- IndexList.set index a state
 
                             | Remove ->
-                                match IndexList.tryRemove index state with
-                                | Some(old, rest) ->
+                                match IndexList.tryRemoveV index state with
+                                | ValueSome(old, rest) ->
                                     state <- rest
                                     match reduction.sub sum old with
                                     | ValueSome s -> sum <- s
                                     | ValueNone -> working <- false
-                                | None ->
+                                | ValueNone ->
                                     ()
 
                         if not working then
@@ -127,11 +127,11 @@ module internal Reductions =
                     if reader.State.Count <= 2 || reader.State.Count <= ops.Count then
                         let newState = 
                             reader.State |> IndexList.mapi (fun k a ->
-                                match IndexList.tryGet k state with
-                                | Some (oa, b) -> 
+                                match IndexList.tryGetV k state with
+                                | ValueSome (oa, b) -> 
                                     if DefaultEquality.equals a oa then a, b
                                     else a, mapping k a
-                                | None ->
+                                | ValueNone ->
                                     let b = mapping k a
                                     a, b
                             )
@@ -143,13 +143,13 @@ module internal Reductions =
                         for (index, op) in ops do
                             match op with
                             | Set a ->
-                                match IndexList.tryGet index state with
-                                | Some (oa, _) when DefaultEquality.equals oa a -> 
+                                match IndexList.tryGetV index state with
+                                | ValueSome (oa, _) when DefaultEquality.equals oa a -> 
                                     ()
                                 | _ -> 
-                                    match IndexList.tryGet index state with
-                                    | Some(_,old) -> sum <- sub sum old
-                                    | None -> ()
+                                    match IndexList.tryGetV index state with
+                                    | ValueSome(_,old) -> sum <- sub sum old
+                                    | ValueNone -> ()
 
                                     let b = mapping index a
 
@@ -157,11 +157,11 @@ module internal Reductions =
                                     state <- IndexList.set index (a,b) state
 
                             | Remove ->
-                                match IndexList.tryRemove index state with
-                                | Some((_,old), rest) ->
+                                match IndexList.tryRemoveV index state with
+                                | ValueSome((_,old), rest) ->
                                     state <- rest
                                     sum <- sub sum old
-                                | None ->
+                                | ValueNone ->
                                     ()
 
                         match sum with
@@ -234,15 +234,15 @@ module internal Reductions =
             #endif
 
         let removeIndex (x : AdaptiveReduceByValue<_,_,_,_>) (i : Index) =
-            match IndexList.tryRemove i state with
-            | Some ((_oa, ov, o), newState) ->
+            match IndexList.tryRemoveV i state with
+            | ValueSome ((_oa, ov, o), newState) ->
                 state <- newState
                 sum <- sub sum o    
                 let rem, newTargets = MultiSetMap.remove ov i targets
                 targets <- newTargets
                 if rem then ov.Outputs.Remove x |> ignore
                 
-            | None ->
+            | ValueNone ->
                 ()
 
         override x.InputChangedObject(t, o) =
@@ -275,8 +275,8 @@ module internal Reductions =
 
                         let newState =  
                             reader.State |> IndexList.mapi (fun k a ->
-                                match IndexList.tryGet k state with
-                                | Some(oa, m,_) when DefaultEquality.equals oa a ->
+                                match IndexList.tryGetV k state with
+                                | ValueSome(oa, m,_) when DefaultEquality.equals oa a ->
                                     let v = m.GetValue t
                                     targets <- MultiSetMap.add m k targets
                                     (a, m, v)
@@ -639,27 +639,27 @@ module internal AdaptiveIndexListImplementation =
                     dirty <- IndexList.remove i dirty
                     match op with
                     | Set v ->
-                        match IndexList.tryGet i old with
-                        | Some ov ->                  
+                        match IndexList.tryGetV i old with
+                        | ValueSome ov ->                  
                             let o = cache.Revoke(i, ov)
                             let rem, rest = MultiSetMap.remove o i targets
                             targets <- rest
                             if rem then o.Outputs.Remove x |> ignore
-                        | None ->
+                        | ValueNone ->
                             ()
                         let k = cache.Invoke(i,v)
                         let v = k.GetValue t
                         targets <- MultiSetMap.add k i targets
                         Some (Set v)
                     | Remove ->
-                        match IndexList.tryGet i old with
-                        | Some v ->                  
+                        match IndexList.tryGetV i old with
+                        | ValueSome v ->                  
                             let o = cache.Revoke(i, v)
                             let rem, r = MultiSetMap.remove o i targets
                             targets <- r
                             if rem then o.Outputs.Remove x |> ignore
                             Some Remove
-                        | None ->
+                        | ValueNone ->
                             None
                 )
 
@@ -717,13 +717,13 @@ module internal AdaptiveIndexListImplementation =
                     dirty <- IndexList.remove i dirty
                     match op with
                     | Set v ->
-                        match IndexList.tryGet i old with
-                        | Some ov ->                  
+                        match IndexList.tryGetV i old with
+                        | ValueSome ov ->                  
                             let o = cache.Revoke(i, ov)
                             let rem, rest = MultiSetMap.remove o i targets
                             targets <- rest
                             if rem then o.Outputs.Remove x |> ignore
-                        | None ->
+                        | ValueNone ->
                             ()
 
                         let k = cache.Invoke(i,v)
@@ -737,8 +737,8 @@ module internal AdaptiveIndexListImplementation =
                             if keys.Remove i then Some Remove
                             else None
                     | Remove ->
-                        match IndexList.tryGet i old with
-                        | Some v ->                  
+                        match IndexList.tryGetV i old with
+                        | ValueSome v ->                  
                             let o = cache.Revoke(i, v)
                             let rem, rest = MultiSetMap.remove o i targets
                             targets <- rest
@@ -746,7 +746,7 @@ module internal AdaptiveIndexListImplementation =
 
                             if keys.Remove i then Some Remove
                             else None
-                        | None ->
+                        | ValueNone ->
                             None
                 )
 
@@ -1149,8 +1149,8 @@ module internal AdaptiveIndexListImplementation =
             for i, op in ops do
                 match op with
                 | Remove ->
-                    match IndexList.tryGet i o with
-                    | Some _ov ->
+                    match IndexList.tryGetV i o with
+                    | ValueSome _ov ->
                         let (l, r) = neighbours i
                         delta <- IndexListDelta.add i Remove delta
                         match l with
@@ -1162,12 +1162,12 @@ module internal AdaptiveIndexListImplementation =
                                 delta <- IndexListDelta.add li Remove delta
                         | None ->
                             ()
-                    | None ->
+                    | ValueNone ->
                         ()
                 | Set v ->
                     let (l, r) = neighbours i
-                    match IndexList.tryGet i o with
-                    | Some ov when CheapEquality.cheapEqual ov v ->
+                    match IndexList.tryGetV i o with
+                    | ValueSome ov when CheapEquality.cheapEqual ov v ->
                         ()
                     | _ ->
                         match r with
