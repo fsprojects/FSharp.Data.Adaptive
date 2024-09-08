@@ -465,10 +465,10 @@ module AdaptiveHashSetImplementation =
                         Add(cache.Invoke v) |> Some
                     | Rem(1, v) -> 
                         match cache.RevokeAndGetDeletedTotal v with
-                        | Some (del, v) -> 
+                        | ValueSome (del, v) -> 
                             if del then (v :> IDisposable).Dispose()
                             Rem v |> Some
-                        | None ->
+                        | ValueNone ->
                             None
                     | _ -> 
                         unexpected()
@@ -593,7 +593,7 @@ module AdaptiveHashSetImplementation =
 
                     | Rem(1, v) -> 
                         // r is no longer dirty since we either pull or destroy it here.
-                        let deleted, r = cache.RevokeAndGetDeleted v
+                        let struct(deleted, r) = cache.RevokeAndGetDeleted v
                         dirty.Remove r |> ignore
                         if deleted then 
                             // in case r was not dirty we need to explicitly remove ourselves
@@ -822,7 +822,7 @@ module AdaptiveHashSetImplementation =
 
                     | Rem(1, value) -> 
                         match cache.RevokeAndGetDeletedTotal value with
-                        | Some (deleted, r) -> 
+                        | ValueSome (deleted, r) -> 
                             // r is no longer dirty since we either pull or destroy it here.
                             dirty.Remove r |> ignore
                             if deleted then 
@@ -832,7 +832,7 @@ module AdaptiveHashSetImplementation =
                                 CountingHashSet.removeAll r.State
                             else
                                 r.GetChanges token
-                        | None -> 
+                        | ValueNone -> 
                             // weird
                             HashSetDelta.empty
                                 

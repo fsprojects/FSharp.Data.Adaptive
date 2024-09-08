@@ -20,10 +20,10 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
         #endif 
 
     /// cache for non-null values.
-    let cache = DefaultDictionary.create<'T1, 'T2 * ref<int>>()
+    let cache = DefaultDictionary.create<'T1, struct('T2 * ref<int>)>()
 
     /// cache for null values (needed for option, unit, etc.)
-    let mutable nullCache : option<_ * ref<_>> = None
+    let mutable nullCache : ValueOption<struct(_ * ref<_>)> = ValueNone
 
     /// Clear removes all entries from the Cache and
     /// executes a function for all removed cache entries.
@@ -34,10 +34,10 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
             remove v
         cache.Clear()
         match nullCache with
-            | Some (v,_) -> 
+            | ValueSome (v,_) -> 
                 remove v
-                nullCache <- None
-            | None -> ()
+                nullCache <- ValueNone
+            | ValueNone -> ()
 
     /// Invoke returns the function value associated
     /// With the given argument (possibly executing the function)
@@ -45,12 +45,12 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
     member x.Invoke (v : 'T1) =
         if isNull v then
             match nullCache with
-                | Some (r, ref) -> 
+                | ValueSome (r, ref) -> 
                     ref.Value <- ref.Value + 1
                     r
-                | None ->
+                | ValueNone ->
                     let r = mapping v
-                    nullCache <- Some(r, ref 1)
+                    nullCache <- ValueSome(r, ref 1)
                     r
         else
             match cache.TryGetValue v with
@@ -66,23 +66,23 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
     member x.RevokeAndGetDeleted (v : 'T1) =
         if isNull v then
             match nullCache with
-                | Some (r, ref) -> 
+                | ValueSome (r, ref) -> 
                     ref.Value <- ref.Value - 1
                     if ref.Value = 0 then
-                        nullCache <- None
-                        (true, r)
+                        nullCache <- ValueNone
+                        struct(true, r)
                     else
-                        (false, r)
-                | None -> failwithf "cannot revoke null"
+                        struct(false, r)
+                | ValueNone -> failwithf "cannot revoke null"
         else
             match cache.TryGetValue v with
                 | (true, (r, ref)) -> 
                     ref.Value <- ref.Value - 1
                     if ref.Value = 0 then
                         cache.Remove v |> ignore
-                        (true, r)
+                        struct(true, r)
                     else
-                        (false, r)
+                        struct(false, r)
                 | _ -> failwithf "cannot revoke unknown value: %A" v
                 
     /// Revoke returns the function value associated
@@ -90,31 +90,31 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
     member x.RevokeAndGetDeletedTotal (v : 'T1) =
         if isNull v then
             match nullCache with
-                | Some (r, ref) -> 
+                | ValueSome (r, ref) -> 
                     ref.Value <- ref.Value - 1
                     if ref.Value = 0 then
-                        nullCache <- None
-                        Some (true, r)
+                        nullCache <- ValueNone
+                        ValueSome (true, r)
                     else
-                        Some(false, r)
-                | None -> 
-                    None
+                        ValueSome(false, r)
+                | ValueNone -> 
+                    ValueNone
         else
             match cache.TryGetValue v with
                 | (true, (r, ref)) -> 
                     ref.Value <- ref.Value - 1
                     if ref.Value = 0 then
                         cache.Remove v |> ignore
-                        Some(true, r)
+                        ValueSome(true, r)
                     else
-                        Some(false, r)
+                        ValueSome(false, r)
                 | _ -> 
-                    None
+                    ValueNone
 
     /// Revoke the value and return its associated cache value.
     member x.Revoke (v : 'T1) =
-        x.RevokeAndGetDeleted v |> snd
+        x.RevokeAndGetDeleted v |> (fun struct(_,b) -> b)
 
     /// Enumerate over all cache values.
     member x.Values = 
-        cache.Values |> Seq.map fst
+        cache.Values |> Seq.map (fun struct(a,_) -> a)
