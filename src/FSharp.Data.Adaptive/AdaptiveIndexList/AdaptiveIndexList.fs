@@ -601,7 +601,7 @@ module internal AdaptiveIndexListImplementation =
         let mapping = OptimizedClosures.FSharpFunc<Index, 'a, aval<'b>>.Adapt mapping
         let reader = input.GetReader()
         do reader.Tag <- "input"
-        let cache = Cache (fun (a,b) -> mapping.Invoke(a,b))
+        let cache = Cache (fun struct(i,v) -> mapping.Invoke(i,v))
         let mutable targets = MultiSetMap.empty<aval<'b>, Index>
         let mutable dirty = IndexList.empty<aval<'b>>
 
@@ -679,7 +679,7 @@ module internal AdaptiveIndexListImplementation =
         do reader.Tag <- "input"
         let mapping = OptimizedClosures.FSharpFunc<Index, 'a, aval<option<'b>>>.Adapt mapping
         let keys = DefaultHashSet.create<Index>()
-        let cache = Cache (fun (a,b) ->  mapping.Invoke(a,b))
+        let cache = Cache (fun struct(i,v) ->  mapping.Invoke(i,v))
         let mutable targets = MultiSetMap.empty<aval<option<'b>>, Index>
         let mutable dirty = IndexList.empty<aval<option<'b>>>
 
@@ -854,7 +854,7 @@ module internal AdaptiveIndexListImplementation =
         inherit AbstractDirtyReader<MultiReader<'b>, IndexListDelta<'b>>(IndexListDelta.monoid, checkTag "MultiReader")
             
         let mapping = IndexMapping<Index * Index>()
-        let cache = DefaultDictionary.create<Index, 'a * alist<'b>>()
+        let cache = DefaultDictionary.create<Index, struct('a * alist<'b>)>()
         let readers = DefaultDictionary.create<alist<'b>, MultiReader<'b>>()
         let input = input.GetReader()
 
