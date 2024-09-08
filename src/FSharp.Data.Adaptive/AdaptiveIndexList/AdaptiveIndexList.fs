@@ -770,15 +770,12 @@ module internal AdaptiveIndexListImplementation =
             
         let targets = DefaultHashSet.create<Index>()
 
-        let mutable reader = None
+        let mutable reader = Unchecked.defaultof<IIndexListReader<'a>>
 
         let getReader() =
-            match reader with
-            | Some r -> r
-            | None ->
-                let r = list.GetReader()
-                reader <- Some r
-                r
+            if obj.ReferenceEquals(reader, null) then
+                reader <- list.GetReader()
+            reader
 
         member x.AddTarget(oi : Index) =
             if targets.Add oi then
@@ -789,10 +786,9 @@ module internal AdaptiveIndexListImplementation =
 
         member x.RemoveTarget(dirty : System.Collections.Generic.HashSet<MultiReader<'a>>, oi : Index) =
             if targets.Remove oi then
-                match reader with
-                | Some r ->
+                if not (obj.ReferenceEquals(reader, null)) then
                     let result = 
-                        r.State.Content 
+                        reader.State.Content 
                         |> MapExt.toSeq
                         |> Seq.choose (fun (ii, v) -> 
                             match mapping.Revoke(oi,ii) with
@@ -806,26 +802,23 @@ module internal AdaptiveIndexListImplementation =
                         x.Release()
 
                     result
-
-                | None ->
+                else
                     IndexListDelta.empty
             else
                 IndexListDelta.empty
 
         member x.Release() =
-            match reader with
-            | Some r ->
+            if not (obj.ReferenceEquals(reader, null)) then
                 release(list)
-                r.Outputs.Remove x |> ignore
+                reader.Outputs.Remove x |> ignore
                 x.Outputs.Clear()
-                reader <- None
-            | None ->   
+                reader <- Unchecked.defaultof<IIndexListReader<'a>>
+            else
                 ()
 
         override x.Compute(token) =
-            match reader with
-            | Some r -> 
-                let ops = r.GetChanges token
+            if not (obj.ReferenceEquals(reader, null)) then
+                let ops = reader.GetChanges token
 
                 ops |> IndexListDelta.collect (fun ii op ->
                     match op with
@@ -845,7 +838,7 @@ module internal AdaptiveIndexListImplementation =
 
                 )
 
-            | None ->
+            else
                 IndexListDelta.empty
 
     /// Reader for collect operations.
@@ -983,7 +976,7 @@ module internal AdaptiveIndexListImplementation =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
         let mutable inputChanged = 1
-        let mutable reader : Option<'a * IIndexListReader<'b>> = None
+        let mutable reader : ValueOption<'a * IIndexListReader<'b>> = ValueNone
 
         override x.InputChangedObject(t : obj, o : IAdaptiveObject) =
             if System.Object.ReferenceEquals(input, o) then
@@ -997,20 +990,20 @@ module internal AdaptiveIndexListImplementation =
             let inputChanged = System.Threading.Interlocked.Exchange(&inputChanged, 0)
             #endif
             match reader with
-            | Some (oldA, oldReader) when inputChanged = 0 || cheapEqual v oldA ->
+            | ValueSome (oldA, oldReader) when inputChanged = 0 || cheapEqual v oldA ->
                 oldReader.GetChanges token
             | _ -> 
                 let newReader = mapping(v).GetReader()
                 let deltas = 
                     let addNew = newReader.GetChanges token
                     match reader with
-                        | Some(_,old) ->
+                        | ValueSome(_,old) ->
                             let remOld = IndexList.computeDelta old.State IndexList.empty
                             old.Outputs.Clear()
                             IndexListDelta.combine remOld addNew
-                        | None ->
+                        | ValueNone ->
                             addNew
-                reader <- Some (v,newReader)
+                reader <- ValueSome (v,newReader)
                 deltas
 
     /// Reader for sortBy operations
