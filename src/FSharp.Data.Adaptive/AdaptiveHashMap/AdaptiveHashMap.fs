@@ -936,18 +936,18 @@ module AdaptiveHashMapImplementation =
                 for (k,op) in ops do
                     match op with
                     | Set v ->
-                        match HashMap.tryFind k oldState with
-                        | None -> ()
-                        | Some oldValue ->
+                        match HashMap.tryFindV k oldState with
+                        | ValueNone -> ()
+                        | ValueSome oldValue ->
                             deltas <- HashSetDelta.add (Rem(k, oldValue)) deltas
                         deltas <- HashSetDelta.add (Add(k, v)) deltas
                 
                     | Remove ->
                         // NOTE: As it is not clear at what point the toASet computation has been evaluated last, it is 
                         //       a valid case that something is removed that is not present in the current local state.
-                        match HashMap.tryFind k oldState with
-                        | None -> ()
-                        | Some ov ->
+                        match HashMap.tryFindV k oldState with
+                        | ValueNone -> ()
+                        | ValueSome ov ->
                             deltas <- HashSetDelta.add (Rem (k, ov)) deltas
                 
                 
@@ -961,18 +961,18 @@ module AdaptiveHashMapImplementation =
             for (k,op) in ops do
                 match op with
                 | Set v ->
-                    match HashMap.tryFind k oldState with
-                    | None -> ()
-                    | Some oldValue ->
+                    match HashMap.tryFindV k oldState with
+                    | ValueNone -> ()
+                    | ValueSome oldValue ->
                         deltas <- HashSetDelta.add (Rem(k, oldValue)) deltas
                     deltas <- HashSetDelta.add (Add(k, v)) deltas
 
                 | Remove ->
                     // NOTE: As it is not clear at what point the toASet computation has been evaluated last, it is 
                     //       a valid case that something is removed that is not present in the current local state.
-                    match HashMap.tryFind k oldState with
-                    | None -> ()
-                    | Some ov ->
+                    match HashMap.tryFindV k oldState with
+                    | ValueNone -> ()
+                    | ValueSome ov ->
                         deltas <- HashSetDelta.add (Rem (k, ov)) deltas
 
 
@@ -991,18 +991,18 @@ module AdaptiveHashMapImplementation =
                 for (k,op) in ops do
                     match op with
                     | Set v ->
-                        match HashMap.tryFind k oldState with
-                        | None -> ()
-                        | Some oldValue ->
+                        match HashMap.tryFindV k oldState with
+                        | ValueNone -> ()
+                        | ValueSome oldValue ->
                             deltas <- HashSetDelta.add (Rem(oldValue)) deltas
                         deltas <- HashSetDelta.add (Add(v)) deltas
                 
                     | Remove ->
                         // NOTE: As it is not clear at what point the toASet computation has been evaluated last, it is 
                         //       a valid case that something is removed that is not present in the current local state.
-                        match HashMap.tryFind k oldState with
-                        | None -> ()
-                        | Some ov ->
+                        match HashMap.tryFindV k oldState with
+                        | ValueNone -> ()
+                        | ValueSome ov ->
                             deltas <- HashSetDelta.add (Rem (ov)) deltas
                 
                 
@@ -1015,18 +1015,18 @@ module AdaptiveHashMapImplementation =
             for (k,op) in ops do
                 match op with
                 | Set v ->
-                    match HashMap.tryFind k oldState with
-                    | None -> ()
-                    | Some oldValue ->
+                    match HashMap.tryFindV k oldState with
+                    | ValueNone -> ()
+                    | ValueSome oldValue ->
                         deltas <- HashSetDelta.add (Rem(oldValue)) deltas
                     deltas <- HashSetDelta.add (Add(v)) deltas
                 
                 | Remove ->
                     // NOTE: As it is not clear at what point the toASet computation has been evaluated last, it is 
                     //       a valid case that something is removed that is not present in the current local state.
-                    match HashMap.tryFind k oldState with
-                    | None -> ()
-                    | Some ov ->
+                    match HashMap.tryFindV k oldState with
+                    | ValueNone -> ()
+                    | ValueSome ov ->
                         deltas <- HashSetDelta.add (Rem (ov)) deltas
             deltas
 
