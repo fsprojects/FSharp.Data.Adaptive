@@ -715,3 +715,47 @@ let ``[ASet] mapA/flattenA/chooseA async``() =
 
     ()
 
+
+[<Test>]
+let ``[ASet] union constant``() =
+    let constSet = ASet.ofList [1; 2; 3]
+    let changeSet = cset [4;5;6]
+
+    let union1 = ASet.union constSet changeSet
+    let union2 = ASet.union changeSet constSet
+
+    let refSet = [1; 2; 3; 4; 5; 6]
+    union1 |> ASet.force |> should setequal refSet
+    union2 |> ASet.force |> should setequal refSet
+
+    transact(fun () -> changeSet.Add(1) |> ignore)
+
+    union1 |> ASet.force |> should setequal refSet
+    union2 |> ASet.force |> should setequal refSet
+
+    transact(fun () -> changeSet.Remove(1) |> ignore)
+
+    union1 |> ASet.force |> should setequal refSet
+    union2 |> ASet.force |> should setequal refSet
+
+    transact(fun () -> changeSet.Remove(5) |> ignore)
+
+    let refSet = [1; 2; 3; 4; 6]
+    union1 |> ASet.force |> should setequal refSet
+    union2 |> ASet.force |> should setequal refSet
+
+    let constSet = ASet.ofList [1; 2; 3]
+    let changeSet = cset [3;4;5]
+
+    let union1 = ASet.union constSet changeSet
+    let union2 = ASet.union changeSet constSet
+
+    let refSet = [1; 2; 3; 4; 5]
+    union1 |> ASet.force |> should setequal refSet
+    union2 |> ASet.force |> should setequal refSet
+
+    transact(fun () -> changeSet.Remove(5) |> ignore)
+
+    let refSet = [1; 2; 3; 4]
+    union1 |> ASet.force |> should setequal refSet
+    union2 |> ASet.force |> should setequal refSet

@@ -756,6 +756,32 @@ module AdaptiveHashSetImplementation =
             state <- newState
             HashSetDelta.ofHashMap delta
 
+
+    /// Reader for unioning an aset with a constant set of elements.
+    [<Sealed>]
+    type UnionConstantSingleReader<'T>(constant : HashSet<'T>, input : aset<'T>) =
+        inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.empty)
+
+        let mutable isInitial = true
+        let inputReader = 
+            let r = input.GetReader()
+            r.Tag <- "InnerReader"
+            r
+        
+        override x.Compute(token) = 
+            if isInitial then
+                isInitial <- false
+                // initially we need to combined the constant and the input set.
+                //let initial = constant |> Seq.map (fun v -> Add v) |> HashSetDelta.ofSeq // NOTE: this allocates enumerators
+                let mutable initial = HashSetDelta.empty
+                for v in constant do
+                    initial <- initial.Add (Add v)
+                let otherInitial = inputReader.GetChanges(token)
+                HashSetDelta.combine initial otherInitial
+            else
+                // once evaluated only the input set needs to be pulled.
+                inputReader.GetChanges token
+
     /// Reader for unioning a constant set of asets.
     [<Sealed>]
     type UnionConstantReader<'T>(input : HashSet<aset<'T>>) =
@@ -1201,13 +1227,18 @@ module ASet =
     let union (a : aset<'A>) (b : aset<'A>) =
         if a = b then
             a
-        elif a.IsConstant && b.IsConstant then
+        elif a.IsConstant then
             let va = force a
+            if b.IsConstant then
+                let vb = force b
+                if va.IsEmpty && vb.IsEmpty then empty
+                else constant (fun () -> HashSet.union va vb)
+            else
+                ofReader (fun () -> UnionConstantSingleReader(va, b))
+        elif b.IsConstant then
             let vb = force b
-            if va.IsEmpty && vb.IsEmpty then empty
-            else constant (fun () -> HashSet.union va vb)
+            ofReader (fun () -> UnionConstantSingleReader(vb, a))
         else
-            // TODO: can be optimized in case one of the two sets is constant.
             ofReader (fun () -> UnionConstantReader (HashSet.ofArray [| a; b |]))
             
     /// Adaptively subtracts the given sets.
