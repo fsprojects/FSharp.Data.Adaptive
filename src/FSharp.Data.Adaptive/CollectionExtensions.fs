@@ -111,21 +111,23 @@ module CollectionExtensions =
 
             override x.Compute(token: AdaptiveToken) =
                 let old = reader.State.Content
-                reader.GetChanges(token).Content |> Seq.collect (fun (KeyValue(i, op)) ->
+                let changes = reader.GetChanges(token).Content
+                let mutable delta = HashSetDelta.empty
+                for KeyValue(i, op) in changes do
                     match op with
                     | Remove -> 
-                        match MapExt.tryFind i old with
-                        | Some v -> Seq.singleton (Rem v)
-                        | None -> Seq.empty
+                        match MapExt.tryFindV i old with
+                        | ValueSome v -> delta <- delta.Add (Rem v)
+                        | ValueNone -> ()
                     | Set v ->
-                        match MapExt.tryFind i old with
-                        | Some ov ->
-                            if DefaultEquality.equals v ov then Seq.empty
-                            else [Add v; Rem ov] :> seq<_>
-                        | None ->
-                            Seq.singleton (Add v)
-                )
-                |> HashSetDelta.ofSeq
+                        match MapExt.tryFindV i old with
+                        | ValueSome ov ->
+                            if not (DefaultEquality.equals v ov) then
+                                delta <- delta.Add (Add v)
+                                delta <- delta.Add (Rem ov)
+                        | ValueNone ->
+                            delta <- delta.Add (Add v)
+                delta
 
         /// Reader for AList.toIndexedASet
         [<Sealed>]
@@ -136,21 +138,23 @@ module CollectionExtensions =
 
             override x.Compute(token: AdaptiveToken) =
                 let old = reader.State.Content
-                reader.GetChanges(token).Content |> Seq.collect (fun (KeyValue(i, op)) ->
+                let changes = reader.GetChanges(token).Content
+                let mutable delta = HashSetDelta.empty
+                for KeyValue(i, op) in changes do
                     match op with
                     | Remove -> 
-                        match MapExt.tryFind i old with
-                        | Some v -> Seq.singleton (Rem(i, v))
-                        | None -> Seq.empty
+                        match MapExt.tryFindV i old with
+                        | ValueSome v -> delta <- delta.Add (Rem(i, v))
+                        | ValueNone -> ()
                     | Set v ->
-                        match MapExt.tryFind i old with
-                        | Some ov ->
-                            if DefaultEquality.equals v ov then Seq.empty
-                            else [Add(i,v); Rem(i,ov)] :> seq<_>
-                        | None ->
-                            Seq.singleton (Add(i,v))
-                )
-                |> HashSetDelta.ofSeq
+                        match MapExt.tryFindV i old with
+                        | ValueSome ov ->
+                            if not (DefaultEquality.equals v ov) then
+                                delta <- delta.Add (Add(i,v))
+                                delta <- delta.Add (Rem(i,ov))
+                        | ValueNone ->
+                            delta <- delta.Add (Add(i,v))
+                delta
 
         /// Reader for AList.ofASet
         [<Sealed>]
@@ -167,20 +171,19 @@ module CollectionExtensions =
             let newIndex = Cache newIndex
 
             override x.Compute(token) =
-                reader.GetChanges token
-                    |> HashSetDelta.toSeq
-                    |> Seq.map (fun d ->
+                let changes = reader.GetChanges token
+                let mutable delta = IndexListDelta.empty
+                for d in changes do
                     match d with
-                        | Add(1,v) -> 
-                            let i = newIndex.Invoke v
-                            i, Set v
-                        | Rem(1,v) ->
-                            let i = newIndex.Revoke v
-                            i, Remove
-                        | _ ->
-                            unexpected()
-                    )
-                    |> IndexListDelta.ofSeq
+                    | Add(1,v) -> 
+                        let i = newIndex.Invoke v
+                        delta <- delta.Add (i, Set v)
+                    | Rem(1,v) ->
+                        let i = newIndex.Revoke v
+                        delta <- delta.Add (i, Remove)
+                    | _ ->
+                        unexpected()
+                delta
                     
         [<Sealed>]
         type MapToListReader<'T>(input : amap<Index, 'T>) =
