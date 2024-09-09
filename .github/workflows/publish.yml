@@ -16,7 +16,9 @@ jobs:
       - name: Install Dotnet
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '6.0.100'
+          dotnet-version: | 
+            6.0.100
+            8.0.400
       - name: Restore Tools
         run: dotnet tool restore
       - name: Paket Restore
