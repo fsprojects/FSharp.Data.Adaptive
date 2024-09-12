@@ -54,8 +54,8 @@ module CollectionExtensions =
                     | Rem(_, v) ->
                         let k = cache.Revoke v
                         match mapping.Revoke k with
-                        | Some idx -> Some (idx, Remove)
-                        | None -> None
+                        | ValueSome idx -> Some (idx, Remove)
+                        | ValueNone -> None
                 )
                 |> IndexListDelta.ofSeq
         

@@ -792,8 +792,8 @@ module internal AdaptiveIndexListImplementation =
                         |> MapExt.toSeq
                         |> Seq.choose (fun (ii, v) -> 
                             match mapping.Revoke(oi,ii) with
-                            | Some v -> Some (v, Remove)
-                            | None -> None
+                            | ValueSome v -> Some (v, Remove)
+                            | ValueNone -> None
                         )
                         |> IndexListDelta.ofSeq
 
@@ -826,8 +826,8 @@ module internal AdaptiveIndexListImplementation =
                         targets
                         |> Seq.choose (fun oi -> 
                             match mapping.Revoke(oi, ii) with   
-                            | Some i -> Some(i, Remove)
-                            | None -> None
+                            | ValueSome i -> Some(i, Remove)
+                            | ValueNone -> None
                         )
                         |> IndexListDelta.ofSeq
 
@@ -936,9 +936,9 @@ module internal AdaptiveIndexListImplementation =
                 | Remove ->
                     let outIndex = mapping.Revoke(index, i)
                     match outIndex with
-                    | Some outIndex ->
+                    | ValueSome outIndex ->
                         Some (outIndex, Remove)
-                    | None ->
+                    | ValueNone ->
                         None
             )
 
@@ -1024,8 +1024,8 @@ module internal AdaptiveIndexListImplementation =
                         match cache.TryGetValue i with
                         | (true, b) ->
                             match idx.Revoke((b, i)) with
-                            | Some oi -> Some (oi, Remove)
-                            | None -> None
+                            | ValueSome oi -> Some (oi, Remove)
+                            | ValueNone -> None
                         | _ ->
                             None
                     let b = mapping i v
@@ -1039,8 +1039,8 @@ module internal AdaptiveIndexListImplementation =
                     | (true, b) ->
                         cache.Remove i |> ignore
                         match idx.Revoke((b, i)) with
-                        | Some oi -> [(oi, Remove)]
-                        | None -> []
+                        | ValueSome oi -> [(oi, Remove)]
+                        | ValueNone -> []
                     | _ ->
                         []
             )
@@ -1073,8 +1073,8 @@ module internal AdaptiveIndexListImplementation =
                         match MapExt.tryFind i old with
                         | Some ov ->
                             match idx.Revoke(UCmp(cmp, struct(ov, i))) with
-                            | Some oi -> Some (oi, Remove)
-                            | None -> None
+                            | ValueSome oi -> Some (oi, Remove)
+                            | ValueNone -> None
                         | _ ->
                             None
                     let oi = idx.Invoke(UCmp(cmp, struct(v, i)))
@@ -1085,8 +1085,8 @@ module internal AdaptiveIndexListImplementation =
                     match MapExt.tryFind i old with
                     | Some ov ->
                         match idx.Revoke(UCmp(cmp, struct(ov, i))) with
-                        | Some oi -> [(oi, Remove)]
-                        | None -> []
+                        | ValueSome oi -> [(oi, Remove)]
+                        | ValueNone -> []
                     | _ ->
                         []
             )
