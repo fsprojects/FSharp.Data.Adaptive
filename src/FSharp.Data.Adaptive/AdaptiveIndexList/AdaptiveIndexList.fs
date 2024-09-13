@@ -788,14 +788,12 @@ module internal AdaptiveIndexListImplementation =
             if targets.Remove oi then
                 if not (obj.ReferenceEquals(reader, null)) then
                     let result = 
-                        reader.State.Content 
-                        |> MapExt.toSeq
-                        |> Seq.choose (fun (ii, v) -> 
+                        let mutable delta = IndexListDelta.empty
+                        for KeyValue(ii, v) in reader.State.Content do
                             match mapping.Revoke(oi,ii) with
-                            | ValueSome v -> Some (v, Remove)
-                            | ValueNone -> None
-                        )
-                        |> IndexListDelta.ofSeq
+                            | ValueSome v -> delta <- delta.Add (v, Remove)
+                            | ValueNone -> ()
+                        delta
 
                     if targets.Count = 0 then 
                         dirty.Remove x |> ignore
@@ -823,19 +821,18 @@ module internal AdaptiveIndexListImplementation =
                 ops |> IndexListDelta.collect (fun ii op ->
                     match op with
                     | Remove -> 
-                        targets
-                        |> Seq.choose (fun oi -> 
+                        let mutable delta = IndexListDelta.empty
+                        for oi in targets do
                             match mapping.Revoke(oi, ii) with   
-                            | ValueSome i -> Some(i, Remove)
-                            | ValueNone -> None
-                        )
-                        |> IndexListDelta.ofSeq
+                            | ValueSome i -> delta <- delta.Add (i, Remove)
+                            | ValueNone -> ()
+                        delta
 
                     | Set v ->
-                        targets
-                        |> Seq.map (fun oi -> mapping.Invoke(oi, ii), Set v)
-                        |> IndexListDelta.ofSeq
-
+                        let mutable delta = IndexListDelta.empty
+                        for oi in targets do
+                            delta <- delta.Add (mapping.Invoke(oi, ii), Set v)
+                        delta
                 )
 
             else
