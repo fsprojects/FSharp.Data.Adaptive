@@ -1516,7 +1516,10 @@ module AList =
 
     /// Adaptively concatenates the given lists.
     let append (l: alist<'T>) (r: alist<'T>) =
-        concat [l; r]
+        if l.IsConstant && r.IsConstant then
+            constant (fun () -> IndexList.append (l |> force) (r |> force))
+        else // TODO: optimization for if one is constant
+            ofReader (fun () -> ConcatReader(IndexList.ofArray [|l; r|]))
 
     /// Creates an aval providing access to the current content of the list.
     let toAVal (list : alist<'T>) =
