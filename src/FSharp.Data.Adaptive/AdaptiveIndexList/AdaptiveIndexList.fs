@@ -1439,7 +1439,7 @@ module AList =
     let mapAi (mapping: Index -> 'T1 -> aval<'T2>) (list: alist<'T1>) =
         if list.IsConstant then
             let list = force list |> IndexList.mapi mapping
-            if list |> Seq.forall (fun v -> v.IsConstant) then
+            if list |> IndexList.forall (fun _ v -> v.IsConstant) then
                 constant (fun () -> list |> IndexList.map AVal.force)
             else
                 // TODO better impl possible
@@ -1455,7 +1455,7 @@ module AList =
     let chooseAi (mapping: Index ->'T1 -> aval<Option<'T2>>) (list: alist<'T1>) =
         if list.IsConstant then
             let list = force list |> IndexList.mapi mapping
-            if list |> Seq.forall (fun v -> v.IsConstant) then
+            if list |> IndexList.forall (fun _ v -> v.IsConstant) then
                 constant (fun () -> list |> IndexList.choose AVal.force)
             else
                 // TODO better impl possible
@@ -1483,7 +1483,7 @@ module AList =
     let collecti (mapping: Index -> 'T1 -> alist<'T2>) (list : alist<'T1>) =
         if list.IsConstant then
             let content = force list |> IndexList.mapi mapping
-            if content |> Seq.forall (fun l -> l.IsConstant) then
+            if content |> IndexList.forall (fun _ l -> l.IsConstant) then
                 constant (fun () -> content |> IndexList.collect force)
             else
                 ofReader (fun () -> ConcatReader(content))
@@ -1509,7 +1509,7 @@ module AList =
         let lists = IndexList.ofSeq lists
         if lists.IsEmpty then 
             empty
-        elif lists |> Seq.forall (fun l -> l.IsConstant) then
+        elif lists |> IndexList.forall (fun _ l -> l.IsConstant) then
             constant (fun () -> lists |> IndexList.collect force)
         else
             ofReader (fun () -> ConcatReader(lists))
