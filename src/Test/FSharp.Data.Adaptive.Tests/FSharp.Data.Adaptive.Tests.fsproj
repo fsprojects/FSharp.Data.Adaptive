@@ -26,6 +26,7 @@
     <Compile Include="Benchmarks\HashSetDeltaBench.fs" />
     <Compile Include="Benchmarks\ListDeltaBenchmarks.fs" />
     <Compile Include="Benchmarks\IndexListBenchmarks.fs" />
+    <Compile Include="Benchmarks\IndexBenchmarks.fs" />
     <Compile Include="Utilities\Helpers.fs" />
     <Compile Include="Utilities\Generators.fs" />
     <Compile Include="Callbacks.fs" />

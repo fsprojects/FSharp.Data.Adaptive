@@ -50,7 +50,7 @@ let main _args =
 
     //ASet.``[ASet] mapA/flattenA/chooseA async``()
     //ASet.``[ASet] union constant``()
-    AList.``[AList] toAset``()
+    //AList.``[AList] toAset``()
 
     //``[AList] sub``();
 
@@ -91,5 +91,6 @@ let main _args =
     //BenchmarkRunner.Run<Benchmarks.MapExtEnumeratorBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.HashSetDeltaBench>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.IndexListBenchmarks>() |> ignore
+    BenchmarkRunner.Run<Benchmarks.IndexEqualsBenchmarks>() |> ignore
 
     0

@@ -3,6 +3,7 @@
 open System
 open System.Threading
 open System.Collections.Generic
+open System.Runtime.CompilerServices
 
 /// the internal implementation of our order-maintenance structure.
 [<StructuredFormatDisplay("{AsString}")>]
@@ -138,6 +139,10 @@ type IndexNode =
             | false, false ->
                 x.CompareTo o
 
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member x.Equals (o : IndexNode) =
+            System.Object.ReferenceEquals(x,o)
+
         interface IComparable with
             member x.CompareTo (o : obj) =
                 match o with
@@ -269,6 +274,10 @@ type Index private(real : IndexNode) =
                 
     override x.ToString() = real.ToString()
     member private x.AsString = x.ToString()
+
+    interface IEquatable<Index> with
+        member x.Equals (o: Index): bool = 
+            real.Equals o.Value
 
     interface IComparable with
         member x.CompareTo(o : obj) = 
