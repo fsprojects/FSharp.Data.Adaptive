@@ -91,6 +91,16 @@ let main _args =
     //BenchmarkRunner.Run<Benchmarks.MapExtEnumeratorBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.HashSetDeltaBench>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.IndexListBenchmarks>() |> ignore
-    BenchmarkRunner.Run<Benchmarks.IndexEqualsBenchmarks>() |> ignore
+    //BenchmarkRunner.Run<Benchmarks.IndexEqualsBenchmarks>() |> ignore
+    BenchmarkRunner.Run<Benchmarks.IndexGarbageBenchmarks>() |> ignore
+
+    //let x = Benchmarks.IndexGarbageBenchmarks()
+    //x.ListCount <- 100
+    //x.GarbageCount <- 1000000
+    //for i in 0..1000 do
+    //    x.GarbageRnd()
+    //    printfn "iter %d" i
+
+    //printfn "done"
 
     0
