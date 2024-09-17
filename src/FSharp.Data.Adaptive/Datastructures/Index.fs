@@ -95,7 +95,7 @@ type IndexNode =
         member x.Delete() =
             let prev = x.Prev
             Monitor.Enter prev
-            if prev.Next <> x || prev.RefCount = 0 then // also check refCount, prev might just have been deleted
+            if prev.Next <> x then // NOTE: prev.Next might point to an inserted node between after lock has been aquired
                 Monitor.Exit prev
                 x.Delete()
             else
@@ -104,6 +104,8 @@ type IndexNode =
                     if x.RefCount = 1 then
                         prev.Next <- x.Next
                         x.Next.Prev <- prev
+                        x.Next <- Unchecked.defaultof<_> // set pointers to null so no additional RefCount=0 check is needed in Before after aquiring the lock
+                        x.Prev <- Unchecked.defaultof<_>
                         x.RefCount <- 0
                     else
                         x.RefCount <- x.RefCount - 1
@@ -239,7 +241,7 @@ type Index private(real : IndexNode) =
     member x.Before() =
         let prev = real.Prev
         Monitor.Enter prev
-        if prev.Next <> real || prev.RefCount = 0 then // also check refCount, prev might just have been deleted
+        if prev.Next <> real then // NOTE: prev.Next might point to an inserted node between or be null if it just has been deleted
             Monitor.Exit prev
             x.Before()
         else
