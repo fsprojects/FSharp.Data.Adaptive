@@ -67,29 +67,28 @@ type IndexNode =
         member x.Key = x.Tag - x.Root.Tag
 
         /// insert a node directly after this one.
+        /// NOTE: expects node to be locked
         member x.InsertAfter() =
-            lock x (fun () ->
-                let next = x.Next
+            let next = x.Next
                     
-                /// initially we increment the distance by Uint64.MaxValue/2
-                let mutable distance = 
-                    if next = x then UInt64.MaxValue
-                    else next.Tag - x.Tag
+            /// initially we increment the distance by Uint64.MaxValue/2
+            let mutable distance = 
+                if next = x then UInt64.MaxValue
+                else next.Tag - x.Tag
 
-                // we're out of luck and there's no space for an additional node.
-                if distance = 1UL then
-                    distance <- IndexNode.Relabel x
+            // we're out of luck and there's no space for an additional node.
+            if distance = 1UL then
+                distance <- IndexNode.Relabel x
                         
-                // put the new node in between me and the next.
-                let key = x.Tag + (distance / 2UL)
-                let res = IndexNode(x.Root, Prev = x, Next = next, Tag = key)
+            // put the new node in between me and the next.
+            let key = x.Tag + (distance / 2UL)
+            let res = IndexNode(x.Root, Prev = x, Next = next, Tag = key)
 
-                // link the node
-                next.Prev <- res
-                x.Next <- res
+            // link the node
+            next.Prev <- res
+            x.Next <- res
 
-                res
-            )
+            res
 
         /// Delete a node from the cycle.
         member x.Delete() =
@@ -114,11 +113,6 @@ type IndexNode =
                     Monitor.Exit x
                     Monitor.Exit prev
 
-        /// add a reference to the node.
-        member x.AddRef() =
-            lock x (fun () ->
-                x.RefCount <- x.RefCount + 1
-            )
 
         /// Compare me to another node.
         member x.CompareTo(o : IndexNode) =
@@ -156,7 +150,7 @@ type IndexNode =
         override x.ToString() = sprintf "%f" (float x.Key / float UInt64.MaxValue)
         member private x.AsString = x.ToString()
 
-        new(root : IndexNode) = { Root = root; Prev = Unchecked.defaultof<_>; Next = Unchecked.defaultof<_>; Tag = 0UL; RefCount = 0 }
+        new(root : IndexNode) = { Root = root; Prev = Unchecked.defaultof<_>; Next = Unchecked.defaultof<_>; Tag = 0UL; RefCount = 1 }
     end
         
 #if !FABLE_COMPILER
@@ -217,7 +211,6 @@ type internal AsyncBlockingCollection<'a>() =
 /// Note that the implementation is quite obfuscated due to concurrency.
 [<Sealed; StructuredFormatDisplay("{AsString}")>]
 type Index private(real : IndexNode) =
-    do real.AddRef()
 
 
     static let queue = new AsyncBlockingCollection<IndexNode>()
@@ -234,8 +227,14 @@ type Index private(real : IndexNode) =
 
     member x.After() =
         lock real (fun () ->
-            if real.Next <> real.Root then Index real.Next 
-            else Index (real.InsertAfter()) 
+            let next = real.Next
+            if next <> real.Root then 
+                lock next (fun () ->
+                    next.RefCount <- next.RefCount + 1
+                )
+                next |> Index
+            else 
+                real.InsertAfter() |> Index
         )   
 
     member x.Before() =
@@ -249,6 +248,7 @@ type Index private(real : IndexNode) =
                 if prev = real.Root then 
                     prev.InsertAfter() |> Index
                 else
+                    prev.RefCount <- prev.RefCount + 1
                     prev |> Index
             finally
                 Monitor.Exit prev
@@ -258,8 +258,14 @@ type Index private(real : IndexNode) =
         let r = r.Value
         Monitor.Enter l
         try
-            if l.Next = r then l.InsertAfter() |> Index
-            else l.Next |> Index
+            let next = l.Next
+            if next = r then 
+                l.InsertAfter() |> Index
+            else
+                lock next (fun () ->
+                    next.RefCount <- next.RefCount + 1
+                )
+                next |> Index
         finally
             Monitor.Exit l
 
