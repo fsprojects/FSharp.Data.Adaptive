@@ -82,7 +82,7 @@ type IndexNode =
                         
                 // put the new node in between me and the next.
                 let key = x.Tag + (distance / 2UL)
-                let res = IndexNode(x.Root, Prev = x, Next = x.Next, Tag = key)
+                let res = IndexNode(x.Root, Prev = x, Next = next, Tag = key)
 
                 // link the node
                 next.Prev <- res
@@ -95,7 +95,7 @@ type IndexNode =
         member x.Delete() =
             let prev = x.Prev
             Monitor.Enter prev
-            if prev.Next <> x then
+            if prev.Next <> x || prev.RefCount = 0 then // also check refCount, prev might just have been deleted
                 Monitor.Exit prev
                 x.Delete()
             else
@@ -239,7 +239,7 @@ type Index private(real : IndexNode) =
     member x.Before() =
         let prev = real.Prev
         Monitor.Enter prev
-        if prev.Next <> real then
+        if prev.Next <> real || prev.RefCount = 0 then // also check refCount, prev might just have been deleted
             Monitor.Exit prev
             x.Before()
         else
