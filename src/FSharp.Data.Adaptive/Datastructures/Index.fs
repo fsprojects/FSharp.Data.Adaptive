@@ -212,17 +212,6 @@ type internal AsyncBlockingCollection<'a>() =
 [<Sealed; StructuredFormatDisplay("{AsString}")>]
 type Index private(real : IndexNode) =
 
-
-    static let queue = new AsyncBlockingCollection<IndexNode>()
-
-    static do
-        async {
-            while true do
-                let! v = queue.Take()
-                do! Async.SwitchToThreadPool()
-                v.Delete()
-        } |> Async.Start
-
     member private x.Value = real
 
     member x.After() =
@@ -270,7 +259,7 @@ type Index private(real : IndexNode) =
             Monitor.Exit l
 
     override x.Finalize() =
-        queue.Add real
+        real.Delete()
 
     member x.CompareTo (o : Index) = real.CompareTo(o.Value)
 
