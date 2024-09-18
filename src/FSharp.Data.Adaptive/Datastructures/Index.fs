@@ -163,16 +163,18 @@ type Index private(real : IndexNode) =
     member private x.Value = real
 
     member x.After() =
-        lock real (fun () ->
+        Monitor.Enter real
+        let res =
             let next = real.Next
             if next <> real.Root then 
-                lock next (fun () ->
-                    next.RefCount <- next.RefCount + 1
-                )
+                Monitor.Enter next 
+                next.RefCount <- next.RefCount + 1
+                Monitor.Exit next
                 next |> Index
             else 
                 real.InsertAfter() |> Index
-        )   
+        Monitor.Exit real
+        res
 
     member x.Before() =
         let prev = real.Prev
@@ -200,9 +202,9 @@ type Index private(real : IndexNode) =
             if next = r then 
                 l.InsertAfter() |> Index
             else
-                lock next (fun () ->
-                    next.RefCount <- next.RefCount + 1
-                )
+                Monitor.Enter next
+                next.RefCount <- next.RefCount + 1
+                Monitor.Exit next
                 next |> Index
         
         Monitor.Exit l
