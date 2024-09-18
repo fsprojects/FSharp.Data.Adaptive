@@ -99,30 +99,28 @@ type IndexNode =
                 x.Delete()
             else
                 Monitor.Enter x
-                try
-                    if x.RefCount = 1 then
-                        prev.Next <- x.Next
-                        x.Next.Prev <- prev
-                        x.Next <- Unchecked.defaultof<_> // set pointers to null so no additional RefCount=0 check is needed in Before after aquiring the lock
-                        x.Prev <- Unchecked.defaultof<_>
-                        x.RefCount <- 0
-                    else
-                        x.RefCount <- x.RefCount - 1
 
-                finally
-                    Monitor.Exit x
-                    Monitor.Exit prev
+                if x.RefCount = 1 then
+                    prev.Next <- x.Next
+                    x.Next.Prev <- prev
+                    x.Next <- Unchecked.defaultof<_> // set pointers to null so no additional RefCount=0 check is needed in Before after aquiring the lock
+                    x.Prev <- Unchecked.defaultof<_>
+                    x.RefCount <- 0
+                else
+                    x.RefCount <- x.RefCount - 1
+
+                Monitor.Exit x
+                Monitor.Exit prev
 
 
         /// Compare me to another node.
         member x.CompareTo(o : IndexNode) =
             match Monitor.TryEnter x, Monitor.TryEnter o with
             | true, true ->
-                try 
-                    compare x.Key o.Key
-                finally
-                    Monitor.Exit x
-                    Monitor.Exit o
+                let res = compare x.Key o.Key
+                Monitor.Exit x
+                Monitor.Exit o
+                res
 
             | true, false ->
                 Monitor.Exit x
@@ -183,20 +181,21 @@ type Index private(real : IndexNode) =
             Monitor.Exit prev
             x.Before()
         else
-            try
+            let res =
                 if prev = real.Root then 
                     prev.InsertAfter() |> Index
                 else
                     prev.RefCount <- prev.RefCount + 1
                     prev |> Index
-            finally
-                Monitor.Exit prev
+            
+            Monitor.Exit prev
+            res
 
     member l.Between(r : Index) =
         let l = l.Value
         let r = r.Value
         Monitor.Enter l
-        try
+        let res =
             let next = l.Next
             if next = r then 
                 l.InsertAfter() |> Index
@@ -205,8 +204,9 @@ type Index private(real : IndexNode) =
                     next.RefCount <- next.RefCount + 1
                 )
                 next |> Index
-        finally
-            Monitor.Exit l
+        
+        Monitor.Exit l
+        res
 
     override x.Finalize() =
         real.Delete()
