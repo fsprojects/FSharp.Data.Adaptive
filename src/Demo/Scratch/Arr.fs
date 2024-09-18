@@ -3,12 +3,20 @@ module Arr
 open FSharp.Data.Adaptive
 
 let run() =
+    
+    
+    
+    
     let test = Arr.ofArray [|1..20|]
 
     let a = Arr.ofList [1;2;3;4]
     let b = Arr.ofList [1;2;5;6;4;10;20]
     let c = Arr.ofList [5;4]
 
+    
+    printfn "%A" a
+    printfn "%A" (a.Split 3)
+    
     let dab = Arr.computeDelta (=) a b
     let dbc = Arr.computeDelta (=) b c
     let dac = Arr.computeDelta (=) a c

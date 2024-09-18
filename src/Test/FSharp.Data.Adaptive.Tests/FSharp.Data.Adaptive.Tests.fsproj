@@ -44,9 +44,11 @@
     <Compile Include="CollectionExtensions.fs" />
     <Compile Include="Transaction.fs" />
     <Compile Include="AdaptifyHelpers.fs" />
+    <Compile Include="Arr.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\FSharp.Data.Adaptive.Experimental\FSharp.Data.Adaptive.Experimental.fsproj" />
     <ProjectReference Include="..\..\FSharp.Data.Adaptive\FSharp.Data.Adaptive.fsproj" />
     <ProjectReference Include="..\FSharp.Data.Adaptive.Reference\FSharp.Data.Adaptive.Reference.fsproj" />
   </ItemGroup>
