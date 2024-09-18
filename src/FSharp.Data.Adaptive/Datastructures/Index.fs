@@ -73,7 +73,7 @@ type IndexNode =
                     
             /// initially we increment the distance by Uint64.MaxValue/2
             let mutable distance = 
-                if next = x then UInt64.MaxValue
+                if Object.ReferenceEquals(next, x) then UInt64.MaxValue
                 else next.Tag - x.Tag
 
             // we're out of luck and there's no space for an additional node.
@@ -94,7 +94,7 @@ type IndexNode =
         member x.Delete() =
             let prev = x.Prev
             Monitor.Enter prev
-            if prev.Next <> x then // NOTE: prev.Next might point to an inserted node between after lock has been aquired
+            if not (Object.ReferenceEquals(prev.Next, x)) then // NOTE: prev.Next might point to an inserted node between after lock has been aquired
                 Monitor.Exit prev
                 x.Delete()
             else
@@ -166,7 +166,7 @@ type Index private(real : IndexNode) =
         Monitor.Enter real
         let res =
             let next = real.Next
-            if next <> real.Root then 
+            if not (Object.ReferenceEquals(next, real.Root)) then 
                 Monitor.Enter next 
                 next.RefCount <- next.RefCount + 1
                 Monitor.Exit next
@@ -179,12 +179,12 @@ type Index private(real : IndexNode) =
     member x.Before() =
         let prev = real.Prev
         Monitor.Enter prev
-        if prev.Next <> real then // NOTE: prev.Next might point to an inserted node between or be null if it just has been deleted
+        if not (Object.ReferenceEquals(prev.Next, real)) then // NOTE: prev.Next might point to an inserted node between or be null if it just has been deleted
             Monitor.Exit prev
             x.Before()
         else
             let res =
-                if prev = real.Root then 
+                if Object.ReferenceEquals(prev, real.Root) then 
                     prev.InsertAfter() |> Index
                 else
                     prev.RefCount <- prev.RefCount + 1
@@ -199,7 +199,7 @@ type Index private(real : IndexNode) =
         Monitor.Enter l
         let res =
             let next = l.Next
-            if next = r then 
+            if Object.ReferenceEquals(next, r) then 
                 l.InsertAfter() |> Index
             else
                 Monitor.Enter next

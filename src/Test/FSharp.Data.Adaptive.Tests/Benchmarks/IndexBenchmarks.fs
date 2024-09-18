@@ -97,6 +97,11 @@ type IndexEqualsBenchmarks() =
 //|--------- |------------- |---------- |--------:|---------:|---------:|------------:|------------:|-----------:|
 //| Garbage0 | 5000000      | 100       | 1.531 s | 0.0040 s | 0.0035 s | 169000.0000 | 168000.0000 | 1016.93 MB |
 
+// + inlined node equality (and other small changes, however those do not have any significant effect)
+//| Method   | GarbageCount | ListCount | Mean    | Error    | StdDev   | Gen0        | Gen1        | Allocated  |
+//|--------- |------------- |---------- |--------:|---------:|---------:|------------:|------------:|-----------:|
+//| Garbage0 | 5000000      | 100       | 1.479 s | 0.0052 s | 0.0044 s | 170000.0000 | 169000.0000 | 1017.98 MB |
+
 [<MemoryDiagnoser>]
 [<InProcess>]
 type IndexGarbageBenchmarks() =
