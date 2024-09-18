@@ -1101,7 +1101,7 @@ module AdaptiveHashMapImplementation =
 
     /// Creates a constant map using the creation function.
     let inline constant (content : unit -> HashMap<'Key, 'Value>) = 
-        ConstantMap(lazy(content())) :> amap<_,_> 
+        ConstantMap(Lazy<HashMap<'Key, 'Value>>(content)) :> amap<_,_> 
 
     /// Creates an adaptive map using the reader.
     let inline create (reader : unit -> #IOpReader<HashMapDelta<'Key, 'Value>>) =

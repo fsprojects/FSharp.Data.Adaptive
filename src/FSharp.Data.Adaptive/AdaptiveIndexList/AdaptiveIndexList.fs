@@ -1339,7 +1339,7 @@ module AList =
 
     /// Creates an alist holding the given values.
     let constant (value : unit -> IndexList<'T>) =
-        lazy value() |> ConstantList :> alist<_>
+        Lazy<IndexList<'T>>(value) |> ConstantList :> alist<_>
         
     /// A constant alist holding a single value.
     let single (value : 'T) =

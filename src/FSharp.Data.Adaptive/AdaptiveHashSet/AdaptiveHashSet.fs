@@ -1140,7 +1140,7 @@ module ASet =
 
     /// Creates a constant set using the creation function.
     let constant (value : unit -> HashSet<'T>) = 
-        ConstantSet(lazy(value())) :> aset<_> 
+        ConstantSet(Lazy<HashSet<'T>>(value)) :> aset<_> 
 
     /// Creates an aset using the given reader-creator.
     let ofReader (create : unit -> #IOpReader<HashSetDelta<'T>>) =
