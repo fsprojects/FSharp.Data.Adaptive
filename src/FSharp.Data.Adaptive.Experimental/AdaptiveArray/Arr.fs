@@ -22,16 +22,16 @@ module internal ArrNodeImplementation =
         val mutable public Left : Node<'a>
         val mutable public Right : Node<'a>
         val mutable public Count : int
-
+        
         static member inline GetCount(node : Node<'a>) =
             if isNull node then 0
             elif node.Height = 1uy then 1
             else (node :?> Inner<'a>).Count
-
+        
         static member inline GetHeight(node : Node<'a>) =
             if isNull node then 0uy
             else node.Height
-
+        
         static member inline FixHeightAndCount(inner : Inner<'a>) =
             let lc = Inner.GetCount inner.Left
             let rc = Inner.GetCount inner.Right
@@ -39,7 +39,7 @@ module internal ArrNodeImplementation =
             let rh = if rc > 0 then inner.Right.Height else 0uy
             inner.Count <- 1 + lc + rc
             inner.Height <- 1uy + max lh rh
-
+        
         static member New(l : Node<'a>, value : 'a, r : Node<'a>) =
             if isNull l && isNull r then Node(1uy, value)
             else 
@@ -1223,25 +1223,24 @@ open ArrNodeImplementation
 
 [<Struct; StructuredFormatDisplay("{AsString}"); DebuggerTypeProxy(typedefof<ArrProxy<_>>)>]
 type arr<'a> internal(store : Node<'a>) =
+    member internal x.Store = store
     static member Empty : arr<'a> = arr<'a> null
 
     static member Single(value : 'a) = arr(Node<'a>(1uy, value)) 
-    static member FromArray(elements : 'a[]) = arr (Node.ofSpan (System.ReadOnlySpan elements))
+    static member FromArray(elements : 'a[]) : arr<'a> = arr (Node.ofSpan (System.ReadOnlySpan elements))
     static member FromSpan(elements : System.ReadOnlySpan<'a>) = arr (Node.ofSpan elements)
     static member FromSpan(elements : System.Span<'a>) = arr (Node.ofSpan (System.Span.op_Implicit elements))
     static member FromMemory(elements : System.Memory<'a>) = arr (Node.ofSpan (System.Span.op_Implicit elements.Span))
     static member FromMemory(elements : System.ReadOnlyMemory<'a>) = arr (Node.ofSpan elements.Span)
 
     static member Concat([<ParamArray>] arrs : arr<'a>[]) =
-        if arrs.Length > 0 then
-            let mutable res = arrs.[0]
-            for i in 1 .. arrs.Length - 1 do
-                res <- arr(Node.join res.Store arrs.[i].Store)
-            res
+        if arrs.Length = 0 then arr.Empty
+        elif arrs.Length = 1 then arrs.[0]
         else
-            arr<'a>.Empty
-    
-    member internal x.Store = store
+            arr.FromArray(arrs).Store
+            |> Node.collect (fun (a : arr<'a>) -> a.Store)
+            |> arr<'a>
+        
     member x.IsEmpty = Node.isEmpty store
     member x.Length = Node.count store
     member x.Insert(index : int, value : 'a) = arr(Node.insert index value store)
@@ -1328,17 +1327,17 @@ type arr<'a> internal(store : Node<'a>) =
         member x.GetEnumerator() = new ArrEnumerator<'a>(store) :> _
 
     interface System.Collections.Generic.ICollection<'a> with
-        member this.Add(item) = failwith "readonly"
+        member this.Add(_item) = failwith "readonly"
         member this.Clear() = failwith "readonly"
         member this.Contains(item) = Node.exists (Unchecked.equals item) store
         member this.CopyTo(array,arrayIndex) = this.CopyTo(array, arrayIndex)
-        member this.Remove(item) = failwith "readonly"
+        member this.Remove(_item) = failwith "readonly"
         member this.Count = this.Length
         member this.IsReadOnly = true
     
     interface System.Collections.Generic.IList<'a> with
-        member this.Insert(index,item) = failwith "readonly"
-        member this.RemoveAt(index) = failwith "readonly"
+        member this.Insert(_index,_item) = failwith "readonly"
+        member this.RemoveAt(_index) = failwith "readonly"
         member this.IndexOf(item) =
             match Node.tryFindIndex (Unchecked.equals item) store with
             | Some idx -> idx
@@ -1509,7 +1508,10 @@ module Arr =
     let inline set (index : int) (value : 'a) (arr : arr<'a>) = arr.Set(index, value)
 
     let inline single (value : 'a) = arr.Single(value)
-    let inline ofSeq (seq : seq<'a>) = arr.FromArray (Seq.toArray seq)
+    let inline ofSeq (seq : seq<'a>) =
+        match seq with
+        | :? arr<'a> as arr -> arr
+        | _ -> arr.FromArray (Seq.toArray seq)
     let inline ofList (array : list<'a>) = arr.FromArray (List.toArray array)
     let inline ofArray (array : 'a[]) = arr.FromArray array
     let inline ofSpan (array : System.Span<'a>) = arr.FromSpan array
@@ -1523,6 +1525,7 @@ module Arr =
     let inline skip (n : int) (arr : arr<'a>) = arr.Skip n
     let inline sub (index : int) (count : int) (arr : arr<'a>) = arr.Sub(index, count)
     let inline split (index : int) (arr : arr<'a>) = arr.Split(index)
+    let inline concat (arrs : seq<arr<'a>>) = arr.Concat(Seq.toArray arrs)
     
     let uncons (array : arr<'a>) =
         if array.Length > 0 then
@@ -1766,8 +1769,6 @@ type ChangeableArray<'T>(elements: arr<'T>) =
 
 
 module AArr =
-    open FSharp.Data.Traceable
-    
     module Readers = 
         /// Efficient implementation for a constant adaptive array.
         [<Sealed>]
@@ -1777,7 +1778,7 @@ module AArr =
             member x.Content = value
 
             member x.GetReader() =
-                new History.Readers.ConstantReader<_,_>(
+                History.Readers.ConstantReader<_,_>(
                     Arr.trace,
                     lazy (Arr.computeDelta DefaultEquality.equals Arr.empty content.Value),
                     content
@@ -1813,7 +1814,7 @@ module AArr =
         type EmptyArray<'T> private() =   
             static let instance = EmptyArray<'T>() :> aarr<_>
             let content = AVal.constant Arr.empty
-            let reader = new History.Readers.EmptyReader<arr<'T>, arrdelta<'T>>(Arr.trace) :> IArrayReader<'T>
+            let reader = History.Readers.EmptyReader<arr<'T>, arrdelta<'T>>(Arr.trace) :> IArrayReader<'T>
             static member Instance = instance
             
             member x.Content = content
@@ -1957,7 +1958,7 @@ module AArr =
 
     /// Creates a constant set using the creation function.
     let constant (value : unit -> arr<'T>) = 
-        Readers.ConstantArray(lazy(value())) :> aarr<_> 
+        Readers.ConstantArray(lazy value()) :> aarr<_> 
 
     /// Creates an aset using the given reader-creator.
     let ofReader (create : unit -> #IOpReader<arrdelta<'T>>) =
