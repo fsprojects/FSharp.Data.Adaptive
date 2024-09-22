@@ -1068,32 +1068,33 @@ module AdaptiveHashMapImplementation =
         let state = DefaultDictionary.create<'Key, HashSet<'Value>>()
 
         override x.Compute (token : AdaptiveToken) =
-            reader.GetChanges token |> Seq.choose (fun op ->
+            let mutable delta = HashMap.empty
+            for op in reader.GetChanges token do
                 match op with
                 | Add(_, (k, v)) ->
                     match state.TryGetValue k with
                     | (true, set) ->    
                         let newSet = HashSet.add v set
                         state.[k] <- newSet
-                        Some (k, Set (view newSet))
+                        delta <- delta.Add (k, Set (view newSet))
                     | _ ->
                         let newSet = HashSet.single v
                         state.[k] <- newSet
-                        Some (k, Set (view newSet))
+                        delta <- delta.Add (k, Set (view newSet))
                 | Rem(_, (k, v)) ->
                     match state.TryGetValue k with
                     | (true, set) ->    
                         let newSet = HashSet.remove v set
                         if newSet.IsEmpty then 
                             state.Remove k |> ignore
-                            Some (k, Remove)
+                            delta <- delta.Add (k, Remove)
                         else 
                             state.[k] <- newSet
-                            Some (k, Set (view newSet))
+                            delta <- delta.Add (k, Set (view newSet))
                     | _ ->
-                        None
-            )
-            |> HashMapDelta.ofSeq
+                        ()
+
+            delta |> HashMapDelta.ofHashMap
 
     /// Gets the current content of the amap as HashMap.
     let inline force (map : amap<'Key, 'Value>) = 
