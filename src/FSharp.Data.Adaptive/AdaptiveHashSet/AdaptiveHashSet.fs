@@ -984,16 +984,17 @@ module AdaptiveHashSetImplementation =
         let reader = input.GetReader()
         do reader.Tag <- "Reader"
         let mapping = Cache mapping
-        let cache = DefaultDictionary.create<aval<'B>, ref<int * 'B>>()
+        let cache = DefaultDictionary.create<aval<'B>, ref<struct(int * 'B)>>()
 
         member x.Invoke(token : AdaptiveToken, v : 'A) =
             let m = mapping.Invoke v
             let v = m.GetValue token
             match cache.TryGetValue m with
             | (true, r) ->
-                r.Value <- (fst r.Value + 1, v)
+                let struct(rc, _) = r.Value
+                r.Value <- struct(rc + 1, v)
             | _ ->
-                let r = ref (1, v)
+                let r = ref struct(1, v)
                 cache.[m] <- r
             v
 
@@ -1003,7 +1004,7 @@ module AdaptiveHashSetImplementation =
                 
             match cache.TryGetValue m with
             | (true, r) -> 
-                let (cnt, v) = r.Value
+                let struct(cnt, v) = r.Value
                 if cnt = 1 then
                     cache.Remove m |> ignore
                     dirty.Remove m |> ignore
@@ -1028,8 +1029,8 @@ module AdaptiveHashSetImplementation =
                 match cache.TryGetValue d with
                 | (true, r) ->
                     let n = d.GetValue token
-                    let (rc, o) = r.Value
-                    r.Value <- (rc, n)
+                    let struct(rc, o) = r.Value
+                    r.Value <- struct(rc, n)
                     if not (DefaultEquality.equals o n) then
                         deltas <- HashSetDelta.combine deltas (HashSetDelta.ofArray [| Add n; Rem o |])
                 | _ -> ()
@@ -1046,8 +1047,7 @@ module AdaptiveHashSetImplementation =
         do r.Tag <- "Reader"
 
         let f = Cache f
-        let mutable initial = true
-        let cache = DefaultDictionary.create<aval<option<'B>>, ref<int * option<'B>>>()
+        let cache = DefaultDictionary.create<aval<option<'B>>, ref<struct(int * option<'B>)>>()
 
         member x.Invoke(token : AdaptiveToken, v : 'A) =
             let m = f.Invoke v
@@ -1055,9 +1055,10 @@ module AdaptiveHashSetImplementation =
 
             match cache.TryGetValue m with
             | (true, r) ->
-                r.Value <- (fst r.Value + 1, v)
+                let struct(rc, _) = r.Value
+                r.Value <- struct(rc + 1, v)
             | _ ->
-                let r = ref (1, v)
+                let r = ref struct(1, v)
                 cache.[m] <- r
 
             v
@@ -1066,7 +1067,7 @@ module AdaptiveHashSetImplementation =
         member x.Invoke2(token : AdaptiveToken, m : aval<option<'B>>) =
             match cache.TryGetValue m with
             | (true, r) ->
-                let (rc, o) = r.Value
+                let struct(rc, o) = r.Value
                 let v = m.GetValue token
                 r.Value <- (rc, v)
                 o, v
@@ -1077,7 +1078,7 @@ module AdaptiveHashSetImplementation =
             let m = f.Revoke v
             match cache.TryGetValue m with
             | (true, r) -> 
-                let (rc, v) = r.Value
+                let struct(rc, v) = r.Value
                 if rc = 1 then
                     cache.Remove m |> ignore
                     lock m (fun () -> m.Outputs.Remove x |> ignore )
@@ -1090,17 +1091,17 @@ module AdaptiveHashSetImplementation =
 
         override x.Compute(token, dirty) =
             let mutable deltas = 
-                r.GetChanges token |> HashSetDelta.choose (fun d ->
+                r.GetChanges token |> HashSetDelta.chooseV (fun d ->
                     match d with
                     | Add(1,m) -> 
                         match x.Invoke(token,m) with
-                        | Some v -> Some (Add v)
-                        | None -> None
+                        | Some v -> ValueSome (Add v)
+                        | None -> ValueNone
 
                     | Rem(1,m) ->
                         match x.Revoke m with
-                        | Some v -> Some (Rem v)
-                        | None -> None
+                        | Some v -> ValueSome (Rem v)
+                        | None -> ValueNone
 
                     | _ -> 
                         unexpected()
