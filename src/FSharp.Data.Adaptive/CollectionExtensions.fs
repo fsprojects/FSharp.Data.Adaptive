@@ -129,6 +129,35 @@ module CollectionExtensions =
                             delta <- delta.Add (Add v)
                 delta
 
+        /// Reader for AList.mapToASet
+        [<Sealed>]
+        type ListSetMapReader<'T1, 'T2>(list: alist<'T1>, mapping : 'T1 -> 'T2) =
+            inherit AbstractReader<HashSetDelta<'T2>>(HashSetDelta.empty)
+            
+            let reader = list.GetReader()
+            let cache = Cache mapping
+
+            override x.Compute(token: AdaptiveToken) =
+                let old = reader.State.Content
+                let changes = reader.GetChanges(token).Content
+                let mutable delta = HashSetDelta.empty
+                for KeyValue(i, op) in changes do
+                    match op with
+                    | Remove -> 
+                        match MapExt.tryFindV i old with
+                        | ValueSome v -> 
+                            delta <- delta.Add (Rem (cache.Revoke v))
+                        | ValueNone -> ()
+                    | Set v ->
+                        match MapExt.tryFindV i old with
+                        | ValueSome ov ->
+                            if not (DefaultEquality.equals v ov) then
+                                delta <- delta.Add (Add (cache.Invoke v))
+                                delta <- delta.Add (Rem (cache.Revoke ov))
+                        | ValueNone ->
+                            delta <- delta.Add (Add (cache.Invoke v))
+                delta
+
         /// Reader for AList.toIndexedASet
         [<Sealed>]
         type IndexedListSetReader<'T>(list: alist<'T>) =
@@ -432,6 +461,16 @@ module CollectionExtensions =
         
         /// Creates an aset holding all elements of the given list.
         let toASet (list: alist<'T>) = ASet.ofAList list
+
+        /// Creates an aset holding all elements of the given list.
+        let mapToASet (mapping : 'T1 -> 'T2) (list: alist<'T1>) = 
+            if list.IsConstant then
+                list.Content
+                |> AVal.force
+                |> Seq.map mapping 
+                |> ASet.ofSeq
+            else
+                ASet.ofReader (fun () -> ListSetMapReader(list, mapping))
        
         /// Creates an aset holding all index/elements pairs of the given list.
         let toASetIndexed (list: alist<'T>) = ASet.ofAListIndexed list
