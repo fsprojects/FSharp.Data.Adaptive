@@ -1129,6 +1129,68 @@ module AdaptiveHashSetImplementation =
                     ()
 
             deltas
+
+
+    /// Reader for filterA
+    [<Sealed>]
+    type FilterAReader<'A>(input : aset<'A>, predicate : 'A -> aval<bool>) =
+        inherit AbstractDirtyReader<aval<bool>, HashSetDelta<'A>>(HashSetDelta.monoid, isNull)
+            
+        let r = input.GetReader()
+        do r.Tag <- "Reader"
+
+        let state = DefaultDictionary.create<'A, struct(aval<bool> * bool)>()
+        let predicateMap = DefaultDictionary.create<aval<bool>, 'A>()
+
+        override x.Compute(token, dirty) =
+            let mutable deltas = 
+                r.GetChanges token |> HashSetDelta.chooseV (fun d ->
+                    match d with
+                    | Add(1, m) -> 
+                        let v = predicate m
+                        let p = v.GetValue token
+                        state.[m] <- struct(v, p)
+                        predicateMap.[v] <- m
+                        if p then
+                            ValueSome (Add m)
+                        else
+                            ValueNone
+
+                    | Rem(1, m) ->
+                        match state.TryGetValue m with
+                        | (true, x) ->
+                            let struct(v, p) = x
+                            state.Remove m |> ignore
+                            predicateMap.Remove v |> ignore
+                            if p then
+                                ValueSome (Rem m)
+                            else
+                                ValueNone
+
+                        | _ -> unexpected()
+
+                    | _ -> 
+                        unexpected()
+                )
+
+            for d in dirty do
+                match predicateMap.TryGetValue d with
+                | (true, m) ->
+                    match state.TryGetValue m with
+                    | (true, x) ->
+                        let struct(v, p) = x
+                        let pNew = d.GetValue token
+                        if pNew <> p then
+                            state.[m] <- (d, pNew)
+                            if pNew then
+                                deltas <- deltas.Add (Add m)
+                            else
+                                deltas <- deltas.Add (Rem m)
+                        ()
+                    | _ -> unexpected()
+                | _ -> unexpected()
+
+            deltas
  
     /// Gets the current content of the aset as HashSet.
     let inline force (set : aset<'T>) = 
@@ -1368,14 +1430,8 @@ module ASet =
 
     /// Adaptively filters the set and also respects inner changes.
     let filterA (predicate : 'A -> aval<bool>) (set : aset<'A>) =
-        // TODO: direct implementation
-        ofReader (fun () -> 
-            let mapping (a : 'A) =  
-                predicate a 
-                |> AVal.map (function true -> Some a | false -> None)
-
-            ChooseAReader(set, mapping)
-        )
+        // TODO: constants
+        ofReader (fun () -> FilterAReader(set, predicate))
 
     
     /// Adaptively maps over the given set and disposes all removed values while active.
