@@ -451,8 +451,7 @@ module CollectionExtensions =
 
         /// Groups the aset by the given mapping and returns an amap with potentially colliding entries in a HashSet<'T>.
         let groupBy (mapping: 'T -> 'K) (set: aset<'T>) =
-            // TODO: better implementation.
-            set |> ASet.map (fun v -> mapping v, v) |> AMap.ofASet
+            set |> AMap.ofASetMapped mapping
 
 
     /// Functional operators for alist<_>

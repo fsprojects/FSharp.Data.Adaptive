@@ -1096,6 +1096,48 @@ module AdaptiveHashMapImplementation =
 
             delta |> HashMapDelta.ofHashMap
 
+    /// Reader used for ofASet operations.
+    /// It's safe to assume that the view function will only be called with non-empty HashSets.
+    /// Internally assumes that the view function is cheap.
+    [<Sealed>]
+    type MappedSetReader<'Key, 'Value, 'View>(input : aset<'Value>, getKey : 'Value -> 'Key, view : HashSet<'Value> -> 'View) =
+        inherit AbstractReader<HashMapDelta<'Key, 'View>>(HashMapDelta.empty)
+
+        let reader = input.GetReader()
+        let state = DefaultDictionary.create<'Key, HashSet<'Value>>()
+        let cache = Cache<'Value, 'Key> getKey
+
+        override x.Compute (token : AdaptiveToken) =
+            let mutable delta = HashMap.empty
+            for op in reader.GetChanges token do
+                match op with
+                | Add(_, v) ->
+                    let k = cache.Invoke v
+                    match state.TryGetValue k with
+                    | (true, set) ->    
+                        let newSet = HashSet.add v set
+                        state.[k] <- newSet
+                        delta <- delta.Add (k, Set (view newSet))
+                    | _ ->
+                        let newSet = HashSet.single v
+                        state.[k] <- newSet
+                        delta <- delta.Add (k, Set (view newSet))
+                | Rem(_, v) ->
+                    let k = cache.Revoke v
+                    match state.TryGetValue k with
+                    | (true, set) ->    
+                        let newSet = HashSet.remove v set
+                        if newSet.IsEmpty then 
+                            state.Remove k |> ignore
+                            delta <- delta.Add (k, Remove)
+                        else 
+                            state.[k] <- newSet
+                            delta <- delta.Add (k, Set (view newSet))
+                    | _ ->
+                        ()
+
+            delta |> HashMapDelta.ofHashMap
+
     /// Gets the current content of the amap as HashMap.
     let inline force (map : amap<'Key, 'Value>) = 
         AVal.force map.Content
@@ -1155,6 +1197,20 @@ module AMap =
             )
         else
             create (fun () -> SetReader(elements, HashSet.head))
+
+    /// Creates an amap from the given set and takes an arbitrary value for duplicate entries.
+    let ofASetMappedIgnoreDuplicates (getKey : 'Value -> 'Key) (elements: aset<'Value>) =
+        if elements.IsConstant then
+            constant (fun () -> 
+                let mutable result = HashMap.empty
+                for v in AVal.force elements.Content do
+                    let k = getKey v
+                    result <- HashMap.add k v result
+
+                result
+            )
+        else
+            create (fun () -> MappedSetReader(elements, getKey, HashSet.head))
     
     /// Creates an amap from the given set while keeping all duplicate values for a key in a HashSet.           
     let ofASet (elements: aset<'Key * 'Value>) =
@@ -1163,16 +1219,35 @@ module AMap =
                 let mutable result = HashMap.empty
                 for (k,v) in AVal.force elements.Content do
                     result <- 
-                        result |> HashMap.alter k (fun o ->
+                        result |> HashMap.alterV k (fun o ->
                             match o with
-                            | Some o -> HashSet.add v o |> Some
-                            | None -> HashSet.single v |> Some
+                            | ValueSome o -> HashSet.add v o |> ValueSome
+                            | ValueNone -> HashSet.single v |> ValueSome
                         )
 
                 result
             )
         else
             create (fun () -> SetReader(elements, id))
+
+    /// Creates an amap from the given set while keeping all duplicate values for a key in a HashSet.           
+    let ofASetMapped (getKey : 'Value -> 'Key) (elements: aset<'Value>) =
+        if elements.IsConstant then
+            constant (fun () -> 
+                let mutable result = HashMap.empty
+                for v in AVal.force elements.Content do
+                    result <- 
+                        let k = getKey v
+                        result |> HashMap.alterV k (fun o ->
+                            match o with
+                            | ValueSome o -> HashSet.add v o |> ValueSome
+                            | ValueNone -> HashSet.single v |> ValueSome
+                        )
+
+                result
+            )
+        else
+            create (fun () -> MappedSetReader(elements, getKey, id))
             
     /// Creates an amap using the given reader-creator.
     let ofReader (creator : unit -> #IOpReader<HashMapDelta<'Key, 'Value>>) =
