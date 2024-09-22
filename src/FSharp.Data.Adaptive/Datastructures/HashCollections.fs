@@ -1073,6 +1073,16 @@ module internal HashImplementation =
                 let node = node :?> Inner<'K>
                 iter action node.Left
                 iter action node.Right
+
+        let rec head (node : SetNode<'K>) =
+            if isNull node then
+                failwith "HashSet does not contain any elements"
+            elif node.IsLeaf then
+                let node = node :?> SetLeaf<'K>
+                node.Key
+            else
+                let node = node :?> Inner<'K>
+                head node.Left
                 
         let rec fold (folder : OptimizedClosures.FSharpFunc<'S, 'K, 'S>) (state : 'S) (node : SetNode<'K>) =
             if isNull node then
@@ -3425,6 +3435,10 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
     member x.Filter(predicate : 'K -> bool) =
         HashSet(comparer, SetNode.filter predicate root)
 
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    member x.First() : 'K =
+        SetNode.head root
+
     // ====================================================================================
     // Binary Operations: overlaps/union/computeDelta/etc.
     // ====================================================================================
@@ -4203,6 +4217,9 @@ module HashSet =
     /// Tests if an entry for the given key exists. `O(1)`
     let inline contains (value : 'T) (set : HashSet<'T>) = set.Contains value
             
+    /// Returns the first element in the set
+    let inline head (set : HashSet<'T>) : 'T = set.First()
+
     /// Creates a seq holding all values.
     /// `O(N)`
     let inline toSeq (set : HashSet<'K>) = set :> seq<_>

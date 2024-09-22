@@ -1154,7 +1154,7 @@ module AMap =
                 result
             )
         else
-            create (fun () -> SetReader(elements, Seq.head))
+            create (fun () -> SetReader(elements, HashSet.head))
     
     /// Creates an amap from the given set while keeping all duplicate values for a key in a HashSet.           
     let ofASet (elements: aset<'Key * 'Value>) =
