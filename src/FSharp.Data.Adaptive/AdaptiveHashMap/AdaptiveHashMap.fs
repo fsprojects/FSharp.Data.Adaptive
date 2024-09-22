@@ -1075,25 +1075,25 @@ module AdaptiveHashMapImplementation =
                     | (true, set) ->    
                         let newSet = HashSet.add v set
                         state.[k] <- newSet
-                        Some (k, Set (view newSet))
+                        Some struct(k, Set (view newSet))
                     | _ ->
                         let newSet = HashSet.single v
                         state.[k] <- newSet
-                        Some (k, Set (view newSet))
+                        Some struct(k, Set (view newSet))
                 | Rem(_, (k, v)) ->
                     match state.TryGetValue k with
                     | (true, set) ->    
                         let newSet = HashSet.remove v set
                         if newSet.IsEmpty then 
                             state.Remove k |> ignore
-                            Some (k, Remove)
+                            Some struct(k, Remove)
                         else 
                             state.[k] <- newSet
-                            Some (k, Set (view newSet))
+                            Some struct(k, Set (view newSet))
                     | _ ->
                         None
             )
-            |> HashMapDelta.ofSeq
+            |> HashMap.OfSeq |> HashMapDelta.ofHashMap
 
     /// Reader used for ofASet operations.
     /// It's safe to assume that the view function will only be called with non-empty HashSets.
@@ -1115,11 +1115,11 @@ module AdaptiveHashMapImplementation =
                     | (true, set) ->    
                         let newSet = HashSet.add v set
                         state.[k] <- newSet
-                        Some (k, Set (view newSet))
+                        Some struct(k, Set (view newSet))
                     | _ ->
                         let newSet = HashSet.single v
                         state.[k] <- newSet
-                        Some (k, Set (view newSet))
+                        Some struct(k, Set (view newSet))
                 | Rem(_, v) ->
                     let k = cache.Revoke v
                     match state.TryGetValue k with
@@ -1127,14 +1127,14 @@ module AdaptiveHashMapImplementation =
                         let newSet = HashSet.remove v set
                         if newSet.IsEmpty then 
                             state.Remove k |> ignore
-                            Some (k, Remove)
+                            Some struct(k, Remove)
                         else 
                             state.[k] <- newSet
-                            Some (k, Set (view newSet))
+                            Some struct(k, Set (view newSet))
                     | _ ->
                         None
             )
-            |> HashMapDelta.ofSeq
+            |> HashMap.OfSeq |> HashMapDelta.ofHashMap
 
     /// Gets the current content of the amap as HashMap.
     let inline force (map : amap<'Key, 'Value>) = 
