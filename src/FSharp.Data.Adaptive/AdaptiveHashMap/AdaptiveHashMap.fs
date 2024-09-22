@@ -2,6 +2,7 @@ namespace FSharp.Data.Adaptive
 
 open System
 open FSharp.Data.Traceable
+open HashImplementation
 
 /// An adaptive reader for amap that allows to pull operations and exposes its current state.
 type IHashMapReader<'Key, 'Value> = IOpReader<HashMap<'Key, 'Value>, HashMapDelta<'Key, 'Value>>
@@ -1068,32 +1069,42 @@ module AdaptiveHashMapImplementation =
         let state = DefaultDictionary.create<'Key, HashSet<'Value>>()
 
         override x.Compute (token : AdaptiveToken) =
-            reader.GetChanges token |> Seq.choose (fun op ->
+            let cmp = DefaultEqualityComparer<'Key>.Instance
+            let mutable delta = null
+            for op in reader.GetChanges token do
                 match op with
                 | Add(_, (k, v)) ->
                     match state.TryGetValue k with
                     | (true, set) ->    
                         let newSet = HashSet.add v set
                         state.[k] <- newSet
-                        Some struct(k, Set (view newSet))
+                        let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
+                        let struct(_, n) = MapNode.addInPlace cmp hash k (Set (view newSet)) delta
+                        delta <- n
                     | _ ->
                         let newSet = HashSet.single v
                         state.[k] <- newSet
-                        Some struct(k, Set (view newSet))
+                        let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
+                        let struct(_, n) = MapNode.addInPlace cmp hash k (Set (view newSet)) delta
+                        delta <- n
                 | Rem(_, (k, v)) ->
                     match state.TryGetValue k with
                     | (true, set) ->    
                         let newSet = HashSet.remove v set
                         if newSet.IsEmpty then 
                             state.Remove k |> ignore
-                            Some struct(k, Remove)
+                            let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
+                            let struct(_, n) = MapNode.addInPlace cmp hash k Remove delta
+                            delta <- n
                         else 
                             state.[k] <- newSet
-                            Some struct(k, Set (view newSet))
+                            let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
+                            let struct(_, n) = MapNode.addInPlace cmp hash k (Set (view newSet)) delta
+                            delta <- n
                     | _ ->
-                        None
-            )
-            |> HashMapDelta.ofSeqV
+                        ()
+
+            HashMap(cmp, delta) |> HashMapDelta.ofHashMap
 
     /// Reader used for ofASet operations.
     /// It's safe to assume that the view function will only be called with non-empty HashSets.
@@ -1107,7 +1118,9 @@ module AdaptiveHashMapImplementation =
         let cache = Cache<'Value, 'Key> getKey
 
         override x.Compute (token : AdaptiveToken) =
-            reader.GetChanges token |> Seq.choose (fun op ->
+            let cmp = DefaultEqualityComparer<'Key>.Instance
+            let mutable delta = null
+            for op in reader.GetChanges token do
                 match op with
                 | Add(_, v) ->
                     let k = cache.Invoke v
@@ -1115,11 +1128,15 @@ module AdaptiveHashMapImplementation =
                     | (true, set) ->    
                         let newSet = HashSet.add v set
                         state.[k] <- newSet
-                        Some struct(k, Set (view newSet))
+                        let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
+                        let struct(_, n) = MapNode.addInPlace cmp hash k (Set (view newSet)) delta
+                        delta <- n
                     | _ ->
                         let newSet = HashSet.single v
                         state.[k] <- newSet
-                        Some struct(k, Set (view newSet))
+                        let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
+                        let struct(_, n) = MapNode.addInPlace cmp hash k (Set (view newSet)) delta
+                        delta <- n
                 | Rem(_, v) ->
                     let k = cache.Revoke v
                     match state.TryGetValue k with
@@ -1127,14 +1144,19 @@ module AdaptiveHashMapImplementation =
                         let newSet = HashSet.remove v set
                         if newSet.IsEmpty then 
                             state.Remove k |> ignore
-                            Some struct(k, Remove)
+                            let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
+                            let struct(_, n) = MapNode.addInPlace cmp hash k Remove delta
+                            delta <- n
                         else 
                             state.[k] <- newSet
-                            Some struct(k, Set (view newSet))
+                            let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
+                            let struct(_, n) = MapNode.addInPlace cmp hash k (Set (view newSet)) delta
+                            delta <- n
                     | _ ->
-                        None
-            )
-            |> HashMapDelta.ofSeqV
+                        ()
+
+            HashMap(cmp, delta) |> HashMapDelta.ofHashMap
+
 
     /// Gets the current content of the amap as HashMap.
     let inline force (map : amap<'Key, 'Value>) = 

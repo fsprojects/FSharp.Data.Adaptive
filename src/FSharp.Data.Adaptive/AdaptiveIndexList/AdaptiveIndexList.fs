@@ -768,8 +768,10 @@ module internal AdaptiveIndexListImplementation =
     type MultiReader<'a>(mapping : IndexMapping<Index * Index>, list : alist<'a>, release : alist<'a> -> unit) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
             
-        let targets = DefaultHashSet.create<Index>()
+        static let cmp = LanguagePrimitives.FastGenericComparer<Index>
 
+        let targets = DefaultHashSet.create<Index>()
+        
         let mutable reader = Unchecked.defaultof<IIndexListReader<'a>>
 
         let getReader() =
@@ -788,14 +790,12 @@ module internal AdaptiveIndexListImplementation =
             if targets.Remove oi then
                 if not (obj.ReferenceEquals(reader, null)) then
                     let result = 
-                        reader.State.Content 
-                        |> MapExt.toSeq
-                        |> Seq.choose (fun (ii, v) -> 
+                        let mutable delta = null
+                        for KeyValue(ii, v) in reader.State.Content do
                             match mapping.Revoke(oi,ii) with
-                            | ValueSome v -> Some struct(v, Remove)
-                            | ValueNone -> None
-                        )
-                        |> IndexListDelta.ofSeqV
+                            | ValueSome v -> delta <- MapExtImplementation.addInPlace cmp v Remove delta
+                            | ValueNone -> ()
+                        IndexListDelta.ofMap (MapExt(cmp, delta))
 
                     if targets.Count = 0 then 
                         dirty.Remove x |> ignore
@@ -819,22 +819,25 @@ module internal AdaptiveIndexListImplementation =
         override x.Compute(token) =
             if not (obj.ReferenceEquals(reader, null)) then
                 let ops = reader.GetChanges token
-
+        
                 ops |> IndexListDelta.collect (fun ii op ->
                     match op with
                     | Remove -> 
-                        targets
-                        |> Seq.choose (fun oi -> 
+                        let mutable root = null
+                        for oi in targets do
                             match mapping.Revoke(oi, ii) with   
-                            | ValueSome i -> Some struct(i, Remove)
-                            | ValueNone -> None
-                        )
-                        |> IndexListDelta.ofSeqV
+                            | ValueSome i -> 
+                                root <- MapExtImplementation.addInPlace cmp i Remove root
+                            | ValueNone -> ()
+                        IndexListDelta.ofMap (MapExt(cmp, root))
 
                     | Set v ->
-                        targets
-                        |> Seq.map (fun oi -> struct(mapping.Invoke(oi, ii), Set v))
-                        |> IndexListDelta.ofSeqV
+                        let mutable root = null
+                        for oi in targets do
+                            let i =  mapping.Invoke(oi, ii)
+                            let op = Set v
+                            root <- MapExtImplementation.addInPlace cmp i op root
+                        IndexListDelta.ofMap (MapExt(cmp, root))
 
                 )
 
