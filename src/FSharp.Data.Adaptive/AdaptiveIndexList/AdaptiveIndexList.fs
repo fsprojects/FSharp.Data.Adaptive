@@ -788,12 +788,14 @@ module internal AdaptiveIndexListImplementation =
             if targets.Remove oi then
                 if not (obj.ReferenceEquals(reader, null)) then
                     let result = 
-                        let mutable delta = IndexListDelta.empty
-                        for KeyValue(ii, v) in reader.State.Content do
+                        reader.State.Content 
+                        |> MapExt.toSeq
+                        |> Seq.choose (fun (ii, v) -> 
                             match mapping.Revoke(oi,ii) with
-                            | ValueSome v -> delta <- delta.Add (v, Remove)
-                            | ValueNone -> ()
-                        delta
+                            | ValueSome v -> Some struct(v, Remove)
+                            | ValueNone -> None
+                        )
+                        |> IndexListDelta.ofSeqV
 
                     if targets.Count = 0 then 
                         dirty.Remove x |> ignore
@@ -821,18 +823,19 @@ module internal AdaptiveIndexListImplementation =
                 ops |> IndexListDelta.collect (fun ii op ->
                     match op with
                     | Remove -> 
-                        let mutable delta = IndexListDelta.empty
-                        for oi in targets do
+                        targets
+                        |> Seq.choose (fun oi -> 
                             match mapping.Revoke(oi, ii) with   
-                            | ValueSome i -> delta <- delta.Add (i, Remove)
-                            | ValueNone -> ()
-                        delta
+                            | ValueSome i -> Some struct(i, Remove)
+                            | ValueNone -> None
+                        )
+                        |> IndexListDelta.ofSeqV
 
                     | Set v ->
-                        let mutable delta = IndexListDelta.empty
-                        for oi in targets do
-                            delta <- delta.Add (mapping.Invoke(oi, ii), Set v)
-                        delta
+                        targets
+                        |> Seq.map (fun oi -> struct(mapping.Invoke(oi, ii), Set v))
+                        |> IndexListDelta.ofSeqV
+
                 )
 
             else
@@ -1021,7 +1024,7 @@ module internal AdaptiveIndexListImplementation =
                         match cache.TryGetValue i with
                         | (true, b) ->
                             match idx.Revoke((b, i)) with
-                            | ValueSome oi -> Some (oi, Remove)
+                            | ValueSome oi -> Some struct(oi, Remove)
                             | ValueNone -> None
                         | _ ->
                             None
@@ -1029,19 +1032,19 @@ module internal AdaptiveIndexListImplementation =
                     cache.[i] <- b
                     let oi = idx.Invoke((b, i))
                     match rem with
-                    | Some op -> [op; (oi, Set v)]
-                    | None -> [(oi, Set v)]
+                    | Some op -> [op; struct(oi, Set v)]
+                    | None -> [struct(oi, Set v)]
                 | Remove ->
                     match cache.TryGetValue i with
                     | (true, b) ->
                         cache.Remove i |> ignore
                         match idx.Revoke((b, i)) with
-                        | ValueSome oi -> [(oi, Remove)]
+                        | ValueSome oi -> [struct(oi, Remove)]
                         | ValueNone -> []
                     | _ ->
                         []
             )
-            |> IndexListDelta.ofSeq
+            |> IndexListDelta.ofSeqV
 
     /// Reader for sortWith operations
     [<Sealed>]
@@ -1067,27 +1070,27 @@ module internal AdaptiveIndexListImplementation =
                 match op with
                 | Set v -> 
                     let rem =
-                        match MapExt.tryFind i old with
-                        | Some ov ->
+                        match MapExt.tryFindV i old with
+                        | ValueSome ov ->
                             match idx.Revoke(UCmp(cmp, struct(ov, i))) with
-                            | ValueSome oi -> Some (oi, Remove)
+                            | ValueSome oi -> Some struct(oi, Remove)
                             | ValueNone -> None
                         | _ ->
                             None
                     let oi = idx.Invoke(UCmp(cmp, struct(v, i)))
                     match rem with
-                    | Some op -> [op; (oi, Set v)]
-                    | None -> [(oi, Set v)]
+                    | Some op -> [op; struct(oi, Set v)]
+                    | None -> [struct(oi, Set v)]
                 | Remove ->
-                    match MapExt.tryFind i old with
-                    | Some ov ->
+                    match MapExt.tryFindV i old with
+                    | ValueSome ov ->
                         match idx.Revoke(UCmp(cmp, struct(ov, i))) with
-                        | ValueSome oi -> [(oi, Remove)]
+                        | ValueSome oi -> [struct(oi, Remove)]
                         | ValueNone -> []
                     | _ ->
                         []
             )
-            |> IndexListDelta.ofSeq
+            |> IndexListDelta.ofSeqV
 
     /// Reader for ofAVal operations
     [<Sealed>]

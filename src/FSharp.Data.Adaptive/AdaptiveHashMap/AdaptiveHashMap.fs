@@ -1093,7 +1093,7 @@ module AdaptiveHashMapImplementation =
                     | _ ->
                         None
             )
-            |> HashMap.OfSeq |> HashMapDelta.ofHashMap
+            |> HashMapDelta.ofSeqV
 
     /// Reader used for ofASet operations.
     /// It's safe to assume that the view function will only be called with non-empty HashSets.
@@ -1134,7 +1134,7 @@ module AdaptiveHashMapImplementation =
                     | _ ->
                         None
             )
-            |> HashMap.OfSeq |> HashMapDelta.ofHashMap
+            |> HashMapDelta.ofSeqV
 
     /// Gets the current content of the amap as HashMap.
     let inline force (map : amap<'Key, 'Value>) = 

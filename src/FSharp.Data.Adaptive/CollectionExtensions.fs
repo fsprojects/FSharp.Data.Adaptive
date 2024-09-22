@@ -50,14 +50,14 @@ module CollectionExtensions =
                     | Add(_, v) ->
                         let k = cache.Invoke v
                         let idx = mapping.Invoke k
-                        Some (idx, Set v)
+                        Some struct(idx, Set v)
                     | Rem(_, v) ->
                         let k = cache.Revoke v
                         match mapping.Revoke k with
-                        | ValueSome idx -> Some (idx, Remove)
+                        | ValueSome idx -> Some struct(idx, Remove)
                         | ValueNone -> None
                 )
-                |> IndexListDelta.ofSeq
+                |> IndexListDelta.ofSeqV
         
         /// Reader for ASet.sortWith
         [<Sealed>]
@@ -72,13 +72,13 @@ module CollectionExtensions =
                     match op with
                     | Add(_, v) ->
                         let idx = mapping.Invoke v
-                        Some (idx, Set v)
+                        Some struct(idx, Set v)
                     | Rem(_, v) ->
                         match mapping.Revoke v with
-                        | Some idx -> Some (idx, Remove)
+                        | Some idx -> Some struct(idx, Remove)
                         | None -> None
                 )
-                |> IndexListDelta.ofSeq
+                |> IndexListDelta.ofSeqV
 
         /// Reader for AMap.keys
         [<Sealed>]
@@ -200,19 +200,20 @@ module CollectionExtensions =
             let newIndex = Cache newIndex
 
             override x.Compute(token) =
-                let changes = reader.GetChanges token
-                let mutable delta = IndexListDelta.empty
-                for d in changes do
+                reader.GetChanges token
+                    |> HashSetDelta.toSeq
+                    |> Seq.map (fun d ->
                     match d with
-                    | Add(1,v) -> 
-                        let i = newIndex.Invoke v
-                        delta <- delta.Add (i, Set v)
-                    | Rem(1,v) ->
-                        let i = newIndex.Revoke v
-                        delta <- delta.Add (i, Remove)
-                    | _ ->
-                        unexpected()
-                delta
+                        | Add(1,v) -> 
+                            let i = newIndex.Invoke v
+                            struct(i, Set v)
+                        | Rem(1,v) ->
+                            let i = newIndex.Revoke v
+                            struct(i, Remove)
+                        | _ ->
+                            unexpected()
+                    )
+                    |> IndexListDelta.ofSeqV
                     
         [<Sealed>]
         type MapToListReader<'T>(input : amap<Index, 'T>) =

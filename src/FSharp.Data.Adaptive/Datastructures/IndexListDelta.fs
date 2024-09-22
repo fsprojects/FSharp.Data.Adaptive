@@ -213,6 +213,10 @@ module IndexListDelta =
         IndexListDelta(MapExt.ofSeq operations)
 
     /// Creates an IndexListDelta containing all the given operations.
+    let ofSeqV (operations : seq<struct(Index * ElementOperation<'T>)>) = 
+        IndexListDelta(MapExt.ofSeqV operations)
+
+    /// Creates an IndexListDelta containing all the given operations.
     let ofList (operations : list<Index * ElementOperation<'T>>) = 
         IndexListDelta(MapExt.ofList operations)
 

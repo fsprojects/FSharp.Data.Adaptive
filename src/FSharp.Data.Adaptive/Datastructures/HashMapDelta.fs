@@ -77,6 +77,10 @@ module HashMapDelta =
     /// A HashMapDelta containing all the given deltas.
     let ofSeq (elements : seq<'K * ElementOperation<'V>>) = 
         HashMapDelta(HashMap.ofSeq elements)
+
+    /// A HashMapDelta containing all the given deltas.
+    let ofSeqV (elements : seq<struct('K * ElementOperation<'V>)>) = 
+        HashMapDelta(HashMap.ofSeqV elements)
         
     /// A HashMapDelta containing all the given deltas.
     let ofList (elements : list<'K * ElementOperation<'V>>) = 
