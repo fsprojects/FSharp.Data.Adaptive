@@ -1140,7 +1140,7 @@ module AdaptiveHashSetImplementation =
         do r.Tag <- "Reader"
 
         let state = DefaultDictionary.create<'A, struct(aval<bool> * bool)>()
-        let predicateMap = DefaultDictionary.create<aval<bool>, 'A>()
+        let predicateMap = DefaultDictionary.create<aval<bool>, struct('A * System.Collections.Generic.HashSet<'A>)>() // NOTE: only allocate hashset if there are multiple (expected to be rare)
 
         override x.Compute(token, dirty) =
             let mutable deltas = 
@@ -1150,7 +1150,18 @@ module AdaptiveHashSetImplementation =
                         let v = predicate m
                         let p = v.GetValue token
                         state.[m] <- struct(v, p)
-                        predicateMap.[v] <- m
+                        match predicateMap.TryGetValue v with
+                        | (true, pp) ->
+                            let struct(first, other) = pp
+                            if isNull other then
+                                let other = System.Collections.Generic.HashSet<'A>()
+                                other.Add(m) |> ignore
+                                predicateMap.[v] <- (first, other)
+                            else
+                                other.Add(m) |> ignore
+                        | _ -> 
+                            predicateMap.[v] <- (m, Unchecked.defaultof<_>)
+
                         if p then
                             ValueSome (Add m)
                         else
@@ -1161,7 +1172,26 @@ module AdaptiveHashSetImplementation =
                         | (true, x) ->
                             let struct(v, p) = x
                             state.Remove m |> ignore
-                            predicateMap.Remove v |> ignore
+                            match predicateMap.TryGetValue v with
+                            | (true, pp) ->
+                                let struct(first, other) = pp
+                                if DefaultEquality.equals first m then
+                                    if isNull other then
+                                        predicateMap.Remove v |> ignore
+                                    else
+                                        let next = other |> Seq.head
+                                        if other.Count > 1 then
+                                            other.Remove next |> ignore
+                                            predicateMap.[v] <- (next, other)
+                                        else
+                                            predicateMap.[v] <- (next, Unchecked.defaultof<_>)                                            
+                                else 
+                                    if other.Count > 1 then
+                                        other.Remove m |> ignore
+                                    else
+                                        predicateMap.[v] <- (first, Unchecked.defaultof<_>)
+                            | _ -> unexpected()
+
                             if p then
                                 ValueSome (Rem m)
                             else
@@ -1175,19 +1205,35 @@ module AdaptiveHashSetImplementation =
 
             for d in dirty do
                 match predicateMap.TryGetValue d with
-                | (true, m) ->
-                    match state.TryGetValue m with
+                | (true, pp) ->
+                    let pNew = d.GetValue token
+                    let struct(first, other) = pp
+                    match state.TryGetValue first with
                     | (true, x) ->
                         let struct(v, p) = x
-                        let pNew = d.GetValue token
                         if pNew <> p then
-                            state.[m] <- (d, pNew)
+                            state.[first] <- (d, pNew)
                             if pNew then
-                                deltas <- deltas.Add (Add m)
+                                deltas <- deltas.Add (Add first)
                             else
-                                deltas <- deltas.Add (Rem m)
+                                deltas <- deltas.Add (Rem first)
                         ()
                     | _ -> unexpected()
+
+                    if not (isNull other) then
+                        for m in other do
+                            match state.TryGetValue m with
+                            | (true, x) ->
+                                let struct(v, p) = x
+                                if pNew <> p then
+                                    state.[m] <- (d, pNew)
+                                    if pNew then
+                                        deltas <- deltas.Add (Add m)
+                                    else
+                                        deltas <- deltas.Add (Rem m)
+                                ()
+                            | _ -> unexpected()
+
                 | _ -> unexpected()
 
             deltas
