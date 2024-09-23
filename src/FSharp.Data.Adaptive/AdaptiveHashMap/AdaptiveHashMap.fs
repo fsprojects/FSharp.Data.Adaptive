@@ -1071,9 +1071,9 @@ module AdaptiveHashMapImplementation =
         override x.Compute (token : AdaptiveToken) =
             let cmp = DefaultEqualityComparer<'Key>.Instance
             let mutable delta = null
-            for op in reader.GetChanges token do
-                match op with
-                | Add(_, (k, v)) ->
+            for d in reader.GetChanges token do
+                let (k, v) = d.Value
+                if d.Count = 1 then // >= 1 ??
                     match state.TryGetValue k with
                     | (true, set) ->    
                         let newSet = HashSet.add v set
@@ -1083,7 +1083,7 @@ module AdaptiveHashMapImplementation =
                         let newSet = HashSet.single v
                         state.[k] <- newSet
                         delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
-                | Rem(_, (k, v)) ->
+                elif d.Count = -1 then // <= -1 ??
                     match state.TryGetValue k with
                     | (true, set) ->    
                         let newSet = HashSet.remove v set
@@ -1095,6 +1095,8 @@ module AdaptiveHashMapImplementation =
                             delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
                     | _ ->
                         ()
+                else
+                    unexpected()
 
             HashMap(cmp, delta) |> HashMapDelta.ofHashMap
 
@@ -1112,9 +1114,9 @@ module AdaptiveHashMapImplementation =
         override x.Compute (token : AdaptiveToken) =
             let cmp = DefaultEqualityComparer<'Key>.Instance
             let mutable delta = null
-            for op in reader.GetChanges token do
-                match op with
-                | Add(_, v) ->
+            for d in reader.GetChanges token do
+                let v = d.Value
+                if d.Count = 1 then // >= 1 ??
                     let k = cache.Invoke v
                     match state.TryGetValue k with
                     | (true, set) ->    
@@ -1125,7 +1127,7 @@ module AdaptiveHashMapImplementation =
                         let newSet = HashSet.single v
                         state.[k] <- newSet
                         delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
-                | Rem(_, v) ->
+                elif d.Count = -1 then // <= -1 ??
                     let k = cache.Revoke v
                     match state.TryGetValue k with
                     | (true, set) ->    
@@ -1138,6 +1140,8 @@ module AdaptiveHashMapImplementation =
                             delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
                     | _ ->
                         ()
+                else
+                    unexpected()
 
             HashMap(cmp, delta) |> HashMapDelta.ofHashMap
 
