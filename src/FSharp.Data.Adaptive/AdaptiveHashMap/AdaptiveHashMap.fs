@@ -1089,7 +1089,7 @@ module AdaptiveHashMapImplementation =
                         let newSet = HashSet.remove v set
                         if newSet.IsEmpty then 
                             state.Remove k |> ignore
-                            delta <- MapNode.addInPlace' cmp k Remove delta
+                            delta <- MapNode.addInPlace' cmp k (Remove : ElementOperation<'View>) delta
                         else 
                             state.[k] <- newSet
                             delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
@@ -1134,7 +1134,7 @@ module AdaptiveHashMapImplementation =
                         let newSet = HashSet.remove v set
                         if newSet.IsEmpty then 
                             state.Remove k |> ignore
-                            delta <- MapNode.addInPlace' cmp k Remove delta
+                            delta <- MapNode.addInPlace' cmp k (Remove : ElementOperation<'View>) delta
                         else 
                             state.[k] <- newSet
                             delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
