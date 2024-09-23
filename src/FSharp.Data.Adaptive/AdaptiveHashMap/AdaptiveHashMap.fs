@@ -1078,29 +1078,21 @@ module AdaptiveHashMapImplementation =
                     | (true, set) ->    
                         let newSet = HashSet.add v set
                         state.[k] <- newSet
-                        let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-                        let struct(_, n) = MapNode.addInPlace cmp hash k (Set (view newSet)) delta
-                        delta <- n
+                        delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
                     | _ ->
                         let newSet = HashSet.single v
                         state.[k] <- newSet
-                        let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-                        let struct(_, n) = MapNode.addInPlace cmp hash k (Set (view newSet)) delta
-                        delta <- n
+                        delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
                 | Rem(_, (k, v)) ->
                     match state.TryGetValue k with
                     | (true, set) ->    
                         let newSet = HashSet.remove v set
                         if newSet.IsEmpty then 
                             state.Remove k |> ignore
-                            let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-                            let struct(_, n) = MapNode.addInPlace cmp hash k Remove delta
-                            delta <- n
+                            delta <- MapNode.addInPlace' cmp k Remove delta
                         else 
                             state.[k] <- newSet
-                            let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-                            let struct(_, n) = MapNode.addInPlace cmp hash k (Set (view newSet)) delta
-                            delta <- n
+                            delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
                     | _ ->
                         ()
 
@@ -1128,15 +1120,11 @@ module AdaptiveHashMapImplementation =
                     | (true, set) ->    
                         let newSet = HashSet.add v set
                         state.[k] <- newSet
-                        let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-                        let struct(_, n) = MapNode.addInPlace cmp hash k (Set (view newSet)) delta
-                        delta <- n
+                        delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
                     | _ ->
                         let newSet = HashSet.single v
                         state.[k] <- newSet
-                        let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-                        let struct(_, n) = MapNode.addInPlace cmp hash k (Set (view newSet)) delta
-                        delta <- n
+                        delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
                 | Rem(_, v) ->
                     let k = cache.Revoke v
                     match state.TryGetValue k with
@@ -1144,14 +1132,10 @@ module AdaptiveHashMapImplementation =
                         let newSet = HashSet.remove v set
                         if newSet.IsEmpty then 
                             state.Remove k |> ignore
-                            let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-                            let struct(_, n) = MapNode.addInPlace cmp hash k Remove delta
-                            delta <- n
+                            delta <- MapNode.addInPlace' cmp k Remove delta
                         else 
                             state.[k] <- newSet
-                            let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-                            let struct(_, n) = MapNode.addInPlace cmp hash k (Set (view newSet)) delta
-                            delta <- n
+                            delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
                     | _ ->
                         ()
 

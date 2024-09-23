@@ -2144,6 +2144,11 @@ module internal HashImplementation =
                         node <- join inner.Prefix inner hash (MapLeaf(hash, key, value, null))
                         true
             struct(ok, node)
+
+        let inline addInPlace' (cmp : IEqualityComparer<'K>) (key : 'K) (value : 'V) (node : SetNode<'K>) =
+            let hash = uint32 (cmp.GetHashCode key) &&& 0x7FFFFFFFu
+            let struct(_, n) = addInPlace cmp hash key value node
+            n
                 
         let rec toValueList (acc : list<'V>) (node : SetNode<'K>) =
             if isNull node then acc
@@ -3913,10 +3918,8 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
     static member OfSeq(elements : seq<'K * 'V>) =
         let cmp = DefaultEqualityComparer<'K>.Instance
         let mutable root = null
-        for (k, v) in elements do 
-            let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-            let struct(ok, n) = MapNode.addInPlace cmp hash k v root
-            root <- n
+        for (k, v) in elements do
+            root <- MapNode.addInPlace' cmp k v root
         HashMap<'K, 'V>(cmp, root)
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3924,9 +3927,7 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let cmp = DefaultEqualityComparer<'K>.Instance
         let mutable root = null
         for (k, v) in elements do 
-            let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-            let struct(ok, n) = MapNode.addInPlace cmp hash k v root
-            root <- n
+            root <- MapNode.addInPlace' cmp k v root
         HashMap<'K, 'V>(cmp, root)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3934,9 +3935,7 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let cmp = DefaultEqualityComparer<'K>.Instance
         let mutable root = null
         for (k, v) in elements do 
-            let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-            let struct(ok, n) = MapNode.addInPlace cmp hash k v root
-            root <- n
+            root <- MapNode.addInPlace' cmp k v root
         HashMap<'K, 'V>(cmp, root)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3947,9 +3946,7 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let ee = offset + length
         while i < ee do
             let (k, v) = elements.[i]
-            let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-            let struct(ok, n) = MapNode.addInPlace cmp hash k v root
-            root <- n
+            root <- MapNode.addInPlace' cmp k v root
             i <- i + 1
         HashMap<'K, 'V>(cmp, root)
         
@@ -3962,9 +3959,7 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let ee = offset + length
         while i < ee do
             let struct(k, v) = elements.[i]
-            let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-            let struct(ok, n) = MapNode.addInPlace cmp hash k v root
-            root <- n
+            root <- MapNode.addInPlace' cmp k v root
             i <- i + 1
         HashMap<'K, 'V>(cmp, root)
 
@@ -3973,9 +3968,7 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let cmp = DefaultEqualityComparer<'K>.Instance
         let mutable root = null
         for struct(k, v) in elements do 
-            let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-            let struct(ok, n) = MapNode.addInPlace cmp hash k v root
-            root <- n
+            root <- MapNode.addInPlace' cmp k v root
         HashMap<'K, 'V>(cmp, root)
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3983,9 +3976,7 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let cmp = DefaultEqualityComparer<'K>.Instance
         let mutable root = null
         for struct(k, v) in elements do 
-            let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-            let struct(ok, n) = MapNode.addInPlace cmp hash k v root
-            root <- n
+            root <- MapNode.addInPlace' cmp k v root
         HashMap<'K, 'V>(cmp, root)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3993,9 +3984,7 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let cmp = DefaultEqualityComparer<'K>.Instance
         let mutable root = null
         for struct(k, v) in elements do 
-            let hash = uint32 (cmp.GetHashCode k) &&& 0x7FFFFFFFu
-            let struct(ok, n) = MapNode.addInPlace cmp hash k v root
-            root <- n
+            root <- MapNode.addInPlace' cmp k v root
         HashMap<'K, 'V>(cmp, root)
         
     #endif
