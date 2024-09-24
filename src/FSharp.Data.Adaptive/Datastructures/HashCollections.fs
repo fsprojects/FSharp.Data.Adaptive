@@ -3846,6 +3846,14 @@ and [<Struct; DebuggerDisplay("Count = {Count}"); DebuggerTypeProxy(typedefof<Ha
         let state = HashMap<'K, 'V>(a.Comparer, state)
         let delta = HashMap<'K, 'U>(a.Comparer, delta)
         state, delta
+
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member ApplyDeltaV(a : HashMap<'K, 'V>, b : HashMap<'K, 'T>, apply : 'K -> voption<'V> -> 'T -> struct(voption<'V> * voption<'U>)) =
+        let state = a.Root
+        let struct(delta, state) = MapNode.applyDelta a.Comparer (OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt apply) state b.Root
+        let state = HashMap<'K, 'V>(a.Comparer, state)
+        let delta = HashMap<'K, 'U>(a.Comparer, delta)
+        struct(state, delta)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     member x.Choose2V(other : HashMap<'K, 'T>, mapping : 'K -> voption<'V> -> voption<'T> -> voption<'U>) =

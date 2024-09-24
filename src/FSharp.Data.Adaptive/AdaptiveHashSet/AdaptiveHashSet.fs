@@ -652,7 +652,7 @@ module AdaptiveHashSetImplementation =
 
                 struct (outRef, outDelta)
                 
-            let newState, delta = HashMap.ApplyDelta(state, changes, apply)
+            let struct(newState, delta) = HashMap.ApplyDeltaV(state, changes, apply)
             state <- newState
             HashSetDelta.ofHashMap delta
 
@@ -700,7 +700,7 @@ module AdaptiveHashSetImplementation =
 
                 struct (outRef, outDelta)
                 
-            let newState, delta = HashMap.ApplyDelta(state, changes, apply)
+            let struct(newState, delta) = HashMap.ApplyDeltaV(state, changes, apply)
             state <- newState
             HashSetDelta.ofHashMap delta
                   
@@ -748,7 +748,7 @@ module AdaptiveHashSetImplementation =
 
                 struct (outRef, outDelta)
                 
-            let newState, delta = HashMap.ApplyDelta(state, changes, apply)
+            let struct(newState, delta) = HashMap.ApplyDeltaV(state, changes, apply)
             state <- newState
             HashSetDelta.ofHashMap delta
 
