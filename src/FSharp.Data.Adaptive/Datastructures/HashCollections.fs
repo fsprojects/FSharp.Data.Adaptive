@@ -956,6 +956,11 @@ module internal HashImplementation =
                  
             struct(ok, node)
 
+        let inline addInPlace' (cmp : IEqualityComparer<'K>) (key : 'K) (node : SetNode<'K>) =
+            let hash = uint32 (cmp.GetHashCode key) &&& 0x7FFFFFFFu
+            let struct(_, n) = addInPlace cmp hash key node
+            n
+
         let rec tryRemove (cmp : IEqualityComparer<'K>) (hash : uint32) (key : 'K) (node : SetNode<'K>) =
             let mutable node : SetNode<'K> = node
             let ok =
@@ -3589,9 +3594,7 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         let cmp = DefaultEqualityComparer<'K>.Instance
         let mutable root = null
         for e in elements do 
-            let hash = uint32 (cmp.GetHashCode e) &&& 0x7FFFFFFFu
-            let struct(ok, n) = SetNode.addInPlace cmp hash e root
-            root <- n
+            root <- SetNode.addInPlace' cmp e root
         HashSet(cmp, root)
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3599,9 +3602,7 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         let cmp = DefaultEqualityComparer<'K>.Instance
         let mutable root = null
         for e in elements do 
-            let hash = uint32 (cmp.GetHashCode e) &&& 0x7FFFFFFFu
-            let struct(ok, n) = SetNode.addInPlace cmp hash e root
-            root <- n
+            root <- SetNode.addInPlace' cmp e root
         HashSet(cmp, root)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3609,9 +3610,7 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         let cmp = DefaultEqualityComparer<'K>.Instance
         let mutable root = null
         for e in elements do 
-            let hash = uint32 (cmp.GetHashCode e) &&& 0x7FFFFFFFu
-            let struct(ok, n) = SetNode.addInPlace cmp hash e root
-            root <- n
+            root <- SetNode.addInPlace' cmp e root
         HashSet(cmp, root)
         
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
@@ -3622,9 +3621,7 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         let ee = offset + length
         while i < ee do
             let e = elements.[i]
-            let hash = uint32 (cmp.GetHashCode e) &&& 0x7FFFFFFFu
-            let struct(ok, n) = SetNode.addInPlace cmp hash e root
-            root <- n
+            root <- SetNode.addInPlace' cmp e root
             i <- i + 1
         HashSet(cmp, root)
         
