@@ -887,7 +887,7 @@ module AdaptiveHashSetImplementation =
         inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.empty)
             
         let mutable valChanged = 0
-        let mutable cache : option<'A * IHashSetReader<'B>> = None
+        let mutable cache : voption<struct('A * IHashSetReader<'B>)> = ValueNone
             
         override x.InputChangedObject(_, i) =
             // check if input is different object
@@ -906,23 +906,23 @@ module AdaptiveHashSetImplementation =
             #endif 
 
             match cache with
-            | Some(oldValue, oldReader) when valChanged && not (cheapEqual oldValue newValue) ->
+            | ValueSome(oldValue, oldReader) when valChanged && not (cheapEqual oldValue newValue) ->
                 // input changed
                 let rem = CountingHashSet.removeAll oldReader.State
                 oldReader.Outputs.Remove x |> ignore
                 let newReader = (mapping newValue).GetReader()
                 let add = newReader.GetChanges token
-                cache <- Some(newValue, newReader)
+                cache <- ValueSome(newValue, newReader)
                 HashSetDelta.combine rem add
 
-            | Some(_, ro) ->    
+            | ValueSome(_, ro) ->    
                 // input unchanged
                 ro.GetChanges token
 
-            | None ->
+            | ValueNone ->
                 // initial
                 let r = (mapping newValue).GetReader()
-                cache <- Some(newValue, r)
+                cache <- ValueSome(newValue, r)
                 r.GetChanges token
 
     /// Reader for flattenA
