@@ -1229,7 +1229,7 @@ module AdaptiveHashSetImplementation =
                                 ()
                             | _ -> unexpected()
 
-                | _ -> unexpected()
+                | _ -> () // aval<bool> expected to have been removed in this udpate
 
             deltas
  
