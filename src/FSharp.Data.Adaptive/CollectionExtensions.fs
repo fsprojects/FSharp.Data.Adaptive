@@ -282,6 +282,137 @@ module CollectionExtensions =
 
                 IndexListDelta(res)
 
+        
+        /// Reader for ASet.ofListTree
+        [<Sealed>]
+        type ListTreeReader<'T>(list: alist<'T>, getChildren : 'T -> alist<'T>) =
+            inherit AbstractDirtyReader<IIndexListReader<'T>, HashSetDelta<'T>>(HashSetDelta.monoid, isNull)
+            
+            let mutable initial = true
+            let reader = list.GetReader() // NOTE: need to be held, otherwise it will be collected and no updates can be consumed
+            let cache = System.Collections.Generic.Dictionary<struct(IIndexListReader<'T> * FSharp.Data.Adaptive.Index), struct('T * IIndexListReader<'T>)>() // TODO: refcounting
+
+            member x.Invoke(token : AdaptiveToken, r : IIndexListReader<'T>, i : FSharp.Data.Adaptive.Index, n : 'T) =
+                let mutable delta = HashSetDelta.empty
+            
+                if cache.ContainsKey (struct(r, i)) then
+                    delta <- delta.Combine (x.Revoke(r, i))
+
+                let subNodes = getChildren n
+                let subReader = subNodes.GetReader()
+                cache[struct(r, i)] <- (n, subReader)
+
+                delta <- delta.Add (Add n)
+                let content = subReader.GetChanges token
+                for c in content do
+                    match c with
+                    | (si, Set sub) -> 
+                        delta <- delta.Combine (x.Invoke(token, subReader, si, sub))
+                    | _ -> unexpected()
+            
+                delta
+
+            member x.Revoke(r : IIndexListReader<'T>, i : FSharp.Data.Adaptive.Index) =
+                let mutable delta = HashSetDelta.empty
+                match cache.TryGetValue (struct(r, i)) with
+                | (true, struct(n, subReader)) -> 
+                    cache.Remove (struct(r, i)) |> ignore
+                    subReader.Outputs.Remove x |> ignore
+
+                    delta <- delta.Add (Rem n)
+                    subReader.State |> IndexList.iteri (fun i old ->
+                        delta <- delta.Combine (x.Revoke(subReader, i)))
+
+                | _ -> () // possible if parent set already removed all its sub nodes
+
+                delta
+
+            override x.Compute(token: AdaptiveToken, dirty : System.Collections.Generic.HashSet<IIndexListReader<'T>>) =
+                let mutable delta = HashSetDelta.empty
+                if initial then
+                    initial <- false
+                    let changes = reader.GetChanges token
+                    for d in changes do
+                        match d with
+                        | (i, Set n) -> delta <- delta.Combine (x.Invoke(token, reader, i, n))
+                        | _ -> unexpected()
+                
+                for d in dirty do
+                    let inner = d.GetChanges token
+                    for c in inner do
+                        match c with
+                        | (i, Set n) -> delta <- delta.Combine (x.Invoke(token, d, i, n))
+                        | (i, Remove) -> delta <- delta.Combine (x.Revoke(d, i))
+                    
+                delta
+
+
+        /// Reader for ASet.ofSetTree (delta combine)
+        [<Sealed>]
+        type SetTreeReader<'T>(set: aset<'T>, getChildren : 'T -> aset<'T>) =
+            inherit AbstractDirtyReader<IHashSetReader<'T>, HashSetDelta<'T>>(HashSetDelta.monoid, isNull)
+            
+            let mutable initial = true
+            let reader = set.GetReader() // NOTE: need to be held, otherwise it will be collected and no updates can be consumed
+            let cache = DefaultDictionary.create<'T, struct(IHashSetReader<'T> * ref<int>)>()
+
+            member x.Invoke(token : AdaptiveToken, n : 'T) =
+                let mutable delta = HashSetDelta.empty
+                match cache.TryGetValue n with
+                | (true, (_, refCount)) -> refCount.Value <- refCount.Value + 1
+                | _ ->
+                    let subNodes = getChildren n
+                    let reader = subNodes.GetReader()
+                    cache[n] <- (reader, ref 1)
+
+                    delta <- delta.Add (Add n)
+                    let content = reader.GetChanges token
+                    for c in content do
+                        if c.Count <> 1 then unexpected()
+                        delta <- delta.Combine (x.Invoke(token, c.Value))
+                
+                delta
+
+            member x.Revoke(n : 'T) =
+                let mutable delta = HashSetDelta.empty
+                match cache.TryGetValue n with
+                | (true, (reader, refCount)) -> 
+                    if refCount.Value = 1 then
+                        cache.Remove n |> ignore
+                        reader.Outputs.Remove x |> ignore
+
+                        delta <- delta.Add (Rem n)
+                        for old in reader.State do
+                            delta <- delta.Combine (x.Revoke(old))
+                    else
+                        refCount.Value <- refCount.Value - 1
+
+                | _ -> () // possible if parent list already removed all its sub nodes
+
+                delta
+
+            override x.Compute(token: AdaptiveToken, dirty : System.Collections.Generic.HashSet<IHashSetReader<'T>>) =
+                let mutable deltas = 
+                    if initial then
+                        initial <- false
+                        reader.GetChanges token |> HashSetDelta.collect (fun d ->
+                            let n = d.Value
+                            if d.Count = 1 then x.Invoke(token, n)
+                            else unexpected()
+                        )
+                    else
+                        HashSetDelta.empty
+
+                for d in dirty do
+                    let inner = d.GetChanges token |> HashSetDelta.collect (fun d ->
+                            let n = d.Value
+                            if d.Count = 1 then x.Invoke(token, n)
+                            elif d.Count = -1 then x.Revoke(n)
+                            else unexpected()
+                        )
+                    deltas <- deltas.Combine inner
+                deltas
+
 
 
     /// Functional operators for amap<_,_>
@@ -453,6 +584,15 @@ module CollectionExtensions =
         /// Groups the aset by the given mapping and returns an amap with potentially colliding entries in a HashSet<'T>.
         let groupBy (mapping: 'T -> 'K) (set: aset<'T>) =
             set |> AMap.ofASetMapped mapping
+
+        /// Creates an aset from tree of alists
+        /// NOTE: does not expect duplicates -> TODO
+        let ofListTree<'T> (getChildren : 'T -> alist<'T>) (nodes : alist<'T>) =
+            ASet.ofReader (fun () -> ListTreeReader(nodes, getChildren))
+
+        /// Creates an aset from tree of sets
+        let ofSetTree<'T> (getChildren : 'T -> aset<'T>) (nodes : aset<'T>) =
+            ASet.ofReader (fun () -> SetTreeReader(nodes, getChildren))
 
 
     /// Functional operators for alist<_>

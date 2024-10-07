@@ -272,14 +272,13 @@ type AdaptiveHashSet private() =
         this |> ASet.toAList
         
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member MapToMap(this: aset<'T>, mapping: Func<'T, 'Value>) =
-        this |> ASet.mapToAMap mapping.Invoke
+    static member MapToMap(this: aset<'T>, getValue: Func<'T, 'Value>) =
+        this |> ASet.mapToAMap getValue.Invoke
         
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member GroupBy(this: aset<'T>, mapping: Func<'T, 'G>) =
-        this |> ASet.groupBy mapping.Invoke
-
-        
+    static member GroupBy(this: aset<'T>, getKey: Func<'T, 'G>) =
+        this |> ASet.groupBy getKey.Invoke
+                
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ToAdaptiveHashMap(this: aset<'K * 'V>) =
         AMap.ofASet this
@@ -288,6 +287,20 @@ type AdaptiveHashSet private() =
     static member ToAdaptiveHashMapIgnoreDuplicates(this: aset<'K * 'V>) =
         AMap.ofASetIgnoreDuplicates this
 
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member ToAdaptiveHashMapIgnoreDuplicates(this: aset<'TValue>, getKey : Func<'TValue, 'TKey>) =
+        this |> AMap.ofASetMappedIgnoreDuplicates getKey.Invoke
+
+    /// Creates an AdaptiveHashSet from tree of lists
+    /// NOTE: does not expect duplicates -> TODO
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfListTree(this: alist<'TNode>, getChildren : Func<'TNode, alist<'TNode>>) =
+        this |> ASet.ofListTree getChildren.Invoke
+
+    /// Creates an AdaptiveHashSet from tree of sets
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfSetTree(this: aset<'TNode>, getChildren : Func<'TNode, aset<'TNode>>) =
+        this |> ASet.ofSetTree getChildren.Invoke
 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ToArray(this: aset<'T>) =
