@@ -3273,9 +3273,7 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         let e = elements.GetEnumerator()
         while e.MoveNext() do
             let item = e.Current
-            let hash = uint32 (cmp.GetHashCode item) &&& 0x7FFFFFFFu
-            let struct(ok, n) = SetNode.addInPlace cmp hash item root
-            root <- n
+            root <- SetNode.addInPlace' cmp item root
         e.Dispose()
         HashSet(cmp, root)
 
@@ -3384,9 +3382,7 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         let mutable root = null
         for e in x do
             let n = mapping e
-            let hash = uint32 (cmp.GetHashCode n) &&& 0x7FFFFFFFu
-            let struct(ok, n) = SetNode.addInPlace cmp hash n root
-            root <- n
+            root <- SetNode.addInPlace' cmp n root
 
         HashSet<'T>(cmp, root)
         
@@ -3419,9 +3415,7 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         for e in x do
             match mapping e with
             | ValueSome n ->
-                let hash = uint32 (cmp.GetHashCode n) &&& 0x7FFFFFFFu
-                let struct(ok, n) = SetNode.addInPlace cmp hash n root
-                root <- n
+                root <- SetNode.addInPlace' cmp n root
             | ValueNone ->
                 ()
         HashSet<'T>(cmp, root)
@@ -3434,9 +3428,7 @@ type HashSet<'K> internal(comparer : IEqualityComparer<'K>, root : SetNode<'K>) 
         for e in x do
             match mapping e with
             | Some n ->
-                let hash = uint32 (cmp.GetHashCode n) &&& 0x7FFFFFFFu
-                let struct(ok, n) = SetNode.addInPlace cmp hash n root
-                root <- n
+                root <- SetNode.addInPlace' cmp n root
             | None ->
                 ()
         HashSet<'T>(cmp, root)
