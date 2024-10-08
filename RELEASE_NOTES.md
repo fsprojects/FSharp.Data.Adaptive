@@ -12,6 +12,7 @@
 - preferred using struct enumerators
 - avoided using active patterns to match set operations
 - updated Tests to net 8.0
+- updated Aardvark.Build and aardpack to 2.0.2
 - fixed race condition in Index
 
 ### 1.2.16 

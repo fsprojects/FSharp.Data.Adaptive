@@ -3,7 +3,7 @@ STORAGE: NONE
 RESTRICTION: || (== net5.0) (== net6.0) (== net8.0) (== netstandard2.0)
 NUGET
   remote: https://api.nuget.org/v3/index.json
-    Aardvark.Build (1.0.25)
+    Aardvark.Build (2.0.2)
     BenchmarkDotNet (0.14)
       BenchmarkDotNet.Annotations (>= 0.14)
       CommandLineParser (>= 2.9.1)

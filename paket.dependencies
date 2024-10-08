@@ -5,7 +5,7 @@ framework: auto-detect
 
 nuget FSharp.Core                           >= 4.7.0 lowest_matching: true
 nuget System.Reflection.Emit.Lightweight    >= 4.6.0 lowest_matching: true
-nuget Aardvark.Build                        ~> 1.0.18
+nuget Aardvark.Build                        ~> 2.0.2
 
 # Tests : intentionally in main group
 nuget FsUnit                                ~> 3.4.1
