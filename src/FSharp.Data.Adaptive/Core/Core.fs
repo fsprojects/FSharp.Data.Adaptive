@@ -287,7 +287,7 @@ and internal WeakOutputSet() =
                 else
                     // r cannot be null here (empty index would have been found)
                     let set = HashSet<WeakReference<IAdaptiveObject>>()
-                    #if NET5_0_OR_GREATER // NOTE: could also use netstadnard2.1
+                    #if NET8_0_OR_GREATER
                     set.EnsureCapacity(HashSetCapacity) |> ignore
                     #endif
                     for r in data.Array do
