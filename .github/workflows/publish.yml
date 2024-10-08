@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - lessGC
     paths:
       - RELEASE_NOTES.md
       - .github/workflows/publish.yml  
