@@ -12,7 +12,8 @@
 - preferred using struct enumerators
 - avoided using active patterns to match set operations
 - updated to net 8.0
-- updated Aardvark.Build and aardpack to 2.0.2
+- updated Aardvark.Build 2.0.2
+- updated aardpack to 1.0.25
 - updated Fable to 4.22.0
 - fixed race condition in Index
 
