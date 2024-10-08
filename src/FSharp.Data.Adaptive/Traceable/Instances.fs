@@ -107,3 +107,33 @@ module IndexList =
     /// The traceable instance for HashSet.
     let trace<'T> = Traceable<'T>.Instance
  
+
+module ArrDelta =
+    [<GeneralizableValue>]
+    let monoid<'a> : Monoid<arrdelta<'a>> =
+        {
+            mempty = ArrDelta.empty
+            misEmpty = ArrDelta.isEmpty
+            mappend = ArrDelta.combine 
+        }
+
+    
+module Arr =
+    /// Type for caching the Traceable<_> instance for IndexList<_>
+    type private Traceable<'T> private() =
+        static let trace : Traceable<arr<'T>, arrdelta<'T>> =
+            {
+                tempty =  Arr.empty
+                tcomputeDelta = Arr.computeDelta Unchecked.equals
+                tapplyDelta = fun m d -> Arr.applyDelta m d, d
+                tmonoid = ArrDelta.monoid
+                tsize = fun _ -> 0
+                tprune = None
+            }
+        static member Instance = trace
+
+    
+    [<GeneralizableValue>]
+    let trace<'a> = Traceable<'a>.Instance
+
+

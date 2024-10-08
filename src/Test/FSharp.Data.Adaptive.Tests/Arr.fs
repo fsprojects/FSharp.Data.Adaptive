@@ -23,53 +23,53 @@ let ``[Arr] single`` () =
     a |> Seq.toList |> should equal [5]
   
 
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] ofSeq`` (input : list<int>) =
     let a = Arr.ofSeq input
     a.Length |> should equal input.Length
     a |> Seq.toList |> should equal input
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] ofList`` (input : list<int>) =
     let a = Arr.ofList input
     a.Length |> should equal input.Length
     a |> Seq.toList |> should equal input
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] ofArray`` (input : list<int>) =
     let a = Arr.ofArray (List.toArray input)
     a.Length |> should equal input.Length
     a |> Seq.toList |> should equal input
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] fromReadonlySpan`` (input : list<int>) =
     let array = List.toArray input
     let a = arr.FromSpan (System.ReadOnlySpan<int>(array))
     a.Length |> should equal input.Length
     a |> Seq.toList |> should equal input
         
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] fromSpan`` (input : list<int>) =
     let array = List.toArray input
     let a = arr.FromSpan (System.Span<int>(array))
     a.Length |> should equal input.Length
     a |> Seq.toList |> should equal input
           
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] fromMemory`` (input : list<int>) =
     let array = List.toArray input
     let a = arr.FromMemory (System.Memory<int>(array))
     a.Length |> should equal input.Length
     a |> Seq.toList |> should equal input
 
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] fromReadonlyMemory`` (input : list<int>) =
     let array = List.toArray input
     let a = arr.FromMemory (System.ReadOnlyMemory<int>(array))
     a.Length |> should equal input.Length
     a |> Seq.toList |> should equal input
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] insert`` (input : list<int>) (pos : uint32) =
     
     let idx = int (pos % uint32 (input.Length + 1))
@@ -91,7 +91,7 @@ let ``[Arr] insert`` (input : list<int>) (pos : uint32) =
     res.Length |> should equal ref.Length
     res |> Seq.toList |> should equal ref
        
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] set`` (NonEmptyArray (input : int[])) (pos : uint32) =
     
     let idx = int (pos % uint32 input.Length)
@@ -108,7 +108,7 @@ let ``[Arr] set`` (NonEmptyArray (input : int[])) (pos : uint32) =
     res.Length |> should equal ref.Length
     res |> Seq.toList |> should equal ref
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] add`` (input : list<int>) (value : int) =
     let a = Arr.ofList input
     
@@ -118,7 +118,7 @@ let ``[Arr] add`` (input : list<int>) (value : int) =
     res.Length |> should equal ref.Length
     res |> Seq.toList |> should equal ref
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] append`` (input : list<int>) (value : int) =
     let a = Arr.ofList input
     
@@ -128,7 +128,7 @@ let ``[Arr] append`` (input : list<int>) (value : int) =
     res.Length |> should equal ref.Length
     res |> Seq.toList |> should equal ref
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] prepend`` (input : list<int>) (value : int) =
     let a = Arr.ofList input
     
@@ -138,7 +138,7 @@ let ``[Arr] prepend`` (input : list<int>) (value : int) =
     res.Length |> should equal ref.Length
     res |> Seq.toList |> should equal ref
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] concat`` (input : list<list<int>>) =
     let a = input |> List.map Arr.ofList |> Arr.ofList
     
@@ -149,7 +149,7 @@ let ``[Arr] concat`` (input : list<list<int>>) =
     res |> Seq.toList |> should equal ref
     
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] take`` (input : list<int>) (n : int) =
     let a = Arr.ofList input
     let n = abs n
@@ -159,7 +159,7 @@ let ``[Arr] take`` (input : list<int>) (n : int) =
     res.Length |> should equal ref.Length
     res |> Seq.toList |> should equal ref
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] skip`` (input : list<int>) (n : int) =
     let a = Arr.ofList input
     let n = abs n
@@ -172,7 +172,7 @@ let ``[Arr] skip`` (input : list<int>) (n : int) =
     res |> Seq.toList |> should equal ref
     
        
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] sub`` (NonEmptyArray (arr : int[])) (pos : uint32) (cnt : uint32) =
     let input = List.ofArray arr
     let idx = int (pos % uint32 input.Length)
@@ -187,7 +187,7 @@ let ``[Arr] sub`` (NonEmptyArray (arr : int[])) (pos : uint32) (cnt : uint32) =
     res.Length |> should equal ref.Length
     res |> Seq.toList |> should equal ref
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] slice (minmax)`` (NonEmptyArray (arr : int[])) (pos : uint32) (cnt : uint32) =
     let input = List.ofArray arr
     let idx = int (pos % uint32 input.Length)
@@ -202,7 +202,7 @@ let ``[Arr] slice (minmax)`` (NonEmptyArray (arr : int[])) (pos : uint32) (cnt :
     res.Length |> should equal ref.Length
     res |> Seq.toList |> should equal ref
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] slice (min)`` (NonEmptyArray (arr : int[])) (pos : uint32) =
     let input = List.ofArray arr
     let idx = int (pos % uint32 input.Length)
@@ -216,7 +216,7 @@ let ``[Arr] slice (min)`` (NonEmptyArray (arr : int[])) (pos : uint32) =
     res.Length |> should equal ref.Length
     res |> Seq.toList |> should equal ref
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] slice (max)`` (NonEmptyArray (arr : int[])) (pos : uint32) =
     let input = List.ofArray arr
     let idx = int (pos % uint32 input.Length)
@@ -230,7 +230,7 @@ let ``[Arr] slice (max)`` (NonEmptyArray (arr : int[])) (pos : uint32) =
     res.Length |> should equal ref.Length
     res |> Seq.toList |> should equal ref
 
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] slice (empty)`` (NonEmptyArray (arr : int[])) =
     let input = List.ofArray arr
     
@@ -243,7 +243,7 @@ let ``[Arr] slice (empty)`` (NonEmptyArray (arr : int[])) =
     res.Length |> should equal ref.Length
     res |> Seq.toList |> should equal ref
 
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] split`` (NonEmptyArray (arr : int[])) (pos : uint32) =
     let input = List.ofArray arr
     let idx = int (pos % uint32 input.Length)
@@ -258,7 +258,7 @@ let ``[Arr] split`` (NonEmptyArray (arr : int[])) (pos : uint32) =
     resa |> Seq.toList |> should equal refa
     resb |> Seq.toList |> should equal refb
                
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] uncons`` (NonEmptyArray (arr : int[])) =
     let input = Array.toList arr
     let arr = Arr.ofList input
@@ -266,45 +266,104 @@ let ``[Arr] uncons`` (NonEmptyArray (arr : int[])) =
     a |> should equal (List.head input)
     rest |> Seq.toList |> should equal (List.tail input)
      
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] item`` (NonEmptyArray (input : int[])) (pos : uint32) =
     let input = Array.toList input
     let idx = int (pos % uint32 input.Length)
     let arr = Arr.ofList input
     arr.[idx] |> should equal input.[idx]
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] map`` (input : list<int>) =
     let arr = Arr.ofList input
     let res = arr |> Arr.map ((+) 1)
     let ref = input |> List.map ((+) 1)
     res |> Seq.toList |> should equal ref
+    
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] mapi`` (input : list<int>) =
+    let arr = Arr.ofList input
+    let res = arr |> Arr.mapi (fun i v -> i + v)
+    let ref = input |> List.mapi (fun i v -> i + v)
+    res |> Seq.toList |> should equal ref
         
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] choose`` (input : list<int>) =
     let arr = Arr.ofList input
     let res = arr |> Arr.choose (fun v -> if v % 3 = 0 then Some v else None)
     let ref = input |> List.choose (fun v -> if v % 3 = 0 then Some v else None)
     res |> Seq.toList |> should equal ref
 
-[<Property(EndSize = 10000)>]
+
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] choosei`` (input : list<int>) =
+    let arr = Arr.ofList input
+    let res = arr |> Arr.choosei (fun i v -> if v % 3 = 0 then Some (i, v) else None)
+    let ref = input |> List.indexed |> List.choose (fun (i, v) -> if v % 3 = 0 then Some (i, v) else None)
+    res |> Seq.toList |> should equal ref
+
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] filter`` (input : list<int>) =
     let arr = Arr.ofList input
     let res = arr |> Arr.filter (fun v -> v % 3 = 0)
     let ref = input |> List.filter (fun v -> v % 3 = 0)
     res |> Seq.toList |> should equal ref
         
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] filteri`` (input : list<int>) =
+    let arr = Arr.ofList input
+    let res = arr |> Arr.filteri (fun i v -> v % 3 = 0 || i % 2 = 0)
+    let ref = input |> List.indexed |> List.filter (fun (i, v) -> v % 3 = 0 || i % 2 = 0) |> List.map snd
+    res |> Seq.toList |> should equal ref
+   
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] partition`` (input : list<int>) =
+    let arr = Arr.ofList input
+    let res1, res2 = arr |> Arr.partition (fun v -> v % 3 = 0)
+    let ref1, ref2 = input |> List.partition (fun v -> v % 3 = 0)
+    res1 |> Seq.toList |> should equal ref1
+    res2 |> Seq.toList |> should equal ref2
+             
         
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] collect`` (input : list<int>) =
     let arr = Arr.ofList input
     let res = arr |> Arr.collect (fun v -> Arr.ofList [v; v*2])
     let ref = input |> List.collect (fun v -> [v; v*2])
     res |> Seq.toList |> should equal ref
     
+      
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] collecti`` (input : list<int>) =
+    let arr = Arr.ofList input
+    let res = arr |> Arr.collecti (fun i v -> Arr.ofList [i; v; v*2])
+    let ref = input |> List.indexed |> List.collect (fun (i, v) -> [i; v; v*2])
+    res |> Seq.toList |> should equal ref
+    
+      
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] iter`` (input : list<int>) =
+    let arr = Arr.ofList input
+    
+    let mutable res = FSharp.Core.CompilerServices.ListCollector()
+    
+    arr |> Arr.iter (fun v -> res.Add (v*2))
+    let ref = input |> List.map (fun v -> v*2)
+    res.Close() |> should equal ref
+          
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] iteri`` (input : list<int>) =
+    let arr = Arr.ofList input
+    
+    let mutable res = FSharp.Core.CompilerServices.ListCollector()
+    
+    arr |> Arr.iteri (fun i v -> res.Add (i, v*2))
+    let ref = input |> List.mapi (fun i v -> i, v*2)
+    res.Close() |> should equal ref
+    
     
         
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] removeRange`` (NonEmptyArray (arr : int[])) (pos : uint32) (cnt : uint32) =
     let input = List.ofArray arr
     let idx = int (pos % uint32 input.Length)
@@ -326,7 +385,7 @@ let ``[Arr] removeRange`` (NonEmptyArray (arr : int[])) (pos : uint32) (cnt : ui
     |> should equal (removeRange input)
     
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] replaceRange`` (NonEmptyArray (arr : int[])) (NonEmptyArray (repl : int[])) (pos : uint32) (cnt : uint32) =
     let input = List.ofArray arr
     let idx = int (pos % uint32 input.Length)
@@ -336,49 +395,194 @@ let ``[Arr] replaceRange`` (NonEmptyArray (arr : int[])) (NonEmptyArray (repl : 
     let repl = Array.toList repl
     
     let rec replaceRange (l : list<int>) =
-        let mutable res = FSharp.Core.CompilerServices.ListCollector()
-        let mutable i = 0
-        for e in l do
-            if i = idx then
-                for ee in repl do res.Add ee
-            
-            if i < idx || i >= idx + cnt then
-                res.Add e
-            
-            i <- i + 1
-        res.Close()
+        if idx = l.Length then
+            List.append l repl
+        else
+            let mutable res = FSharp.Core.CompilerServices.ListCollector()
+            let mutable i = 0
+            for e in l do
+                if i = idx then
+                    for ee in repl do res.Add ee
+                
+                if i < idx || i >= idx + cnt then
+                    res.Add e
+                
+                i <- i + 1
+            res.Close()
     
     let res = arr.ReplaceRange(idx, cnt, Arr.ofList repl)
     let reff = replaceRange input
     
     res.Length |> should equal (arr.Length - cnt + repl.Length)
     
-    res
-    |> Seq.toList
-    |> should equal reff
+    let resl = res |> Seq.toList
+    
+    resl |> should equal reff
 
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] toList`` (input : list<int>) =
     let mutable res = Arr.empty
     for e in input do res <- res.Add e
     res |> Arr.toList |> should equal input
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] toArray`` (input : list<int>) =
     let mutable res = Arr.empty
     for e in input do res <- res.Add e
     res |> Arr.toArray |> Array.toList |> should equal input
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] toSeq`` (input : list<int>) =
     let mutable res = Arr.empty
     for e in input do res <- res.Add e
     res |> Arr.toSeq |> Seq.toList |> should equal input
     
-[<Property(EndSize = 10000)>]
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] asSeq`` (input : list<int>) =
     let mutable res = Arr.empty
     for e in input do res <- res.Add e
     res |> Seq.toList |> should equal input
+        
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] fold`` (input : list<NonEmptyString>) =
+    let input = input |> List.map (function NonEmptyString str -> str)
+    let arr = Arr.ofList input
     
+    let res = arr |> Arr.fold (+) "123"
+    let reff = input |> List.fold (+) "123"
+    res |> should equal reff
+    
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] foldBack`` (input : list<NonEmptyString>) =
+    let input = input |> List.map (function NonEmptyString str -> str)
+    let arr = Arr.ofList input
+    
+    let res = Arr.foldBack (+) arr "123"
+    let reff = List.foldBack (+) input "123"
+    res |> should equal reff
+    
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] init`` (cnt : uint32) =
+    let reff = List.init (int cnt % 5000) id
+    let res = Arr.init (int cnt % 5000) id
+    res |> Arr.toList |> should equal reff
+     
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] tryItem`` (cnt : uint32) =
+    let count = int (cnt % 5000u)
+    let idx = int (cnt % uint32 (max 1 count))
+    let res = Arr.init (int cnt % 5000) id
+    let reff =
+        if idx >= 0 && idx < res.Length then Some idx
+        else None
+    
+    res |> Arr.tryItem idx |> should equal reff
+    
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] exists`` (NonEmptyArray list) =
+    let list = list |> Array.toList
+    let arr = Arr.ofList list
+    
+    let res = arr |> Arr.exists (fun v -> v % 7 = 0)
+    let reff = list |> List.exists (fun v -> v % 7 = 0)
+    res |> should equal reff
+        
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] forall`` (NonEmptyArray list) =
+    let list = list |> Array.toList
+    let arr = Arr.ofList list
+    
+    let res = arr |> Arr.forall (fun v -> v % 3 = 0)
+    let reff = list |> List.forall (fun v -> v % 3 = 0)
+    res |> should equal reff
+    
+            
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] pairwise`` (NonEmptyArray (list : array<int>)) =
+    let list = list |> Array.toList
+    let arr = Arr.ofList list
+    
+    let res = arr |> Arr.pairwise
+    let reff = list |> List.pairwise
+    res |> Arr.toList |> should equal reff
+                
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] rev`` (NonEmptyArray (list : array<int>)) =
+    let list = list |> Array.toList
+    let arr = Arr.ofList list
+    
+    let res = arr |> Arr.rev
+    let reff = list |> List.rev
+    res |> Arr.toList |> should equal reff
+    
+    
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] tryPick`` (NonEmptyArray list) =
+    let list = list |> Array.toList
+    let arr = Arr.ofList list
+    
+    let res = arr |> Arr.tryPick (fun v -> if v % 7 = 0 then Some v else None)
+    let reff = list |> List.tryPick (fun v -> if v % 7 = 0 then Some v else None)
+    res |> should equal reff
+    
+            
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] tryPickV`` (NonEmptyArray list) =
+    let list = list |> Array.toList
+    let arr = Arr.ofList list
+    
+    let res = arr |> Arr.tryPickV (fun v -> if v % 7 = 0 then ValueSome v else ValueNone)
+    let reff = list |> List.tryPick (fun v -> if v % 7 = 0 then Some v else None)
+    let res =
+        match res with
+        | ValueSome v -> Some v
+        | _ -> None
+    
+    res |> should equal reff
+        
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] tryFindIndex`` (NonEmptyArray list) =
+    let list = list |> Array.toList
+    let arr = Arr.ofList list
+    
+    let res = arr |> Arr.tryFindIndex (fun v -> v % 7 = 0)
+    let reff = list |> List.tryFindIndex (fun v -> v % 7 = 0)
+    res |> should equal reff
+    
+                    
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] min`` (NonEmptyArray (list : int[])) =
+    let list = list |> Array.toList
+    let arr = Arr.ofList list
+    
+    let res = arr |> Arr.min
+    let reff = list |> List.min
+    res |> should equal reff
+                        
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] max`` (NonEmptyArray (list : int[])) =
+    let list = list |> Array.toList
+    let arr = Arr.ofList list
+    
+    let res = arr |> Arr.max
+    let reff = list |> List.max
+    res |> should equal reff
+              
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] sum`` (NonEmptyArray (list : int[])) =
+    let list = list |> Array.toList
+    let arr = Arr.ofList list
+    
+    let res = arr |> Arr.sum
+    let reff = list |> List.sum
+    res |> should equal reff
+            
+[<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] average`` (NonEmptyArray (list : NormalFloat[])) =
+    let list = list |> Array.map (function NormalFloat v -> v) |> Array.toList
+    let arr = Arr.ofList list
+    
+    let res = arr |> Arr.average
+    let reff = list |> List.average
+    res |> should equal reff

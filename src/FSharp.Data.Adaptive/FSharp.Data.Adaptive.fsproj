@@ -44,6 +44,8 @@
     <Compile Include="Datastructures\IndexListDelta.fs" />
     <Compile Include="Datastructures\Deltas.fs" />
     <Compile Include="Datastructures\MultiSetMap.fs" />
+    <Compile Include="Datastructures\Arr.fs" />
+    <Compile Include="Datastructures\ArrDelta.fs" />
     <Compile Include="Utilities\Utilities.fs" />
     <Compile Include="Utilities\PriorityQueue.fs" />
     <Compile Include="Utilities\Cache.fs" />

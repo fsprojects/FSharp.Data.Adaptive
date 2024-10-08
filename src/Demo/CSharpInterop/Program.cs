@@ -10,6 +10,14 @@ namespace CSharpInterop
 {
     public class Program
     {
+        static void ArrTest()
+        {
+            var arr = ArrModule.empty<int>().Add(100).Add(23);
+            Console.WriteLine($"{arr}");
+            
+            
+        }
+        
         static void Scratch()
         {
             DefaultEqualityComparer.SetProvider(DefaultEqualityComparer.System);
@@ -114,7 +122,8 @@ namespace CSharpInterop
 
         public static void Main()
         {
-            Scratch();
+            ArrTest();
+            //Scratch();
 
             //BenchmarkRunner.Run<ForEachBenchmarks>();
         }

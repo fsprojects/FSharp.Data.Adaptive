@@ -47,8 +47,9 @@ let ``[AList] sub``() =
 
 [<EntryPoint>]
 let main _args =
-
-    ASet.``[ASet] mapA/flattenA/chooseA async``()
+    //(NonEmptyArray [|0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0|], NonEmptyArray [|1|], 99u, 0u)
+    Arr.``[Arr] replaceRange`` (NonEmptyArray [|0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0|]) (NonEmptyArray [|1|]) 99u 0u |> ignore
+    //ASet.``[ASet] mapA/flattenA/chooseA async``()
 
     //``[AList] sub``();
 

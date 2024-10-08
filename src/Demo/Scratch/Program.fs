@@ -79,8 +79,8 @@ for i in 0 .. 10 do
 
 printfn "%A" (mem.Get<Pos,_>())
 
-//AArrTest.run()
-Arr.run()
+AArrTest.run()
+//Arr.run()
 //ABag.run()
 //Observable.run()
 //LookupAll.example()
