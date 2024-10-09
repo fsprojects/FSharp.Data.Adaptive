@@ -594,6 +594,9 @@ module CollectionExtensions =
         let ofSetTree<'T> (getChildren : 'T -> aset<'T>) (nodes : aset<'T>) =
             ASet.ofReader (fun () -> SetTreeReader(nodes, getChildren))
 
+        /// maps the set to amap with the given key mapping and duplicates ignored
+        let toAMapIgnoreDuplicates (getKey: 'T -> 'K) (set: aset<'T>) =
+            set |> AMap.ofASetMappedIgnoreDuplicates getKey
 
     /// Functional operators for alist<_>
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
