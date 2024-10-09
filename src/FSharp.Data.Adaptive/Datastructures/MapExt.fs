@@ -429,19 +429,19 @@ module internal MapExtImplementation =
             
     let rec tryGetValue (cmp : IComparer<'Key>) (key : 'Key) (node : Node<'Key, 'Value>) =
         if isNull node then
-            struct(false, Unchecked.defaultof<'Value>)
+            ValueNone
         elif node.Height = 1uy then
             if cmp.Compare(key, node.Key) = 0 then 
-                struct(true, node.Value)
+                ValueSome node.Value
             else 
-                struct(false, Unchecked.defaultof<'Value>)
+                ValueNone
         else
             let node = node :?> Inner<'Key, 'Value>
             let c = cmp.Compare(key, node.Key)
             if c > 0 then tryGetValue cmp key node.Right
             elif c < 0 then tryGetValue cmp key node.Left
-            else 
-                struct(true, node.Value)
+            else
+                ValueSome node.Value
 
     let rec tryFind (cmp : IComparer<'Key>) (key : 'Key) (node : Node<'Key, 'Value>) =
         if isNull node then
@@ -3041,20 +3041,17 @@ type internal MapExt<'Key, 'Value when 'Key : comparison>(comparer : IComparer<'
 
 #if !FABLE_COMPILER
     member x.TryGetValue(key : 'Key, [<Out>] value : byref<'Value>) =
-        let struct(ok, res) = MapExtImplementation.tryGetValue comparer key root
-        value <- res
-        ok
+        match MapExtImplementation.tryGetValue comparer key root with
+        | ValueSome res -> value <- res
+                           true
+        | ValueNone -> false
 #endif
 
     member x.TryFind(key : 'Key) =
         MapExtImplementation.tryFind comparer key root
         
     member x.TryFindV(key : 'Key) =
-        let struct(ok, res) = MapExtImplementation.tryGetValue comparer key root
-        if ok then
-            ValueSome res
-        else
-            ValueNone
+        MapExtImplementation.tryGetValue comparer key root
 
     member x.ContainsKey(key : 'Key) =
         MapExtImplementation.containsKey comparer key root

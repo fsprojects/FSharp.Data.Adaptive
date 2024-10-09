@@ -715,3 +715,73 @@ let ``[ASet] mapA/flattenA/chooseA async``() =
 
     ()
 
+
+[<Test>]
+let ``[ASet] union constant``() =
+    let constSet = ASet.ofList [1; 2; 3]
+    let changeSet = cset [4;5;6]
+
+    let union1 = ASet.union constSet changeSet
+    let union2 = ASet.union changeSet constSet
+
+    let refSet = [1; 2; 3; 4; 5; 6]
+    union1 |> ASet.force |> should setequal refSet
+    union2 |> ASet.force |> should setequal refSet
+
+    transact(fun () -> changeSet.Add(1) |> ignore)
+
+    union1 |> ASet.force |> should setequal refSet
+    union2 |> ASet.force |> should setequal refSet
+
+    transact(fun () -> changeSet.Remove(1) |> ignore)
+
+    union1 |> ASet.force |> should setequal refSet
+    union2 |> ASet.force |> should setequal refSet
+
+    transact(fun () -> changeSet.Remove(5) |> ignore)
+
+    let refSet = [1; 2; 3; 4; 6]
+    union1 |> ASet.force |> should setequal refSet
+    union2 |> ASet.force |> should setequal refSet
+
+    let constSet = ASet.ofList [1; 2; 3]
+    let changeSet = cset [3;4;5]
+
+    let union1 = ASet.union constSet changeSet
+    let union2 = ASet.union changeSet constSet
+
+    let refSet = [1; 2; 3; 4; 5]
+    union1 |> ASet.force |> should setequal refSet
+    union2 |> ASet.force |> should setequal refSet
+
+    transact(fun () -> changeSet.Remove(5) |> ignore)
+
+    let refSet = [1; 2; 3; 4]
+    union1 |> ASet.force |> should setequal refSet
+    union2 |> ASet.force |> should setequal refSet
+
+
+[<Test>]
+let ``[ASet] filterA``() =
+    let takeEven = AVal.init true
+    let takeOdd = AVal.init true
+    let set = ASet.ofArray (Array.init 5 (fun i -> i))
+
+    let filtered = set |> ASet.filterA (fun i -> if (i % 2) = 0 then takeEven else takeOdd)
+
+    filtered |> ASet.force |> should setequal [0; 1; 2; 3; 4]
+
+    transact(fun () -> takeEven.Value <- false)
+
+    filtered |> ASet.force |> should setequal [1; 3]
+
+    transact(fun () -> takeOdd.Value <- false)
+
+    filtered |> ASet.force |> HashSet.count |> should equal 0
+
+    transact(fun () -> 
+        takeOdd.Value <- true
+        takeEven.Value <- true
+        )
+
+    filtered |> ASet.force |> should setequal [0; 1; 2; 3; 4]

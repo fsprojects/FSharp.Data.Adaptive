@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - lessGC
     paths:
       - RELEASE_NOTES.md
       - .github/workflows/publish.yml  
@@ -12,11 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Install Dotnet
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '6.0.100'
+          global-json-file: global.json
       - name: Restore Tools
         run: dotnet tool restore
       - name: Paket Restore
@@ -28,11 +29,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Install Dotnet
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '6.0.100'
+          global-json-file: global.json
       - name: Restore Tools
         run: dotnet tool restore
       - name: Paket Restore
@@ -51,11 +52,11 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Install Dotnet
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '6.0.100'
+          global-json-file: global.json
       - name: Restore Tools
         run: dotnet tool restore
       - name: Paket Restore
@@ -65,7 +66,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: dotnet aardpack FSharp.Data.Adaptive.sln --notag
       - name: Upload Package
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: packages
           path: bin\pack

@@ -125,7 +125,7 @@ module ABag =
         ConstantBag(Seq.delay seq) :> abag<_>
 
     let private constantMap (seq : unit -> HashMap<Unique, 'T>) =
-        ConstantBag(lazy(seq())) :> abag<_>
+        ConstantBag(Lazy<HashMap<Unique, 'T>>(seq)) :> abag<_>
 
     let ofReader (create : unit -> #IOpReader<HashMapDelta<Unique, 'T>>) =
         AdaptiveBag(fun () -> create() :> IOpReader<_>) :> abag<_>

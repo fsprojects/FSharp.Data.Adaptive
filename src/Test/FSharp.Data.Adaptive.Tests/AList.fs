@@ -1162,3 +1162,27 @@ let ``[AList] mapA inner change``() =
     
     r.GetChanges AdaptiveToken.Top |> ignore
     r.State |> should equal (IndexList.ofSeqIndexed [a, 2; b, -1; c, 6; d, 8; e, 10])
+
+
+[<Test>]
+let ``[AList] toAset``() =
+    let list = clist [1; 1; 2; 2; 3; 3;]
+    let set = list |> AList.toASet
+
+    set |> ASet.force |> should setequal [1; 2; 3]
+
+    transact(fun () -> list.Add(2) |> ignore)
+
+    set |> ASet.force |> should setequal [1; 2; 3]
+
+    transact(fun () -> list.Add(4) |> ignore)
+
+    set |> ASet.force |> should setequal [1; 2; 3; 4]
+
+    transact(fun () -> list.RemoveAt(0) |> ignore)
+
+    set |> ASet.force |> should setequal [1; 2; 3; 4]
+
+    transact(fun () -> list.RemoveAt(0) |> ignore)
+
+    set |> ASet.force |> should setequal [2; 3; 4]

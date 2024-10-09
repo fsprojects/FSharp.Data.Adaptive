@@ -48,7 +48,9 @@ let ``[AList] sub``() =
 [<EntryPoint>]
 let main _args =
 
-    ASet.``[ASet] mapA/flattenA/chooseA async``()
+    //ASet.``[ASet] mapA/flattenA/chooseA async``()
+    //ASet.``[ASet] union constant``()
+    //AList.``[AList] toAset``()
 
     //``[AList] sub``();
 
@@ -75,7 +77,7 @@ let main _args =
     //Profile.run()
     //BenchmarkRunner.Run<Benchmarks.TransactBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.MapBenchmark>() |> ignore
-    //BenchmarkRunner.Run<Benchmarks.CollectBenchmark>() |> ignore
+    //BenchmarkRunner.Run<Benchmarks.CollectBenchmark>() |> ignore    
     //BenchmarkRunner.Run<Benchmarks.EnumeratorBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.IndexListEnumeratorBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.HashSetEnumeratorBenchmark>() |> ignore
@@ -87,7 +89,18 @@ let main _args =
     //BenchmarkRunner.Run<Benchmarks.HashSetDeltaEnumeratorBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.HashMapDeltaEnumeratorBenchmark>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.MapExtEnumeratorBenchmark>() |> ignore
-
     //BenchmarkRunner.Run<Benchmarks.HashSetDeltaBench>() |> ignore
+    //BenchmarkRunner.Run<Benchmarks.IndexListBenchmarks>() |> ignore
+    //BenchmarkRunner.Run<Benchmarks.IndexEqualsBenchmarks>() |> ignore
+    BenchmarkRunner.Run<Benchmarks.IndexGarbageBenchmarks>() |> ignore
+
+    //let x = Benchmarks.IndexGarbageBenchmarks()
+    //x.ListCount <- 100
+    //x.GarbageCount <- 1000000
+    //for i in 0..1000 do
+    //    x.GarbageRnd()
+    //    printfn "iter %d" i
+
+    //printfn "done"
 
     0

@@ -1,3 +1,22 @@
+### 1.2.17-prerelease0001
+- added ASet.ofListTree and ASet.ofSetTree
+- added AList.mapToASet
+- added AMap.ofASetMapped/ofASetMappedIgnoreDuplicates (optimized ASet.groupBy)
+- added MapNode/SetNode addInPlace helpers
+- added SetNode.head
+- added special implementation for ASet.filterA
+- added special implementation for ASet.union with one set constant
+- improved AList.append
+- changed internal tuples/options to value types
+- changed Index garbage collection to run in finalizer
+- preferred using struct enumerators
+- avoided using active patterns to match set operations
+- updated to net 8.0
+- updated Aardvark.Build 2.0.2
+- updated aardpack to 1.0.25
+- updated Fable to 4.22.0
+- fixed race condition in Index
+
 ### 1.2.16 
 * avoid WPF contention-inline problems with transaction
 

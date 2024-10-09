@@ -246,3 +246,7 @@ type AdaptiveHashMap private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Keys(this: amap<'K, 'V>) =
         this |> AMap.keys
+
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Values(this: amap<'K, 'V>) =
+        this |> AMap.toASetValues

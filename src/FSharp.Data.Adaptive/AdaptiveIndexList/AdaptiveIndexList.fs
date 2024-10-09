@@ -55,25 +55,25 @@ module internal Reductions =
                             let index, op = e.Current
                             match op with
                             | Set a ->
-                                match IndexList.tryGet index state with
-                                | Some old ->
+                                match IndexList.tryGetV index state with
+                                | ValueSome old ->
                                     match reduction.sub sum old with
                                     | ValueSome s -> sum <- s
                                     | ValueNone -> working <- false
-                                | None ->
+                                | ValueNone ->
                                     ()
 
                                 sum <- reduction.add sum a
                                 state <- IndexList.set index a state
 
                             | Remove ->
-                                match IndexList.tryRemove index state with
-                                | Some(old, rest) ->
+                                match IndexList.tryRemoveV index state with
+                                | ValueSome(old, rest) ->
                                     state <- rest
                                     match reduction.sub sum old with
                                     | ValueSome s -> sum <- s
                                     | ValueNone -> working <- false
-                                | None ->
+                                | ValueNone ->
                                     ()
 
                         if not working then
@@ -127,11 +127,11 @@ module internal Reductions =
                     if reader.State.Count <= 2 || reader.State.Count <= ops.Count then
                         let newState = 
                             reader.State |> IndexList.mapi (fun k a ->
-                                match IndexList.tryGet k state with
-                                | Some (oa, b) -> 
+                                match IndexList.tryGetV k state with
+                                | ValueSome (oa, b) -> 
                                     if DefaultEquality.equals a oa then a, b
                                     else a, mapping k a
-                                | None ->
+                                | ValueNone ->
                                     let b = mapping k a
                                     a, b
                             )
@@ -143,13 +143,13 @@ module internal Reductions =
                         for (index, op) in ops do
                             match op with
                             | Set a ->
-                                match IndexList.tryGet index state with
-                                | Some (oa, _) when DefaultEquality.equals oa a -> 
+                                match IndexList.tryGetV index state with
+                                | ValueSome (oa, _) when DefaultEquality.equals oa a -> 
                                     ()
                                 | _ -> 
-                                    match IndexList.tryGet index state with
-                                    | Some(_,old) -> sum <- sub sum old
-                                    | None -> ()
+                                    match IndexList.tryGetV index state with
+                                    | ValueSome(_,old) -> sum <- sub sum old
+                                    | ValueNone -> ()
 
                                     let b = mapping index a
 
@@ -157,11 +157,11 @@ module internal Reductions =
                                     state <- IndexList.set index (a,b) state
 
                             | Remove ->
-                                match IndexList.tryRemove index state with
-                                | Some((_,old), rest) ->
+                                match IndexList.tryRemoveV index state with
+                                | ValueSome((_,old), rest) ->
                                     state <- rest
                                     sum <- sub sum old
-                                | None ->
+                                | ValueNone ->
                                     ()
 
                         match sum with
@@ -234,15 +234,15 @@ module internal Reductions =
             #endif
 
         let removeIndex (x : AdaptiveReduceByValue<_,_,_,_>) (i : Index) =
-            match IndexList.tryRemove i state with
-            | Some ((_oa, ov, o), newState) ->
+            match IndexList.tryRemoveV i state with
+            | ValueSome ((_oa, ov, o), newState) ->
                 state <- newState
                 sum <- sub sum o    
                 let rem, newTargets = MultiSetMap.remove ov i targets
                 targets <- newTargets
                 if rem then ov.Outputs.Remove x |> ignore
                 
-            | None ->
+            | ValueNone ->
                 ()
 
         override x.InputChangedObject(t, o) =
@@ -275,8 +275,8 @@ module internal Reductions =
 
                         let newState =  
                             reader.State |> IndexList.mapi (fun k a ->
-                                match IndexList.tryGet k state with
-                                | Some(oa, m,_) when DefaultEquality.equals oa a ->
+                                match IndexList.tryGetV k state with
+                                | ValueSome(oa, m,_) when DefaultEquality.equals oa a ->
                                     let v = m.GetValue t
                                     targets <- MultiSetMap.add m k targets
                                     (a, m, v)
@@ -601,7 +601,7 @@ module internal AdaptiveIndexListImplementation =
         let mapping = OptimizedClosures.FSharpFunc<Index, 'a, aval<'b>>.Adapt mapping
         let reader = input.GetReader()
         do reader.Tag <- "input"
-        let cache = Cache (fun (a,b) -> mapping.Invoke(a,b))
+        let cache = Cache (fun struct(i,v) -> mapping.Invoke(i,v))
         let mutable targets = MultiSetMap.empty<aval<'b>, Index>
         let mutable dirty = IndexList.empty<aval<'b>>
 
@@ -639,27 +639,27 @@ module internal AdaptiveIndexListImplementation =
                     dirty <- IndexList.remove i dirty
                     match op with
                     | Set v ->
-                        match IndexList.tryGet i old with
-                        | Some ov ->                  
+                        match IndexList.tryGetV i old with
+                        | ValueSome ov ->                  
                             let o = cache.Revoke(i, ov)
                             let rem, rest = MultiSetMap.remove o i targets
                             targets <- rest
                             if rem then o.Outputs.Remove x |> ignore
-                        | None ->
+                        | ValueNone ->
                             ()
                         let k = cache.Invoke(i,v)
                         let v = k.GetValue t
                         targets <- MultiSetMap.add k i targets
                         Some (Set v)
                     | Remove ->
-                        match IndexList.tryGet i old with
-                        | Some v ->                  
+                        match IndexList.tryGetV i old with
+                        | ValueSome v ->                  
                             let o = cache.Revoke(i, v)
                             let rem, r = MultiSetMap.remove o i targets
                             targets <- r
                             if rem then o.Outputs.Remove x |> ignore
                             Some Remove
-                        | None ->
+                        | ValueNone ->
                             None
                 )
 
@@ -679,7 +679,7 @@ module internal AdaptiveIndexListImplementation =
         do reader.Tag <- "input"
         let mapping = OptimizedClosures.FSharpFunc<Index, 'a, aval<option<'b>>>.Adapt mapping
         let keys = DefaultHashSet.create<Index>()
-        let cache = Cache (fun (a,b) ->  mapping.Invoke(a,b))
+        let cache = Cache (fun struct(i,v) ->  mapping.Invoke(i,v))
         let mutable targets = MultiSetMap.empty<aval<option<'b>>, Index>
         let mutable dirty = IndexList.empty<aval<option<'b>>>
 
@@ -717,13 +717,13 @@ module internal AdaptiveIndexListImplementation =
                     dirty <- IndexList.remove i dirty
                     match op with
                     | Set v ->
-                        match IndexList.tryGet i old with
-                        | Some ov ->                  
+                        match IndexList.tryGetV i old with
+                        | ValueSome ov ->                  
                             let o = cache.Revoke(i, ov)
                             let rem, rest = MultiSetMap.remove o i targets
                             targets <- rest
                             if rem then o.Outputs.Remove x |> ignore
-                        | None ->
+                        | ValueNone ->
                             ()
 
                         let k = cache.Invoke(i,v)
@@ -737,8 +737,8 @@ module internal AdaptiveIndexListImplementation =
                             if keys.Remove i then Some Remove
                             else None
                     | Remove ->
-                        match IndexList.tryGet i old with
-                        | Some v ->                  
+                        match IndexList.tryGetV i old with
+                        | ValueSome v ->                  
                             let o = cache.Revoke(i, v)
                             let rem, rest = MultiSetMap.remove o i targets
                             targets <- rest
@@ -746,7 +746,7 @@ module internal AdaptiveIndexListImplementation =
 
                             if keys.Remove i then Some Remove
                             else None
-                        | None ->
+                        | ValueNone ->
                             None
                 )
 
@@ -768,17 +768,16 @@ module internal AdaptiveIndexListImplementation =
     type MultiReader<'a>(mapping : IndexMapping<Index * Index>, list : alist<'a>, release : alist<'a> -> unit) =
         inherit AbstractReader<IndexListDelta<'a>>(IndexListDelta.empty)
             
-        let targets = DefaultHashSet.create<Index>()
+        static let cmp = LanguagePrimitives.FastGenericComparer<Index>
 
-        let mutable reader = None
+        let targets = DefaultHashSet.create<Index>()
+        
+        let mutable reader = Unchecked.defaultof<IIndexListReader<'a>>
 
         let getReader() =
-            match reader with
-            | Some r -> r
-            | None ->
-                let r = list.GetReader()
-                reader <- Some r
-                r
+            if obj.ReferenceEquals(reader, null) then
+                reader <- list.GetReader()
+            reader
 
         member x.AddTarget(oi : Index) =
             if targets.Add oi then
@@ -789,63 +788,60 @@ module internal AdaptiveIndexListImplementation =
 
         member x.RemoveTarget(dirty : System.Collections.Generic.HashSet<MultiReader<'a>>, oi : Index) =
             if targets.Remove oi then
-                match reader with
-                | Some r ->
+                if not (obj.ReferenceEquals(reader, null)) then
                     let result = 
-                        r.State.Content 
-                        |> MapExt.toSeq
-                        |> Seq.choose (fun (ii, v) -> 
+                        let mutable delta = null
+                        for KeyValue(ii, v) in reader.State.Content do
                             match mapping.Revoke(oi,ii) with
-                            | Some v -> Some (v, Remove)
-                            | None -> None
-                        )
-                        |> IndexListDelta.ofSeq
+                            | ValueSome v -> delta <- MapExtImplementation.addInPlace cmp v Remove delta
+                            | ValueNone -> ()
+                        IndexListDelta.ofMap (MapExt(cmp, delta))
 
                     if targets.Count = 0 then 
                         dirty.Remove x |> ignore
                         x.Release()
 
                     result
-
-                | None ->
+                else
                     IndexListDelta.empty
             else
                 IndexListDelta.empty
 
         member x.Release() =
-            match reader with
-            | Some r ->
+            if not (obj.ReferenceEquals(reader, null)) then
                 release(list)
-                r.Outputs.Remove x |> ignore
+                reader.Outputs.Remove x |> ignore
                 x.Outputs.Clear()
-                reader <- None
-            | None ->   
+                reader <- Unchecked.defaultof<IIndexListReader<'a>>
+            else
                 ()
 
         override x.Compute(token) =
-            match reader with
-            | Some r -> 
-                let ops = r.GetChanges token
-
+            if not (obj.ReferenceEquals(reader, null)) then
+                let ops = reader.GetChanges token
+        
                 ops |> IndexListDelta.collect (fun ii op ->
                     match op with
                     | Remove -> 
-                        targets
-                        |> Seq.choose (fun oi -> 
+                        let mutable root = null
+                        for oi in targets do
                             match mapping.Revoke(oi, ii) with   
-                            | Some i -> Some(i, Remove)
-                            | None -> None
-                        )
-                        |> IndexListDelta.ofSeq
+                            | ValueSome i -> 
+                                root <- MapExtImplementation.addInPlace cmp i Remove root
+                            | ValueNone -> ()
+                        IndexListDelta.ofMap (MapExt(cmp, root))
 
                     | Set v ->
-                        targets
-                        |> Seq.map (fun oi -> mapping.Invoke(oi, ii), Set v)
-                        |> IndexListDelta.ofSeq
+                        let mutable root = null
+                        for oi in targets do
+                            let i =  mapping.Invoke(oi, ii)
+                            let op = Set v
+                            root <- MapExtImplementation.addInPlace cmp i op root
+                        IndexListDelta.ofMap (MapExt(cmp, root))
 
                 )
 
-            | None ->
+            else
                 IndexListDelta.empty
 
     /// Reader for collect operations.
@@ -854,7 +850,7 @@ module internal AdaptiveIndexListImplementation =
         inherit AbstractDirtyReader<MultiReader<'b>, IndexListDelta<'b>>(IndexListDelta.monoid, checkTag "MultiReader")
             
         let mapping = IndexMapping<Index * Index>()
-        let cache = DefaultDictionary.create<Index, 'a * alist<'b>>()
+        let cache = DefaultDictionary.create<Index, struct('a * alist<'b>)>()
         let readers = DefaultDictionary.create<alist<'b>, MultiReader<'b>>()
         let input = input.GetReader()
 
@@ -943,9 +939,9 @@ module internal AdaptiveIndexListImplementation =
                 | Remove ->
                     let outIndex = mapping.Revoke(index, i)
                     match outIndex with
-                    | Some outIndex ->
+                    | ValueSome outIndex ->
                         Some (outIndex, Remove)
-                    | None ->
+                    | ValueNone ->
                         None
             )
 
@@ -983,7 +979,7 @@ module internal AdaptiveIndexListImplementation =
         inherit AbstractReader<IndexListDelta<'b>>(IndexListDelta.empty)
 
         let mutable inputChanged = 1
-        let mutable reader : Option<'a * IIndexListReader<'b>> = None
+        let mutable reader : ValueOption<'a * IIndexListReader<'b>> = ValueNone
 
         override x.InputChangedObject(t : obj, o : IAdaptiveObject) =
             if System.Object.ReferenceEquals(input, o) then
@@ -997,20 +993,20 @@ module internal AdaptiveIndexListImplementation =
             let inputChanged = System.Threading.Interlocked.Exchange(&inputChanged, 0)
             #endif
             match reader with
-            | Some (oldA, oldReader) when inputChanged = 0 || cheapEqual v oldA ->
+            | ValueSome (oldA, oldReader) when inputChanged = 0 || cheapEqual v oldA ->
                 oldReader.GetChanges token
             | _ -> 
                 let newReader = mapping(v).GetReader()
                 let deltas = 
                     let addNew = newReader.GetChanges token
                     match reader with
-                        | Some(_,old) ->
+                        | ValueSome(_,old) ->
                             let remOld = IndexList.computeDelta old.State IndexList.empty
                             old.Outputs.Clear()
                             IndexListDelta.combine remOld addNew
-                        | None ->
+                        | ValueNone ->
                             addNew
-                reader <- Some (v,newReader)
+                reader <- ValueSome (v,newReader)
                 deltas
 
     /// Reader for sortBy operations
@@ -1031,27 +1027,27 @@ module internal AdaptiveIndexListImplementation =
                         match cache.TryGetValue i with
                         | (true, b) ->
                             match idx.Revoke((b, i)) with
-                            | Some oi -> Some (oi, Remove)
-                            | None -> None
+                            | ValueSome oi -> Some struct(oi, Remove)
+                            | ValueNone -> None
                         | _ ->
                             None
                     let b = mapping i v
                     cache.[i] <- b
                     let oi = idx.Invoke((b, i))
                     match rem with
-                    | Some op -> [op; (oi, Set v)]
-                    | None -> [(oi, Set v)]
+                    | Some op -> [op; struct(oi, Set v)]
+                    | None -> [struct(oi, Set v)]
                 | Remove ->
                     match cache.TryGetValue i with
                     | (true, b) ->
                         cache.Remove i |> ignore
                         match idx.Revoke((b, i)) with
-                        | Some oi -> [(oi, Remove)]
-                        | None -> []
+                        | ValueSome oi -> [struct(oi, Remove)]
+                        | ValueNone -> []
                     | _ ->
                         []
             )
-            |> IndexListDelta.ofSeq
+            |> IndexListDelta.ofSeqV
 
     /// Reader for sortWith operations
     [<Sealed>]
@@ -1077,27 +1073,27 @@ module internal AdaptiveIndexListImplementation =
                 match op with
                 | Set v -> 
                     let rem =
-                        match MapExt.tryFind i old with
-                        | Some ov ->
+                        match MapExt.tryFindV i old with
+                        | ValueSome ov ->
                             match idx.Revoke(UCmp(cmp, struct(ov, i))) with
-                            | Some oi -> Some (oi, Remove)
-                            | None -> None
+                            | ValueSome oi -> Some struct(oi, Remove)
+                            | ValueNone -> None
                         | _ ->
                             None
                     let oi = idx.Invoke(UCmp(cmp, struct(v, i)))
                     match rem with
-                    | Some op -> [op; (oi, Set v)]
-                    | None -> [(oi, Set v)]
+                    | Some op -> [op; struct(oi, Set v)]
+                    | None -> [struct(oi, Set v)]
                 | Remove ->
-                    match MapExt.tryFind i old with
-                    | Some ov ->
+                    match MapExt.tryFindV i old with
+                    | ValueSome ov ->
                         match idx.Revoke(UCmp(cmp, struct(ov, i))) with
-                        | Some oi -> [(oi, Remove)]
-                        | None -> []
+                        | ValueSome oi -> [struct(oi, Remove)]
+                        | ValueNone -> []
                     | _ ->
                         []
             )
-            |> IndexListDelta.ofSeq
+            |> IndexListDelta.ofSeqV
 
     /// Reader for ofAVal operations
     [<Sealed>]
@@ -1149,8 +1145,8 @@ module internal AdaptiveIndexListImplementation =
             for i, op in ops do
                 match op with
                 | Remove ->
-                    match IndexList.tryGet i o with
-                    | Some _ov ->
+                    match IndexList.tryGetV i o with
+                    | ValueSome _ov ->
                         let (l, r) = neighbours i
                         delta <- IndexListDelta.add i Remove delta
                         match l with
@@ -1162,12 +1158,12 @@ module internal AdaptiveIndexListImplementation =
                                 delta <- IndexListDelta.add li Remove delta
                         | None ->
                             ()
-                    | None ->
+                    | ValueNone ->
                         ()
                 | Set v ->
                     let (l, r) = neighbours i
-                    match IndexList.tryGet i o with
-                    | Some ov when CheapEquality.cheapEqual ov v ->
+                    match IndexList.tryGetV i o with
+                    | ValueSome ov when CheapEquality.cheapEqual ov v ->
                         ()
                     | _ ->
                         match r with
@@ -1349,7 +1345,7 @@ module AList =
 
     /// Creates an alist holding the given values.
     let constant (value : unit -> IndexList<'T>) =
-        lazy value() |> ConstantList :> alist<_>
+        Lazy<IndexList<'T>>(value) |> ConstantList :> alist<_>
         
     /// A constant alist holding a single value.
     let single (value : 'T) =
@@ -1449,7 +1445,7 @@ module AList =
     let mapAi (mapping: Index -> 'T1 -> aval<'T2>) (list: alist<'T1>) =
         if list.IsConstant then
             let list = force list |> IndexList.mapi mapping
-            if list |> Seq.forall (fun v -> v.IsConstant) then
+            if list |> IndexList.forall (fun _ v -> v.IsConstant) then
                 constant (fun () -> list |> IndexList.map AVal.force)
             else
                 // TODO better impl possible
@@ -1465,7 +1461,7 @@ module AList =
     let chooseAi (mapping: Index ->'T1 -> aval<Option<'T2>>) (list: alist<'T1>) =
         if list.IsConstant then
             let list = force list |> IndexList.mapi mapping
-            if list |> Seq.forall (fun v -> v.IsConstant) then
+            if list |> IndexList.forall (fun _ v -> v.IsConstant) then
                 constant (fun () -> list |> IndexList.choose AVal.force)
             else
                 // TODO better impl possible
@@ -1493,7 +1489,7 @@ module AList =
     let collecti (mapping: Index -> 'T1 -> alist<'T2>) (list : alist<'T1>) =
         if list.IsConstant then
             let content = force list |> IndexList.mapi mapping
-            if content |> Seq.forall (fun l -> l.IsConstant) then
+            if content |> IndexList.forall (fun _ l -> l.IsConstant) then
                 constant (fun () -> content |> IndexList.collect force)
             else
                 ofReader (fun () -> ConcatReader(content))
@@ -1519,14 +1515,17 @@ module AList =
         let lists = IndexList.ofSeq lists
         if lists.IsEmpty then 
             empty
-        elif lists |> Seq.forall (fun l -> l.IsConstant) then
+        elif lists |> IndexList.forall (fun _ l -> l.IsConstant) then
             constant (fun () -> lists |> IndexList.collect force)
         else
             ofReader (fun () -> ConcatReader(lists))
 
     /// Adaptively concatenates the given lists.
     let append (l: alist<'T>) (r: alist<'T>) =
-        concat [l; r]
+        if l.IsConstant && r.IsConstant then
+            constant (fun () -> IndexList.append (l |> force) (r |> force))
+        else // TODO: optimization for if one is constant
+            ofReader (fun () -> ConcatReader(IndexList.ofArray [|l; r|]))
 
     /// Creates an aval providing access to the current content of the list.
     let toAVal (list : alist<'T>) =

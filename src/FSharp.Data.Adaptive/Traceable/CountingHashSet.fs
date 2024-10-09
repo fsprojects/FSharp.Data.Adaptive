@@ -213,8 +213,8 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
         let mutable res = HashMap<'B, int>.Empty
         for (k,ro) in store do
             let r = mapping k
-            let rr, _ =
-                HashMap<'B, int>.ApplyDelta(res, r.Store, fun _ oldRef delta ->
+            let struct(rr, _) =
+                HashMap<'B, int>.ApplyDeltaV(res, r.Store, fun _ oldRef delta ->
                     let oldRef = match oldRef with | ValueSome o -> o | ValueNone -> 0
                     struct (ValueSome (oldRef + ro * delta), ValueNone)
                 )
@@ -309,7 +309,7 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
             struct(value, delta)
             
-        let s, d = HashMap.ApplyDelta(store, deltas.Store, apply)
+        let struct(s, d) = HashMap.ApplyDeltaV(store, deltas.Store, apply)
         CountingHashSet s, HashSetDelta d
 
     
@@ -333,8 +333,31 @@ type CountingHashSet<'T>(store : HashMap<'T, int>) =
 
             struct(value, delta)
             
-        let s, d = HashMap.ApplyDelta(store, deltas.Store, apply)
+        let struct(s, d) = HashMap.ApplyDeltaV(store, deltas.Store, apply)
         CountingHashSet s, HashSetDelta d
+
+    /// Integrates the given delta into the set, returns a new set and the effective deltas.
+    member x.ApplyDeltaNoRefCountV (deltas : HashSetDelta<'T>) =
+        let apply (_k : 'T) (o : voption<int>) (d : int) =
+            let o = match o with | ValueSome _ -> 1 | ValueNone -> 0
+            let n = 
+                if d > 0 then 1 
+                elif d < 0 then 0
+                else o
+
+            let delta = 
+                if o = 0 && n > 0 then ValueSome 1
+                elif o > 0 && n = 0 then ValueSome -1
+                else ValueNone
+             
+            let value = 
+                 if n <= 0 then ValueNone
+                 else ValueSome n
+
+            struct(value, delta)
+            
+        let struct(s, d) = HashMap.ApplyDeltaV(store, deltas.Store, apply)
+        struct(CountingHashSet s, HashSetDelta d)
 
     /// Compares two sets.
     static member internal Compare(l : CountingHashSet<'T>, r : CountingHashSet<'T>) =
@@ -511,6 +534,10 @@ module CountingHashSet =
     /// Integrates the given delta into the set without ref-counting, returns a new set and the effective deltas.
     let inline applyDeltaNoRefCount (set : CountingHashSet<'T>) (delta : HashSetDelta<'T>) =
         set.ApplyDeltaNoRefCount delta
+
+    /// Integrates the given delta into the set without ref-counting, returns a new set and the effective deltas.
+    let inline applyDeltaNoRefCountV (set : CountingHashSet<'T>) (delta : HashSetDelta<'T>) =
+        set.ApplyDeltaNoRefCountV delta
         
     /// Compares two sets.
     let internal compare (l : CountingHashSet<'T>) (r : CountingHashSet<'T>) =

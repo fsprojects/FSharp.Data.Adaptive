@@ -38,7 +38,7 @@ type ChangeableModelMap<'K, 'V, 'C, 'A>(map : HashMap<'K, 'V>, init : 'V -> 'C, 
                     | Remove ->
                         struct (ValueNone, ValueNone)
 
-            let s, ops = HashMap.ApplyDelta(history.State, HashMapDelta.toHashMap ops, apply)
+            let struct(s, ops) = HashMap.ApplyDeltaV(history.State, HashMapDelta.toHashMap ops, apply)
             history.PerformUnsafe(s, HashMapDelta.ofHashMap ops) |> ignore
 
     member x.GetReader() =

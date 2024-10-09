@@ -65,12 +65,11 @@ module SetReductions =
                         let mutable e = ops.GetEnumerator()
                         while working && e.MoveNext() do
                             let op = e.Current
-                            match op with
-                            | Add(_, a) ->
-                                sum <- reduction.add sum a
-
-                            | Rem(_, old) ->
-                                match reduction.sub sum old with
+                            let v = op.Value
+                            if op.Count = 1 then // >= 1 ??
+                                sum <- reduction.add sum v
+                            elif op.Count = -1 then // <= -1 ??
+                                match reduction.sub sum v with
                                 | ValueSome s -> sum <- s
                                 | ValueNone -> working <- false
 
@@ -414,18 +413,18 @@ module AdaptiveHashSetImplementation =
         static member DeltaMapping (mapping : 'A -> 'B) =    
             let cache = Cache mapping
             HashSetDelta.map (fun d ->
-                match d with
-                | Add(1, v) -> Add(cache.Invoke v)
-                | Rem(1, v) -> Rem(cache.Revoke v)
-                | _ -> unexpected()
+                let v = d.Value
+                if d.Count = 1 then Add(cache.Invoke v)
+                elif d.Count = -1 then Rem(cache.Revoke v)
+                else unexpected()
             )
 
         override x.Compute(token) =
             reader.GetChanges token |> HashSetDelta.map (fun d ->
-                match d with
-                | Add(1, v) -> Add(cache.Invoke v)
-                | Rem(1, v) -> Rem(cache.Revoke v)
-                | _ -> unexpected()
+                let v = d.Value
+                if d.Count = 1 then Add(cache.Invoke v)
+                elif d.Count = -1 then Rem(cache.Revoke v)
+                else unexpected()
             )
         
 
@@ -460,17 +459,17 @@ module AdaptiveHashSetImplementation =
                 d
             else
                 reader.GetChanges token |> HashSetDelta.choose (fun d ->
-                    match d with
-                    | Add(1, v) -> 
+                    let v = d.Value
+                    if d.Count = 1 then
                         Add(cache.Invoke v) |> Some
-                    | Rem(1, v) -> 
+                    elif d.Count = -1 then
                         match cache.RevokeAndGetDeletedTotal v with
-                        | Some (del, v) -> 
+                        | ValueSome (del, v) -> 
                             if del then (v :> IDisposable).Dispose()
                             Rem v |> Some
-                        | None ->
+                        | ValueNone ->
                             None
-                    | _ -> 
+                    else
                         unexpected()
                 )
             
@@ -511,35 +510,31 @@ module AdaptiveHashSetImplementation =
         static member DeltaMapping (mapping : 'A -> option<'B>) =    
             let cache = Cache mapping
             HashSetDelta.choose (fun d ->
-                match d with
-                | Add(1, v) -> 
+                let v = d.Value
+                if d.Count = 1 then
                     match cache.Invoke v with
                     | Some v -> Some (Add v)
                     | None -> None
-
-                | Rem(1, v) ->
+                elif d.Count = -1 then
                     match cache.Revoke v with
                     | Some v -> Some (Rem v)
                     | None -> None
-
-                | _ -> 
+                else
                     unexpected()
             )
       
         override x.Compute(token) =
             r.GetChanges token |> HashSetDelta.choose (fun d ->
-                match d with
-                | Add(1, v) -> 
+                let v = d.Value
+                if d.Count = 1 then
                     match cache.Invoke v with
                     | Some v -> Some (Add v)
                     | None -> None
-
-                | Rem(1, v) ->
+                elif d.Count = -1 then
                     match cache.Revoke v with
                     | Some v -> Some (Rem v)
                     | None -> None
-
-                | _ -> 
+                else
                     unexpected()
             )
 
@@ -554,18 +549,18 @@ module AdaptiveHashSetImplementation =
         static member DeltaMapping (predicate : 'T -> bool) =    
             let cache = Cache predicate
             HashSetDelta.filter (fun d ->
-                match d with
-                | Add(1, v) -> cache.Invoke v
-                | Rem(1, v) -> cache.Revoke v
-                | _ -> unexpected()
+                let v = d.Value
+                if d.Count = 1 then cache.Invoke v
+                elif d.Count = -1 then cache.Revoke v
+                else unexpected()
             )
       
         override x.Compute(token) =
             r.GetChanges token |> HashSetDelta.filter (fun d ->
-                match d with
-                | Add(1, v) -> cache.Invoke v
-                | Rem(1, v) -> cache.Revoke v
-                | _ -> unexpected()
+                let v = d.Value
+                if d.Count = 1 then cache.Invoke v
+                elif d.Count = -1 then cache.Revoke v
+                else unexpected()
             )
 
     /// Reader for fully dynamic union operations.
@@ -584,16 +579,16 @@ module AdaptiveHashSetImplementation =
         override x.Compute(token, dirty) =
             let mutable deltas = 
                 reader.GetChanges token |> HashSetDelta.collect (fun d ->
-                    match d with
-                    | Add(1, v) ->
+                    let v = d.Value
+                    if d.Count = 1 then
                         // r is no longer dirty since we pull it here.
                         let r = cache.Invoke v
                         dirty.Remove r |> ignore
                         r.GetChanges token
 
-                    | Rem(1, v) -> 
+                    elif d.Count = -1 then
                         // r is no longer dirty since we either pull or destroy it here.
-                        let deleted, r = cache.RevokeAndGetDeleted v
+                        let struct(deleted, r) = cache.RevokeAndGetDeleted v
                         dirty.Remove r |> ignore
                         if deleted then 
                             // in case r was not dirty we need to explicitly remove ourselves
@@ -603,7 +598,8 @@ module AdaptiveHashSetImplementation =
                         else
                             r.GetChanges token
                                 
-                    | _ -> unexpected()
+                    else
+                        unexpected()
                 )
 
             // finally pull all the dirty readers and accumulate the deltas.
@@ -656,7 +652,7 @@ module AdaptiveHashSetImplementation =
 
                 struct (outRef, outDelta)
                 
-            let newState, delta = HashMap.ApplyDelta(state, changes, apply)
+            let struct(newState, delta) = HashMap.ApplyDeltaV(state, changes, apply)
             state <- newState
             HashSetDelta.ofHashMap delta
 
@@ -704,7 +700,7 @@ module AdaptiveHashSetImplementation =
 
                 struct (outRef, outDelta)
                 
-            let newState, delta = HashMap.ApplyDelta(state, changes, apply)
+            let struct(newState, delta) = HashMap.ApplyDeltaV(state, changes, apply)
             state <- newState
             HashSetDelta.ofHashMap delta
                   
@@ -752,9 +748,35 @@ module AdaptiveHashSetImplementation =
 
                 struct (outRef, outDelta)
                 
-            let newState, delta = HashMap.ApplyDelta(state, changes, apply)
+            let struct(newState, delta) = HashMap.ApplyDeltaV(state, changes, apply)
             state <- newState
             HashSetDelta.ofHashMap delta
+
+
+    /// Reader for unioning an aset with a constant set of elements.
+    [<Sealed>]
+    type UnionConstantSingleReader<'T>(constant : HashSet<'T>, input : aset<'T>) =
+        inherit AbstractReader<HashSetDelta<'T>>(HashSetDelta.empty)
+
+        let mutable isInitial = true
+        let inputReader = 
+            let r = input.GetReader()
+            r.Tag <- "InnerReader"
+            r
+        
+        override x.Compute(token) = 
+            if isInitial then
+                isInitial <- false
+                // initially we need to combined the constant and the input set.
+                //let initial = constant |> Seq.map (fun v -> Add v) |> HashSetDelta.ofSeq // NOTE: this allocates enumerators
+                let mutable initial = HashSetDelta.empty
+                for v in constant do
+                    initial <- initial.Add (Add v)
+                let otherInitial = inputReader.GetChanges(token)
+                HashSetDelta.combine initial otherInitial
+            else
+                // once evaluated only the input set needs to be pulled.
+                inputReader.GetChanges token
 
     /// Reader for unioning a constant set of asets.
     [<Sealed>]
@@ -791,10 +813,10 @@ module AdaptiveHashSetImplementation =
 
         override x.Compute(token) =
             reader.GetChanges token |> HashSetDelta.collect (fun d ->
-                match d with
-                | Add(1, v) -> HashSet.addAll v
-                | Rem(1, v) -> HashSet.removeAll v   
-                | _ -> unexpected()
+                let v = d.Value
+                if d.Count = 1 then HashSet.addAll v
+                elif d.Count = -1 then HashSet.removeAll v   
+                else unexpected()
             )
 
     /// Reader for collect operations.
@@ -813,16 +835,16 @@ module AdaptiveHashSetImplementation =
         override x.Compute(token,dirty) =
             let mutable deltas = 
                 reader.GetChanges token |> HashSetDelta.collect (fun d ->
-                    match d with
-                    | Add(1, value) ->
+                    let value = d.Value
+                    if d.Count = 1 then
                         // r is no longer dirty since we pull it here.
                         let r = cache.Invoke value
                         dirty.Remove r |> ignore
                         r.GetChanges token
 
-                    | Rem(1, value) -> 
+                    elif d.Count = -1 then
                         match cache.RevokeAndGetDeletedTotal value with
-                        | Some (deleted, r) -> 
+                        | ValueSome (deleted, r) -> 
                             // r is no longer dirty since we either pull or destroy it here.
                             dirty.Remove r |> ignore
                             if deleted then 
@@ -832,11 +854,12 @@ module AdaptiveHashSetImplementation =
                                 CountingHashSet.removeAll r.State
                             else
                                 r.GetChanges token
-                        | None -> 
+                        | ValueNone -> 
                             // weird
                             HashSetDelta.empty
                                 
-                    | _ -> unexpected()
+                    else   
+                        unexpected()
                 )
                 
             // finally pull all the dirty readers and accumulate the deltas.
@@ -864,7 +887,7 @@ module AdaptiveHashSetImplementation =
         inherit AbstractReader<HashSetDelta<'B>>(HashSetDelta.empty)
             
         let mutable valChanged = 0
-        let mutable cache : option<'A * IHashSetReader<'B>> = None
+        let mutable cache : voption<struct('A * IHashSetReader<'B>)> = ValueNone
             
         override x.InputChangedObject(_, i) =
             // check if input is different object
@@ -883,23 +906,23 @@ module AdaptiveHashSetImplementation =
             #endif 
 
             match cache with
-            | Some(oldValue, oldReader) when valChanged && not (cheapEqual oldValue newValue) ->
+            | ValueSome(oldValue, oldReader) when valChanged && not (cheapEqual oldValue newValue) ->
                 // input changed
                 let rem = CountingHashSet.removeAll oldReader.State
                 oldReader.Outputs.Remove x |> ignore
                 let newReader = (mapping newValue).GetReader()
                 let add = newReader.GetChanges token
-                cache <- Some(newValue, newReader)
+                cache <- ValueSome(newValue, newReader)
                 HashSetDelta.combine rem add
 
-            | Some(_, ro) ->    
+            | ValueSome(_, ro) ->    
                 // input unchanged
                 ro.GetChanges token
 
-            | None ->
+            | ValueNone ->
                 // initial
                 let r = (mapping newValue).GetReader()
-                cache <- Some(newValue, r)
+                cache <- ValueSome(newValue, r)
                 r.GetChanges token
 
     /// Reader for flattenA
@@ -931,10 +954,10 @@ module AdaptiveHashSetImplementation =
         override x.Compute(token, dirty) =
             let mutable deltas = 
                 r.GetChanges token |> HashSetDelta.map (fun d ->
-                    match d with
-                    | Add(1,m) -> Add(x.Invoke(token, m))
-                    | Rem(1,m) -> Rem(x.Revoke(m, dirty))
-                    | _ -> unexpected()
+                    let m = d.Value
+                    if d.Count = 1 then Add(x.Invoke(token, m))
+                    elif d.Count = -1 then Rem(x.Revoke(m, dirty))
+                    else unexpected()
                 )
 
             for d in dirty do
@@ -958,16 +981,17 @@ module AdaptiveHashSetImplementation =
         let reader = input.GetReader()
         do reader.Tag <- "Reader"
         let mapping = Cache mapping
-        let cache = DefaultDictionary.create<aval<'B>, ref<int * 'B>>()
+        let cache = DefaultDictionary.create<aval<'B>, ref<struct(int * 'B)>>()
 
         member x.Invoke(token : AdaptiveToken, v : 'A) =
             let m = mapping.Invoke v
             let v = m.GetValue token
             match cache.TryGetValue m with
             | (true, r) ->
-                r.Value <- (fst r.Value + 1, v)
+                let struct(rc, _) = r.Value
+                r.Value <- struct(rc + 1, v)
             | _ ->
-                let r = ref (1, v)
+                let r = ref struct(1, v)
                 cache.[m] <- r
             v
 
@@ -977,7 +1001,7 @@ module AdaptiveHashSetImplementation =
                 
             match cache.TryGetValue m with
             | (true, r) -> 
-                let (cnt, v) = r.Value
+                let struct(cnt, v) = r.Value
                 if cnt = 1 then
                     cache.Remove m |> ignore
                     dirty.Remove m |> ignore
@@ -992,18 +1016,18 @@ module AdaptiveHashSetImplementation =
         override x.Compute(token, dirty) =
             let mutable deltas = 
                 reader.GetChanges token |> HashSetDelta.map (fun d ->
-                    match d with
-                    | Add(1,m) -> Add(x.Invoke(token,m))
-                    | Rem(1,m) -> Rem(x.Revoke(m, dirty))
-                    | _ -> unexpected()
+                    let m = d.Value
+                    if d.Count = 1 then Add(x.Invoke(token,m))
+                    elif d.Count = -1 then Rem(x.Revoke(m, dirty))
+                    else unexpected()
                 )
 
             for d in dirty do
                 match cache.TryGetValue d with
                 | (true, r) ->
                     let n = d.GetValue token
-                    let (rc, o) = r.Value
-                    r.Value <- (rc, n)
+                    let struct(rc, o) = r.Value
+                    r.Value <- struct(rc, n)
                     if not (DefaultEquality.equals o n) then
                         deltas <- HashSetDelta.combine deltas (HashSetDelta.ofArray [| Add n; Rem o |])
                 | _ -> ()
@@ -1020,8 +1044,7 @@ module AdaptiveHashSetImplementation =
         do r.Tag <- "Reader"
 
         let f = Cache f
-        let mutable initial = true
-        let cache = DefaultDictionary.create<aval<option<'B>>, ref<int * option<'B>>>()
+        let cache = DefaultDictionary.create<aval<option<'B>>, ref<struct(int * option<'B>)>>()
 
         member x.Invoke(token : AdaptiveToken, v : 'A) =
             let m = f.Invoke v
@@ -1029,9 +1052,10 @@ module AdaptiveHashSetImplementation =
 
             match cache.TryGetValue m with
             | (true, r) ->
-                r.Value <- (fst r.Value + 1, v)
+                let struct(rc, _) = r.Value
+                r.Value <- struct(rc + 1, v)
             | _ ->
-                let r = ref (1, v)
+                let r = ref struct(1, v)
                 cache.[m] <- r
 
             v
@@ -1040,7 +1064,7 @@ module AdaptiveHashSetImplementation =
         member x.Invoke2(token : AdaptiveToken, m : aval<option<'B>>) =
             match cache.TryGetValue m with
             | (true, r) ->
-                let (rc, o) = r.Value
+                let struct(rc, o) = r.Value
                 let v = m.GetValue token
                 r.Value <- (rc, v)
                 o, v
@@ -1051,7 +1075,7 @@ module AdaptiveHashSetImplementation =
             let m = f.Revoke v
             match cache.TryGetValue m with
             | (true, r) -> 
-                let (rc, v) = r.Value
+                let struct(rc, v) = r.Value
                 if rc = 1 then
                     cache.Remove m |> ignore
                     lock m (fun () -> m.Outputs.Remove x |> ignore )
@@ -1064,19 +1088,17 @@ module AdaptiveHashSetImplementation =
 
         override x.Compute(token, dirty) =
             let mutable deltas = 
-                r.GetChanges token |> HashSetDelta.choose (fun d ->
-                    match d with
-                    | Add(1,m) -> 
+                r.GetChanges token |> HashSetDelta.chooseV (fun d ->
+                    let m = d.Value
+                    if d.Count = 1 then
                         match x.Invoke(token,m) with
-                        | Some v -> Some (Add v)
-                        | None -> None
-
-                    | Rem(1,m) ->
+                        | Some v -> ValueSome (Add v)
+                        | None -> ValueNone
+                    elif (d.Count = -1) then
                         match x.Revoke m with
-                        | Some v -> Some (Rem v)
-                        | None -> None
-
-                    | _ -> 
+                        | Some v -> ValueSome (Rem v)
+                        | None -> ValueNone
+                    else
                         unexpected()
                 )
 
@@ -1102,6 +1124,114 @@ module AdaptiveHashSetImplementation =
                     ()
 
             deltas
+
+
+    /// Reader for filterA
+    [<Sealed>]
+    type FilterAReader<'A>(input : aset<'A>, predicate : 'A -> aval<bool>) =
+        inherit AbstractDirtyReader<aval<bool>, HashSetDelta<'A>>(HashSetDelta.monoid, isNull)
+            
+        let r = input.GetReader()
+        do r.Tag <- "Reader"
+
+        let state = DefaultDictionary.create<'A, struct(aval<bool> * bool)>()
+        let predicateMap = DefaultDictionary.create<aval<bool>, struct('A * System.Collections.Generic.HashSet<'A>)>() // NOTE: only allocate hashset if there are multiple (expected to be rare)
+
+        override x.Compute(token, dirty) =
+            let mutable deltas = 
+                r.GetChanges token |> HashSetDelta.chooseV (fun d ->
+                    
+                    let m = d.Value
+                    if d.Count = 1 then
+                        let v = predicate m
+                        let p = v.GetValue token
+                        state.[m] <- struct(v, p)
+                        match predicateMap.TryGetValue v with
+                        | (true, pp) ->
+                            let struct(first, other) = pp
+                            if isNull other then
+                                let other = System.Collections.Generic.HashSet<'A>()
+                                other.Add(m) |> ignore
+                                predicateMap.[v] <- (first, other)
+                            else
+                                other.Add(m) |> ignore
+                        | _ -> 
+                            predicateMap.[v] <- (m, Unchecked.defaultof<_>)
+
+                        if p then
+                            ValueSome (Add m)
+                        else
+                            ValueNone
+                    elif (d.Count = -1) then
+                        match state.TryGetValue m with
+                        | (true, x) ->
+                            let struct(v, p) = x
+                            state.Remove m |> ignore
+                            match predicateMap.TryGetValue v with
+                            | (true, pp) ->
+                                let struct(first, other) = pp
+                                if DefaultEquality.equals first m then
+                                    if isNull other then
+                                        predicateMap.Remove v |> ignore
+                                    else
+                                        let next = other |> Seq.head
+                                        if other.Count > 1 then
+                                            other.Remove next |> ignore
+                                            predicateMap.[v] <- (next, other)
+                                        else
+                                            predicateMap.[v] <- (next, Unchecked.defaultof<_>)                                            
+                                else 
+                                    if other.Count > 1 then
+                                        other.Remove m |> ignore
+                                    else
+                                        predicateMap.[v] <- (first, Unchecked.defaultof<_>)
+                            | _ -> unexpected()
+
+                            if p then
+                                ValueSome (Rem m)
+                            else
+                                ValueNone
+
+                        | _ -> unexpected()
+
+                    else
+                        unexpected() // "SetOperation Count is not 1 or -1"
+                )
+
+            for d in dirty do
+                match predicateMap.TryGetValue d with
+                | (true, pp) ->
+                    let pNew = d.GetValue token
+                    let struct(first, other) = pp
+                    match state.TryGetValue first with
+                    | (true, x) ->
+                        let struct(v, p) = x
+                        if pNew <> p then
+                            state.[first] <- (d, pNew)
+                            if pNew then
+                                deltas <- deltas.Add (Add first)
+                            else
+                                deltas <- deltas.Add (Rem first)
+                        ()
+                    | _ -> unexpected()
+
+                    if not (isNull other) then
+                        for m in other do
+                            match state.TryGetValue m with
+                            | (true, x) ->
+                                let struct(v, p) = x
+                                if pNew <> p then
+                                    state.[m] <- (d, pNew)
+                                    if pNew then
+                                        deltas <- deltas.Add (Add m)
+                                    else
+                                        deltas <- deltas.Add (Rem m)
+                                ()
+                            | _ -> unexpected()
+
+                | _ -> () // aval<bool> expected to have been removed in this udpate
+
+            deltas
  
     /// Gets the current content of the aset as HashSet.
     let inline force (set : aset<'T>) = 
@@ -1114,7 +1244,7 @@ module ASet =
 
     /// Creates a constant set using the creation function.
     let constant (value : unit -> HashSet<'T>) = 
-        ConstantSet(lazy(value())) :> aset<_> 
+        ConstantSet(Lazy<HashSet<'T>>(value)) :> aset<_> 
 
     /// Creates an aset using the given reader-creator.
     let ofReader (create : unit -> #IOpReader<HashSetDelta<'T>>) =
@@ -1201,13 +1331,18 @@ module ASet =
     let union (a : aset<'A>) (b : aset<'A>) =
         if a = b then
             a
-        elif a.IsConstant && b.IsConstant then
+        elif a.IsConstant then
             let va = force a
+            if b.IsConstant then
+                let vb = force b
+                if va.IsEmpty && vb.IsEmpty then empty
+                else constant (fun () -> HashSet.union va vb)
+            else
+                ofReader (fun () -> UnionConstantSingleReader(va, b))
+        elif b.IsConstant then
             let vb = force b
-            if va.IsEmpty && vb.IsEmpty then empty
-            else constant (fun () -> HashSet.union va vb)
+            ofReader (fun () -> UnionConstantSingleReader(vb, a))
         else
-            // TODO: can be optimized in case one of the two sets is constant.
             ofReader (fun () -> UnionConstantReader (HashSet.ofArray [| a; b |]))
             
     /// Adaptively subtracts the given sets.
@@ -1336,14 +1471,8 @@ module ASet =
 
     /// Adaptively filters the set and also respects inner changes.
     let filterA (predicate : 'A -> aval<bool>) (set : aset<'A>) =
-        // TODO: direct implementation
-        ofReader (fun () -> 
-            let mapping (a : 'A) =  
-                predicate a 
-                |> AVal.map (function true -> Some a | false -> None)
-
-            ChooseAReader(set, mapping)
-        )
+        // TODO: constants
+        ofReader (fun () -> FilterAReader(set, predicate))
 
     
     /// Adaptively maps over the given set and disposes all removed values while active.
