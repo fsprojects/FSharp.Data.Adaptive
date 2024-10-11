@@ -47,8 +47,12 @@ let ``[AList] sub``() =
 
 [<EntryPoint>]
 let main _args =
+    Arr.``[Arr] applyDeltaAndGetEffective preserves effective`` (NonEmptyArray [| 0; -1 |])
+    //Arr.``[ArrDelta] combine sorted`` (NonEmptyArray [|1|]) (NonEmptyArray [|0; 1; 0|]) (NonEmptyArray [|0|])
+    //Arr.``[ArrOperation] TryMerge`` (NonEmptyArray [|-4; 0|]) (NonEmptyArray [|-4; 1|]) (NonEmptyArray [|0|])
+    //Arr.``[ArrDelta] combine correct`` (NonEmptyArray [|0; 0|]) (NonEmptyArray [|0; 3; 0; 1|]) (NonEmptyArray [|3|])
     //(NonEmptyArray [|0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0|], NonEmptyArray [|1|], 99u, 0u)
-    Arr.``[Arr] replaceRange`` (NonEmptyArray [|0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0|]) (NonEmptyArray [|1|]) 99u 0u |> ignore
+    //Arr.``[Arr] replaceRange`` (NonEmptyArray [|0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0|]) (NonEmptyArray [|1|]) 99u 0u |> ignore
     //ASet.``[ASet] mapA/flattenA/chooseA async``()
 
     //``[AList] sub``();

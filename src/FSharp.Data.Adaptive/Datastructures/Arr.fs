@@ -463,6 +463,37 @@ module internal ArrNodeImplementation =
                     let b = skip (r - lc) node.Right
                     join3 a repl b
 
+        
+        let rec updateRange (l : int) (r : int) (repl : Node<'a> -> Node<'a>) (node : Node<'a>) =
+            if isNull node then
+                repl null
+            elif node.Height = 1uy then
+                if l <= 0 && r >= 0 then repl node
+                elif r < 0 then append node.Value (repl null)
+                else prepend node.Value (repl null)
+            else
+                let node = node :?> Inner<'a>
+                let lc = count node.Left
+                if r < lc then 
+                    binary (updateRange l r repl node.Left) node.Value node.Right
+                elif l > lc then 
+                    binary node.Left node.Value (updateRange (l - lc - 1) (r - lc - 1) repl node.Right)
+                elif l = lc then
+                    let old = prepend node.Value (take (r - l) node.Right)
+                    join3 node.Left (repl old) (skip (r - l) node.Right)
+                elif r = lc then
+                    let old = append node.Value (skip l node.Left)
+                    join3 (take l node.Left) (repl old) node.Right
+                else
+                    let a = take l node.Left 
+                    let b = skip (r - lc) node.Right
+                    
+                    let inner =
+                        binary (skip l node.Left) node.Value (take (r - lc) node.Right)
+                    
+                    join3 a (repl inner) b
+
+        
         let rec tryAt (i : int) (n : Node<'a>) =
             if isNull n then None
             elif n.Height = 1uy then
@@ -858,11 +889,57 @@ module internal ArrNodeImplementation =
                     let v = mapping a.Value v
                     let r = map2 mapping a.Right br
                     Inner(a.Height, v, l, r, a.Count) :> Node<_>
+               
+               
+              
+        let inline combineHash (a: int) (b: int) =
+            uint32 a ^^^ uint32 b + 0x9e3779b9u + ((uint32 a) <<< 6) + ((uint32 a) >>> 2) |> int
+
+        let rec hash (valueHash : 'a -> int) (acc : int) (node : Node<'a>) =  
+            if isNull node then
+                acc
+            elif node.Height = 1uy then
+                combineHash acc (valueHash node.Value)
+            else
+                let node = node :?> Inner<'a>
+                let a = hash valueHash acc node.Left
+                let b = combineHash a (valueHash node.Value)
+                hash valueHash b node.Right
+                
+                
+        let rec equals (valueEquals : 'a -> 'a -> bool) (a : Node<'a>) (b : Node<'a>) =
+            if count a <> count b then
+                false
+            else
+                if isNull a then
+                    if isNull b then true
+                    else false
+                elif a.Height = 1uy then
+                    if b.Height = 1uy then valueEquals a.Value b.Value
+                    else false
+                else
+                    let a = a :?> Inner<'a>
+                    let b = b :?> Inner<'a>
+                    let ca = count a.Left
+                    let cb = count b.Left
+                    if ca = cb then
+                        valueEquals a.Value b.Value &&
+                        equals valueEquals a.Left b.Left &&
+                        equals valueEquals a.Right b.Right
+                    else
+                        let bl, br = split ca b
+                        if isNull br then
+                            false
+                        else
+                            let struct(v, br) = unsafeRemoveMin br
+                            valueEquals a.Value v &&
+                            equals valueEquals a.Left bl &&
+                            equals valueEquals a.Right br
                     
 open ArrNodeImplementation
 
 /// A persitent array-like structure that allows lookup/insertion/deletion of entries in O(log N).
-[<Struct; StructuredFormatDisplay("{AsString}"); DebuggerTypeProxy(typedefof<ArrProxy<_>>); CompiledName("FSharpArr`1")>]
+[<Struct; StructuredFormatDisplay("{AsString}"); DebuggerTypeProxy(typedefof<ArrProxy<_>>); CompiledName("FSharpArr`1"); CustomEquality; NoComparison>]
 type arr<'a> internal(store : Node<'a>) =
     member internal x.Store = store
     
@@ -889,6 +966,14 @@ type arr<'a> internal(store : Node<'a>) =
     /// Creates an arr from a ReadOnlyMemory.
     static member FromMemory(elements : System.ReadOnlyMemory<'a>) = arr (Node.ofSpan elements.Span)
     #endif
+    
+    override x.GetHashCode() =
+        Node.hash DefaultEquality.hash 0 store
+    
+    override x.Equals(o : obj) =
+        match o with
+        | :? arr<'a> as o -> Node.equals DefaultEquality.equals store o.Store
+        | _ -> false
     
     /// Concatenates multiple arrs into a single arr.
     static member Concat([<ParamArray>] arrs : arr<'a>[]) =
@@ -969,6 +1054,10 @@ type arr<'a> internal(store : Node<'a>) =
     member x.ReplaceRange(offset : int, count : int, replacement : arr<'a>) =
         if count <= 0 then arr(Node.insertRange offset replacement.Store store)
         else arr(Node.replaceRange offset (offset + count - 1) replacement.Store store)
+    
+    /// Creates a new arr by replacing the elements in the given range with the given elements.
+    member x.UpdateRange(offset : int, count : int, replacement : arr<'a> -> arr<'a>) =
+        arr(Node.updateRange offset (offset + count - 1) (fun r -> replacement(arr r).Store) store)
 
     /// Copies the elements to a standard .NET array.
     member x.ToArray() =

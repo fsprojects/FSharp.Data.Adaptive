@@ -224,7 +224,7 @@ module ABag =
             let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
             ofReader <| fun () ->
                 let cache = IdCache<'K>()
-                let inline mapDelta (ops : HashMapDelta<'K, 'V>) =
+                let mapDelta (ops : HashMapDelta<'K, 'V>) =
                     ops
                     |> HashMapDelta.toHashMap
                     |> Seq.choose (fun (k, op) -> 
@@ -447,7 +447,7 @@ module ABag =
                             | Set nv ->
                                 let newbag = mapping nv
 
-                                let inline newReader() =
+                                let newReader() =
                                     let newReader = newbag.GetReader()
                                     let newCache = IdCache<Unique>()
                                     newReader.Tag <- newCache

@@ -421,6 +421,49 @@ let ``[Arr] replaceRange`` (NonEmptyArray (arr : int[])) (NonEmptyArray (repl : 
 
     
 [<Property(EndSize = 1000, MaxTest = 1000)>]
+let ``[Arr] updateRange`` (NonEmptyArray (arr : int[])) (pos : uint32) (cnt : uint32) =
+    let input = List.ofArray arr
+    let idx = int (pos % uint32 input.Length)
+    let cnt = int (cnt % uint32 (input.Length - idx))
+    
+    let arr = Arr.ofList input
+    //let repl = Array.toList repl
+    
+    let mutable last = []
+    
+    let mappingList (l : list<int>) =
+        last <- l
+        [1] @ (List.map ((+) 1) l) @ [2;3]
+    
+    let mappingArr (l : arr<int>) =
+        l |> Arr.toList |> should equal last
+        Arr.prepend 1 (Arr.map ((+)1) l) |> Arr.append 2 |> Arr.append 3
+    
+    let rec updateRange (mapping : list<int> -> list<int>) (l : list<int>) =
+        if idx = l.Length then
+            List.append l (mapping [])
+        else
+            let repl = mapping l.[idx .. idx + cnt - 1]
+            let mutable res = FSharp.Core.CompilerServices.ListCollector()
+            let mutable i = 0
+            for e in l do
+                if i = idx then
+                    for ee in repl do res.Add ee
+                
+                if i < idx || i >= idx + cnt then
+                    res.Add e
+                
+                i <- i + 1
+            res.Close()
+    
+    let reff = updateRange mappingList input
+    let res = arr.UpdateRange(idx, cnt, mappingArr)
+    
+    let resl = res |> Seq.toList
+    resl |> should equal reff
+
+    
+[<Property(EndSize = 1000, MaxTest = 1000)>]
 let ``[Arr] toList`` (input : list<int>) =
     let mutable res = Arr.empty
     for e in input do res <- res.Add e
@@ -586,3 +629,163 @@ let ``[Arr] average`` (NonEmptyArray (list : NormalFloat[])) =
     let res = arr |> Arr.average
     let reff = list |> List.average
     res |> should equal reff
+    
+    
+    
+[<Property(EndSize = 200, MaxTest = 10000)>]
+let ``[ArrOperation] TryMerge`` (NonEmptyArray (a : int[])) (NonEmptyArray (b : int[])) (NonEmptyArray (c : int[])) =
+    
+    let a = Arr.ofArray a
+    let b = Arr.ofArray b
+    let c = Arr.ofArray c
+    let ab = Arr.computeDelta (=) a b
+    let bc = Arr.computeDelta (=) b c
+    
+    match Seq.tryHead ab with
+    | Some ab0 ->
+        match Seq.tryHead bc with
+        | Some bc0 ->
+            match ArrOperation.TryMerge(ab0, bc0) with
+            | Some ac0 ->
+                let oab = ArrDelta.single ab0 
+                let obc = ArrDelta.single bc0
+                let oac = ArrDelta.single ac0
+                
+                
+                let reff = Arr.applyDelta (Arr.applyDelta a oab) obc
+                let res = Arr.applyDelta a oac
+                
+                res |> should equal reff
+                
+            | None ->
+                ()
+            
+        | None ->
+            ()
+    | None ->
+        ()
+    
+    
+let minimize (delta : arrdelta<'a>) =
+    let mutable output = Arr.empty
+    let mutable pending = None
+    
+    for op in delta do
+        if not op.IsEmpty then
+            match pending with
+            | Some p ->
+                match ArrOperation.TryMerge(p, op) with
+                | Some res ->
+                    pending <- Some res
+                | None ->
+                    output <- Arr.append p output
+                    pending <- Some op
+            | None ->
+                pending <- Some op
+          
+    let res = 
+        match pending with 
+        | Some p -> Arr.append p output
+        | None -> output
+    ArrDelta.ofArr res
+            
+  
+[<Property(EndSize = 200, MaxTest = 10000)>]
+let ``[ArrDelta] combine minimal`` (NonEmptyArray (a : int[])) (NonEmptyArray (b : int[])) (NonEmptyArray (c : int[]))  =
+
+    let a = Arr.ofArray a
+    let b = Arr.ofArray b
+    let c = Arr.ofArray c
+    
+    let ab = Arr.computeDelta (=) a b
+    let bc = Arr.computeDelta (=) b c
+    
+    let abc = ArrDelta.combine ab bc
+    let abc1 = minimize abc
+    abc |> should equal abc1
+      
+[<Property(EndSize = 200, MaxTest = 10000)>]
+let ``[ArrDelta] combine sorted`` (NonEmptyArray (a : int[])) (NonEmptyArray (b : int[])) (NonEmptyArray (c : int[]))  =
+    
+    let a = Arr.ofArray a
+    let b = Arr.ofArray b
+    let c = Arr.ofArray c
+    
+    let ab = Arr.computeDelta (=) a b
+    let bc = Arr.computeDelta (=) b c
+    
+    let abc = ArrDelta.combine ab bc
+    
+    use mutable e = abc.GetEnumerator()
+    if e.MoveNext() then
+        let mutable last = e.Current
+        while e.MoveNext() do
+            e.Current.Index |> should (be greaterThan) last.Index
+            last <- e.Current
+        
+    
+    
+[<Property(EndSize = 200, MaxTest = 10000)>]
+let ``[ArrDelta] combine correct`` (NonEmptyArray (a : int[])) (NonEmptyArray (b : int[])) (NonEmptyArray (c : int[]))  =
+    
+    // let sa = System.Collections.Generic.HashSet<int>(a)
+    // for i in 0 .. b.Length - 1 do
+    //     while sa.Contains b.[i] do b.[i] <- b.[i] + 1
+    //         
+    // sa.UnionWith b
+    // for i in 0 .. c.Length - 1 do
+    //     while sa.Contains c.[i] do c.[i] <- c.[i] + 1
+    //
+    let a = Arr.ofArray a
+    let b = Arr.ofArray b
+    let c = Arr.ofArray c
+    
+    let ab = Arr.computeDelta (=) a b
+    let bc = Arr.computeDelta (=) b c
+    let ac = Arr.computeDelta (=) a c
+    
+    let abc = ArrDelta.combine ab bc 
+    
+    let res = Arr.applyDelta a abc
+    res |> should equal c
+    
+[<Property(EndSize = 200, MaxTest = 10000)>]
+let ``[Arr] apply/computeDelta`` (NonEmptyArray (a : int[])) (NonEmptyArray (b : int[])) =
+    let a = Arr.ofArray a
+    let b = Arr.ofArray b
+    
+    let d = Arr.computeDelta (=) a b
+    let b1, d1 = Arr.applyDeltaAndGetEffective (=) a d
+    let b2 = Arr.applyDelta a d
+    
+    b1 |> should equal b
+    b2 |> should equal b
+    d1 |> should equal d
+    
+    
+[<Property(EndSize = 200, MaxTest = 10000)>]
+let ``[Arr] applyDeltaAndGetEffective cancellation`` (NonEmptyArray (a : int[]))  =
+    let a = Arr.ofArray a
+    
+    let op = ArrDelta.single { Index = 0; Count = a.Length; Elements = a }
+    let a1, d = Arr.applyDeltaAndGetEffective (=) a op
+    
+    a1 |> should equal a
+    d |> should equal ArrDelta.empty<int>
+    
+    
+      
+[<Property(EndSize = 200, MaxTest = 10000)>]
+let ``[Arr] applyDeltaAndGetEffective preserves effective`` (NonEmptyArray (a : int[])) (NonEmptyArray (b : int[]))  =
+    let a = Arr.ofArray a
+    let b = Arr.ofArray b
+    
+    let op = Arr.computeDelta (=) a b
+    let a1, d = Arr.applyDeltaAndGetEffective (=) a op
+    
+    a1 |> should equal b
+    d |> should equal op
+    
+    
+    
+    
