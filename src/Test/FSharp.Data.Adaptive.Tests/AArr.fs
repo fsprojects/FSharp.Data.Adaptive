@@ -113,6 +113,82 @@ let ``[AArr] reference impl``() ({ areal = real; aref = ref; aexpression = str; 
 
     Gen.eval 15 (Random.newSeed()) run
   
-[<Property>]
-let ``[AArr] map`` () =
-    ()
+[<Property(MaxTest = 1000, EndSize = 1000)>]
+let ``[CArr] Value`` ((NonEmptyArray things) : NonEmptyArray<NonEmptyArray<int>>) =
+    let (NonEmptyArray v0) = things.[0]
+    
+    let mutable value = Arr.ofArray v0
+    let test = carr value
+    test.Value |> should equal value
+    
+    for i in 1 .. things.Length - 1 do
+        let (NonEmptyArray v0) = things.[i]
+        value <- Arr.ofArray v0
+        transact(fun () -> test.Value <- value)
+        test.Value |> should equal value
+    
+[<Property(MaxTest = 1000, EndSize = 1000)>]
+let ``[CArr] Add`` (NonEmptyArray (things : int[])) (NonEmptyArray (adds : int[]))=
+    
+    let reff = System.Collections.Generic.List things
+    let res = carr things
+    
+    for a in adds do
+        reff.Add a
+        res.Add a
+        reff |> Seq.toList |> should equal (Seq.toList res.Value)
+    
+[<Property(MaxTest = 1000, EndSize = 1000)>]
+let ``[CArr] Insert`` (NonEmptyArray (things : int[])) (NonEmptyArray (inserts : (uint32 * int)[]))=
+    
+    let reff = System.Collections.Generic.List things
+    let res = carr things
+    
+    for (i, a) in inserts do
+        let i = int (i % (uint32 reff.Count + 1u))
+        reff.Insert(i, a)
+        res.Insert(i, a)
+        reff |> Seq.toList |> should equal (Seq.toList res.Value)
+    
+    
+[<Property(MaxTest = 1000, EndSize = 1000)>]
+let ``[CArr] Set`` (NonEmptyArray (things : int[])) (NonEmptyArray (updates : (uint32 * int)[]))=
+    
+    let reff = System.Collections.Generic.List things
+    let res = carr things
+    
+    for (i, a) in updates do
+        let i = int (i % (uint32 reff.Count))
+        reff.[i] <- a
+        res.[i] <- a
+        reff |> Seq.toList |> should equal (Seq.toList res.Value)
+    
+    
+[<Property(MaxTest = 1000, EndSize = 1000)>]
+let ``[CArr] RemoveAt`` (NonEmptyArray (things : int[])) (NonEmptyArray (removes : uint32[]))=
+    
+    let reff = System.Collections.Generic.List things
+    let res = carr things
+    
+    for i in removes do
+        if reff.Count = 0 then
+            reff.Add (int i)
+            res.Add (int i)
+        else
+            let i = int (i % (uint32 reff.Count))
+            reff.RemoveAt i
+            res.RemoveAt i
+            reff |> Seq.toList |> should equal (Seq.toList res.Value)
+    
+    
+[<Property(MaxTest = 1000, EndSize = 1000)>]
+let ``[CArr] Clear`` (NonEmptyArray (things : int[])) =
+    
+    let reff = System.Collections.Generic.List things
+    let res = carr things
+    
+    reff |> Seq.toList |> should equal (Seq.toList res.Value)
+    res.Clear()
+    reff.Clear()
+    reff |> Seq.toList |> should equal (Seq.toList res.Value)
+    

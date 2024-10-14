@@ -23,6 +23,7 @@ type ChangeableArray<'T> =
     member Clear : unit -> unit
     member Add : 'T -> unit
     member Insert : index: int * value: 'T -> unit
+    member RemoveAt : index: int -> unit
     member Item : int -> 'T with get, set
     
     new : unit -> ChangeableArray<'T>

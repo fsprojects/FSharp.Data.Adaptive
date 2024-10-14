@@ -93,3 +93,8 @@ module AArr =
     let map (mapping: 'T1 -> 'T2) (list: aarr<'T1>) =
         list.Content |> AVal.map (Arr.map mapping) |> ofRef
         
+    let choose (mapping: 'T1 -> option<'T2>) (list: aarr<'T1>) =
+        list.Content |> AVal.map (Arr.choose mapping) |> ofRef
+        
+    let collect (mapping: 'T1 -> aarr<'T2>) (list: aarr<'T1>) =
+        list.Content |> AVal.map (Arr.collect (fun v -> mapping(v).Content.GetValue(AdaptiveToken.Top))) |> ofRef

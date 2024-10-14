@@ -1737,7 +1737,100 @@ module Generators =
                         value.achanges
             }
 
-        
+
+        let collect<'a, 'b>() =
+            gen {
+                let mySize = ref 0
+                let! value = 
+                    Arb.generate<_> |> Gen.scaleSize (fun s -> 
+                        mySize := 0
+                            //if s <= 1 then 0
+                            //else int (sqrt (float s))
+                        !mySize
+                    )
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let innerSize =  !mySize
+                let table, mapping = randomFunction<'a, VArr<'b>> innerSize
+
+                //let cache = Cache<Index * 'a, VList<'b>>(mapping)
+
+                let getChanges() =
+                    (Reference.AVal.force value.aref.Content)
+                    |> Arr.toList
+                    |> FSharp.Collections.List.collect (fun v -> table.Invoke(v).achanges())
+                    |> FSharp.Collections.List.append (value.achanges())
+
+                let mapping (input : 'a) = mapping input
+                return 
+                    create 
+                        (Adaptive.AArr.collect (fun a -> (mapping a).areal) value.areal)
+                        (Reference.AArr.collect (fun a -> (mapping a).aref) value.aref)
+                        (function
+                            | false ->  
+                                let m, v = value.aexpression false
+                                m, sprintf "collect (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.aref.Content |> Reference.AVal.force
+                                let it, input = value.aexpression true
+
+                                let maps, kv =
+                                    realContent
+                                    |> Arr.toList
+                                    |> FSharp.Collections.List.map (fun v -> 
+                                        let m, b = (mapping v).aexpression true
+                                        m, (v,b)
+                                    )
+                                    |> List.unzip
+                                    //|> String.concat "\r\n"
+                                    
+                                let table = 
+                                    kv 
+                                    |> FSharp.Collections.List.map (fun (k,v) -> sprintf "| %A ->\r\n  %s" k v)
+                                    |> String.concat "\r\n"
+
+                                let res = 
+                                    maps 
+                                    |> Seq.map (Map.toSeq >> HashMap.ofSeq) 
+                                    |> Seq.fold HashMap.union (HashMap.ofSeq (Map.toSeq it))
+                                    |> Map.ofSeq
+
+                                res, sprintf "%s\r\n  |> AArr.collect (\r\n    function\r\n%s\r\n  )" input (indent (indent table))
+                        )
+                        getChanges
+            }
+    
+
+        let choose<'a, 'b>() =
+            gen {
+                let mySize = ref 0
+                let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> mySize := s; s - 2)
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let table, f = randomFunction<'a, option<'b>> (!mySize / 2)
+
+                let mapping v =  f(v)
+
+                return 
+                    create 
+                        (Adaptive.AArr.choose mapping value.areal)
+                        (Reference.AArr.choose mapping value.aref)
+                        (function
+                            | false -> 
+                                let m, v = value.aexpression false
+                                m, sprintf "choose (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.aref.Content |> Reference.AVal.force
+                                let mi, input = value.aexpression true
+
+                                let table =
+                                    realContent
+                                    |> Seq.map (fun v -> sprintf "| %A -> %A" v (mapping v))
+                                    |> String.concat "\r\n"
+
+                                mi, sprintf "%s\r\n|> AArr.choose (\r\n  function\r\n%s\r\n)" (indent input) (indent table)
+                        )
+                        value.achanges
+            }
+
 
 [<Struct; CustomEquality; NoComparison>]
 type StupidHash(v : int) =
@@ -2091,6 +2184,8 @@ type AdaptiveGenerators() =
                                     yield 1, Gen.constant "constant"
                                     yield 3, Gen.constant "carr"
                                     yield 3, Gen.constant "map"
+                                    yield 3, Gen.constant "collect"
+                                    yield 3, Gen.constant "choose"
                                 ]
                         match kind with
                         | "constant" -> 
@@ -2102,6 +2197,18 @@ type AdaptiveGenerators() =
                             return!
                                 t |> visit { new TypeVisitor<_> with 
                                     member __.Accept<'z>() = Generators.Arr.map<'z, 'a>() 
+                                }
+                        | "collect" -> 
+                            let! t = Gen.elements relevantTypes
+                            return!
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.Arr.collect<'z, 'a>() 
+                                }
+                        | "choose" -> 
+                            let! t = Gen.elements relevantTypes
+                            return!
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.Arr.choose<'z, 'a>() 
                                 }
                         | kind ->
                             return failwithf "unknown operation: %s" kind

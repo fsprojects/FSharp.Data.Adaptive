@@ -55,3 +55,8 @@ module AArr =
 
     /// Adaptively applies the given mapping function to all elements and returns a new aarr containing the results.
     val map : mapping: ('T1 -> 'T2) -> input: aarr<'T1> -> aarr<'T2>
+
+    val choose : mapping: ('T1 -> option<'T2>) -> input: aarr<'T1> -> aarr<'T2>
+
+    
+    val collect : mapping: ('T1 -> aarr<'T2>) -> input: aarr<'T1> -> aarr<'T2>
