@@ -644,343 +644,343 @@ module ArrNodeImplementationAggregate =
             printfn "out of bounds"
         
   
-            
-open FSharp.Data.Traceable
-type IArrayReader<'a> = IOpReader<arr<'a>, arrdelta<'a>>
-            
-type IAdaptiveArray<'a> =
-    abstract IsConstant : bool
-    abstract Content : aval<arr<'a>>
-    abstract History : option<History<arr<'a>, arrdelta<'a>>>
-    abstract GetReader : unit -> IArrayReader<'a>
-            
-and aarr<'a> = IAdaptiveArray<'a>
+module Old = 
+    open FSharp.Data.Traceable
+    type IArrayReader<'a> = IOpReader<arr<'a>, arrdelta<'a>>
+                
+    type IAdaptiveArray<'a> =
+        abstract IsConstant : bool
+        abstract Content : aval<arr<'a>>
+        abstract History : option<History<arr<'a>, arrdelta<'a>>>
+        abstract GetReader : unit -> IArrayReader<'a>
+                
+    and aarr<'a> = IAdaptiveArray<'a>
 
 
-/// Changeable adaptive list that allows mutation by user-code and implements alist.
-[<Sealed>]
-type ChangeableArray<'T>(elements: arr<'T>) =
-    let history = 
-        let h = History(Arr.trace)
-        h.Perform(Arr.trace.tcomputeDelta Arr.empty elements) |> ignore
-        h
+    /// Changeable adaptive list that allows mutation by user-code and implements alist.
+    [<Sealed>]
+    type ChangeableArray<'T>(elements: arr<'T>) =
+        let history = 
+            let h = History(Arr.trace)
+            h.Perform(Arr.trace.tcomputeDelta Arr.empty elements) |> ignore
+            h
 
-    let perform (op : ArrOperation<'T>) =
-        history.Perform (ArrDelta.single op)
-    
-    override x.ToString() =
-        history.State |> Seq.map (sprintf "%A") |> String.concat "; " |> sprintf "carr [%s]"
+        let perform (op : ArrOperation<'T>) =
+            history.Perform (ArrDelta.single op)
+        
+        override x.ToString() =
+            history.State |> Seq.map (sprintf "%A") |> String.concat "; " |> sprintf "carr [%s]"
 
-    /// is the list currently empty?
-    member x.IsEmpty = history.State.IsEmpty
+        /// is the list currently empty?
+        member x.IsEmpty = history.State.IsEmpty
 
-    /// the number of elements currently in the list.
-    member x.Length = history.State.Length
+        /// the number of elements currently in the list.
+        member x.Length = history.State.Length
 
-    member x.Value
-        with get() = history.State
-        and set v = history.Perform (Arr.trace.tcomputeDelta history.State v) |> ignore
+        member x.Value
+            with get() = history.State
+            and set v = history.Perform (Arr.trace.tcomputeDelta history.State v) |> ignore
 
-    member x.Add(value : 'T) =
-        perform { Index = history.State.Length; Count = 0; Elements = Arr.single value } |> ignore
-    
-    member x.Prepend(value : 'T) =
-        perform { Index = 0; Count = 0; Elements = Arr.single value } |> ignore
-    
-    member x.Insert(index : int, value : 'T) =
-        if index < 0 || index > history.State.Length then raise <| IndexOutOfRangeException()
-        perform { Index = index; Count = 0; Elements = Arr.single value } |> ignore
-    
-    member x.Remove(index : int) =
-        if index < 0 || index >= history.State.Length then raise <| IndexOutOfRangeException()
-        perform { Index = index; Count = 1; Elements = Arr.empty } |> ignore
-    
-    interface IAdaptiveArray<'T> with
-        member x.GetReader() = history.NewReader()
-        member x.Content = history :> aval<_>
-        member x.IsConstant = false
-        member x.History = Some history
+        member x.Add(value : 'T) =
+            perform { Index = history.State.Length; Count = 0; Elements = Arr.single value } |> ignore
+        
+        member x.Prepend(value : 'T) =
+            perform { Index = 0; Count = 0; Elements = Arr.single value } |> ignore
+        
+        member x.Insert(index : int, value : 'T) =
+            if index < 0 || index > history.State.Length then raise <| IndexOutOfRangeException()
+            perform { Index = index; Count = 0; Elements = Arr.single value } |> ignore
+        
+        member x.Remove(index : int) =
+            if index < 0 || index >= history.State.Length then raise <| IndexOutOfRangeException()
+            perform { Index = index; Count = 1; Elements = Arr.empty } |> ignore
+        
+        interface IAdaptiveArray<'T> with
+            member x.GetReader() = history.NewReader()
+            member x.Content = history :> aval<_>
+            member x.IsConstant = false
+            member x.History = Some history
 
 
-module AArr =
-    module Readers = 
-        /// Efficient implementation for a constant adaptive array.
-        [<Sealed>]
-        type ConstantArray<'T>(content : Lazy<arr<'T>>) =
-            let value = AVal.delay (fun () -> content.Value)
+    module AArr =
+        module Readers = 
+            /// Efficient implementation for a constant adaptive array.
+            [<Sealed>]
+            type ConstantArray<'T>(content : Lazy<arr<'T>>) =
+                let value = AVal.delay (fun () -> content.Value)
 
-            member x.Content = value
+                member x.Content = value
 
-            member x.GetReader() =
-                History.Readers.ConstantReader<_,_>(
-                    Arr.trace,
-                    lazy (Arr.computeDelta DefaultEquality.equals Arr.empty content.Value),
-                    content
-                ) :> IArrayReader<_>
+                member x.GetReader() =
+                    History.Readers.ConstantReader<_,_>(
+                        Arr.trace,
+                        lazy (Arr.computeDelta DefaultEqualityComparer.Instance Arr.empty content.Value),
+                        content
+                    ) :> IArrayReader<_>
 
-            interface IAdaptiveArray<'T> with
-                member x.IsConstant = true
-                member x.GetReader() = x.GetReader()
-                member x.Content = x.Content
-                member x.History = None
+                interface IAdaptiveArray<'T> with
+                    member x.IsConstant = true
+                    member x.GetReader() = x.GetReader()
+                    member x.Content = x.Content
+                    member x.History = None
 
-        /// Core implementation for a dependent array.
-        [<Sealed>]
-        type AdaptiveArrayImpl<'T>(createReader : unit -> IOpReader<arrdelta<'T>>) =
-            let history = History(createReader, Arr.trace)
+            /// Core implementation for a dependent array.
+            [<Sealed>]
+            type AdaptiveArrayImpl<'T>(createReader : unit -> IOpReader<arrdelta<'T>>) =
+                let history = History(createReader, Arr.trace)
 
-            /// Gets a new reader to the set.
-            member x.GetReader() : IArrayReader<'T> =
-                history.NewReader()
+                /// Gets a new reader to the set.
+                member x.GetReader() : IArrayReader<'T> =
+                    history.NewReader()
 
-            /// Current content of the set as aval.
-            member x.Content =
-                history :> aval<_>
+                /// Current content of the set as aval.
+                member x.Content =
+                    history :> aval<_>
 
-            interface IAdaptiveArray<'T> with
-                member x.IsConstant = false
-                member x.GetReader() = x.GetReader()
-                member x.Content = x.Content
-                member x.History = Some history
+                interface IAdaptiveArray<'T> with
+                    member x.IsConstant = false
+                    member x.GetReader() = x.GetReader()
+                    member x.Content = x.Content
+                    member x.History = Some history
 
-        /// Efficient implementation for an empty adaptive array.
-        [<Sealed>]
-        type EmptyArray<'T> private() =   
-            static let instance = EmptyArray<'T>() :> aarr<_>
-            let content = AVal.constant Arr.empty
-            let reader = History.Readers.EmptyReader<arr<'T>, arrdelta<'T>>(Arr.trace) :> IArrayReader<'T>
-            static member Instance = instance
-            
-            member x.Content = content
-            member x.GetReader() = reader
-            
-            interface IAdaptiveArray<'T> with
-                member x.IsConstant = true
-                member x.GetReader() = x.GetReader()
-                member x.Content = x.Content
-                member x.History = None
+            /// Efficient implementation for an empty adaptive array.
+            [<Sealed>]
+            type EmptyArray<'T> private() =   
+                static let instance = EmptyArray<'T>() :> aarr<_>
+                let content = AVal.constant Arr.empty
+                let reader = History.Readers.EmptyReader<arr<'T>, arrdelta<'T>>(Arr.trace) :> IArrayReader<'T>
+                static member Instance = instance
+                
+                member x.Content = content
+                member x.GetReader() = reader
+                
+                interface IAdaptiveArray<'T> with
+                    member x.IsConstant = true
+                    member x.GetReader() = x.GetReader()
+                    member x.Content = x.Content
+                    member x.History = None
 
-    
-        type MapReader<'a, 'b>(input : IArrayReader<'a>, mapping : 'a -> 'b) =
-            inherit AbstractReader<arrdelta<'b>>(ArrDelta.empty)
-            
-            override x.Compute(t : AdaptiveToken) =
-                let ops = input.GetChanges t
-                ops |> ArrDelta.map mapping
-          
-        type CollectReader<'a, 'b>(input : IArrayReader<'a>, mapping : 'a -> aarr<'b>) =
-            inherit AbstractReader<arrdelta<'b>>(ArrDelta.empty)
+        
+            type MapReader<'a, 'b>(input : IArrayReader<'a>, mapping : 'a -> 'b) =
+                inherit AbstractReader<arrdelta<'b>>(ArrDelta.empty)
+                
+                override x.Compute(t : AdaptiveToken) =
+                    let ops = input.GetChanges t
+                    ops |> ArrDelta.map mapping
               
-            static let aggregate =
-                {
-                    ArrNodeImplementationAggregate.Zero = 0
-                    ArrNodeImplementationAggregate.Add = OptimizedClosures.FSharpFunc<_,_,_>.Adapt((+))
-                    ArrNodeImplementationAggregate.View = fun (v : arr<'b>) -> v.Length
-                }
-              
-            let mutable readers = IndexList.empty<IArrayReader<'b>>
-            let mutable prefix = ArrNodeImplementationAggregate.AggregateArr(aggregate, null)
-            let dirtyLock = obj()
-            let mutable dirtyReaders = IndexList.empty<IArrayReader<'b>>
-            
-            override x.InputChangedObject(_, o) =
-                match o with
-                | :? IArrayReader<'b> as o ->
-                    match o.Tag with
-                    | :? FSharp.Data.Adaptive.Index as i ->
-                        lock dirtyLock (fun () ->
-                            dirtyReaders <- IndexList.set i o dirtyReaders
-                        )
+            type CollectReader<'a, 'b>(input : IArrayReader<'a>, mapping : 'a -> aarr<'b>) =
+                inherit AbstractReader<arrdelta<'b>>(ArrDelta.empty)
+                  
+                static let aggregate =
+                    {
+                        ArrNodeImplementationAggregate.Zero = 0
+                        ArrNodeImplementationAggregate.Add = OptimizedClosures.FSharpFunc<_,_,_>.Adapt((+))
+                        ArrNodeImplementationAggregate.View = fun (v : arr<'b>) -> v.Length
+                    }
+                  
+                let mutable readers = IndexList.empty<IArrayReader<'b>>
+                let mutable prefix = ArrNodeImplementationAggregate.AggregateArr(aggregate, null)
+                let dirtyLock = obj()
+                let mutable dirtyReaders = IndexList.empty<IArrayReader<'b>>
+                
+                override x.InputChangedObject(_, o) =
+                    match o with
+                    | :? IArrayReader<'b> as o ->
+                        match o.Tag with
+                        | :? FSharp.Data.Adaptive.Index as i ->
+                            lock dirtyLock (fun () ->
+                                dirtyReaders <- IndexList.set i o dirtyReaders
+                            )
+                        | _ ->
+                            ()
                     | _ ->
                         ()
-                | _ ->
-                    ()
-            
-            
-            override x.Compute(t : AdaptiveToken) =
-                let ops = input.GetChanges t
                 
-                let ops =
-                    ops |> ArrDelta.map (fun op ->
-                        mapping(op).GetReader()
-                    )
+                
+                override x.Compute(t : AdaptiveToken) =
+                    let ops = input.GetChanges t
                     
-                let mutable res = ArrDelta.empty
-                    
-                let emit (op : ArrOperation<_>) =
-                    res <- ArrDelta.combine res (arrdelta (Arr.single op))
-                    
-                let emitArr (op : arr<ArrOperation<_>>) =
-                    for e in op do emit e
-                    
-                    
-                let mutable dirtyReaders =
-                    lock dirtyLock (fun () ->
-                        let v = dirtyReaders
-                        dirtyReaders <- IndexList.empty
-                        v
-                    )
-                    
-                    
-                for o in ops do
-                    for r in 1 .. o.Count do
-                        match readers.TryGetIndex o.Index with
-                        | Some idx ->
-                            match readers.TryRemove idx with
-                            | Some (reader, rest) ->
-                                lock reader.Outputs (fun () -> reader.Outputs.Remove x |> ignore)
-                                readers <- rest
-                                dirtyReaders <- IndexList.remove idx dirtyReaders
-                                
-                                match prefix.TryGetAggregateAtExcl o.Index with
-                                | Some offset ->
-                                    match prefix.TryRemove(o.Index) with
-                                    | Some (rest, removed) ->
-                                        prefix <- rest
-                                        let cnt = removed.Length
-                                        emit { Index = offset; Count = cnt; Elements = Arr.empty }
+                    let ops =
+                        ops |> ArrDelta.map (fun op ->
+                            mapping(op).GetReader()
+                        )
+                        
+                    let mutable res = ArrDelta.empty
+                        
+                    let emit (op : ArrOperation<_>) =
+                        res <- ArrDelta.combine res (arrdelta (Arr.single op))
+                        
+                    let emitArr (op : arr<ArrOperation<_>>) =
+                        for e in op do emit e
+                        
+                        
+                    let mutable dirtyReaders =
+                        lock dirtyLock (fun () ->
+                            let v = dirtyReaders
+                            dirtyReaders <- IndexList.empty
+                            v
+                        )
+                        
+                        
+                    for o in ops do
+                        for r in 1 .. o.Count do
+                            match readers.TryGetIndex o.Index with
+                            | Some idx ->
+                                match readers.TryRemove idx with
+                                | Some (reader, rest) ->
+                                    lock reader.Outputs (fun () -> reader.Outputs.Remove x |> ignore)
+                                    readers <- rest
+                                    dirtyReaders <- IndexList.remove idx dirtyReaders
+                                    
+                                    match prefix.TryGetAggregateAtExcl o.Index with
+                                    | Some offset ->
+                                        match prefix.TryRemove(o.Index) with
+                                        | Some (rest, removed) ->
+                                            prefix <- rest
+                                            let cnt = removed.Length
+                                            emit { Index = offset; Count = cnt; Elements = Arr.empty }
+                                        | None ->
+                                            ()
                                     | None ->
                                         ()
+                                    
                                 | None ->
-                                    ()
+                                    printfn "ERROR: reader must exist"
+                            | None ->
+                                printfn "ERROR: reader at %d must exist" o.Index
+                        
+                        let mutable index = o.Index
+                        for newReader in o.Elements do
+                            let before =
+                                match readers.TryGetIndex (index - 1) with
+                                | Some idx -> idx
+                                | None -> Index.zero
+                            
+                            let idx = readers.NewIndexAfter before
+                            newReader.Tag <- idx
+                            readers <- IndexList.set idx newReader readers
+                            prefix <- prefix.InsertAt(index, Arr.empty)
+                            dirtyReaders <- IndexList.set idx newReader dirtyReaders
+                            index <- index + 1
+                        
+                    for ridx, reader in IndexList.toSeqIndexed dirtyReaders do
+                        
+                        let ri = readers.IndexOf ridx
+                        
+                        if ri >= 0 && ri < prefix.Length then
+                            match prefix.TryGetAggregateAtExcl ri with
+                            | Some offset ->
+                                let op = reader.GetChanges t
+                                op.ToArr()
+                                |> Arr.map (fun op -> { op with Index = op.Index + offset })
+                                |> emitArr
+                                
+                                prefix <- prefix.Set(ri, reader.State)
+                                
+                                
                                 
                             | None ->
-                                printfn "ERROR: reader must exist"
-                        | None ->
-                            printfn "ERROR: reader at %d must exist" o.Index
-                    
-                    let mutable index = o.Index
-                    for newReader in o.Elements do
-                        let before =
-                            match readers.TryGetIndex (index - 1) with
-                            | Some idx -> idx
-                            | None -> Index.zero
+                                printfn "ERROR: no offset"
+                        else
+                            printfn "ERROR: no reader for index"
                         
-                        let idx = readers.NewIndexAfter before
-                        newReader.Tag <- idx
-                        readers <- IndexList.set idx newReader readers
-                        prefix <- prefix.InsertAt(index, Arr.empty)
-                        dirtyReaders <- IndexList.set idx newReader dirtyReaders
-                        index <- index + 1
+                    res
                     
-                for ridx, reader in IndexList.toSeqIndexed dirtyReaders do
                     
-                    let ri = readers.IndexOf ridx
+                  
+        
+
+        /// Creates a constant set using the creation function.
+        let constant (value : unit -> arr<'T>) = 
+            Readers.ConstantArray(lazy value()) :> aarr<_> 
+
+        /// Creates an aset using the given reader-creator.
+        let ofReader (create : unit -> #IOpReader<arrdelta<'T>>) =
+            Readers.AdaptiveArrayImpl(fun () -> create() :> IOpReader<_>) :> aarr<_>
+            
+        /// The empty aset.
+        [<GeneralizableValue>]
+        let empty<'T> : aarr<'T> = 
+            Readers.EmptyArray<'T>.Instance
+
+        /// A constant aset holding a single value.
+        let single (value : 'T) =
+            constant (fun () -> Arr.single value)
+            
+        /// Creates an aset holding the given values.
+        let ofSeq (elements : seq<'T>) =
+            constant (fun () -> Arr.ofSeq elements)
+            
+        /// Creates an aset holding the given values.
+        let ofList (elements : list<'T>) =
+            constant (fun () -> Arr.ofList elements)
+            
+        /// Creates an aset holding the given values.
+        let ofArray (elements : 'T[]) =
+            constant (fun () -> Arr.ofArray elements)
+
+        /// Creates an aval providing access to the current content of the set.
+        let toAVal (set : aarr<'T>) =
+            set.Content
+
+        let map (mapping : 'a -> 'b) (a : aarr<'a>) =
+            if a.IsConstant then
+                constant( fun () -> Arr.map mapping (AVal.force a.Content))
+            else
+                ofReader <| fun () ->
+                    Readers.MapReader(a.GetReader(), mapping)
                     
-                    if ri >= 0 && ri < prefix.Length then
-                        match prefix.TryGetAggregateAtExcl ri with
-                        | Some offset ->
-                            let op = reader.GetChanges t
-                            op.ToArr()
-                            |> Arr.map (fun op -> { op with Index = op.Index + offset })
-                            |> emitArr
-                            
-                            prefix <- prefix.Set(ri, reader.State)
-                            
-                            
-                            
-                        | None ->
-                            printfn "ERROR: no offset"
-                    else
-                        printfn "ERROR: no reader for index"
-                    
-                res
+        let collect (mapping : 'a -> aarr<'b>) (a : aarr<'a>) =
+            if false && a.IsConstant then
+                failwith "TODO"
+            else
+                ofReader <| fun () ->
+                    Readers.CollectReader(a.GetReader(), mapping)
+                             
+                             
+                             
+    module AArrTest =
+        let run() =
+            let a = ChangeableArray(Arr.ofList [1;2;6;8;3;4])
+            let even = ChangeableArray(Arr.ofList [2])
+            let odd = ChangeableArray(Arr.ofList [1])
+            
+            let result = 
+                a |> AArr.collect (fun v ->
+                    if v % 2 = 0 then even
+                    else odd
+                )
+            
+            let r = result.GetReader()
+            
+            let print() = 
+                let ops = r.GetChanges AdaptiveToken.Top
+                let state = r.State
                 
+                printfn "  %A" ops
+                printfn "  %A" state
                 
-              
-    
-
-    /// Creates a constant set using the creation function.
-    let constant (value : unit -> arr<'T>) = 
-        Readers.ConstantArray(lazy value()) :> aarr<_> 
-
-    /// Creates an aset using the given reader-creator.
-    let ofReader (create : unit -> #IOpReader<arrdelta<'T>>) =
-        Readers.AdaptiveArrayImpl(fun () -> create() :> IOpReader<_>) :> aarr<_>
-        
-    /// The empty aset.
-    [<GeneralizableValue>]
-    let empty<'T> : aarr<'T> = 
-        Readers.EmptyArray<'T>.Instance
-
-    /// A constant aset holding a single value.
-    let single (value : 'T) =
-        constant (fun () -> Arr.single value)
-        
-    /// Creates an aset holding the given values.
-    let ofSeq (elements : seq<'T>) =
-        constant (fun () -> Arr.ofSeq elements)
-        
-    /// Creates an aset holding the given values.
-    let ofList (elements : list<'T>) =
-        constant (fun () -> Arr.ofList elements)
-        
-    /// Creates an aset holding the given values.
-    let ofArray (elements : 'T[]) =
-        constant (fun () -> Arr.ofArray elements)
-
-    /// Creates an aval providing access to the current content of the set.
-    let toAVal (set : aarr<'T>) =
-        set.Content
-
-    let map (mapping : 'a -> 'b) (a : aarr<'a>) =
-        if a.IsConstant then
-            constant( fun () -> Arr.map mapping (AVal.force a.Content))
-        else
-            ofReader <| fun () ->
-                Readers.MapReader(a.GetReader(), mapping)
-                
-    let collect (mapping : 'a -> aarr<'b>) (a : aarr<'a>) =
-        if false && a.IsConstant then
-            failwith "TODO"
-        else
-            ofReader <| fun () ->
-                Readers.CollectReader(a.GetReader(), mapping)
-                         
-                         
-                         
-module AArrTest =
-    let run() =
-        let a = ChangeableArray(Arr.ofList [1;2;6;8;3;4])
-        let even = ChangeableArray(Arr.ofList [2])
-        let odd = ChangeableArray(Arr.ofList [1])
-        
-        let result = 
-            a |> AArr.collect (fun v ->
-                if v % 2 = 0 then even
-                else odd
+            printfn "initial"
+            print()
+            
+            transact (fun () ->
+                a.Value <- Arr.add 5 a.Value
             )
-        
-        let r = result.GetReader()
-        
-        let print() = 
-            let ops = r.GetChanges AdaptiveToken.Top
-            let state = r.State
+            printfn "add(5)"
+            print()
             
-            printfn "  %A" ops
-            printfn "  %A" state
+            transact (fun () ->
+                even.Value <- Arr.ofList [4;4]
+            )
+            printfn "even <- [|4;4|]"
+            print()
             
-        printfn "initial"
-        print()
-        
-        transact (fun () ->
-            a.Value <- Arr.add 5 a.Value
-        )
-        printfn "add(5)"
-        print()
-        
-        transact (fun () ->
-            even.Value <- Arr.ofList [4;4]
-        )
-        printfn "even <- [|4;4|]"
-        print()
-        
-        transact (fun () ->
-            even.Remove 0    
-        )
-        printfn "even.Remove 0"
-        print()
-        
+            transact (fun () ->
+                even.Remove 0    
+            )
+            printfn "even.Remove 0"
+            print()
+            
         
         
         

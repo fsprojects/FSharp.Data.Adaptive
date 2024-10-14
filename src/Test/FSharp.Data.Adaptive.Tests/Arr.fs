@@ -638,8 +638,8 @@ let ``[ArrOperation] TryMerge`` (NonEmptyArray (a : int[])) (NonEmptyArray (b : 
     let a = Arr.ofArray a
     let b = Arr.ofArray b
     let c = Arr.ofArray c
-    let ab = Arr.computeDelta (=) a b
-    let bc = Arr.computeDelta (=) b c
+    let ab = Arr.computeDelta DefaultEqualityComparer.Instance a b
+    let bc = Arr.computeDelta DefaultEqualityComparer.Instance b c
     
     match Seq.tryHead ab with
     | Some ab0 ->
@@ -697,8 +697,8 @@ let ``[ArrDelta] combine minimal`` (NonEmptyArray (a : int[])) (NonEmptyArray (b
     let b = Arr.ofArray b
     let c = Arr.ofArray c
     
-    let ab = Arr.computeDelta (=) a b
-    let bc = Arr.computeDelta (=) b c
+    let ab = Arr.computeDelta DefaultEqualityComparer.Instance a b
+    let bc = Arr.computeDelta DefaultEqualityComparer.Instance b c
     
     let abc = ArrDelta.combine ab bc
     let abc1 = minimize abc
@@ -711,8 +711,8 @@ let ``[ArrDelta] combine sorted`` (NonEmptyArray (a : int[])) (NonEmptyArray (b 
     let b = Arr.ofArray b
     let c = Arr.ofArray c
     
-    let ab = Arr.computeDelta (=) a b
-    let bc = Arr.computeDelta (=) b c
+    let ab = Arr.computeDelta DefaultEqualityComparer.Instance a b
+    let bc = Arr.computeDelta DefaultEqualityComparer.Instance b c
     
     let abc = ArrDelta.combine ab bc
     
@@ -740,9 +740,9 @@ let ``[ArrDelta] combine correct`` (NonEmptyArray (a : int[])) (NonEmptyArray (b
     let b = Arr.ofArray b
     let c = Arr.ofArray c
     
-    let ab = Arr.computeDelta (=) a b
-    let bc = Arr.computeDelta (=) b c
-    let ac = Arr.computeDelta (=) a c
+    let ab = Arr.computeDelta DefaultEqualityComparer.Instance a b
+    let bc = Arr.computeDelta DefaultEqualityComparer.Instance b c
+    let ac = Arr.computeDelta DefaultEqualityComparer.Instance a c
     
     let abc = ArrDelta.combine ab bc 
     
@@ -754,8 +754,8 @@ let ``[Arr] apply/computeDelta`` (NonEmptyArray (a : int[])) (NonEmptyArray (b :
     let a = Arr.ofArray a
     let b = Arr.ofArray b
     
-    let d = Arr.computeDelta (=) a b
-    let b1, d1 = Arr.applyDeltaAndGetEffective (=) a d
+    let d = Arr.computeDelta DefaultEqualityComparer.Instance a b
+    let b1, d1 = Arr.applyDeltaAndGetEffective DefaultEqualityComparer.Instance a d
     let b2 = Arr.applyDelta a d
     
     b1 |> should equal b
@@ -768,7 +768,7 @@ let ``[Arr] applyDeltaAndGetEffective cancellation`` (NonEmptyArray (a : int[]))
     let a = Arr.ofArray a
     
     let op = ArrDelta.single { Index = 0; Count = a.Length; Elements = a }
-    let a1, d = Arr.applyDeltaAndGetEffective (=) a op
+    let a1, d = Arr.applyDeltaAndGetEffective DefaultEqualityComparer.Instance a op
     
     a1 |> should equal a
     d |> should equal ArrDelta.empty<int>
@@ -780,8 +780,8 @@ let ``[Arr] applyDeltaAndGetEffective preserves effective`` (NonEmptyArray (a : 
     let a = Arr.ofArray a
     let b = Arr.ofArray b
     
-    let op = Arr.computeDelta (=) a b
-    let a1, d = Arr.applyDeltaAndGetEffective (=) a op
+    let op = Arr.computeDelta DefaultEqualityComparer.Instance a b
+    let a1, d = Arr.applyDeltaAndGetEffective DefaultEqualityComparer.Instance a op
     
     a1 |> should equal b
     d |> should equal op

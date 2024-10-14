@@ -144,6 +144,80 @@ module ComputeListDeltaHelpers =
 
             result
        
+        /// inspired by this [paper](https://neil.fraser.name/writing/diff/myers.pdf)
+        let ofArrayMyersComparer (cmp : System.Collections.Generic.IEqualityComparer<'a>) (src : 'a[]) (dst : 'a[]) : DeltaOperationList =
+            let max = src.Length + dst.Length
+            let vs = Array.zeroCreate<int> (2 * max + 1)
+            let ps = Array.zeroCreate<DeltaOperationList> vs.Length
+
+            let inline setv (k : int) value =
+                vs.[k + max] <- value
+
+            let inline getv (k : int) =
+                vs.[k + max]
+
+            let inline setp (k : int) value =
+                ps.[k + max] <- value
+                
+            let inline getp (k : int) =
+                ps.[k + max]
+                
+            let mutable x = 0
+            let mutable y = 0
+            let mutable d = 0
+            let mutable result = Unchecked.defaultof<_>
+
+            let eSrc = src.Length - 1
+            let eDst = dst.Length - 1
+
+            let inline equal x y =
+                // reversed arrays
+                cmp.Equals(src.[eSrc - x], dst.[eDst - y])
+
+            while d <= max do
+                let mutable k = -d
+                while k <= d do
+                    let down = k = -d || (k <> d && getv (k-1) < getv (k+1))
+                    
+                    let mutable p = Unchecked.defaultof<_>
+                    if down then
+                        x <- getv (k+1)
+                        p <- getp (k+1)
+                    else    
+                        x <- getv(k-1) + 1
+                        p <- getp(k-1)
+
+                    y <- x - k
+                    let kPrev = if down then k + 1 else k - 1
+
+                    let xStart = getv kPrev
+                    let yStart = xStart - kPrev
+
+                    let xMid = if down then xStart else xStart + 1
+                    let yMid = xMid - k
+
+                    if xStart >= 0 && xMid <> xStart then p <- p.Prepend DeltaOperation.Remove 
+                    elif yStart >= 0 && yMid <> yStart then p <- p.Prepend DeltaOperation.Add
+
+                    while x < src.Length && y < dst.Length && equal x y do
+                        x <- x + 1
+                        y <- y + 1
+                        p <- p.Prepend DeltaOperation.Equal
+
+                    setv k x
+                    setp k p
+                    if x >= src.Length && y >= dst.Length then
+                        // terminate
+                        result <- p
+                        d <- max
+                        k <- max
+
+                    k <- k + 2
+                d <- d + 1
+
+            result
+       
+
 
 
 /// Differentiation extensions for several immutable datastructures.

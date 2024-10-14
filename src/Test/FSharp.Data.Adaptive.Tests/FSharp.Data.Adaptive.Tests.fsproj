@@ -41,6 +41,7 @@
     <Compile Include="ASet.fs" />
     <Compile Include="AMap.fs" />
     <Compile Include="AList.fs" />
+    <Compile Include="AArr.fs" />
     <Compile Include="CollectionExtensions.fs" />
     <Compile Include="Transaction.fs" />
     <Compile Include="AdaptifyHelpers.fs" />

@@ -124,8 +124,8 @@ module Arr =
         static let trace : Traceable<arr<'T>, arrdelta<'T>> =
             {
                 tempty =  Arr.empty
-                tcomputeDelta = Arr.computeDelta Unchecked.equals
-                tapplyDelta = fun m d -> Arr.applyDelta m d, d
+                tcomputeDelta = Arr.computeDelta DefaultEqualityComparer.Instance
+                tapplyDelta = Arr.applyDeltaAndGetEffective DefaultEqualityComparer.Instance
                 tmonoid = ArrDelta.monoid
                 tsize = fun _ -> 0
                 tprune = None
@@ -135,5 +135,29 @@ module Arr =
     
     [<GeneralizableValue>]
     let trace<'a> = Traceable<'a>.Instance
+
+    let private traceCache = System.Collections.Generic.Dictionary<obj, obj>()
+    
+    let getTrace (cmp : System.Collections.Generic.IEqualityComparer<'T>) =
+        lock traceCache (fun () ->
+            match traceCache.TryGetValue cmp with
+            | (true, (:? Traceable<arr<'T>, arrdelta<'T>> as traceable)) ->
+                traceable
+            | _ ->
+                let traceable =
+                    {
+                        tempty =  Arr.empty
+                        tcomputeDelta = Arr.computeDelta cmp
+                        tapplyDelta = fun m d -> Arr.applyDeltaAndGetEffective cmp m d
+                        tmonoid = ArrDelta.monoid
+                        tsize = fun _ -> 0
+                        tprune = None
+                    }
+                traceCache.[cmp] <- traceable
+                traceable
+        )
+        
+    
+
 
 

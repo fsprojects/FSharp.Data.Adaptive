@@ -47,7 +47,6 @@ let ``[AList] sub``() =
 
 [<EntryPoint>]
 let main _args =
-    Arr.``[Arr] applyDeltaAndGetEffective preserves effective`` (NonEmptyArray [| 0; -1 |])
     //Arr.``[ArrDelta] combine sorted`` (NonEmptyArray [|1|]) (NonEmptyArray [|0; 1; 0|]) (NonEmptyArray [|0|])
     //Arr.``[ArrOperation] TryMerge`` (NonEmptyArray [|-4; 0|]) (NonEmptyArray [|-4; 1|]) (NonEmptyArray [|0|])
     //Arr.``[ArrDelta] combine correct`` (NonEmptyArray [|0; 0|]) (NonEmptyArray [|0; 3; 0; 1|]) (NonEmptyArray [|3|])

@@ -100,6 +100,8 @@ type refmap<'a, 'b> = Reference.amap<'a, 'b>
 type realmap<'a, 'b> = Adaptive.amap<'a, 'b>
 type reflist<'a> = Reference.alist<'a>
 type reallist<'a> = Adaptive.alist<'a>
+type refarr<'a> = Reference.aarr<'a>
+type realarr<'a> = Adaptive.aarr<'a>
 
 
 type ChangeGen = 
@@ -138,6 +140,14 @@ type VList<'a> =
         lref : reflist<'a>
         lexpression : bool -> Map<string, string> * string
         lchanges : unit -> list<ChangeGen>
+    }
+    
+type VArr<'a> =
+    {
+        areal : realarr<'a>
+        aref : refarr<'a>
+        aexpression : bool -> Map<string, string> * string
+        achanges : unit -> list<ChangeGen>
     }
     
 module Generators =
@@ -1616,6 +1626,118 @@ module Generators =
                         list.lchanges
             }
 
+    module Arr =
+        let mutable cid = 0
+
+        let create a b s c = 
+            {
+                areal = a
+                aref = b
+                aexpression = s
+                achanges = c
+            }
+
+
+
+        let init<'a>() =
+            gen {
+                let id = System.Threading.Interlocked.Increment(&cid)
+                let! value = Arb.generate<arr<'a>>
+
+                let real = Adaptive.carr value
+                let ref = Reference.carr value
+
+                let change =    
+                    { 
+                        cell = (real, id) :> obj
+                        change = 
+                            gen {
+                                let! newValue = Arb.generate<arr<'a>>
+                                return fun () ->    
+                                    real.Value <- newValue
+                                    ref.Value <- newValue
+                                    sprintf "C%d <- %A" id newValue
+
+                            }
+                    }
+
+                return 
+                    create 
+                        (real :> Adaptive.aarr<_>)
+                        (ref :> Reference.aarr<_>)
+                        (function 
+                            | false -> 
+                                Map.empty, sprintf "c%d" id
+                            | true -> 
+                                let c = real.Value |> Seq.map (sprintf "%A") |> String.concat "; "
+                                let m = Map.ofList [sprintf "c%d" id, sprintf "carr [%s]" c]
+                                m, sprintf "c%d" id
+                        )
+                        (fun () -> [change])
+            }
+
+        let constant<'a>() =
+            gen {
+                let! value = Arb.generate<arr<'a>>
+                let id = System.Threading.Interlocked.Increment(&cid)
+
+                return 
+                    create
+                        (Adaptive.AArr.ofArr value)
+                        (Reference.AArr.ofArr value)
+                        (function 
+                            | false -> Map.empty, sprintf "%A" value
+                            | true -> 
+                                let m = Map.ofList [sprintf "v%d" id, sprintf "AArr.ofList [%s]" (value |> Seq.map (sprintf "%A") |> String.concat "; ")]
+                                m, sprintf "v%d" id
+                        )
+                        (fun () -> [])
+            }
+
+        // let ofAVal<'a> () =
+        //     gen {
+        //         let! a = Arb.generate<VVal<aarr<'a>>> |> Gen.scaleSize (fun v -> 0)
+        //         return 
+        //             create
+        //                 (a.real |> Adaptive.AArr.ofAVal)
+        //                 (a.ref |> Reference.AArr.ofRef)
+        //                 (fun _ -> Map.empty, sprintf "ofAVal\r\n%s" (indent a.expression))
+        //                 (fun () -> a.changes())
+        //     }
+
+
+        let map<'a, 'b>() =
+            gen {
+                let mySize = ref 0
+                let! value = Arb.generate<_> |> Gen.scaleSize (fun s -> mySize := s; s - 2)
+                //let! f = Arb.generate<'a -> 'b> |> Gen.scaleSize (fun _ -> 50)
+                let table, f = randomFunction<'a, 'b> (!mySize / 2)
+
+                let mapping v =  f(v)
+
+                return 
+                    create 
+                        (Adaptive.AArr.map mapping value.areal)
+                        (Reference.AArr.map mapping value.aref)
+                        (function
+                            | false -> 
+                                let m, v = value.aexpression false
+                                m, sprintf "map (\r\n%s\r\n)" (indent v)
+                            | true ->
+                                let realContent = value.aref.Content |> Reference.AVal.force
+                                let mi, input = value.aexpression true
+
+                                let table =
+                                    realContent
+                                    |> Seq.map (fun v -> sprintf "| %A -> %A" v (mapping v))
+                                    |> String.concat "\r\n"
+
+                                mi, sprintf "%s\r\n|> AArr.map (\r\n  function\r\n%s\r\n)" (indent input) (indent table)
+                        )
+                        value.achanges
+            }
+
+        
 
 [<Struct; CustomEquality; NoComparison>]
 type StupidHash(v : int) =
@@ -1673,6 +1795,15 @@ type AdaptiveGenerators() =
                 Seq.empty
         }
  
+        
+    static member FSharpArr<'a>() =
+        { new Arbitrary<arr<'a>>() with
+            member x.Generator =
+                Arb.generate<list<'a>> |> Gen.map Arr.ofList
+            member x.Shrinker _ =
+                Seq.empty
+        }
+
     static member Val<'a>() = 
         { new Arbitrary<VVal<'a>>() with
             member x.Generator =
@@ -1943,6 +2074,44 @@ type AdaptiveGenerators() =
                 Seq.empty
         }
 
+
+    static member Arr<'a>() = 
+        { new Arbitrary<VArr<'a>>() with
+            member x.Generator =
+                Gen.sized (fun size ->
+                    gen {
+                        let! kind = 
+                            if size = 0 then
+                                Gen.frequency [
+                                    1, Gen.constant "constant"
+                                    5, Gen.constant "carr"
+                                ]
+                            else 
+                                Gen.frequency [
+                                    yield 1, Gen.constant "constant"
+                                    yield 3, Gen.constant "carr"
+                                    yield 3, Gen.constant "map"
+                                ]
+                        match kind with
+                        | "constant" -> 
+                            return! Generators.Arr.constant<'a>()
+                        | "carr" -> 
+                            return! Generators.Arr.init<'a>()
+                        | "map" -> 
+                            let! t = Gen.elements relevantTypes
+                            return!
+                                t |> visit { new TypeVisitor<_> with 
+                                    member __.Accept<'z>() = Generators.Arr.map<'z, 'a>() 
+                                }
+                        | kind ->
+                            return failwithf "unknown operation: %s" kind
+                    }
+                )
+            member x.Shrinker _ =
+                Seq.empty
+        }
+
+    
     static member Map<'a, 'b>() = 
         { new Arbitrary<VMap<'a, 'b>>() with
             member x.Generator =

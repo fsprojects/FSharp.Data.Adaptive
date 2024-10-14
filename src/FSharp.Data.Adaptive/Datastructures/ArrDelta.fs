@@ -407,11 +407,13 @@ module ArrDelta =
 module ``ArrDelta Extensions`` =
     
     module Arr =
-        let computeDelta (equal : 'a -> 'a -> bool) (src : arr<'a>) (dst : arr<'a>) : arrdelta<'a> =
+        let computeDelta (cmp : System.Collections.Generic.IEqualityComparer<'a>) (src : arr<'a>) (dst : arr<'a>) : arrdelta<'a> =
             let srcArr = Arr.toArray src
             let dstArr = Arr.toArray dst
 
-            let mutable steps = DeltaOperationList.ofArrayMyers equal srcArr dstArr
+            let mutable steps =
+                if srcArr.Length = 0 && dstArr.Length = 0 then DeltaOperationList.DeltaOperationList.Empty
+                else DeltaOperationList.ofArrayMyersComparer cmp srcArr dstArr
 
             let mutable si = 0
             let mutable di = 0
@@ -457,15 +459,14 @@ module ``ArrDelta Extensions`` =
 
             arrdelta delta
 
-        
-        let applyDeltaAndGetEffective (equal : 'a -> 'a -> bool) (state : arr<'a>) (delta : arrdelta<'a>) =
+        let applyDeltaAndGetEffective (cmp : System.Collections.Generic.IEqualityComparer<'a>) (state : arr<'a>) (delta : arrdelta<'a>) =
             let mutable effective = ArrDelta.empty
             let mutable res = state
             for op in delta do
                 res <-
                     res.UpdateRange(op.Index, op.Count, fun old ->
                         let real =
-                            computeDelta equal old op.Elements
+                            computeDelta cmp old op.Elements
                             |> ArrDelta.mapOp (fun oo -> { oo with Index = oo.Index + op.Index })
                         effective <- ArrDelta.combine effective real
                         op.Elements
