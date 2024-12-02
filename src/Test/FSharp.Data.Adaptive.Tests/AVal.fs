@@ -132,7 +132,7 @@ type EagerVal<'T>(input : aval<'T>) =
     let mutable last = None
 
     override x.MarkObject() = 
-        let v = input.GetValue AdaptiveToken.Top
+        let v = input.GetValue (AdaptiveToken(x))
         match last with
         | Some old when DefaultEquality.equals old v -> 
             printfn "shortcut %A" v
@@ -188,6 +188,32 @@ let ``[AVal] eager evaluation`` () =
     eager.OutOfDate |> should be True
     eager |> AVal.force |> should equal "b"
     eager.Level |> should be (greaterThan different.Level)
+
+
+[<Test>]
+let ``[AVal] eager marking`` () =
+    let a = AVal.init 0
+    let mod2 = a |> AVal.map (fun v -> v % 2)
+    let eager = EagerVal(mod2) :> aval<_>
+    let output = eager |> AVal.map id
+
+    output |> AVal.force |> should equal 0
+
+    transact (fun () -> a.Value <- 2)
+    output.OutOfDate |> should be False
+    output |> AVal.force |> should equal 0
+    
+    transact (fun () -> a.Value <- 1)
+    output.OutOfDate |> should be True
+    output |> AVal.force |> should equal 1
+
+    transact (fun () -> a.Value <- 3)
+    output.OutOfDate |> should be False
+    output |> AVal.force |> should equal 1
+
+    transact (fun () -> a.Value <- 0)
+    output.OutOfDate |> should be True
+    output |> AVal.force |> should equal 0
 
 [<Test>]
 let ``[AVal] nop change evaluation`` () =
