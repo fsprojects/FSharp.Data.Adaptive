@@ -1,3 +1,6 @@
+### 1.2.17
+* workaround for LevelChangedException
+
 ### 1.2.16 
 * avoid WPF contention-inline problems with transaction
 
