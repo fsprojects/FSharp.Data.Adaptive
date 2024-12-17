@@ -399,6 +399,43 @@ module AVal =
                 inner <- ValueSome (struct (va, vb, vc, res))
                 res.GetValue token     
 
+
+    /// <summary>
+    /// Calls a mapping function which creates additional dependencies to be tracked.
+    /// </summary>
+    /// <remarks>
+    /// Usecase for this is when a file, such as a .fsproj file changes, it needs to be reloaded in msbuild.
+    /// Additionally fsproj files have dependencies, such as project.assets.json, that can't be determined until loaded with msbuild 
+    /// but should be reloaded if those dependent files change. 
+    /// </remarks>
+    let mapWithAdditionalDependencies (mapping: 'a -> 'b * #seq<#IAdaptiveValue>) (value: aval<'a>) : aval<'b> =
+        let mutable lastDeps = HashSet.empty
+
+        { new AbstractVal<'b>() with
+            member x.Compute(token: AdaptiveToken) =
+                let input = value.GetValue token
+
+                // re-evaluate the mapping based on the (possibly new input)
+                let result, deps = mapping input
+
+                // compute the change in the additional dependencies and adjust the graph accordingly
+                let newDeps = HashSet.ofSeq deps
+
+                for op in HashSet.computeDelta lastDeps newDeps do
+                    match op with
+                    | Add(_, d) ->
+                    // the new dependency needs to be evaluated with our token, s.t. we depend on it in the future
+                        d.GetValueUntyped token |> ignore
+                    | Rem(_, d) ->
+                        // we no longer need to depend on the old dependency so we can remove ourselves from its outputs
+                        lock d.Outputs (fun () -> d.Outputs.Remove x) |> ignore
+
+                lastDeps <- newDeps
+
+                result }
+        :> aval<_>
+
+
     /// Aval for custom computations
     [<Sealed>]
     type CustomVal<'T>(compute: AdaptiveToken -> 'T) =

@@ -301,8 +301,6 @@ let ``[AVal] mapNonAdaptive GC correct``() =
     transact (fun () -> v.Value <- 100)
     test |> AVal.force |> should equal 101
 
-
-
 [<Test>]
 let ``[AVal] multi map non-adaptive and bind``() =
     let v = AVal.init true
@@ -315,3 +313,66 @@ let ``[AVal] multi map non-adaptive and bind``() =
 
     transact (fun () -> v.Value <- false)
     output |> AVal.force |> should equal 1
+
+
+
+[<Test>]
+let ``[AVal] mapWithAdditionalDependencies``() =
+    let v = cval 1
+    let incrDep (dep : cval<_>) =
+        dep.Value <- dep.Value + 1 
+    let mutable dependency1 = Unchecked.defaultof<_>
+    let newDep1 () =  
+        dependency1 <- cval 2
+        dependency1
+    let mutable dependency2 =  Unchecked.defaultof<_>
+    let newDep2 () = 
+        dependency2 <- cval 3
+        dependency2
+    let mutable mappingCalls = 0
+    let incrMapping () =
+        mappingCalls <- mappingCalls + 1
+
+    let mapping (i : int) =
+        incrMapping ()
+        // dependencies aren't known until mapping time
+        i * 2, [newDep1(); newDep2()]
+    
+    let output = v |> AVal.mapWithAdditionalDependencies mapping
+
+    output |> AVal.force |> should equal 2
+    mappingCalls |> should equal 1
+
+    transact (fun () -> v.Value <- 2)
+    output |> AVal.force |> should equal 4
+    mappingCalls |> should equal 2
+
+    transact (fun () -> incrDep dependency1)
+    output |> AVal.force |> should equal 4
+    mappingCalls |> should equal 3
+
+    
+    transact (fun () -> incrDep dependency1)
+    output |> AVal.force |> should equal 4
+    mappingCalls |> should equal 4
+
+    transact (fun () -> v.Value <- 2)
+    output |> AVal.force |> should equal 4
+    mappingCalls |> should equal 4
+
+    
+    transact (fun () -> v.Value <- 1)
+    output |> AVal.force |> should equal 2
+    mappingCalls |> should equal 5
+
+    transact (fun () -> 
+        v.Value <- 1
+        incrDep dependency1)
+    output |> AVal.force |> should equal 2
+    mappingCalls |> should equal 6
+
+    transact (fun () -> 
+        incrDep dependency2
+        incrDep dependency1)
+    output |> AVal.force |> should equal 2
+    mappingCalls |> should equal 7

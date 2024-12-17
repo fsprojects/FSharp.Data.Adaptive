@@ -8,6 +8,7 @@ open FsUnit
 open FsCheck.NUnit
 open FSharp.Data
 open Generators
+open System
 
 [<Property(MaxTest = 500, Arbitrary = [| typeof<Generators.AdaptiveGenerators> |]); Timeout(60000)>]
 let ``[AList] reference impl``() ({ lreal = real; lref = ref; lexpression = str; lchanges = changes } : VList<int>) =
@@ -1162,3 +1163,94 @@ let ``[AList] mapA inner change``() =
     
     r.GetChanges AdaptiveToken.Top |> ignore
     r.State |> should equal (IndexList.ofSeqIndexed [a, 2; b, -1; c, 6; d, 8; e, 10])
+
+    
+[<Test>]
+let ``[AList] batchMap``() =
+
+    let file1 = "File1.fs"
+    let file1Cval = cval 1
+    let file1DepCval = cval DateTime.UtcNow
+    let file2 = "File2.fs"
+    let file2Cval = cval 2
+    let file2DepCval = cval DateTime.UtcNow
+    let file3 = "File3.fs"
+    let file3Cval = cval 3
+    let file3DepCval = cval DateTime.UtcNow
+    
+    let file4 = "File4.fs"
+    let file4Cval = cval 3
+    let file4DepCval = cval DateTime.UtcNow
+
+    let dependencies = Map [file1, file1DepCval; file2, file2DepCval; file3, file3DepCval; file4, file4DepCval]
+
+    let filesCmap = 
+        clist
+            [
+                file1,file1Cval
+                file2,file2Cval
+                file3,file3Cval
+                // file4 added later
+            ] 
+    let files =
+        filesCmap
+        |> AList.mapA(fun (k, v) -> v |> AVal.map(fun v -> k,v))
+
+    let mutable lastBatch = Unchecked.defaultof<_>
+    let res =
+        files
+        |> AList.batchMap(fun d ->
+            lastBatch <- d
+            d
+            |> IndexList.mapi(fun k (file,_) ->
+                printfn "k -> %A" k
+                (dependencies.[file] :> aval<_>
+            )
+        ))
+    let firstResult = res |> AList.force
+    lastBatch |> should haveCount 3
+
+    transact(fun () -> file1Cval.Value <- file1Cval.Value + 1)
+
+    let secondResult = res |> AList.force
+    lastBatch |> should haveCount 1
+    
+    firstResult.[0] |> should equal secondResult.[0]
+    firstResult.[1] |> should equal secondResult.[1]
+    firstResult.[2] |> should equal secondResult.[2]
+
+    transact(fun () -> file1DepCval.Value <- DateTime.UtcNow)
+
+    let thirdResult = res |> AList.force
+    lastBatch |> should haveCount 1
+    
+    secondResult.[0] |> should not' (equal thirdResult.[0])
+    secondResult.[1] |> should equal thirdResult.[1]
+    secondResult.[2] |> should equal thirdResult.[2]
+
+    transact(fun () -> 
+        file1DepCval.Value <- DateTime.UtcNow
+        file3Cval.Value <- file3Cval.Value + 1
+    )
+
+    let fourthResult = res |> AList.force
+    lastBatch |> should haveCount 2
+    
+    thirdResult.[0] |> should not' (equal fourthResult.[0])
+    thirdResult.[1] |> should equal fourthResult.[1]
+    thirdResult.[2] |> should equal fourthResult.[2]
+
+    transact(fun () -> 
+        file1Cval.Value <- file1Cval.Value + 1
+        file2DepCval.Value <- DateTime.UtcNow
+        filesCmap.Add(file4, file4Cval) |> ignore
+    )
+
+    let fifthResult = res |> AList.force
+    lastBatch |> should haveCount 3
+
+    fourthResult.[0] |> should equal fifthResult.[0]
+    fourthResult.[1] |> should not' (equal fifthResult.[1])
+    fourthResult.[2] |> should equal fifthResult.[2]
+    fifthResult.[3] |> should equal file4DepCval.Value
+
