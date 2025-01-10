@@ -164,10 +164,10 @@ module AdadptiveObjectExtensions =
                     if depth > 1 then Transaction.RunningLevel - 1
                     else Transaction.RunningLevel
 
-                if AdaptiveObject.UnsafePerformLevelChecking && x.Level > maxAllowedLevel then
-                    //printfn "%A tried to pull from level %A but has level %A" top.Id level top.Level
-                    // all greater pulls would be from the future
-                    raise <| LevelChangedException(x.Level + depth)
+                // if AdaptiveObject.UnsafePerformLevelChecking && x.Level > maxAllowedLevel then
+                //     //printfn "%A tried to pull from level %A but has level %A" top.Id level top.Level
+                //     // all greater pulls would be from the future
+                //     raise <| LevelChangedException(x.Level + depth)
                                                                      
                 res <- r
 

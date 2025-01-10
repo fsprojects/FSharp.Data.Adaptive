@@ -1,3 +1,6 @@
+### 1.2.18
+* removed LevelChangedException
+
 ### 1.2.17
 * workaround for LevelChangedException
 
