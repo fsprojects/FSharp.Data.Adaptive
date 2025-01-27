@@ -1,3 +1,6 @@
+### 1.2.19
+* guarded conditional LevelChangedException
+
 ### 1.2.18
 * removed LevelChangedException
 
