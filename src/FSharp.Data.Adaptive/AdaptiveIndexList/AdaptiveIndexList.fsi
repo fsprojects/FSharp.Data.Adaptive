@@ -96,6 +96,8 @@ module AList =
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
     val mapA : mapping: ('T1 -> aval<'T2>) -> list: alist<'T1> -> alist<'T2>
     
+    val batchMap : mapping: (IndexList<'T1> -> IndexList<aval<'T2>>) -> list: alist<'T1> -> alist<'T2>
+
     /// Adaptively chooses all elements returned by mapping.  
     val chooseAi : mapping: (Index -> 'T1 -> aval<option<'T2>>) -> list: alist<'T1> -> alist<'T2>
 

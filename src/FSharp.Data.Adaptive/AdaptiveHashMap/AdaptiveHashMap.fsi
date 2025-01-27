@@ -102,9 +102,16 @@ module AMap =
     /// Adaptively intersects the two maps.
     val intersectV : amap<'Key, 'Value1> -> amap<'Key, 'Value2> -> amap<'Key, struct('Value1 * 'Value2)>
 
-
     /// Adaptively applies the given mapping function to all elements and returns a new amap containing the results.
     val mapA : mapping: ('K -> 'V -> aval<'T>) -> map: amap<'K, 'V> -> amap<'K, 'T>
+
+    /// Adaptively applies the given mapping to batches of all changes and e-executes the mapping on dirty outputs
+    val batchMap : mapping: (HashMap<'K,'T1> -> HashMap<'K,aval<'T2>>) -> map: amap<'K, 'T1> -> amap<'K, 'T2>
+
+    /// <summary>
+    /// Adaptively applies the given mapping to batches of all changes, re-executes the mapping on dirty outputs, including the additional dependencies to be tracked. 
+    /// </summary>
+    val batchMapWithAdditionalDependencies : mapping: (HashMap<'K, 'T1> -> HashMap<'K, 'T2 * #seq<#IAdaptiveValue>>) -> map:  amap<'K, 'T1> ->  amap<'K, 'T2>
 
     /// Adaptively chooses all elements returned by mapping.  
     val chooseA : mapping: ('K -> 'V -> aval<option<'T>>) -> map: amap<'K, 'V> -> amap<'K, 'T>
