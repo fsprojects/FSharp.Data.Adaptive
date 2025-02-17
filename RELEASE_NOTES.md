@@ -1,3 +1,12 @@
+### 1.2.19
+- guarded conditional LevelChangedException
+
+### 1.2.18
+- removed LevelChangedException
+
+### 1.2.17
+- workaround for LevelChangedException
+
 ### 1.2.17-prerelease0001
 - added ASet.ofListTree and ASet.ofSetTree
 - added AList.mapToASet

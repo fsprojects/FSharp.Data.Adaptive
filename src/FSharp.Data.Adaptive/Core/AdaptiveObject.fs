@@ -17,6 +17,13 @@ type AdaptiveObject() =
     [<DefaultValue; ThreadStatic>]
     static val mutable private CurrentEvaluationDepth : int
 
+    static let mutable unsafePerformLevelChecking = true
+    
+    static member UnsafePerformLevelChecking
+        with get() = unsafePerformLevelChecking
+        and set v = unsafePerformLevelChecking <- v
+    
+    
     let mutable outOfDate : bool = true
     let mutable level: int = 0
     let mutable outputs : WeakOutputSet = WeakOutputSet()
@@ -157,7 +164,7 @@ module AdadptiveObjectExtensions =
                     if depth > 1 then Transaction.RunningLevel - 1
                     else Transaction.RunningLevel
 
-                if x.Level > maxAllowedLevel then
+                if AdaptiveObject.UnsafePerformLevelChecking && x.Level > maxAllowedLevel then
                     //printfn "%A tried to pull from level %A but has level %A" top.Id level top.Level
                     // all greater pulls would be from the future
                     raise <| LevelChangedException(x.Level + depth)
