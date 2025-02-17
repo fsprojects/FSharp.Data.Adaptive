@@ -283,12 +283,12 @@ type AdaptiveHashSet private() =
         this |> ASet.toAList
         
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member MapToMap(this: aset<'T>, getValue: Func<'T, 'Value>) =
-        this |> ASet.mapToAMap getValue.Invoke
+    static member MapToMap(this: aset<'T>, mapping: Func<'T, 'Value>) =
+        this |> ASet.mapToAMap mapping.Invoke
         
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    static member GroupBy(this: aset<'T>, getKey: Func<'T, 'G>) =
-        this |> ASet.groupBy getKey.Invoke
+    static member GroupBy(this: aset<'T>, mapping: Func<'T, 'G>) =
+        this |> ASet.groupBy mapping.Invoke
                 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ToAdaptiveHashMap(this: aset<'K * 'V>) =
