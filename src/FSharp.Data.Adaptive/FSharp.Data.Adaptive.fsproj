@@ -16,9 +16,9 @@
     <FsDocsNavbarPosition>fixed-left</FsDocsNavbarPosition>
     <FsDocsTheme>default</FsDocsTheme>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)'=='net8.0'">
-	<TrimMode>link</TrimMode>
-	<IsTrimmable>true</IsTrimmable>
+  <PropertyGroup Condition="'$(TargetFramework)'!='netstandard2.0'">
+    <TrimMode>link</TrimMode>
+    <IsTrimmable>true</IsTrimmable>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\..\bin\Debug\</OutputPath>
