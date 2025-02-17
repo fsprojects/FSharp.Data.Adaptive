@@ -2,6 +2,7 @@ namespace FSharp.Data.Adaptive
 
 open System
 open FSharp.Data.Traceable
+open HashImplementation
 
 /// An adaptive reader for amap that allows to pull operations and exposes its current state.
 type IHashMapReader<'Key, 'Value> = IOpReader<HashMap<'Key, 'Value>, HashMapDelta<'Key, 'Value>>
@@ -936,18 +937,18 @@ module AdaptiveHashMapImplementation =
                 for (k,op) in ops do
                     match op with
                     | Set v ->
-                        match HashMap.tryFind k oldState with
-                        | None -> ()
-                        | Some oldValue ->
+                        match HashMap.tryFindV k oldState with
+                        | ValueNone -> ()
+                        | ValueSome oldValue ->
                             deltas <- HashSetDelta.add (Rem(k, oldValue)) deltas
                         deltas <- HashSetDelta.add (Add(k, v)) deltas
                 
                     | Remove ->
                         // NOTE: As it is not clear at what point the toASet computation has been evaluated last, it is 
                         //       a valid case that something is removed that is not present in the current local state.
-                        match HashMap.tryFind k oldState with
-                        | None -> ()
-                        | Some ov ->
+                        match HashMap.tryFindV k oldState with
+                        | ValueNone -> ()
+                        | ValueSome ov ->
                             deltas <- HashSetDelta.add (Rem (k, ov)) deltas
                 
                 
@@ -961,18 +962,18 @@ module AdaptiveHashMapImplementation =
             for (k,op) in ops do
                 match op with
                 | Set v ->
-                    match HashMap.tryFind k oldState with
-                    | None -> ()
-                    | Some oldValue ->
+                    match HashMap.tryFindV k oldState with
+                    | ValueNone -> ()
+                    | ValueSome oldValue ->
                         deltas <- HashSetDelta.add (Rem(k, oldValue)) deltas
                     deltas <- HashSetDelta.add (Add(k, v)) deltas
 
                 | Remove ->
                     // NOTE: As it is not clear at what point the toASet computation has been evaluated last, it is 
                     //       a valid case that something is removed that is not present in the current local state.
-                    match HashMap.tryFind k oldState with
-                    | None -> ()
-                    | Some ov ->
+                    match HashMap.tryFindV k oldState with
+                    | ValueNone -> ()
+                    | ValueSome ov ->
                         deltas <- HashSetDelta.add (Rem (k, ov)) deltas
 
 
@@ -991,18 +992,18 @@ module AdaptiveHashMapImplementation =
                 for (k,op) in ops do
                     match op with
                     | Set v ->
-                        match HashMap.tryFind k oldState with
-                        | None -> ()
-                        | Some oldValue ->
+                        match HashMap.tryFindV k oldState with
+                        | ValueNone -> ()
+                        | ValueSome oldValue ->
                             deltas <- HashSetDelta.add (Rem(oldValue)) deltas
                         deltas <- HashSetDelta.add (Add(v)) deltas
                 
                     | Remove ->
                         // NOTE: As it is not clear at what point the toASet computation has been evaluated last, it is 
                         //       a valid case that something is removed that is not present in the current local state.
-                        match HashMap.tryFind k oldState with
-                        | None -> ()
-                        | Some ov ->
+                        match HashMap.tryFindV k oldState with
+                        | ValueNone -> ()
+                        | ValueSome ov ->
                             deltas <- HashSetDelta.add (Rem (ov)) deltas
                 
                 
@@ -1015,18 +1016,18 @@ module AdaptiveHashMapImplementation =
             for (k,op) in ops do
                 match op with
                 | Set v ->
-                    match HashMap.tryFind k oldState with
-                    | None -> ()
-                    | Some oldValue ->
+                    match HashMap.tryFindV k oldState with
+                    | ValueNone -> ()
+                    | ValueSome oldValue ->
                         deltas <- HashSetDelta.add (Rem(oldValue)) deltas
                     deltas <- HashSetDelta.add (Add(v)) deltas
                 
                 | Remove ->
                     // NOTE: As it is not clear at what point the toASet computation has been evaluated last, it is 
                     //       a valid case that something is removed that is not present in the current local state.
-                    match HashMap.tryFind k oldState with
-                    | None -> ()
-                    | Some ov ->
+                    match HashMap.tryFindV k oldState with
+                    | ValueNone -> ()
+                    | ValueSome ov ->
                         deltas <- HashSetDelta.add (Rem (ov)) deltas
             deltas
 
@@ -1068,32 +1069,82 @@ module AdaptiveHashMapImplementation =
         let state = DefaultDictionary.create<'Key, HashSet<'Value>>()
 
         override x.Compute (token : AdaptiveToken) =
-            reader.GetChanges token |> Seq.choose (fun op ->
-                match op with
-                | Add(_, (k, v)) ->
+            let cmp = DefaultEqualityComparer<'Key>.Instance
+            let mutable delta = null
+            for d in reader.GetChanges token do
+                let (k, v) = d.Value
+                if d.Count = 1 then // >= 1 ??
                     match state.TryGetValue k with
                     | (true, set) ->    
                         let newSet = HashSet.add v set
                         state.[k] <- newSet
-                        Some (k, Set (view newSet))
+                        delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
                     | _ ->
                         let newSet = HashSet.single v
                         state.[k] <- newSet
-                        Some (k, Set (view newSet))
-                | Rem(_, (k, v)) ->
+                        delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
+                elif d.Count = -1 then // <= -1 ??
                     match state.TryGetValue k with
                     | (true, set) ->    
                         let newSet = HashSet.remove v set
                         if newSet.IsEmpty then 
                             state.Remove k |> ignore
-                            Some (k, Remove)
+                            delta <- MapNode.addInPlace' cmp k (Remove : ElementOperation<'View>) delta
                         else 
                             state.[k] <- newSet
-                            Some (k, Set (view newSet))
+                            delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
                     | _ ->
-                        None
-            )
-            |> HashMapDelta.ofSeq
+                        ()
+                else
+                    unexpected()
+
+            HashMap(cmp, delta) |> HashMapDelta.ofHashMap
+
+    /// Reader used for ofASet operations.
+    /// It's safe to assume that the view function will only be called with non-empty HashSets.
+    /// Internally assumes that the view function is cheap.
+    [<Sealed>]
+    type MappedSetReader<'Key, 'Value, 'View>(input : aset<'Value>, getKey : 'Value -> 'Key, view : HashSet<'Value> -> 'View) =
+        inherit AbstractReader<HashMapDelta<'Key, 'View>>(HashMapDelta.empty)
+
+        let reader = input.GetReader()
+        let state = DefaultDictionary.create<'Key, HashSet<'Value>>()
+        let cache = Cache<'Value, 'Key> getKey
+
+        override x.Compute (token : AdaptiveToken) =
+            let cmp = DefaultEqualityComparer<'Key>.Instance
+            let mutable delta = null
+            for d in reader.GetChanges token do
+                let v = d.Value
+                if d.Count = 1 then // >= 1 ??
+                    let k = cache.Invoke v
+                    match state.TryGetValue k with
+                    | (true, set) ->    
+                        let newSet = HashSet.add v set
+                        state.[k] <- newSet
+                        delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
+                    | _ ->
+                        let newSet = HashSet.single v
+                        state.[k] <- newSet
+                        delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
+                elif d.Count = -1 then // <= -1 ??
+                    let k = cache.Revoke v
+                    match state.TryGetValue k with
+                    | (true, set) ->    
+                        let newSet = HashSet.remove v set
+                        if newSet.IsEmpty then 
+                            state.Remove k |> ignore
+                            delta <- MapNode.addInPlace' cmp k (Remove : ElementOperation<'View>) delta
+                        else 
+                            state.[k] <- newSet
+                            delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
+                    | _ ->
+                        ()
+                else
+                    unexpected()
+
+            HashMap(cmp, delta) |> HashMapDelta.ofHashMap
+
 
     /// Gets the current content of the amap as HashMap.
     let inline force (map : amap<'Key, 'Value>) = 
@@ -1101,7 +1152,7 @@ module AdaptiveHashMapImplementation =
 
     /// Creates a constant map using the creation function.
     let inline constant (content : unit -> HashMap<'Key, 'Value>) = 
-        ConstantMap(lazy(content())) :> amap<_,_> 
+        ConstantMap(Lazy<HashMap<'Key, 'Value>>(content)) :> amap<_,_> 
 
     /// Creates an adaptive map using the reader.
     let inline create (reader : unit -> #IOpReader<HashMapDelta<'Key, 'Value>>) =
@@ -1153,7 +1204,21 @@ module AMap =
                 result
             )
         else
-            create (fun () -> SetReader(elements, Seq.head))
+            create (fun () -> SetReader(elements, HashSet.head))
+
+    /// Creates an amap from the given set and takes an arbitrary value for duplicate entries.
+    let ofASetMappedIgnoreDuplicates (getKey : 'Value -> 'Key) (elements: aset<'Value>) =
+        if elements.IsConstant then
+            constant (fun () -> 
+                let mutable result = HashMap.empty
+                for v in AVal.force elements.Content do
+                    let k = getKey v
+                    result <- HashMap.add k v result
+
+                result
+            )
+        else
+            create (fun () -> MappedSetReader(elements, getKey, HashSet.head))
     
     /// Creates an amap from the given set while keeping all duplicate values for a key in a HashSet.           
     let ofASet (elements: aset<'Key * 'Value>) =
@@ -1162,16 +1227,35 @@ module AMap =
                 let mutable result = HashMap.empty
                 for (k,v) in AVal.force elements.Content do
                     result <- 
-                        result |> HashMap.alter k (fun o ->
+                        result |> HashMap.alterV k (fun o ->
                             match o with
-                            | Some o -> HashSet.add v o |> Some
-                            | None -> HashSet.single v |> Some
+                            | ValueSome o -> HashSet.add v o |> ValueSome
+                            | ValueNone -> HashSet.single v |> ValueSome
                         )
 
                 result
             )
         else
             create (fun () -> SetReader(elements, id))
+
+    /// Creates an amap from the given set while keeping all duplicate values for a key in a HashSet.           
+    let ofASetMapped (getKey : 'Value -> 'Key) (elements: aset<'Value>) =
+        if elements.IsConstant then
+            constant (fun () -> 
+                let mutable result = HashMap.empty
+                for v in AVal.force elements.Content do
+                    result <- 
+                        let k = getKey v
+                        result |> HashMap.alterV k (fun o ->
+                            match o with
+                            | ValueSome o -> HashSet.add v o |> ValueSome
+                            | ValueNone -> HashSet.single v |> ValueSome
+                        )
+
+                result
+            )
+        else
+            create (fun () -> MappedSetReader(elements, getKey, id))
             
     /// Creates an amap using the given reader-creator.
     let ofReader (creator : unit -> #IOpReader<HashMapDelta<'Key, 'Value>>) =

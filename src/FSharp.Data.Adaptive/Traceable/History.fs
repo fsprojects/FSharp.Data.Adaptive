@@ -125,7 +125,7 @@ type internal RelevantNode<'State, 'T> =
 /// History and HistoryReader are the central implementation for traceable data-types.
 /// The allow to construct a dependent History (by passing an input-reader) or imperatively
 /// performing operations on the history while keeping track of all output-versions that may exist.
-type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: Traceable<'State, 'Delta>, finalize: 'Delta -> unit) =
+type History<'State, 'Delta> private(input: voption<Lazy<IOpReader<'Delta>>>, t: Traceable<'State, 'Delta>, finalize: 'Delta -> unit) =
     inherit AdaptiveObject()
 
     /// The current state of the History
@@ -337,10 +337,10 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
     member private x.Update (self: AdaptiveToken) =
         if x.OutOfDate then
             match input with
-                | Some c -> 
+                | ValueSome c -> 
                     let v = c.Value.GetChanges self
                     append v |> ignore
-                | None ->
+                | ValueNone ->
                     ()
 
     /// The current state of the history
@@ -433,10 +433,10 @@ type History<'State, 'Delta> private(input: option<Lazy<IOpReader<'Delta>>>, t: 
     interface IAdaptiveValue<'State> with
         member x.GetValue t = x.GetValue t
 
-    new (t: Traceable<'State, 'Delta>, finalize: 'Delta -> unit) = History<'State, 'Delta>(None, t, finalize)
-    new (input: unit -> IOpReader<'Delta>, t: Traceable<'State, 'Delta>, finalize: 'Delta -> unit) = History<'State, 'Delta>(Some (lazy (input())), t, finalize)
-    new (t: Traceable<'State, 'Delta>) = History<'State, 'Delta>(None, t, ignore)
-    new (input: unit -> IOpReader<'Delta>, t: Traceable<'State, 'Delta>) = History<'State, 'Delta>(Some (lazy (input())), t, ignore)
+    new (t: Traceable<'State, 'Delta>, finalize: 'Delta -> unit) = History<'State, 'Delta>(ValueNone, t, finalize)
+    new (input: unit -> IOpReader<'Delta>, t: Traceable<'State, 'Delta>, finalize: 'Delta -> unit) = History<'State, 'Delta>(ValueSome (lazy (input())), t, finalize)
+    new (t: Traceable<'State, 'Delta>) = History<'State, 'Delta>(ValueNone, t, ignore)
+    new (input: unit -> IOpReader<'Delta>, t: Traceable<'State, 'Delta>) = History<'State, 'Delta>(ValueSome (lazy (input())), t, ignore)
 
 /// HistoryReader implements IOpReader<_,_> and takes care of managing versions correctly.
 and internal HistoryReader<'State, 'Delta>(h: History<'State, 'Delta>) =

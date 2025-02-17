@@ -293,3 +293,7 @@ type AdaptiveIndexList private() =
     static member TryAt(this: alist<'T>, index: Index) =
         this |> AList.tryGet index
 
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member ToAdaptiveHashSet(this: alist<'T1>, mapping : Func<'T1, 'T2>) =
+        this |> AList.mapToASet mapping.Invoke
+

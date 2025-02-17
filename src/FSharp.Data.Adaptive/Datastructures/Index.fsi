@@ -9,6 +9,7 @@ open System
 type Index =
     interface IComparable
     #if !FABLE_COMPILER
+    interface IEquatable<Index>
     interface IComparable<Index>
     #endif
 

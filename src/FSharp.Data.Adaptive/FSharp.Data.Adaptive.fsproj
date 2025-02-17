@@ -2,11 +2,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFrameworks>netstandard2.0;net5.0;net6.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
-
-    <TrimMode>link</TrimMode>
-    <IsTrimmable>true</IsTrimmable>
+	
 
     <!-- Example ultra-simple styling and generation settings for FsDocs default template-->
     <PackageLicenseUrl>https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/LICENSE</PackageLicenseUrl>
@@ -17,6 +15,10 @@
     <FsDocsReleaseNotesLink>https://github.com/fsprojects/FSharp.Data.Adaptive/blob/master/RELEASE_NOTES.md</FsDocsReleaseNotesLink>
     <FsDocsNavbarPosition>fixed-left</FsDocsNavbarPosition>
     <FsDocsTheme>default</FsDocsTheme>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)'=='net8.0'">
+	<TrimMode>link</TrimMode>
+	<IsTrimmable>true</IsTrimmable>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\..\bin\Debug\</OutputPath>

@@ -51,9 +51,15 @@ module AMap =
  
     /// Creates an amap from the given set while keeping all duplicate values for a key in a HashSet.
     val ofASet : elements:aset<'Key * 'Value> -> amap<'Key, HashSet<'Value>>
+
+    /// Creates an amap from the given set while keeping all duplicate values for a key in a HashSet.
+    val ofASetMapped : getKey:('Value -> 'Key) -> elements:aset<'Value> -> amap<'Key, HashSet<'Value>>
     
     /// Creates an amap from the given set and takes an arbitrary value for duplicate entries.
     val ofASetIgnoreDuplicates : elements:aset<'Key * 'Value> -> amap<'Key, 'Value>
+
+    /// Creates an amap from the given set and takes an arbitrary value for duplicate entries.
+    val ofASetMappedIgnoreDuplicates : getKey:('Value -> 'Key) -> elements:aset<'Value> -> amap<'Key, 'Value>
     
     /// Creates an amap using the given reader-creator.
     val ofReader : creator: (unit -> #IOpReader<HashMapDelta<'Key, 'Value>>) -> amap<'Key, 'Value>

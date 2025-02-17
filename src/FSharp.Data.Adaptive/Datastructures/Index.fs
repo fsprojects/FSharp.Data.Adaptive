@@ -3,6 +3,7 @@
 open System
 open System.Threading
 open System.Collections.Generic
+open System.Runtime.CompilerServices
 
 /// the internal implementation of our order-maintenance structure.
 [<StructuredFormatDisplay("{AsString}")>]
@@ -66,66 +67,60 @@ type IndexNode =
         member x.Key = x.Tag - x.Root.Tag
 
         /// insert a node directly after this one.
+        /// NOTE: expects node to be locked
         member x.InsertAfter() =
-            lock x (fun () ->
-                let next = x.Next
+            let next = x.Next
                     
-                /// initially we increment the distance by Uint64.MaxValue/2
-                let mutable distance = 
-                    if next = x then UInt64.MaxValue
-                    else next.Tag - x.Tag
+            /// initially we increment the distance by Uint64.MaxValue/2
+            let mutable distance = 
+                if Object.ReferenceEquals(next, x) then UInt64.MaxValue
+                else next.Tag - x.Tag
 
-                // we're out of luck and there's no space for an additional node.
-                if distance = 1UL then
-                    distance <- IndexNode.Relabel x
+            // we're out of luck and there's no space for an additional node.
+            if distance = 1UL then
+                distance <- IndexNode.Relabel x
                         
-                // put the new node in between me and the next.
-                let key = x.Tag + (distance / 2UL)
-                let res = IndexNode(x.Root, Prev = x, Next = x.Next, Tag = key)
+            // put the new node in between me and the next.
+            let key = x.Tag + (distance / 2UL)
+            let res = IndexNode(x.Root, Prev = x, Next = next, Tag = key)
 
-                // link the node
-                next.Prev <- res
-                x.Next <- res
+            // link the node
+            next.Prev <- res
+            x.Next <- res
 
-                res
-            )
+            res
 
         /// Delete a node from the cycle.
         member x.Delete() =
             let prev = x.Prev
             Monitor.Enter prev
-            if prev.Next <> x then
+            if not (Object.ReferenceEquals(prev.Next, x)) then // NOTE: prev.Next might point to an inserted node between after lock has been aquired
                 Monitor.Exit prev
                 x.Delete()
             else
                 Monitor.Enter x
-                try
-                    if x.RefCount = 1 then
-                        prev.Next <- x.Next
-                        x.Next.Prev <- prev
-                        x.RefCount <- 0
-                    else
-                        x.RefCount <- x.RefCount - 1
 
-                finally
-                    Monitor.Exit x
-                    Monitor.Exit prev
+                if x.RefCount = 1 then
+                    prev.Next <- x.Next
+                    x.Next.Prev <- prev
+                    x.Next <- Unchecked.defaultof<_> // set pointers to null so no additional RefCount=0 check is needed in Before after aquiring the lock
+                    x.Prev <- Unchecked.defaultof<_>
+                    x.RefCount <- 0
+                else
+                    x.RefCount <- x.RefCount - 1
 
-        /// add a reference to the node.
-        member x.AddRef() =
-            lock x (fun () ->
-                x.RefCount <- x.RefCount + 1
-            )
+                Monitor.Exit x
+                Monitor.Exit prev
+
 
         /// Compare me to another node.
         member x.CompareTo(o : IndexNode) =
             match Monitor.TryEnter x, Monitor.TryEnter o with
             | true, true ->
-                try 
-                    compare x.Key o.Key
-                finally
-                    Monitor.Exit x
-                    Monitor.Exit o
+                let res = compare x.Key o.Key
+                Monitor.Exit x
+                Monitor.Exit o
+                res
 
             | true, false ->
                 Monitor.Exit x
@@ -138,6 +133,10 @@ type IndexNode =
             | false, false ->
                 x.CompareTo o
 
+        [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+        member x.Equals (o : IndexNode) =
+            System.Object.ReferenceEquals(x,o)
+
         interface IComparable with
             member x.CompareTo (o : obj) =
                 match o with
@@ -149,60 +148,10 @@ type IndexNode =
         override x.ToString() = sprintf "%f" (float x.Key / float UInt64.MaxValue)
         member private x.AsString = x.ToString()
 
-        new(root : IndexNode) = { Root = root; Prev = Unchecked.defaultof<_>; Next = Unchecked.defaultof<_>; Tag = 0UL; RefCount = 0 }
+        new(root : IndexNode) = { Root = root; Prev = Unchecked.defaultof<_>; Next = Unchecked.defaultof<_>; Tag = 0UL; RefCount = 1 }
     end
         
 #if !FABLE_COMPILER
-
-type internal AsyncBlockingCollection<'a>() =
-    let store = System.Collections.Generic.Queue<'a>()
-
-    let mutable next : option<Tasks.TaskCompletionSource<unit>> = None //Tasks.TaskCompletionSource<unit>()
-
-    member x.Add(value : 'a) =
-        lock store (fun () ->
-            store.Enqueue value
-            match next with
-            | Some n -> 
-                n.SetResult()
-                next <- None
-            | None -> 
-                ()
-        )
-
-    member x.Take() =
-        Async.FromContinuations (fun (success, error, cancel) ->
-            Monitor.Enter store
-            try
-                if store.Count > 0 then
-                    let value = store.Dequeue()
-                    Monitor.Exit store
-                    success value
-                else
-                    let tcs = 
-                        match next with
-                        | Some n -> n
-                        | None ->
-                            let n = Tasks.TaskCompletionSource<unit>()
-                            next <- Some n
-                            n
-                    Monitor.Exit store
-                    tcs.Task.ContinueWith (fun (_t : Tasks.Task<unit>) ->
-                        Async.StartWithContinuations(x.Take(), success, error, cancel)
-                    ) |> ignore
-            with 
-                | :? OperationCanceledException as e ->
-                    Monitor.Exit store
-                    cancel e
-                | e ->
-                    Monitor.Exit store
-                    error e
-        )
-
-    member x.Clear() =
-        lock store (fun () ->
-            store.Clear()
-        )
 
 /// datastructure representing an abstract index.
 /// supported operations are: Index.zero, Index.after(index), Index.before(index), Index.between(l, r).
@@ -210,54 +159,59 @@ type internal AsyncBlockingCollection<'a>() =
 /// Note that the implementation is quite obfuscated due to concurrency.
 [<Sealed; StructuredFormatDisplay("{AsString}")>]
 type Index private(real : IndexNode) =
-    do real.AddRef()
-
-
-    static let queue = new AsyncBlockingCollection<IndexNode>()
-
-    static do
-        async {
-            while true do
-                let! v = queue.Take()
-                do! Async.SwitchToThreadPool()
-                v.Delete()
-        } |> Async.Start
 
     member private x.Value = real
 
     member x.After() =
-        lock real (fun () ->
-            if real.Next <> real.Root then Index real.Next 
-            else Index (real.InsertAfter()) 
-        )   
+        Monitor.Enter real
+        let res =
+            let next = real.Next
+            if not (Object.ReferenceEquals(next, real.Root)) then 
+                Monitor.Enter next 
+                next.RefCount <- next.RefCount + 1
+                Monitor.Exit next
+                next |> Index
+            else 
+                real.InsertAfter() |> Index
+        Monitor.Exit real
+        res
 
     member x.Before() =
         let prev = real.Prev
         Monitor.Enter prev
-        if prev.Next <> real then
+        if not (Object.ReferenceEquals(prev.Next, real)) then // NOTE: prev.Next might point to an inserted node between or be null if it just has been deleted
             Monitor.Exit prev
             x.Before()
         else
-            try
-                if prev = real.Root then 
+            let res =
+                if Object.ReferenceEquals(prev, real.Root) then 
                     prev.InsertAfter() |> Index
                 else
+                    prev.RefCount <- prev.RefCount + 1
                     prev |> Index
-            finally
-                Monitor.Exit prev
+            
+            Monitor.Exit prev
+            res
 
     member l.Between(r : Index) =
         let l = l.Value
         let r = r.Value
         Monitor.Enter l
-        try
-            if l.Next = r then l.InsertAfter() |> Index
-            else l.Next |> Index
-        finally
-            Monitor.Exit l
+        let res =
+            let next = l.Next
+            if Object.ReferenceEquals(next, r) then 
+                l.InsertAfter() |> Index
+            else
+                Monitor.Enter next
+                next.RefCount <- next.RefCount + 1
+                Monitor.Exit next
+                next |> Index
+        
+        Monitor.Exit l
+        res
 
     override x.Finalize() =
-        queue.Add real
+        real.Delete()
 
     member x.CompareTo (o : Index) = real.CompareTo(o.Value)
 
@@ -269,6 +223,10 @@ type Index private(real : IndexNode) =
                 
     override x.ToString() = real.ToString()
     member private x.AsString = x.ToString()
+
+    interface IEquatable<Index> with
+        member x.Equals (o: Index): bool = 
+            real.Equals o.Value
 
     interface IComparable with
         member x.CompareTo(o : obj) = 

@@ -47,6 +47,17 @@ type AdaptiveHashSet private() =
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member OfHashSet<'T>(set: HashSet<'T>) = ASet.ofHashSet set
+
+    /// Creates an AdaptiveHashSet from a tree of lists
+    /// NOTE: does not expect duplicates -> TODO
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfListTree(list: alist<'TNode>, getChildren : Func<'TNode, alist<'TNode>>) =
+        list |> ASet.ofListTree getChildren.Invoke
+
+    /// Creates an AdaptiveHashSet from a tree of sets
+    [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member OfSetTree(set: aset<'TNode>, getChildren : Func<'TNode, aset<'TNode>>) =
+        set |> ASet.ofSetTree getChildren.Invoke
         
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ToAdaptiveHashSet(this: seq<'T>) = ASet.ofSeq this
@@ -278,8 +289,7 @@ type AdaptiveHashSet private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member GroupBy(this: aset<'T>, mapping: Func<'T, 'G>) =
         this |> ASet.groupBy mapping.Invoke
-
-        
+                
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ToAdaptiveHashMap(this: aset<'K * 'V>) =
         AMap.ofASet this
@@ -288,6 +298,9 @@ type AdaptiveHashSet private() =
     static member ToAdaptiveHashMapIgnoreDuplicates(this: aset<'K * 'V>) =
         AMap.ofASetIgnoreDuplicates this
 
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member ToAdaptiveHashMapIgnoreDuplicates(this: aset<'TValue>, getKey : Func<'TValue, 'TKey>) =
+        this |> AMap.ofASetMappedIgnoreDuplicates getKey.Invoke
 
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member ToArray(this: aset<'T>) =

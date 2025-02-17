@@ -830,6 +830,10 @@ module IndexList =
     let inline tryRemove (index : Index) (list : IndexList<'T>) = 
         list.TryRemove(index)
 
+    /// Removes the entry associated to the given index, returns the (optional) value and the list without the specific element.
+    let inline tryRemoveV (index : Index) (list : IndexList<'T>) = 
+        list.TryRemoveV(index)
+
     /// Finds the optional neighbour elements in the list for the given index.
     let inline neighbours (index : Index) (list : IndexList<'T>) = 
         list.Neighbours(index)
@@ -861,6 +865,10 @@ module IndexList =
     /// gets the element for the given index (if any).
     let inline tryGet (index : Index) (list : IndexList<'T>) = 
         list.TryGet index
+
+    /// gets the element for the given index (if any).
+    let inline tryGetV (index : Index) (list : IndexList<'T>) = 
+        list.TryGetV index
 
     /// adds, deletes or updates the element for the given index.
     /// the update functions gets the optional old value and may optionally return

@@ -176,28 +176,28 @@ module internal AdaptiveIndexListHelpers =
 
         member x.Invoke(k : 'k) =
             let mutable index = Index.zero
-            let inline ret i = index <- i; Some i
+            let inline ret i = index <- i; ValueSome i
             let newStore =
-                store |> MapExt.changeWithNeighbours k (fun left self right -> 
+                store |> MapExt.changeWithNeighboursV k (fun left self right -> 
                     match self with
-                    | Some i -> ret i
-                    | None -> 
+                    | ValueSome i -> ret i
+                    | ValueNone -> 
                         match left, right with
-                        | None, None                -> Index.after Index.zero |> ret
-                        | Some(_,l), None           -> Index.after l          |> ret
-                        | None, Some(_,r)           -> Index.before r         |> ret
-                        | Some (_,l), Some(_,r)     -> Index.between l r      |> ret
+                        | ValueNone, ValueNone                -> Index.after Index.zero |> ret
+                        | ValueSome(_,l), ValueNone           -> Index.after l          |> ret
+                        | ValueNone, ValueSome(_,r)           -> Index.before r         |> ret
+                        | ValueSome (_,l), ValueSome(_,r)     -> Index.between l r      |> ret
                 ) 
             store <- newStore
             index
 
         member x.Revoke(k : 'k) =
-            match MapExt.tryRemove k store with
-            | Some(i, rest) ->
+            match MapExt.tryRemoveV k store with
+            | ValueSome(i, rest) ->
                 store <- rest
-                Some i
-            | None -> 
-                None
+                ValueSome i
+            | ValueNone -> 
+                ValueNone
 
         member x.Clear() =
             store <- MapExt.empty

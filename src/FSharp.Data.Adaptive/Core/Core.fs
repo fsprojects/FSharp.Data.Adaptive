@@ -227,6 +227,10 @@ and [<Struct; StructLayout(LayoutKind.Explicit)>] private VolatileSetData =
 /// entries. The only other functionality is Consume which returns all the
 /// (currently live) entries and clears the set.
 and internal WeakOutputSet() =
+
+    let [<Literal>] ArrayCapacity = 8
+    let [<Literal>] HashSetCapacity = 16
+
     let mutable data = Unchecked.defaultof<VolatileSetData>
     let mutable setOps = 0
     let mutable valueReader = ref Unchecked.defaultof<IAdaptiveObject>
@@ -246,7 +250,7 @@ and internal WeakOutputSet() =
                 if found then
                     false
                 else
-                    let arr = Array.zeroCreate 8
+                    let arr = Array.zeroCreate ArrayCapacity
                     arr.[0] <- data.Single
                     arr.[1] <- weakObj
                     data.Tag <- 1
@@ -282,8 +286,13 @@ and internal WeakOutputSet() =
                     true
                 else
                     // r cannot be null here (empty index would have been found)
-                    let all = data.Array |> Array.choose (fun r -> if r.TryGetTarget(valueReader) then Some r else None)
-                    let set = HashSet all
+                    let set = HashSet<WeakReference<IAdaptiveObject>>()
+                    #if NET8_0_OR_GREATER
+                    set.EnsureCapacity(HashSetCapacity) |> ignore
+                    #endif
+                    for r in data.Array do
+                        if r.TryGetTarget(valueReader) then
+                            set.Add r |> ignore
                     let res = set.Add weakObj
                     data.Tag <- 2
                     data.Set <- set
