@@ -785,3 +785,75 @@ let ``[ASet] filterA``() =
         )
 
     filtered |> ASet.force |> should setequal [0; 1; 2; 3; 4]
+
+type SetTreeNode = 
+    { 
+        value : int
+        nodes : cset<SetTreeNode> 
+    }
+    override this.ToString() = sprintf "Node %d" this.value
+
+[<Test>]
+let ``[ASet] ofSetTree``() =
+    
+    let roots = cset<SetTreeNode>()
+
+    let filter = AVal.init(0)
+    let set = roots |> ASet.filterA (fun n -> filter |> AVal.map(fun f -> (n.value % 2) = f)) |> ASet.ofSetTree (fun n -> n.nodes |> ASet.filterA (fun n -> filter |> AVal.map(fun f -> (n.value % 2) = f)))
+        
+    let rec cnt (nodes : cset<SetTreeNode>) (filter : int) =
+        let mutable sum = 0
+        for sn in nodes do
+            if (sn.value % 2) = filter then
+                sum <- sum + (cnt sn.nodes filter) + 1
+        sum
+
+    let nodes = System.Collections.Generic.List<SetTreeNode>()
+    
+    let rnd = System.Random(2225)
+    for i in 0..10000 do
+        transact (fun () ->
+            if rnd.NextDouble() < 0.1 then
+                let newFilter = if filter.Value = 0 then 1 else 0
+                //printfn "%d: toggle filter %d" i newFilter
+                filter.Value <- newFilter
+            else
+                if roots.Count = 0 || rnd.NextDouble() < 0.45 then
+                    let nv = rnd.Next()
+                    let n = { value = nv; nodes = cset<SetTreeNode>() }
+                    if roots.Count = 0 || rnd.NextDouble() < 0.25 then
+                        roots.Add n |> ignore
+                        //printfn "%d: add root node %d" i nv
+                    else
+                        let index = rnd.Next(nodes.Count)   
+                        nodes.[index].nodes.Add(n) |> ignore
+                        //printfn "%d: add node %d to %d" i nv (nodes.[index].value)
+                    nodes.Add n |> ignore
+                else
+                    if rnd.NextDouble() < 0.2 then
+                        let index = rnd.Next(roots.Count)
+                        let n = roots |> Seq.skip(index) |> Seq.head
+                        nodes.Remove(n) |> ignore
+                        roots.Remove(n) |> ignore
+                        //printfn "%d: rem root node %d" i n.value
+                    else
+                        let index = rnd.Next(nodes.Count)
+                        let n = nodes.[index]
+                        if n.nodes.Count > 0 then
+                            let indexRem = rnd.Next(n.nodes.Count)
+                            let nr = n.nodes |> Seq.skip(indexRem) |> Seq.head
+                            nodes.Remove(nr) |> ignore
+                            n.nodes.Remove(nr) |> ignore
+                            //printfn "%d: rem node %d from %d" i nr.value n.value
+            )
+
+
+        let refCnt = cnt roots (filter |> AVal.force)
+        let setCnt = (set |> ASet.force).Count 
+
+        if refCnt <> setCnt then
+            printfn "fail: refCnt=%d setCnt=%d" refCnt setCnt
+                
+        should equal setCnt refCnt
+
+    ()

@@ -291,6 +291,7 @@ module CollectionExtensions =
             let mutable initial = true
             let reader = list.GetReader() // NOTE: need to be held, otherwise it will be collected and no updates can be consumed
             let cache = System.Collections.Generic.Dictionary<struct(IIndexListReader<'T> * FSharp.Data.Adaptive.Index), struct('T * IIndexListReader<'T>)>() // TODO: refcounting
+            let removedDirty = DefaultHashSet.create<IIndexListReader<'T>>()
 
             member x.Invoke(token : AdaptiveToken, r : IIndexListReader<'T>, i : FSharp.Data.Adaptive.Index, n : 'T) =
                 let mutable delta = HashSetDelta.empty
@@ -316,8 +317,15 @@ module CollectionExtensions =
                 let mutable delta = HashSetDelta.empty
                 match cache.TryGetValue (struct(r, i)) with
                 | (true, struct(n, subReader)) -> 
-                    cache.Remove (struct(r, i)) |> ignore
-                    subReader.Outputs.Remove x |> ignore
+                    if not (cache.Remove (struct(r, i))) then
+                        unexpected()
+
+                    // if subReader is outOfDate it is expected to be also included in "dirty" inputs
+                    //  -> prevent updates to be included in delta computation
+                    if subReader.OutOfDate then
+                        removedDirty.Add(subReader) |> ignore
+                    elif not (subReader.Outputs.Remove x) then
+                        unexpected()
 
                     delta <- delta.Add (Rem n)
                     subReader.State |> IndexList.iteri (fun i old ->
@@ -338,12 +346,15 @@ module CollectionExtensions =
                         | _ -> unexpected()
                 
                 for d in dirty do
-                    let inner = d.GetChanges token
-                    for c in inner do
-                        match c with
-                        | (i, Set n) -> delta <- delta.Combine (x.Invoke(token, d, i, n))
-                        | (i, Remove) -> delta <- delta.Combine (x.Revoke(d, i))
+                    if not (removedDirty.Contains d) then
+                        let inner = d.GetChanges token
+                        for c in inner do
+                            match c with
+                            | (i, Set n) -> delta <- delta.Combine (x.Invoke(token, d, i, n))
+                            | (i, Remove) -> delta <- delta.Combine (x.Revoke(d, i))
                     
+                removedDirty.Clear()
+
                 delta
 
 
@@ -355,6 +366,7 @@ module CollectionExtensions =
             let mutable initial = true
             let reader = set.GetReader() // NOTE: need to be held, otherwise it will be collected and no updates can be consumed
             let cache = DefaultDictionary.create<'T, struct(IHashSetReader<'T> * ref<int>)>()
+            let removedDirty = DefaultHashSet.create<IHashSetReader<'T>>()
 
             member x.Invoke(token : AdaptiveToken, n : 'T) =
                 let mutable delta = HashSetDelta.empty
@@ -362,11 +374,11 @@ module CollectionExtensions =
                 | (true, (_, refCount)) -> refCount.Value <- refCount.Value + 1
                 | _ ->
                     let subNodes = getChildren n
-                    let reader = subNodes.GetReader()
-                    cache[n] <- (reader, ref 1)
+                    let subReader = subNodes.GetReader()
+                    cache[n] <- (subReader, ref 1)
 
                     delta <- delta.Add (Add n)
-                    let content = reader.GetChanges token
+                    let content = subReader.GetChanges token
                     for c in content do
                         if c.Count <> 1 then unexpected()
                         delta <- delta.Combine (x.Invoke(token, c.Value))
@@ -376,13 +388,20 @@ module CollectionExtensions =
             member x.Revoke(n : 'T) =
                 let mutable delta = HashSetDelta.empty
                 match cache.TryGetValue n with
-                | (true, (reader, refCount)) -> 
+                | (true, (subReader, refCount)) -> 
                     if refCount.Value = 1 then
-                        cache.Remove n |> ignore
-                        reader.Outputs.Remove x |> ignore
+                        if not (cache.Remove n) then
+                            unexpected()
+
+                        // if subReader is outOfDate it is expected to be also included in "dirty" inputs
+                        //  -> prevent updates to be included in delta computation
+                        if subReader.OutOfDate then
+                            removedDirty.Add(subReader) |> ignore
+                        elif not (subReader.Outputs.Remove x) then
+                            unexpected()
 
                         delta <- delta.Add (Rem n)
-                        for old in reader.State do
+                        for old in subReader.State do
                             delta <- delta.Combine (x.Revoke(old))
                     else
                         refCount.Value <- refCount.Value - 1
@@ -404,13 +423,17 @@ module CollectionExtensions =
                         HashSetDelta.empty
 
                 for d in dirty do
-                    let inner = d.GetChanges token |> HashSetDelta.collect (fun d ->
-                            let n = d.Value
-                            if d.Count = 1 then x.Invoke(token, n)
-                            elif d.Count = -1 then x.Revoke(n)
-                            else unexpected()
-                        )
-                    deltas <- deltas.Combine inner
+                    if not (removedDirty.Contains d) then
+                        let inner = d.GetChanges token |> HashSetDelta.collect (fun d ->
+                                let n = d.Value
+                                if d.Count = 1 then x.Invoke(token, n)
+                                elif d.Count = -1 then x.Revoke(n)
+                                else unexpected()
+                            )
+                        deltas <- deltas.Combine inner
+
+                removedDirty.Clear()
+
                 deltas
 
 

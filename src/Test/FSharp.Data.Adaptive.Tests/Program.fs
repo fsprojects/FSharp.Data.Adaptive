@@ -54,6 +54,8 @@ let main _args =
 
     //``[AList] sub``();
 
+    ASet.``[ASet] ofSetTree``();
+
 
     //let a = cval [1;2;3;4]
     //let b = AVal.cast<seq<int>> a
@@ -92,7 +94,7 @@ let main _args =
     //BenchmarkRunner.Run<Benchmarks.HashSetDeltaBench>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.IndexListBenchmarks>() |> ignore
     //BenchmarkRunner.Run<Benchmarks.IndexEqualsBenchmarks>() |> ignore
-    BenchmarkRunner.Run<Benchmarks.IndexGarbageBenchmarks>() |> ignore
+    //BenchmarkRunner.Run<Benchmarks.IndexGarbageBenchmarks>() |> ignore
 
     //let x = Benchmarks.IndexGarbageBenchmarks()
     //x.ListCount <- 100

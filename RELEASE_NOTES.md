@@ -1,3 +1,6 @@
+### 1.2.21
+- fixed ASet.ofSetTree/ofListTree: ignore nested dirty updates
+
 ### 1.2.20
 - added ASet.ofListTree and ASet.ofSetTree
 - added AList.mapToASet
