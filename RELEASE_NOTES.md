@@ -1,3 +1,6 @@
+### 1.2.22
+- fixed exception in ASet.ofSetTree/ofListTree
+
 ### 1.2.21
 - fixed ASet.ofSetTree/ofListTree: ignore nested dirty updates
 

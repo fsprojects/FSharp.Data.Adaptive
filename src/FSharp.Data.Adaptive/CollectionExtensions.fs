@@ -324,8 +324,8 @@ module CollectionExtensions =
                     //  -> prevent updates to be included in delta computation
                     if subReader.OutOfDate then
                         removedDirty.Add(subReader) |> ignore
-                    elif not (subReader.Outputs.Remove x) then
-                        unexpected()
+                    else 
+                        subReader.Outputs.Remove x |> ignore // possible that we are not registered as output?
 
                     delta <- delta.Add (Rem n)
                     subReader.State |> IndexList.iteri (fun i old ->
@@ -397,8 +397,8 @@ module CollectionExtensions =
                         //  -> prevent updates to be included in delta computation
                         if subReader.OutOfDate then
                             removedDirty.Add(subReader) |> ignore
-                        elif not (subReader.Outputs.Remove x) then
-                            unexpected()
+                        else
+                            subReader.Outputs.Remove x |> ignore // possible that we are not registred as output?
 
                         delta <- delta.Add (Rem n)
                         for old in subReader.State do
