@@ -286,7 +286,7 @@ module CollectionExtensions =
         /// Reader for ASet.ofListTree
         [<Sealed>]
         type ListTreeReader<'T>(list: alist<'T>, getChildren : 'T -> alist<'T>) =
-            inherit AbstractDirtyReader<IIndexListReader<'T>, HashSetDelta<'T>>(HashSetDelta.monoid, isNull)
+            inherit AbstractDirtyReader<IIndexListReader<'T>, HashSetDelta<'T>>(HashSetDelta.monoid, fun _ -> true)
             
             let mutable initial = true
             let reader = list.GetReader() // NOTE: need to be held, otherwise it will be collected and no updates can be consumed
@@ -361,7 +361,7 @@ module CollectionExtensions =
         /// Reader for ASet.ofSetTree (delta combine)
         [<Sealed>]
         type SetTreeReader<'T>(set: aset<'T>, getChildren : 'T -> aset<'T>) =
-            inherit AbstractDirtyReader<IHashSetReader<'T>, HashSetDelta<'T>>(HashSetDelta.monoid, isNull)
+            inherit AbstractDirtyReader<IHashSetReader<'T>, HashSetDelta<'T>>(HashSetDelta.monoid, fun _ -> true)
             
             let mutable initial = true
             let reader = set.GetReader() // NOTE: need to be held, otherwise it will be collected and no updates can be consumed

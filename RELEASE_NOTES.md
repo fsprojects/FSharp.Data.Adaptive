@@ -1,3 +1,6 @@
+### 1.2.23
+- fixed dirty tracking in ASet.flattenA/mapA/filterA/chooseA/ofSetTree/ofListTree when application also uses AdaptiveObject.Tag of inputs
+
 ### 1.2.22
 - fixed exception in ASet.ofSetTree/ofListTree
 

@@ -928,7 +928,7 @@ module AdaptiveHashSetImplementation =
     /// Reader for flattenA
     [<Sealed>]
     type FlattenAReader<'T>(input : aset<aval<'T>>) =
-        inherit AbstractDirtyReader<aval<'T>, HashSetDelta<'T>>(HashSetDelta.monoid, isNull)
+        inherit AbstractDirtyReader<aval<'T>, HashSetDelta<'T>>(HashSetDelta.monoid, (<>) "Input")
             
         let r = input.GetReader()
         do r.Tag <- "Input"
@@ -976,7 +976,7 @@ module AdaptiveHashSetImplementation =
     /// Reader for mapA
     [<Sealed>]
     type MapAReader<'A, 'B>(input : aset<'A>, mapping : 'A -> aval<'B>) =
-        inherit AbstractDirtyReader<aval<'B>, HashSetDelta<'B>>(HashSetDelta.monoid, isNull)
+        inherit AbstractDirtyReader<aval<'B>, HashSetDelta<'B>>(HashSetDelta.monoid, (<>) "Reader")
             
         let reader = input.GetReader()
         do reader.Tag <- "Reader"
@@ -1038,7 +1038,7 @@ module AdaptiveHashSetImplementation =
     /// Reader for chooseA
     [<Sealed>]
     type ChooseAReader<'A, 'B>(input : aset<'A>, f : 'A -> aval<option<'B>>) =
-        inherit AbstractDirtyReader<aval<option<'B>>, HashSetDelta<'B>>(HashSetDelta.monoid, isNull)
+        inherit AbstractDirtyReader<aval<option<'B>>, HashSetDelta<'B>>(HashSetDelta.monoid, (<>) "Reader")
             
         let r = input.GetReader()
         do r.Tag <- "Reader"
@@ -1129,7 +1129,7 @@ module AdaptiveHashSetImplementation =
     /// Reader for filterA
     [<Sealed>]
     type FilterAReader<'A>(input : aset<'A>, predicate : 'A -> aval<bool>) =
-        inherit AbstractDirtyReader<aval<bool>, HashSetDelta<'A>>(HashSetDelta.monoid, isNull)
+        inherit AbstractDirtyReader<aval<bool>, HashSetDelta<'A>>(HashSetDelta.monoid, (<>) "Reader")
             
         let r = input.GetReader()
         do r.Tag <- "Reader"
@@ -1229,7 +1229,7 @@ module AdaptiveHashSetImplementation =
                                 ()
                             | _ -> unexpected()
 
-                | _ -> () // aval<bool> expected to have been removed in this udpate
+                | _ -> () // aval<bool> expected to have been removed in this update
 
             deltas
  
