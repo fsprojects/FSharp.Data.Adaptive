@@ -125,49 +125,49 @@ type ChangeableIndexList<'T>(elements: IndexList<'T>) =
     /// Note that the position can be equal to the count of the list.
     member x.InsertAt(index : int, element : 'T) =
         if index < 0 || index > history.State.Count then raise <| System.IndexOutOfRangeException()
-        let l, s, r = MapExt.neighboursAt index history.State.Content
+        let struct(l, s, r) = MapExt.neighboursAtV index history.State.Content
         let r = 
             match s with
-                | Some s -> Some s
-                | None -> r
+                | ValueSome s -> ValueSome s
+                | ValueNone -> r
 
         let index = 
             match l, r with
-            | Some (before,_), Some (after,_) -> Index.between before after
-            | None,            Some (after,_) -> Index.before after
-            | Some (before,_), None           -> Index.after before
-            | None,            None           -> Index.after Index.zero
+            | ValueSome (before,_), ValueSome (after,_) -> Index.between before after
+            | ValueNone,            ValueSome (after,_) -> Index.before after
+            | ValueSome (before,_), ValueNone           -> Index.after before
+            | ValueNone,            ValueNone           -> Index.after Index.zero
 
         history.Perform (IndexListDelta.single index (Set element)) |> ignore
         index
 
     /// Inserts an element directly after the given index and returns the new index for the element.
     member x.InsertAfter(index : Index, element : 'T) =
-        let _l, s, r = MapExt.neighbours index history.State.Content
+        let struct(_, s, r) = MapExt.neighboursV index history.State.Content
         match s with
-        | None ->
+        | ValueNone ->
             history.Perform (IndexListDelta.single index (Set element)) |> ignore
             index
-        | Some _ ->
+        | ValueSome _ ->
             let index =
                 match r with
-                | Some (r,_) -> Index.between index r
-                | None -> Index.after index
+                | ValueSome (r,_) -> Index.between index r
+                | ValueNone -> Index.after index
             history.Perform (IndexListDelta.single index (Set element)) |> ignore
             index
             
     /// Inserts an element directly before the given index and returns the new index for the element.
     member x.InsertBefore(index : Index, element : 'T) =
-        let l, s, _r = MapExt.neighbours index history.State.Content
+        let struct(l, s, _) = MapExt.neighboursV index history.State.Content
         match s with
-        | None ->
+        | ValueNone ->
             history.Perform (IndexListDelta.single index (Set element)) |> ignore
             index
-        | Some _ ->
+        | ValueSome _ ->
             let index =
                 match l with
-                | Some (l,_) -> Index.between l index
-                | None -> Index.before index
+                | ValueSome (l,_) -> Index.between l index
+                | ValueNone -> Index.before index
             history.Perform (IndexListDelta.single index (Set element)) |> ignore
             index
 
@@ -205,7 +205,7 @@ type ChangeableIndexList<'T>(elements: IndexList<'T>) =
     /// Removes the element at the given position and returns its Index.
     member x.RemoveAt (index: int) =
         if index < 0 || index >= history.State.Count then raise <| System.IndexOutOfRangeException()
-        let (index, _) = history.State.Content |> MapExt.item index
+        let struct(index, _) = history.State.Content |> MapExt.itemV index
         history.Perform(IndexListDelta.single index Remove) |> ignore
         index
 
