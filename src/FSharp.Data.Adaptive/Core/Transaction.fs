@@ -136,7 +136,9 @@ type Transaction() =
 
     /// Indicates if inside a running Transaction
     static member HasRunning =
-        Transaction.RunningTransaction.IsSome
+        match Transaction.RunningTransaction with
+        | ValueSome _ -> true
+        | ValueNone -> false
        
     /// Gets the level of the currently running Transaction or
     /// Int32.MaxValue when no Transaction is running

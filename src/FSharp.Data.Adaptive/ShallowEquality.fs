@@ -389,8 +389,7 @@ type ShallowEqualityComparer<'a> private() =
                     il.EmitCall(OpCodes.Callvirt, eq, null)
                     il.Emit(OpCodes.Brfalse, f)
                     
-
-
+                il.Emit(OpCodes.Br,t)
 
             il.MarkLabel t
             il.Emit(OpCodes.Ldc_I4_1)

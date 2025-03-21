@@ -1,3 +1,6 @@
+### 1.2.24
+- [ShallowEquality] fixed ShallowEqualityComparer union type jump table construction (true case)
+
 ### 1.2.23
 - fixed dirty tracking in ASet.flattenA/mapA/filterA/chooseA/ofSetTree/ofListTree when application also uses AdaptiveObject.Tag of inputs
 
