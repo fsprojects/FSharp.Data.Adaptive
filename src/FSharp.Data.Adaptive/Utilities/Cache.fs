@@ -63,7 +63,7 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
                     r
     /// Revoke returns the function value associated
     /// With the given argument and decreases its reference count.
-    member x.RevokeAndGetDeleted (v : 'T1) =
+    member x.RevokeAndGetDeletedUnsafe (v : 'T1) =
         if isNull v then
             match nullCache with
                 | ValueSome (r, ref) -> 
@@ -87,7 +87,7 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
                 
     /// Revoke returns the function value associated
     /// With the given argument and decreases its reference count.
-    member x.RevokeAndGetDeletedTotal (v : 'T1) =
+    member x.TryRevokeAndGetDeleted (v : 'T1) =
         if isNull v then
             match nullCache with
                 | ValueSome (r, ref) -> 
@@ -112,8 +112,33 @@ type internal Cache<'T1, 'T2>(mapping : 'T1 -> 'T2) =
                     ValueNone
 
     /// Revoke the value and return its associated cache value.
-    member x.Revoke (v : 'T1) =
-        x.RevokeAndGetDeleted v |> (fun struct(_,b) -> b)
+    member x.RevokeUnsafe (v : 'T1) =
+        x.RevokeAndGetDeletedUnsafe v |> (fun struct(_,b) -> b)
+    /// Revoke the value and return its associated cache value.
+
+    member x.TryRevoke (v : 'T1) =
+        if isNull v then
+            match nullCache with
+                | ValueSome (r, ref) -> 
+                    ref.Value <- ref.Value - 1
+                    if ref.Value = 0 then
+                        nullCache <- ValueNone
+                        ValueSome (r)
+                    else
+                        ValueSome(r)
+                | ValueNone -> 
+                    ValueNone
+        else
+            match cache.TryGetValue v with
+                | (true, (r, ref)) -> 
+                    ref.Value <- ref.Value - 1
+                    if ref.Value = 0 then
+                        cache.Remove v |> ignore
+                        ValueSome(r)
+                    else
+                        ValueSome(r)
+                | _ -> 
+                    ValueNone
 
     /// Enumerate over all cache values.
     member x.Values = 

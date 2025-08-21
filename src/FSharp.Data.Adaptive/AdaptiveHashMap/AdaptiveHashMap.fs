@@ -149,7 +149,7 @@ module internal MapReductions =
                                     ()
                                 | _ -> 
                                     match HashMap.tryFind index state with
-                                    | Some (oa, ob) -> sum <- sub sum ob
+                                    | Some (_oa, ob) -> sum <- sub sum ob
                                     | None -> ()
 
                                     let b = mapping index a
@@ -236,7 +236,7 @@ module internal MapReductions =
 
         let removeIndex (x : AdaptiveReduceByValue<_,_,_,_,_>) (i : 'k) =
             match HashMap.tryRemove i state with
-            | Some ((oa, ov, o), newState) ->
+            | Some ((_oa, ov, o), newState) ->
                 state <- newState
                 sum <- sub sum o    
                 let rem, newTargets = MultiSetMap.remove ov i targets
@@ -461,7 +461,7 @@ module AdaptiveHashMapImplementation =
                         Set res
                     | Remove -> 
                         match HashMap.tryFind k oldState with
-                        | Some value -> cache.RevokeAndGetDeleted value |> ignore
+                        | Some value -> cache.TryRevoke value |> ignore
                         | None -> () // strange
                         Remove
                 )
@@ -477,7 +477,7 @@ module AdaptiveHashMapImplementation =
                         Set res
                     | Remove -> 
                         match HashMap.tryFind k oldState with
-                        | Some value -> cache.RevokeAndGetDeleted value |> ignore
+                        | Some value -> cache.TryRevoke value |> ignore
                         | None -> () // strange
                         Remove
             ) |> HashMapDelta
@@ -609,7 +609,7 @@ module AdaptiveHashMapImplementation =
                             match HashMap.tryFind k oldState with
                             | Some ov -> 
                                 livingKeys.Remove k |> ignore
-                                cache.Revoke ov |> ignore
+                                cache.TryRevoke ov |> ignore
                                 Some Remove
                             | _ -> 
                                 None
@@ -634,7 +634,7 @@ module AdaptiveHashMapImplementation =
                         match HashMap.tryFind k oldState with
                         | Some ov -> 
                             livingKeys.Remove k |> ignore
-                            cache.Revoke ov |> ignore
+                            cache.TryRevoke ov |> ignore
                             Some Remove
                         | _ -> 
                             None
@@ -728,10 +728,13 @@ module AdaptiveHashMapImplementation =
                     | Set v ->
                         match HashMap.tryFind i old with
                         | Some o ->
-                            let o = cache.Revoke(i, o)
-                            let rem, rest = MultiSetMap.remove o i targets
-                            targets <- rest
-                            if rem then o.Outputs.Remove x |> ignore
+                            match cache.TryRevoke(i, o) with
+                            | ValueSome o ->
+                                let rem, rest = MultiSetMap.remove o i targets
+                                targets <- rest
+                                if rem then o.Outputs.Remove x |> ignore
+                            | ValueNone ->
+                                ()
                         | None ->
                             ()
 
@@ -742,11 +745,14 @@ module AdaptiveHashMapImplementation =
                     | Remove ->
                         match HashMap.tryFind i old with
                         | Some v ->                  
-                            let o = cache.Revoke(i, v)
-                            let rem, r = MultiSetMap.remove o i targets
-                            targets <- r
-                            if rem then o.Outputs.Remove x |> ignore
-                            Some Remove
+                            match cache.TryRevoke(i, v) with
+                            | ValueSome o ->
+                                let rem, r = MultiSetMap.remove o i targets
+                                targets <- r
+                                if rem then o.Outputs.Remove x |> ignore
+                                Some Remove
+                            | ValueNone ->
+                                None
                         | None ->
                             None
                 )
@@ -806,10 +812,13 @@ module AdaptiveHashMapImplementation =
                     | Set v ->
                         match HashMap.tryFind i old with
                         | Some o ->
-                            let o = cache.Revoke(i, o)
-                            let rem, rest = MultiSetMap.remove o i targets
-                            targets <- rest
-                            if rem then o.Outputs.Remove x |> ignore
+                            match cache.TryRevoke(i, o) with
+                            | ValueSome o ->
+                                let rem, rest = MultiSetMap.remove o i targets
+                                targets <- rest
+                                if rem then o.Outputs.Remove x |> ignore
+                            | ValueNone ->
+                                ()
                         | None ->
                             ()
 
@@ -826,13 +835,16 @@ module AdaptiveHashMapImplementation =
                     | Remove ->
                         match HashMap.tryFind i old with
                         | Some v ->                  
-                            let o = cache.Revoke(i, v)
-                            let rem, rest = MultiSetMap.remove o i targets
-                            targets <- rest
-                            if rem then o.Outputs.Remove x |> ignore
+                            match cache.TryRevoke(i, v) with
+                            | ValueSome o ->
+                                let rem, rest = MultiSetMap.remove o i targets
+                                targets <- rest
+                                if rem then o.Outputs.Remove x |> ignore
 
-                            if keys.Remove i then Some Remove
-                            else None
+                                if keys.Remove i then Some Remove
+                                else None
+                            | ValueNone ->
+                                None
                         | None ->
                             None
                 )
@@ -1128,17 +1140,20 @@ module AdaptiveHashMapImplementation =
                         state.[k] <- newSet
                         delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
                 elif d.Count = -1 then // <= -1 ??
-                    let k = cache.Revoke v
-                    match state.TryGetValue k with
-                    | (true, set) ->    
-                        let newSet = HashSet.remove v set
-                        if newSet.IsEmpty then 
-                            state.Remove k |> ignore
-                            delta <- MapNode.addInPlace' cmp k (Remove : ElementOperation<'View>) delta
-                        else 
-                            state.[k] <- newSet
-                            delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
-                    | _ ->
+                    match cache.TryRevoke v with
+                    | ValueSome k ->
+                        match state.TryGetValue k with
+                        | (true, set) ->    
+                            let newSet = HashSet.remove v set
+                            if newSet.IsEmpty then 
+                                state.Remove k |> ignore
+                                delta <- MapNode.addInPlace' cmp k (Remove : ElementOperation<'View>) delta
+                            else 
+                                state.[k] <- newSet
+                                delta <- MapNode.addInPlace' cmp k (Set (view newSet)) delta
+                        | _ ->
+                            ()
+                    | ValueNone ->
                         ()
                 else
                     unexpected()

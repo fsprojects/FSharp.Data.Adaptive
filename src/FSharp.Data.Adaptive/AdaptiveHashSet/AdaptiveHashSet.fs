@@ -236,7 +236,7 @@ module SetReductions =
             | None ->
                 ()
 
-        override x.InputChangedObject(t, o) =
+        override x.InputChangedObject(_t, o) =
             if isNull o.Tag then
                 #if FABLE_COMPILER
                 let o = unbox<aval<'b>> o
@@ -369,7 +369,7 @@ module AdaptiveHashSetImplementation =
     type EmptySet<'T> private() =   
         static let instance = EmptySet<'T>() :> aset<_>
         let content = AVal.constant HashSet.empty
-        let reader = new History.Readers.EmptyReader<CountingHashSet<'T>, HashSetDelta<'T>>(CountingHashSet.trace) :> IHashSetReader<'T>
+        let reader = History.Readers.EmptyReader<CountingHashSet<'T>, HashSetDelta<'T>>(CountingHashSet.trace) :> IHashSetReader<'T>
         static member Instance = instance
         
         member x.Content = content
@@ -389,7 +389,7 @@ module AdaptiveHashSetImplementation =
         member x.Content = value
 
         member x.GetReader() =
-            new History.Readers.ConstantReader<_,_>(
+            History.Readers.ConstantReader<_,_>(
                 CountingHashSet.trace,
                 lazy (HashSet.addAll content.Value),
                 lazy (CountingHashSet.ofHashSet content.Value)
@@ -415,7 +415,7 @@ module AdaptiveHashSetImplementation =
             HashSetDelta.map (fun d ->
                 let v = d.Value
                 if d.Count = 1 then Add(cache.Invoke v)
-                elif d.Count = -1 then Rem(cache.Revoke v)
+                elif d.Count = -1 then Rem(cache.RevokeUnsafe v)
                 else unexpected()
             )
 
@@ -423,7 +423,7 @@ module AdaptiveHashSetImplementation =
             reader.GetChanges token |> HashSetDelta.map (fun d ->
                 let v = d.Value
                 if d.Count = 1 then Add(cache.Invoke v)
-                elif d.Count = -1 then Rem(cache.Revoke v)
+                elif d.Count = -1 then Rem(cache.RevokeUnsafe v)
                 else unexpected()
             )
         
@@ -463,7 +463,7 @@ module AdaptiveHashSetImplementation =
                     if d.Count = 1 then
                         Add(cache.Invoke v) |> Some
                     elif d.Count = -1 then
-                        match cache.RevokeAndGetDeletedTotal v with
+                        match cache.TryRevokeAndGetDeleted v with
                         | ValueSome (del, v) -> 
                             if del then (v :> IDisposable).Dispose()
                             Rem v |> Some
@@ -487,7 +487,7 @@ module AdaptiveHashSetImplementation =
             HashSetDelta.collect (fun d ->
                 match d with
                 | Add(1, v) -> HashSet.computeDelta HashSet.empty (cache.Invoke v)
-                | Rem(1, v) -> HashSet.computeDelta (cache.Revoke v) HashSet.empty
+                | Rem(1, v) -> HashSet.computeDelta (cache.RevokeUnsafe v) HashSet.empty
                 | _ -> unexpected()
             )
 
@@ -495,7 +495,7 @@ module AdaptiveHashSetImplementation =
             reader.GetChanges token |> HashSetDelta.collect (fun d ->
                 match d with
                 | Add(1, v) -> HashSet.computeDelta HashSet.empty (cache.Invoke v)
-                | Rem(1, v) -> HashSet.computeDelta (cache.Revoke v) HashSet.empty
+                | Rem(1, v) -> HashSet.computeDelta (cache.RevokeUnsafe v) HashSet.empty
                 | _ -> unexpected()
             )
           
@@ -516,9 +516,9 @@ module AdaptiveHashSetImplementation =
                     | Some v -> Some (Add v)
                     | None -> None
                 elif d.Count = -1 then
-                    match cache.Revoke v with
-                    | Some v -> Some (Rem v)
-                    | None -> None
+                    match cache.TryRevoke v with
+                    | ValueSome (Some v) -> Some (Rem v)
+                    | _ -> None
                 else
                     unexpected()
             )
@@ -531,9 +531,9 @@ module AdaptiveHashSetImplementation =
                     | Some v -> Some (Add v)
                     | None -> None
                 elif d.Count = -1 then
-                    match cache.Revoke v with
-                    | Some v -> Some (Rem v)
-                    | None -> None
+                    match cache.TryRevoke v with
+                    | ValueSome (Some v) -> Some (Rem v)
+                    | _ -> None
                 else
                     unexpected()
             )
@@ -551,7 +551,7 @@ module AdaptiveHashSetImplementation =
             HashSetDelta.filter (fun d ->
                 let v = d.Value
                 if d.Count = 1 then cache.Invoke v
-                elif d.Count = -1 then cache.Revoke v
+                elif d.Count = -1 then cache.RevokeUnsafe v
                 else unexpected()
             )
       
@@ -559,7 +559,7 @@ module AdaptiveHashSetImplementation =
             r.GetChanges token |> HashSetDelta.filter (fun d ->
                 let v = d.Value
                 if d.Count = 1 then cache.Invoke v
-                elif d.Count = -1 then cache.Revoke v
+                elif d.Count = -1 then cache.RevokeUnsafe v
                 else unexpected()
             )
 
@@ -588,7 +588,7 @@ module AdaptiveHashSetImplementation =
 
                     elif d.Count = -1 then
                         // r is no longer dirty since we either pull or destroy it here.
-                        let struct(deleted, r) = cache.RevokeAndGetDeleted v
+                        let struct(deleted, r) = cache.RevokeAndGetDeletedUnsafe v
                         dirty.Remove r |> ignore
                         if deleted then 
                             // in case r was not dirty we need to explicitly remove ourselves
@@ -843,7 +843,7 @@ module AdaptiveHashSetImplementation =
                         r.GetChanges token
 
                     elif d.Count = -1 then
-                        match cache.RevokeAndGetDeletedTotal value with
+                        match cache.TryRevokeAndGetDeleted value with
                         | ValueSome (deleted, r) -> 
                             // r is no longer dirty since we either pull or destroy it here.
                             dirty.Remove r |> ignore
@@ -933,7 +933,6 @@ module AdaptiveHashSetImplementation =
         let r = input.GetReader()
         do r.Tag <- "Input"
 
-        let mutable initial = true
         let cache = DefaultDictionary.create<aval<'T>, 'T>()
 
         member x.Invoke(token : AdaptiveToken, m : aval<'T>) =
@@ -997,21 +996,24 @@ module AdaptiveHashSetImplementation =
 
 
         member x.Revoke(v : 'A, dirty : System.Collections.Generic.HashSet<_>) =
-            let m = mapping.Revoke v
-                
-            match cache.TryGetValue m with
-            | (true, r) -> 
-                let struct(cnt, v) = r.Value
-                if cnt = 1 then
-                    cache.Remove m |> ignore
-                    dirty.Remove m |> ignore
-                    lock m (fun () -> m.Outputs.Remove x |> ignore )
-                    v
-                else
-                    r.Value <- (cnt - 1, v)
-                    v
-            | _ -> 
+            match mapping.TryRevoke v with
+            | ValueSome m ->
+                match cache.TryGetValue m with
+                | (true, r) -> 
+                    let struct(cnt, v) = r.Value
+                    if cnt = 1 then
+                        cache.Remove m |> ignore
+                        dirty.Remove m |> ignore
+                        lock m (fun () -> m.Outputs.Remove x |> ignore )
+                        v
+                    else
+                        r.Value <- (cnt - 1, v)
+                        v
+                | _ -> 
+                    failwith "[ASet] cannot remove unknown object"
+            | ValueNone ->
                 failwith "[ASet] cannot remove unknown object"
+                
 
         override x.Compute(token, dirty) =
             let mutable deltas = 
@@ -1072,7 +1074,7 @@ module AdaptiveHashSetImplementation =
                 None, None  
 
         member x.Revoke(v : 'A) =
-            let m = f.Revoke v
+            let m = f.RevokeUnsafe v
             match cache.TryGetValue m with
             | (true, r) -> 
                 let struct(rc, v) = r.Value
@@ -1205,7 +1207,7 @@ module AdaptiveHashSetImplementation =
                     let struct(first, other) = pp
                     match state.TryGetValue first with
                     | (true, x) ->
-                        let struct(v, p) = x
+                        let struct(_v, p) = x
                         if pNew <> p then
                             state.[first] <- (d, pNew)
                             if pNew then
@@ -1219,7 +1221,7 @@ module AdaptiveHashSetImplementation =
                         for m in other do
                             match state.TryGetValue m with
                             | (true, x) ->
-                                let struct(v, p) = x
+                                let struct(_v, p) = x
                                 if pNew <> p then
                                     state.[m] <- (d, pNew)
                                     if pNew then

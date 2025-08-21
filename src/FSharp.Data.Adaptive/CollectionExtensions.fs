@@ -52,10 +52,13 @@ module CollectionExtensions =
                         let idx = mapping.Invoke k
                         Some struct(idx, Set v)
                     | Rem(_, v) ->
-                        let k = cache.Revoke v
-                        match mapping.Revoke k with
-                        | ValueSome idx -> Some struct(idx, Remove)
-                        | ValueNone -> None
+                        match cache.TryRevoke v with
+                        | ValueSome k ->
+                            match mapping.Revoke k with
+                            | ValueSome idx -> Some struct(idx, Remove)
+                            | _ -> None
+                        | ValueNone ->
+                            None
                 )
                 |> IndexListDelta.ofSeqV
         
@@ -145,15 +148,23 @@ module CollectionExtensions =
                     match op with
                     | Remove -> 
                         match MapExt.tryFindV i old with
-                        | ValueSome v -> 
-                            delta <- delta.Add (Rem (cache.Revoke v))
+                        | ValueSome v ->
+                            match cache.TryRevoke v with
+                            | ValueSome vv ->
+                                delta <- delta.Add (Rem vv)
+                            | ValueNone ->
+                                ()
                         | ValueNone -> ()
                     | Set v ->
                         match MapExt.tryFindV i old with
                         | ValueSome ov ->
                             if not (DefaultEquality.equals v ov) then
                                 delta <- delta.Add (Add (cache.Invoke v))
-                                delta <- delta.Add (Rem (cache.Revoke ov))
+                                match cache.TryRevoke ov with
+                                | ValueSome o ->
+                                    delta <- delta.Add (Rem o)
+                                | ValueNone ->
+                                    ()
                         | ValueNone ->
                             delta <- delta.Add (Add (cache.Invoke v))
                 delta
@@ -192,7 +203,7 @@ module CollectionExtensions =
 
             let reader = input.GetReader()
             let mutable last = Index.zero
-            let newIndex (v : 'a) =
+            let newIndex (_v : 'a) =
                 let i = Index.after last
                 last <- i
                 i
@@ -208,7 +219,7 @@ module CollectionExtensions =
                             let i = newIndex.Invoke v
                             struct(i, Set v)
                         | Rem(1,v) ->
-                            let i = newIndex.Revoke v
+                            let i = newIndex.RevokeUnsafe v
                             struct(i, Remove)
                         | _ ->
                             unexpected()
@@ -328,7 +339,7 @@ module CollectionExtensions =
                         subReader.Outputs.Remove x |> ignore // possible that we are not registered as output?
 
                     delta <- delta.Add (Rem n)
-                    subReader.State |> IndexList.iteri (fun i old ->
+                    subReader.State |> IndexList.iteri (fun i _old ->
                         delta <- delta.Combine (x.Revoke(subReader, i)))
 
                 | _ -> () // possible if parent set already removed all its sub nodes

@@ -1,11 +1,9 @@
 namespace FSharp.Data.Adaptive
 
 open System.IO
-open System.Diagnostics
 open System.Threading
 open FSharp.Data.Traceable
 open System
-open System.IO
 
 #if !FABLE_COMPILER
 
@@ -201,9 +199,9 @@ module private AdaptiveFileSystemUtilities =
                     | ValueSome r -> ValueSome (Add r)
                     | ValueNone -> ValueNone
                 | Rem(_, v) ->
-                    match mapping.Revoke v with 
-                    | ValueSome r -> ValueSome (Rem r)
-                    | ValueNone -> ValueNone
+                    match mapping.TryRevoke v with 
+                    | ValueSome (ValueSome r) -> ValueSome (Rem r)
+                    | _ -> ValueNone
             )
 
         override x.Compute(_token : AdaptiveToken) =
@@ -233,7 +231,7 @@ module private AdaptiveFileSystemUtilities =
 
         abstract member Read : unit -> 'a 
         
-        override x.Compute(token : AdaptiveToken) =
+        override x.Compute(_token : AdaptiveToken) =
             match watcher with
             | Some _ -> ()
             | None ->

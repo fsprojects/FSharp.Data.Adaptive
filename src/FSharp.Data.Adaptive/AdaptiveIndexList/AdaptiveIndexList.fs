@@ -245,7 +245,7 @@ module internal Reductions =
             | ValueNone ->
                 ()
 
-        override x.InputChangedObject(t, o) =
+        override x.InputChangedObject(_t, o) =
             if isNull o.Tag then
                 #if FABLE_COMPILER
                 let o = unbox<aval<'b>> o
@@ -376,7 +376,7 @@ module internal AdaptiveIndexListImplementation =
     type EmptyList<'T> private() =   
         static let instance = EmptyList<'T>() :> alist<_>
         let content = AVal.constant IndexList.empty
-        let reader = new History.Readers.EmptyReader<IndexList<'T>, IndexListDelta<'T>>(IndexList.trace) :> IIndexListReader<'T>
+        let reader = History.Readers.EmptyReader<IndexList<'T>, IndexListDelta<'T>>(IndexList.trace) :> IIndexListReader<'T>
         static member Instance = instance
         
         member x.Content = content
@@ -396,7 +396,7 @@ module internal AdaptiveIndexListImplementation =
         member x.Content = value
 
         member x.GetReader() =
-            new History.Readers.ConstantReader<_,_>(
+            History.Readers.ConstantReader<_,_>(
                 IndexList.trace,
                 lazy (IndexList.computeDelta IndexList.empty content.Value),
                 content
@@ -612,7 +612,7 @@ module internal AdaptiveIndexListImplementation =
                 d
             )
 
-        override x.InputChangedObject(t, o) =
+        override x.InputChangedObject(_t, o) =
             #if FABLE_COMPILER
             if isNull o.Tag then
                 let o = unbox<aval<'b>> o
@@ -640,11 +640,14 @@ module internal AdaptiveIndexListImplementation =
                     match op with
                     | Set v ->
                         match IndexList.tryGetV i old with
-                        | ValueSome ov ->                  
-                            let o = cache.Revoke(i, ov)
-                            let rem, rest = MultiSetMap.remove o i targets
-                            targets <- rest
-                            if rem then o.Outputs.Remove x |> ignore
+                        | ValueSome ov ->
+                            match cache.TryRevoke(i, ov) with
+                            | ValueSome o ->
+                                let rem, rest = MultiSetMap.remove o i targets
+                                targets <- rest
+                                if rem then o.Outputs.Remove x |> ignore
+                            | ValueNone ->
+                                ()
                         | ValueNone ->
                             ()
                         let k = cache.Invoke(i,v)
@@ -654,11 +657,14 @@ module internal AdaptiveIndexListImplementation =
                     | Remove ->
                         match IndexList.tryGetV i old with
                         | ValueSome v ->                  
-                            let o = cache.Revoke(i, v)
-                            let rem, r = MultiSetMap.remove o i targets
-                            targets <- r
-                            if rem then o.Outputs.Remove x |> ignore
-                            Some Remove
+                            match cache.TryRevoke(i, v) with
+                            | ValueSome o ->
+                                let rem, r = MultiSetMap.remove o i targets
+                                targets <- r
+                                if rem then o.Outputs.Remove x |> ignore
+                                Some Remove
+                            | ValueNone ->
+                                None
                         | ValueNone ->
                             None
                 )
@@ -690,7 +696,7 @@ module internal AdaptiveIndexListImplementation =
                 d
             )
 
-        override x.InputChangedObject(t, o) =
+        override x.InputChangedObject(_t, o) =
             #if FABLE_COMPILER
             if isNull o.Tag then
                 let o = unbox<aval<option<'b>>> o
@@ -719,10 +725,13 @@ module internal AdaptiveIndexListImplementation =
                     | Set v ->
                         match IndexList.tryGetV i old with
                         | ValueSome ov ->                  
-                            let o = cache.Revoke(i, ov)
-                            let rem, rest = MultiSetMap.remove o i targets
-                            targets <- rest
-                            if rem then o.Outputs.Remove x |> ignore
+                            match cache.TryRevoke(i, ov) with
+                            | ValueSome o ->
+                                let rem, rest = MultiSetMap.remove o i targets
+                                targets <- rest
+                                if rem then o.Outputs.Remove x |> ignore
+                            | ValueNone ->
+                                ()
                         | ValueNone ->
                             ()
 
@@ -739,13 +748,16 @@ module internal AdaptiveIndexListImplementation =
                     | Remove ->
                         match IndexList.tryGetV i old with
                         | ValueSome v ->                  
-                            let o = cache.Revoke(i, v)
-                            let rem, rest = MultiSetMap.remove o i targets
-                            targets <- rest
-                            if rem then o.Outputs.Remove x |> ignore
+                            match cache.TryRevoke(i, v) with
+                            | ValueSome o ->
+                                let rem, rest = MultiSetMap.remove o i targets
+                                targets <- rest
+                                if rem then o.Outputs.Remove x |> ignore
 
-                            if keys.Remove i then Some Remove
-                            else None
+                                if keys.Remove i then Some Remove
+                                else None
+                            | ValueNone ->
+                                None
                         | ValueNone ->
                             None
                 )
@@ -1860,9 +1872,4 @@ module AList =
 
     let inline averageByA (mapping : 'T1 -> aval<'T2>) (list : alist<'T1>) =
         reduceByA (AdaptiveReduction.average()) (fun _ v -> mapping v) list
-
-
-    /// Adaptively computes the product of all entries in the list.
-    let inline product (s : alist<'a>) = 
-        reduce (AdaptiveReduction.product()) s
 

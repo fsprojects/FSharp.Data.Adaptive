@@ -1,3 +1,6 @@
+### 1.2.25
+- Cache.Revoke -> Cache.TryRevoke 
+
 ### 1.2.24
 - [ShallowEquality] fixed ShallowEqualityComparer union type jump table construction (true case)
 
