@@ -4,50 +4,85 @@ open System
 open FSharp.Data.Adaptive
 
 
-/// An adaptive reader that allows to get operations since the last evaluation
+/// An adaptive reader that provides incremental access to changes (deltas).
+/// This is the foundation of the incremental update system in FSharp.Data.Adaptive.
+///
+/// Readers maintain a position in the history and return only the changes since their
+/// last GetChanges call, enabling efficient O(k) updates where k = number of changes,
+/// rather than O(n) full recomputations where n = total collection size.
 type IOpReader<'Delta> =
     inherit IAdaptiveObject
 
-    /// Dependency-aware evaluation of the reader
+    /// Adaptively gets the changes (delta) since the last evaluation.
+    /// Returns an empty delta if the reader is up-to-date.
+    /// The token tracks dependencies for automatic change propagation.
     abstract member GetChanges: AdaptiveToken -> 'Delta
 
-/// An adaptive reader thath allows to get operations and also exposes its current state.
+/// An adaptive reader that provides both incremental changes and the current state.
+/// This is used by alist, aset, and amap to provide efficient incremental updates.
+///
+/// The reader maintains:
+/// - Current state after applying all deltas
+/// - Position in the version history
+/// - Only deltas since the last read
 [<Interface>]
 type IOpReader<'State, 'Delta> =
     inherit IOpReader<'Delta>
 
-    /// The Traceable instance for the reader.
+    /// The Traceable instance defining how states and deltas interact.
+    /// Provides operations like applying deltas, combining deltas, computing diffs, etc.
     abstract member Trace : Traceable<'State, 'Delta>
 
-    /// The latest state of the Reader.
-    /// Note that the state gets updated after each evaluation (GetChanges)
+    /// The current state of the reader after applying all deltas.
+    /// This state is updated incrementally each time GetChanges is called.
+    /// Time complexity: O(1) access, state maintained incrementally.
     abstract member State: 'State
 
-/// Abstract base class for implementing IOpReader<_>
+/// Abstract base class for implementing custom incremental readers.
+/// Provides the core logic for tracking changes and returning deltas.
+///
+/// Subclasses only need to implement Compute to define how to calculate changes.
+/// The base class handles:
+/// - Caching (returns empty delta when up-to-date)
+/// - Dependency tracking through AdaptiveToken
+/// - Optional delta transformation via Apply
 [<AbstractClass>]
 type AbstractReader<'Delta>(empty: 'Delta) =
     inherit AdaptiveObject()
-    
-    /// Adaptively compute deltas.
+
+    /// Computes the delta since the last evaluation.
+    /// Called only when the reader is out-of-date.
+    /// Subclasses implement this to define incremental update logic.
     abstract member Compute: AdaptiveToken -> 'Delta
 
-    /// Applies the delta to the current state and returns the 'effective' delta.
+    /// Optionally transforms the computed delta before returning it.
+    /// Default implementation returns the delta unchanged.
+    /// Override to implement delta filtering, normalization, or other transformations.
     abstract member Apply: 'Delta -> 'Delta
     default x.Apply o = o
-    
-    /// Adaptively get the latest deltas (or empty if up-to-date).
+
+    /// Adaptively gets the latest deltas (or empty if up-to-date).
+    /// Returns empty delta when nothing changed, computed delta when out-of-date.
+    /// Time complexity: O(1) when cached, O(compute cost) when invalidated.
     member x.GetChanges(token: AdaptiveToken) =
         x.EvaluateAlways token (fun token ->
             if x.OutOfDate then
                 x.Compute token |> x.Apply
             else
                 empty
-        )   
+        )
 
     interface IOpReader<'Delta> with
         member x.GetChanges c = x.GetChanges c
 
-/// Abstract base class for implementing IOpReader<_,_>
+/// Abstract base class for implementing stateful incremental readers.
+/// Maintains current state and automatically applies deltas to update it.
+///
+/// This is the typical base class for alist/aset/amap operations like map, filter, etc.
+/// The base class handles:
+/// - State management (maintained incrementally)
+/// - Delta application via Traceable
+/// - Returning effective deltas after state updates
 [<AbstractClass>]
 type AbstractReader<'State, 'Delta>(trace: Traceable<'State, 'Delta>) =
     inherit AbstractReader<'Delta>(trace.tmonoid.mempty)
@@ -55,12 +90,15 @@ type AbstractReader<'State, 'Delta>(trace: Traceable<'State, 'Delta>) =
     let mutable state = trace.tempty
 
     /// Applies the delta to the current state and returns the 'effective' delta.
+    /// The effective delta reflects what actually changed (e.g., filtered results).
+    /// Time complexity: O(k) where k = size of delta
     override x.Apply o =
         let (s, o) = trace.tapplyDelta state o
         state <- s
         o
 
-    /// The reader's current content.
+    /// The reader's current state after applying all deltas.
+    /// Maintained incrementally, always reflects the latest accumulated state.
     member x.State = state
 
     interface IOpReader<'State, 'Delta> with
@@ -109,7 +147,16 @@ type AbstractDirtyReader<'T, 'Delta when 'T :> IAdaptiveObject>(t: Monoid<'Delta
     interface IOpReader<'Delta> with
         member x.GetChanges c = x.GetChanges c
 
-/// Linked list node used by the system to represent a 'version' in the History
+/// Linked list node representing a version in the History chain.
+/// Each node contains:
+/// - BaseState: The state at this version
+/// - Value: The delta (changes) from the previous version
+/// - Prev/Next: Weak references forming the version chain
+/// - RefCount: Number of readers currently at this version
+///
+/// This structure enables O(k) access where k = changes since last read.
+/// Nodes with RefCount = 0 can be garbage collected.
+/// Weak references allow automatic cleanup of unreferenced versions.
 [<AllowNullLiteral>]
 type internal RelevantNode<'State, 'T> =
     class
@@ -118,13 +165,34 @@ type internal RelevantNode<'State, 'T> =
         val mutable public RefCount: int
         val mutable public BaseState: 'State
         val mutable public Value: 'T
-            
+
         new(p, s, v, n) = { Prev = p; Next = n; RefCount = 0; BaseState = s; Value = v }
     end
 
-/// History and HistoryReader are the central implementation for traceable data-types.
-/// The allow to construct a dependent History (by passing an input-reader) or imperatively
-/// performing operations on the history while keeping track of all output-versions that may exist.
+/// History is THE central mechanism that makes incremental adaptive collections work.
+///
+/// It maintains a doubly-linked version chain where each node contains:
+/// - A delta (the changes that occurred)
+/// - The state after applying the delta
+/// - Weak references to previous/next versions
+/// - Reference count of readers at this version
+///
+/// Key features:
+/// - Multiple readers can be at different versions simultaneously
+/// - Each reader gets O(k) access to deltas where k = changes since last read
+/// - Automatic pruning removes versions no readers need
+/// - Weak references allow GC of unreferenced parts of the history
+/// - Can be driven by an input reader (dependent) or imperatively (via Perform)
+/// - Efficiently handles many readers on the same history
+///
+/// This is how alist/aset/amap provide efficient incremental updates.
+/// When you call GetChanges on a reader, it walks from its last version
+/// to the current version, accumulating only the deltas it needs.
+///
+/// Memory management:
+/// - Nodes are pruned when no readers reference them (every 100 appends)
+/// - Weak references allow GC of dead readers
+/// - Single-reader case is optimized (deltas accumulated in current node)
 type History<'State, 'Delta> private(input: voption<Lazy<IOpReader<'Delta>>>, t: Traceable<'State, 'Delta>, finalize: 'Delta -> unit) =
     inherit AdaptiveObject()
 
@@ -343,14 +411,28 @@ type History<'State, 'Delta> private(input: voption<Lazy<IOpReader<'Delta>>>, t:
                 | ValueNone ->
                     ()
 
-    /// The current state of the history
+    /// The current state of the history after applying all operations.
+    /// This is the "latest" version that new readers will start from.
+    /// Time complexity: O(1)
     member x.State = state
 
-    /// The traceable instance used by the history
+    /// The Traceable instance defining how states and deltas interact.
+    /// Provides operations like applying deltas, combining deltas, pruning, etc.
     member x.Trace = t
 
-    /// Imperatively performs operations on the history (similar to ModRef.Value <- ...).
-    /// Since the history may need to be marked a Transaction needs to be current.
+    /// Imperatively performs an operation on the history.
+    /// This is how changeable collections (clist, cset, cmap) update their history.
+    ///
+    /// The operation is:
+    /// 1. Applied to the current state
+    /// 2. Appended to the version chain (if non-empty)
+    /// 3. Made available to all readers via GetChanges
+    ///
+    /// Must be called within a transaction (like cval.Value <- ...).
+    /// Returns true if the operation effectively changed the state.
+    ///
+    /// Example:
+    ///     transact (fun () -> history.Perform(IndexListDelta.add index value))
     member x.Perform(op: 'Delta) =
         let changed = lock x (fun () -> append op)
         if changed then
@@ -359,9 +441,13 @@ type History<'State, 'Delta> private(input: voption<Lazy<IOpReader<'Delta>>>, t:
         else
             false
 
-    /// Imperatively performs operations on the history (similar to ModRef.Value <- ...)
-    /// and assumes that newState represents the current history-state with the given operations applied. (hence the Unsafe suffix)
-    /// Since the history may need to be marked a Transaction needs to be current.
+    /// Imperatively performs an operation and directly sets the new state.
+    /// This is an optimization when you've already computed the new state.
+    ///
+    /// UNSAFE because it assumes newState is correct (state after applying op).
+    /// Only use when you've computed the new state yourself for performance.
+    /// Must be called within a transaction.
+    /// Returns true if the operation effectively changed the state.
     member x.PerformUnsafe(newState : 'State, op: 'Delta) =
         let changed = lock x (fun () -> appendUnsafe newState op)
         if changed then
@@ -398,26 +484,43 @@ type History<'State, 'Delta> private(input: voption<Lazy<IOpReader<'Delta>>>, t:
                 node, res
         )
         
-    /// Adaptively gets the history'State current state
+    /// Adaptively gets the history's current state.
+    /// If the history has an input reader, pulls changes from it first.
+    /// Returns the current state after all operations have been applied.
+    /// Time complexity: O(1) if up-to-date, O(k) if pulling k changes from input
     member x.GetValue(token: AdaptiveToken) =
         x.EvaluateAlways token (fun token ->
             x.Update token
             state
         )
 
-    /// Creates a new reader on the history
+    /// Creates a new reader starting at the current version.
+    /// The reader will track its position and return only incremental changes on GetChanges.
+    /// Multiple readers can coexist, each maintaining their own position.
+    ///
+    /// This is how alist.GetReader(), aset.GetReader(), etc. work internally.
+    /// Time complexity: O(1)
     member x.NewReader() =
-        let reader = new HistoryReader<'State, 'Delta>(x) 
+        let reader = new HistoryReader<'State, 'Delta>(x)
         reader :> IOpReader<'State, 'Delta>
-        
-    /// Creates a new reader on the history
+
+    /// Creates a new reader with a mapping to a different view.
+    /// Useful for implementing derived operations that need different state/delta types.
+    ///
+    /// The mapping function transforms each delta before the reader returns it.
+    /// The trace defines the view's state and delta algebra.
+    ///
+    /// Example: mapping IndexListDelta to HashSetDelta for AList.toASet
     member x.NewReader(trace : Traceable<'ViewState, 'ViewDelta>, mapping : 'State -> 'Delta -> 'ViewDelta) =
-        let reader = new HistoryReader<'State, 'Delta, 'ViewState, 'ViewDelta>(x, mapping, trace) 
+        let reader = new HistoryReader<'State, 'Delta, 'ViewState, 'ViewDelta>(x, mapping, trace)
         reader :> IOpReader<'ViewState, 'ViewDelta>
-         
-    /// Creates a new reader on the history
+
+    /// Creates a new reader with a stateless delta mapping.
+    /// Simpler overload when the mapping doesn't need the current state.
+    ///
+    /// Example: filtering deltas, transforming element types, etc.
     member x.NewReader(trace : Traceable<'ViewState, 'ViewDelta>, mapping : 'Delta -> 'ViewDelta) =
-        let reader = new HistoryReader<'State, 'Delta, 'ViewState, 'ViewDelta>(x, (fun _ v -> mapping v), trace) 
+        let reader = new HistoryReader<'State, 'Delta, 'ViewState, 'ViewDelta>(x, (fun _ v -> mapping v), trace)
         reader :> IOpReader<'ViewState, 'ViewDelta>
                    
     interface IAdaptiveValue with
@@ -433,12 +536,29 @@ type History<'State, 'Delta> private(input: voption<Lazy<IOpReader<'Delta>>>, t:
     interface IAdaptiveValue<'State> with
         member x.GetValue t = x.GetValue t
 
+    /// Creates an imperative history (no input reader).
+    /// Used by changeable collections (clist, cset, cmap).
+    /// Operations are added via Perform().
+    /// The finalize callback is called on deltas when they're discarded.
     new (t: Traceable<'State, 'Delta>, finalize: 'Delta -> unit) = History<'State, 'Delta>(ValueNone, t, finalize)
+
+    /// Creates a dependent history driven by an input reader.
+    /// Used by derived operations (map, filter, etc.) that transform another collection.
+    /// The input reader provides deltas that are automatically appended.
+    /// The finalize callback is called on deltas when they're discarded.
     new (input: unit -> IOpReader<'Delta>, t: Traceable<'State, 'Delta>, finalize: 'Delta -> unit) = History<'State, 'Delta>(ValueSome (lazy (input())), t, finalize)
+
+    /// Creates an imperative history with no finalization.
+    /// Most common constructor for simple changeable collections.
     new (t: Traceable<'State, 'Delta>) = History<'State, 'Delta>(ValueNone, t, ignore)
+
+    /// Creates a dependent history with no finalization.
+    /// Most common constructor for derived operations.
     new (input: unit -> IOpReader<'Delta>, t: Traceable<'State, 'Delta>) = History<'State, 'Delta>(ValueSome (lazy (input())), t, ignore)
 
-/// HistoryReader implements IOpReader<_,_> and takes care of managing versions correctly.
+/// HistoryReader maintains a position in a History and provides incremental access to changes.
+/// Each reader tracks its own version and walks forward through the version chain on GetChanges.
+/// This is the implementation behind alist/aset/amap readers.
 and internal HistoryReader<'State, 'Delta>(h: History<'State, 'Delta>) =
     inherit AdaptiveObject()
     let trace = h.Trace
