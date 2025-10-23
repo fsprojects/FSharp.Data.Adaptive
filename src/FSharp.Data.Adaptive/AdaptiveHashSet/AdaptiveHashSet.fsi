@@ -40,8 +40,10 @@ type IAdaptiveHashSet<'T> =
     abstract member GetReader : unit -> IHashSetReader<'T>
 
     /// Gets the underlying History instance for the aset (if any).
-    /// History enables time-travel debugging and undo/redo functionality.
-    /// Most user code doesn't need to access this directly.
+    /// History is THE central mechanism that makes incremental adaptive collections work.
+    /// It maintains a version chain of deltas, allowing multiple readers at different versions
+    /// to efficiently access only the changes since their last read. This is the core implementation
+    /// that enables alist/aset/amap to provide efficient incremental updates.
     abstract member History : option<History<CountingHashSet<'T>, HashSetDelta<'T>>>
 
 /// Type abbreviation for IAdaptiveHashSet.

@@ -41,8 +41,10 @@ type IAdaptiveIndexList<'T> =
     abstract member GetReader : unit -> IIndexListReader<'T>
 
     /// Gets the underlying History instance for the alist (if any).
-    /// History enables time-travel debugging and undo/redo functionality.
-    /// Most user code doesn't need to access this directly.
+    /// History is THE central mechanism that makes incremental adaptive collections work.
+    /// It maintains a version chain of deltas, allowing multiple readers at different versions
+    /// to efficiently access only the changes since their last read. This is the core implementation
+    /// that enables alist/aset/amap to provide efficient incremental updates.
     abstract member History : option<History<IndexList<'T>, IndexListDelta<'T>>>
 
 /// Type abbreviation for IAdaptiveIndexList.
