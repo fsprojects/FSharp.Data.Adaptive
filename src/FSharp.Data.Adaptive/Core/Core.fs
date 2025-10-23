@@ -9,70 +9,108 @@ open System.Collections.Generic
 
 #nowarn "9"
 
-/// Represents the core interface for all adaptive objects.
-/// Contains support for tracking OutOfDate flags, managing in-/outputs 
-/// and lazy/eager evaluation in the dependency tree.
+/// Represents the core interface for all adaptive objects in the dependency graph.
+///
+/// IAdaptiveObject is the foundation of the adaptive system and provides:
+/// - OutOfDate tracking: Knows when its cached value is stale
+/// - Dependency management: Tracks inputs and outputs in the dependency graph
+/// - Change propagation: Participates in efficient update cascades
+/// - Lazy/eager evaluation: Can be evaluated on-demand or within transactions
+///
+/// Implementation notes:
+/// - All adaptive values (aval, alist, aset, amap) implement this interface
+/// - The interface supports both pull-based (lazy) and push-based (eager) evaluation
+/// - Thread-safe: Uses locking to ensure consistency during concurrent updates
 type IAdaptiveObject =
 
+    /// General-purpose tag for storing metadata.
+    /// Used by advanced scenarios like traversal algorithms or custom caching.
     abstract member Tag : obj with get, set
 
-    /// Each object can cache a WeakReference pointing to itself.
-    /// This is because the system internally needs WeakReferences to IAdaptiveObjects
+    /// Cached WeakReference to this object.
+    /// The system internally needs WeakReferences to IAdaptiveObjects for garbage collection.
+    /// Cached here to avoid creating multiple WeakReference instances for the same object.
     abstract member Weak: WeakReference<IAdaptiveObject>
 
-    /// Used internally to represent the maximal distance from an input
-    /// cell in the dependency graph when evaluating inside a transaction.
+    /// The maximal distance from an input cell in the dependency graph.
+    /// Used during transaction-based evaluation to ensure topological order.
+    /// Higher levels are evaluated after lower levels to maintain consistency.
+    /// Input cells (cval, clist, etc.) have level 0.
     abstract member Level: int with get, set
 
     ///// Used internally to ensure that AdaptiveObjects are not marked while their value
     ///// is still needed by an evaluation.
     //abstract member ReaderCount: int with get, set
 
-    /// Allows a specific implementation to evaluate the cell during the change propagation process.
+    /// Marks this object as out-of-date during change propagation.
+    /// Returns true if the object was previously up-to-date and is now marked.
+    /// Returns false if the object was already marked or is constant.
+    /// This method is called during transaction processing when inputs change.
     abstract member Mark: unit -> bool
 
-    /// Indicates whether the object has been marked. This flag should only be accessed when holding
-    /// a lock on the adaptive object.
+    /// Indicates whether the object's cached value is out-of-date.
+    /// True means the cached value is stale and needs recomputation.
+    /// False means the cached value is current and can be used.
+    /// Should only be accessed when holding a lock on the adaptive object.
     abstract member OutOfDate: bool with get, set
 
-    /// The adaptive outputs for the object. Represented by Weak references to allow for
-    /// unused parts of the graph to be garbage collected.
+    /// The set of adaptive outputs that depend on this object.
+    /// Uses weak references to allow unused parts of the graph to be garbage collected.
+    /// When this object changes, all outputs in this set are notified.
     abstract member Outputs: IWeakOutputSet
 
-    /// Gets called whenever a current input of the object gets marked
-    /// out of date. The first argument represents the Transaction that
-    /// causes the object to be marked
+    /// Called when an input dependency becomes out-of-date.
+    /// The first argument is the transaction object causing the change.
+    /// The second argument is the input object that changed.
+    /// Implementations typically forward this notification to their own outputs.
     abstract member InputChanged: obj * IAdaptiveObject -> unit
 
-    /// Gets called after all inputs of the object have been processed
-    /// and directly before the object will be marked
+    /// Called after all inputs have been processed during change propagation,
+    /// directly before this object will be marked out-of-date.
+    /// The argument is the transaction object.
+    /// Useful for performing finalization or cleanup before marking.
     abstract member AllInputsProcessed: obj -> unit
 
-    /// Indicates whether the IAdaptiveObject is constant
+    /// Indicates whether this adaptive object is constant (never changes).
+    /// Constant objects have optimized implementations with no tracking overhead.
+    /// Returns true for objects created with AVal.constant, ASet.single, etc.
     abstract member IsConstant : bool
 
-/// Represents a set of outputs for an AdaptiveObject. The references to all 
-/// contained elements are weak and the datastructure allows to add/remove entries.
-/// the only other functionality is Consume which returns all the (currently alive)
-/// entries and clears the set.
+/// Represents a set of weak references to output objects in the dependency graph.
+///
+/// This specialized data structure:
+/// - Stores weak references to prevent memory leaks
+/// - Allows adding/removing outputs dynamically
+/// - Provides efficient Consume operation to get all living outputs
+/// - Automatically cleans up garbage-collected objects
+///
+/// The weak references enable automatic cleanup of unused computation branches,
+/// a key feature of the adaptive system's memory management.
 and IWeakOutputSet =
 
     /// Indicates whether the set is (conservatively) known to be empty.
+    /// May return false even if all weak references are dead.
+    /// Used as a fast-path optimization to avoid unnecessary work.
     abstract member IsEmpty : bool
 
-    /// Adds a weak reference to the given AdaptiveObject to the set
-    /// And returns a boolean indicating whether the obj was new.
+    /// Adds a weak reference to the given AdaptiveObject to the set.
+    /// Returns true if the object was newly added.
+    /// Returns false if the object was already in the set.
     abstract member Add : IAdaptiveObject -> bool
 
-    /// Removes the reference to the given AdaptiveObject from the set
-    /// And returns a boolean indicating whether the obj was removed.
+    /// Removes the reference to the given AdaptiveObject from the set.
+    /// Returns true if the object was found and removed.
+    /// Returns false if the object was not in the set.
     abstract member Remove : IAdaptiveObject -> bool
 
-    /// Returns all currenty living entries from the set
-    /// And clears its content.
-    abstract member Consume : ref<IAdaptiveObject[]> -> int 
+    /// Returns all currently living entries from the set and clears its content.
+    /// This is the primary way to consume the output set during change propagation.
+    /// Dead weak references are automatically filtered out.
+    /// The int return value is the number of living entries returned.
+    abstract member Consume : ref<IAdaptiveObject[]> -> int
 
-    /// Clears the set.
+    /// Clears all references from the set.
+    /// Used when an adaptive object is being disposed or reset.
     abstract member Clear : unit -> unit
 
 #if FABLE_COMPILER

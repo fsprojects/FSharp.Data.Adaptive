@@ -4,90 +4,187 @@ open System
 open FSharp.Data.Traceable
 open FSharp.Data.Adaptive
 
-/// An adaptive reader for alist that allows to pull operations and exposes its current state.
-type IIndexListReader<'T> = 
+/// An adaptive reader for alist that provides incremental access to changes.
+/// Readers track deltas (additions, removals, updates) instead of full list snapshots,
+/// enabling efficient incremental processing of list changes.
+///
+/// Readers maintain their position and return only new changes since the last GetChanges call.
+type IIndexListReader<'T> =
     IOpReader<IndexList<'T>, IndexListDelta<'T>>
 
-/// Adaptive list datastructure.
+/// Adaptive list datastructure providing efficient incremental updates.
+///
+/// An alist is an ordered collection that:
+/// - Maintains element order with stable indices
+/// - Tracks changes as deltas (insertions, removals, moves)
+/// - Supports incremental operations (map, filter, fold, etc.)
+/// - Recomputes only affected elements when inputs change
+///
+/// Use alist when:
+/// - Order matters (unlike aset)
+/// - You need efficient incremental updates
+/// - You're building reactive UIs or data pipelines
 [<Interface>]
 type IAdaptiveIndexList<'T> =
-    /// Is the list constant?
+    /// Returns true if this list is constant (never changes).
+    /// Constant lists have optimized implementations with minimal overhead.
     abstract member IsConstant : bool
 
-    /// The current content of the list as aval.
+    /// The current content of the list as an adaptive value.
+    /// This provides access to the full list state, but using readers is more efficient
+    /// for incremental consumption of changes.
     abstract member Content : aval<IndexList<'T>>
-    
-    /// Gets a new reader to the list.
+
+    /// Creates a new reader for incremental access to list changes.
+    /// Multiple readers can exist for the same list, each tracking changes independently.
+    /// Readers are the recommended way to consume alist changes efficiently.
     abstract member GetReader : unit -> IIndexListReader<'T>
-    
-    /// Gets the underlying History instance for the alist (if any)
+
+    /// Gets the underlying History instance for the alist (if any).
+    /// History enables time-travel debugging and undo/redo functionality.
+    /// Most user code doesn't need to access this directly.
     abstract member History : option<History<IndexList<'T>, IndexListDelta<'T>>>
 
-/// Adaptive list datastructure.
+/// Type abbreviation for IAdaptiveIndexList.
+/// This is the primary ordered collection type in FSharp.Data.Adaptive.
 type alist<'T> = IAdaptiveIndexList<'T>
 
 
 /// Functional operators for the alist<_> type.
+/// All operations are incremental and recompute only affected elements when inputs change.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module AList =
 
-    /// The empty alist.
+    /// The empty alist. Constant with no overhead.
+    /// Time complexity: O(1)
     [<GeneralizableValue>]
     val empty<'T> : alist<'T>
 
     /// A constant alist holding a single value.
+    /// Time complexity: O(1)
+    ///
+    /// Example:
+    ///     let item = AList.single 42
     val single : value: 'T -> alist<'T>
 
-    /// Creates an alist holding the given values.
+    /// Creates a constant alist holding the given values.
+    /// The list is immutable and will never change.
+    /// Time complexity: O(n)
     val ofSeq : elements: seq<'T> -> alist<'T>
 
-    /// Creates an alist holding the given values.
+    /// Creates a constant alist holding the given values.
+    /// The list is immutable and will never change.
+    /// Time complexity: O(n)
     val ofList : elements: list<'T> -> alist<'T>
 
-    /// Creates an alist holding the given values.
+    /// Creates a constant alist holding the given values.
+    /// The list is immutable and will never change.
+    /// Time complexity: O(n)
     val ofArray : elements: 'T[] -> alist<'T>
 
-    /// Creates an alist holding the given values. `O(1)`
+    /// Creates a constant alist holding the given values.
+    /// This is the most efficient way to create an alist from IndexList.
+    /// Time complexity: O(1)
     val ofIndexList : elements: IndexList<'T> -> alist<'T>
-    
-    /// Creates an alist using the given reader-creator.
+
+    /// Creates an alist using the given reader-creator function.
+    /// Advanced API for custom adaptive list implementations.
+    /// The create function is called once to get a reader that provides deltas.
     val ofReader : create : (unit -> #IOpReader<IndexListDelta<'T>>) -> alist<'T>
 
-    /// Creates an alist using the given compute function
+    /// Creates a custom alist using the given compute function.
+    /// Advanced API for implementing custom adaptive list logic.
+    /// The compute function receives the current state and must return the delta.
     val custom : compute : (AdaptiveToken -> IndexList<'T> -> IndexListDelta<'T>) -> alist<'T>
 
-    /// Creates an alist using the given value generator
+    /// Creates a constant alist using the given value generator.
+    /// The generator is called once lazily.
     val constant: value: (unit -> IndexList<'T>) -> alist<'T>
-    
-    /// Generate a list of adaptive length using the given intializer
+
+    /// Generates an adaptive list of adaptive length using the given initializer.
+    /// When the length changes, elements are added or removed from the end.
+    ///
+    /// Time complexity: O(k) where k = change in length
+    ///
+    /// Example:
+    ///     let count = cval 5
+    ///     let numbers = AList.init count id  // [0; 1; 2; 3; 4]
+    ///     transact (fun () -> count.Value <- 3)  // [0; 1; 2]
     val init: length: aval<int> -> initializer: (int -> 'T) -> alist<'T>
 
-    /// Generate an adaptive range of items based on lower/upper bound
+    /// Generates an adaptive range of items based on lower and upper bounds.
+    /// The range updates incrementally when bounds change.
+    ///
+    /// Time complexity: O(k) where k = change in range size
+    ///
+    /// Example:
+    ///     let lower = cval 0
+    ///     let upper = cval 10
+    ///     let range = AList.range lower upper  // [0..10]
     val inline range: lowerBound: aval< ^T > -> upperBound: aval< ^T > -> alist< ^T >
-                                when ^T : (static member (+)   : ^T * ^T -> ^T) 
-                                and ^T : (static member (-)   : ^T * ^T -> ^T) 
-                                and ^T : (static member (~-)   : ^T -> ^T) 
+                                when ^T : (static member (+)   : ^T * ^T -> ^T)
+                                and ^T : (static member (-)   : ^T * ^T -> ^T)
+                                and ^T : (static member (~-)   : ^T -> ^T)
                                 and ^T : (static member One  : ^T)
                                 and ^T : (static member Zero : ^T)
                                 and ^T : equality
-                                and ^T : comparison 
+                                and ^T : comparison
 
-    /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
+    /// Adaptively applies the mapping function to all elements with their indices.
+    /// Only changed elements are remapped on updates.
+    ///
+    /// Time complexity: O(k) where k = number of changed elements
+    ///
+    /// Example:
+    ///     let items = clist ["a"; "b"; "c"]
+    ///     let indexed = items |> AList.mapi (fun i v -> sprintf "%d: %s" i.Value v)
+    ///     // => ["0: a"; "1: b"; "2: c"]
     val mapi : mapping: (Index -> 'T1 -> 'T2) -> list: alist<'T1> -> alist<'T2>
 
-    /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.
+    /// Adaptively applies the mapping function to all elements.
+    /// Only changed elements are remapped on updates.
+    ///
+    /// Time complexity: O(k) where k = number of changed elements
+    ///
+    /// Example:
+    ///     let numbers = clist [1; 2; 3]
+    ///     let squares = numbers |> AList.map (fun x -> x * x)
+    ///     // => [1; 4; 9]
     val map : mapping: ('T1 -> 'T2) -> list: alist<'T1> -> alist<'T2>
-    
-    /// Adaptively chooses all elements returned by mapping.  
+
+    /// Adaptively chooses elements based on the mapping function with indices.
+    /// Returns only Some values. Only changed elements are reprocessed.
+    ///
+    /// Time complexity: O(k) where k = number of changed elements
     val choosei : mapping: (Index -> 'T1 -> option<'T2>) -> list: alist<'T1> -> alist<'T2>
 
-    /// Adaptively chooses all elements returned by mapping.  
+    /// Adaptively chooses elements based on the mapping function.
+    /// Returns only Some values. Only changed elements are reprocessed.
+    ///
+    /// Time complexity: O(k) where k = number of changed elements
+    ///
+    /// Example:
+    ///     let items = clist [1; 2; 3; 4]
+    ///     let evens = items |> AList.choose (fun x ->
+    ///         if x % 2 = 0 then Some x else None)
+    ///     // => [2; 4]
     val choose : mapping: ('T1 -> option<'T2>) -> list: alist<'T1> -> alist<'T2>
-        
-    /// Adaptively filters the list using the given predicate.
+
+    /// Adaptively filters the list using the given predicate with indices.
+    /// Only changed elements are re-evaluated.
+    ///
+    /// Time complexity: O(k) where k = number of changed elements
     val filteri : predicate: (Index -> 'T -> bool) -> list: alist<'T> -> alist<'T>
-    
+
     /// Adaptively filters the list using the given predicate.
+    /// Only changed elements are re-evaluated.
+    ///
+    /// Time complexity: O(k) where k = number of changed elements
+    ///
+    /// Example:
+    ///     let numbers = clist [1; 2; 3; 4; 5]
+    ///     let evens = numbers |> AList.filter (fun x -> x % 2 = 0)
+    ///     // => [2; 4]
     val filter : predicate: ('T -> bool) -> list: alist<'T> -> alist<'T>
         
     /// Adaptively applies the given mapping function to all elements and returns a new alist containing the results.

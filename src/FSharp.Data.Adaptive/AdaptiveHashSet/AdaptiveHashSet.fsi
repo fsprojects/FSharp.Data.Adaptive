@@ -3,100 +3,233 @@
 open System
 open FSharp.Data.Traceable
 
-/// An adaptive reader for aset that allows to pull operations and exposes its current state.
-type IHashSetReader<'T> = 
+/// An adaptive reader for aset that provides incremental access to changes.
+/// Readers track deltas (additions and removals) instead of full set snapshots,
+/// enabling efficient incremental processing of set changes.
+type IHashSetReader<'T> =
     IOpReader<CountingHashSet<'T>, HashSetDelta<'T>>
 
-/// Adaptive set datastructure.
+/// Adaptive set datastructure providing efficient incremental updates.
+///
+/// An aset is an unordered collection of unique elements that:
+/// - Maintains uniqueness (no duplicates)
+/// - Has no defined order (unlike alist)
+/// - Tracks changes as deltas (additions and removals)
+/// - Supports incremental operations (map, filter, union, etc.)
+/// - Recomputes only affected elements when inputs change
+///
+/// Use aset when:
+/// - You need a collection of unique values
+/// - Order doesn't matter
+/// - You need efficient set operations (union, intersection, etc.)
+/// - You're working with relations or graph structures
 [<Interface>]
 type IAdaptiveHashSet<'T> =
-    /// Is the set constant?
+    /// Returns true if this set is constant (never changes).
+    /// Constant sets have optimized implementations with minimal overhead.
     abstract member IsConstant : bool
 
-    /// The current content of the set as aval.
+    /// The current content of the set as an adaptive value.
+    /// This provides access to the full set state, but using readers is more efficient
+    /// for incremental consumption of changes.
     abstract member Content : aval<HashSet<'T>>
-    
-    /// Gets a new reader to the set.
+
+    /// Creates a new reader for incremental access to set changes.
+    /// Multiple readers can exist for the same set, each tracking changes independently.
+    /// Readers are the recommended way to consume aset changes efficiently.
     abstract member GetReader : unit -> IHashSetReader<'T>
 
-    /// Gets the underlying History instance for the aset (if any)
+    /// Gets the underlying History instance for the aset (if any).
+    /// History enables time-travel debugging and undo/redo functionality.
+    /// Most user code doesn't need to access this directly.
     abstract member History : option<History<CountingHashSet<'T>, HashSetDelta<'T>>>
 
-/// Adaptive set datastructure.
+/// Type abbreviation for IAdaptiveHashSet.
+/// This is the primary unordered collection type in FSharp.Data.Adaptive.
 and aset<'T> = IAdaptiveHashSet<'T>
 
-/// Functional operators for aset<_>
+/// Functional operators for aset<_>.
+/// All operations are incremental and recompute only affected elements when inputs change.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ASet =
-    /// The empty aset.
+    /// The empty aset. Constant with no overhead.
+    /// Time complexity: O(1)
     [<GeneralizableValue>]
-    val empty<'T> : aset<'T> 
+    val empty<'T> : aset<'T>
 
-    /// Creates an aset using the given set generator
+    /// Creates a constant aset using the given set generator.
+    /// The generator is called once lazily.
     val constant: value: (unit -> HashSet<'T>) -> aset<'T>
-    
+
     /// A constant aset holding a single value.
+    /// Time complexity: O(1)
+    ///
+    /// Example:
+    ///     let item = ASet.single 42
     val single : value : 'T -> aset<'T>
-    
-    /// Creates an aset holding the given values.
+
+    /// Creates a constant aset holding the given values.
+    /// Duplicates are automatically removed.
+    /// Time complexity: O(n)
     val ofSeq : elements : seq<'T> -> aset<'T>
-    
-    /// Creates an aset holding the given values.
+
+    /// Creates a constant aset holding the given values.
+    /// Duplicates are automatically removed.
+    /// Time complexity: O(n)
     val ofList : elements : list<'T> -> aset<'T>
-    
-    /// Creates an aset holding the given values.
+
+    /// Creates a constant aset holding the given values.
+    /// Duplicates are automatically removed.
+    /// Time complexity: O(n)
     val ofArray : elements : 'T[] -> aset<'T>
 
-    /// Creates an aset holding the given values. `O(1)`
+    /// Creates a constant aset holding the given values.
+    /// This is the most efficient way to create an aset from HashSet.
+    /// Time complexity: O(1)
     val ofHashSet : elements : HashSet<'T> -> aset<'T>
 
     /// Creates an aval providing access to the current content of the set.
+    /// This is the same as accessing the Content property.
+    /// Time complexity: O(1)
     val toAVal : set : aset<'T> -> aval<HashSet<'T>>
 
-    /// Generate an adaptive range of items based on lower/upper bound
+    /// Generates an adaptive range of items based on lower and upper bounds.
+    /// The range updates incrementally when bounds change.
+    ///
+    /// Time complexity: O(k) where k = change in range size
+    ///
+    /// Example:
+    ///     let lower = cval 0
+    ///     let upper = cval 10
+    ///     let range = ASet.range lower upper  // {0..10}
     val inline range: lowerBound: aval< ^T > -> upperBound: aval< ^T > -> aset< ^T >
-                                when ^T : (static member (+)   : ^T * ^T -> ^T) 
-                                and ^T : (static member (-)   : ^T * ^T -> ^T) 
-                                and ^T : (static member (~-)   : ^T -> ^T) 
+                                when ^T : (static member (+)   : ^T * ^T -> ^T)
+                                and ^T : (static member (-)   : ^T * ^T -> ^T)
+                                and ^T : (static member (~-)   : ^T -> ^T)
                                 and ^T : (static member One  : ^T)
                                 and ^T : (static member Zero : ^T)
                                 and ^T : equality
-                                and ^T : comparison 
+                                and ^T : comparison
 
-    /// Adaptively maps over the given set.
+    /// Adaptively applies the mapping function to all elements.
+    /// Only changed elements are remapped on updates.
+    /// Note: Mapping may produce duplicates which are automatically merged.
+    ///
+    /// Time complexity: O(k) where k = number of changed elements
+    ///
+    /// Example:
+    ///     let numbers = cset [1; 2; 3]
+    ///     let squares = numbers |> ASet.map (fun x -> x * x)
+    ///     // => {1; 4; 9}
     val map : mapping : ('A -> 'B) -> set : aset<'A> -> aset<'B>
 
-    /// Adaptively chooses all elements returned by mapping.  
+    /// Adaptively chooses elements based on the mapping function.
+    /// Returns only Some values. Only changed elements are reprocessed.
+    ///
+    /// Time complexity: O(k) where k = number of changed elements
+    ///
+    /// Example:
+    ///     let items = cset [1; 2; 3; 4]
+    ///     let evens = items |> ASet.choose (fun x ->
+    ///         if x % 2 = 0 then Some x else None)
+    ///     // => {2; 4}
     val choose : mapping : ('A -> option<'B>) -> set : aset<'A> -> aset<'B>
-    
+
     /// Adaptively filters the set using the given predicate.
+    /// Only changed elements are re-evaluated.
+    ///
+    /// Time complexity: O(k) where k = number of changed elements
+    ///
+    /// Example:
+    ///     let numbers = cset [1; 2; 3; 4; 5]
+    ///     let evens = numbers |> ASet.filter (fun x -> x % 2 = 0)
+    ///     // => {2; 4}
     val filter : predicate : ('A -> bool) -> set : aset<'A> -> aset<'A>
-    
-    /// Adaptively unions the given sets
+
+    /// Adaptively computes the union of two sets.
+    /// Only processes changes from either input set.
+    ///
+    /// Time complexity: O(k) where k = number of changes
+    ///
+    /// Example:
+    ///     let a = cset [1; 2; 3]
+    ///     let b = cset [3; 4; 5]
+    ///     let combined = ASet.union a b  // => {1; 2; 3; 4; 5}
     val union : a : aset<'A> -> b : aset<'A> -> aset<'A>
 
-    /// Adaptively unions all the given sets
+    /// Adaptively computes the union of all sets in the input set of sets.
+    /// Efficiently handles adding/removing entire sets.
+    ///
+    /// Time complexity: O(k) where k = number of changes across all sets
     val unionMany : sets : aset<aset<'A>> -> aset<'A>
-    
-    /// Adaptively subtracts the given sets.
+
+    /// Adaptively computes the set difference (a \ b).
+    /// Returns elements in 'a' that are not in 'b'.
+    ///
+    /// Time complexity: O(k) where k = number of changes
+    ///
+    /// Example:
+    ///     let a = cset [1; 2; 3; 4]
+    ///     let b = cset [3; 4; 5]
+    ///     let diff = ASet.difference a b  // => {1; 2}
     val difference : a : aset<'T> -> b : aset<'T> -> aset<'T>
-    
-    /// Adaptively 'xors' the given sets.
+
+    /// Adaptively computes the symmetric difference (XOR) of two sets.
+    /// Returns elements in either set but not in both.
+    ///
+    /// Time complexity: O(k) where k = number of changes
+    ///
+    /// Example:
+    ///     let a = cset [1; 2; 3]
+    ///     let b = cset [2; 3; 4]
+    ///     let xor = ASet.xor a b  // => {1; 4}
     val xor : a : aset<'T> -> b : aset<'T> -> aset<'T>
 
-    /// Adaptively intersects the given sets
+    /// Adaptively computes the intersection of two sets.
+    /// Returns elements that are in both sets.
+    ///
+    /// Time complexity: O(k) where k = number of changes
+    ///
+    /// Example:
+    ///     let a = cset [1; 2; 3]
+    ///     let b = cset [2; 3; 4]
+    ///     let common = ASet.intersect a b  // => {2; 3}
     val intersect : a : aset<'T> -> b : aset<'T> -> aset<'T>
 
-    /// Adaptively maps over the given set and unions all resulting sets.
+    /// Adaptively maps over the set and unions all resulting sets (flatMap).
+    /// Only changed elements are remapped on updates.
+    ///
+    /// Time complexity: O(k * m) where k = changed elements, m = avg result set size
+    ///
+    /// Example:
+    ///     let ranges = cset [1..3]
+    ///     let expanded = ranges |> ASet.collect (fun n ->
+    ///         ASet.ofList [n; n*10])
+    ///     // => {1; 10; 2; 20; 3; 30}
     val collect : mapping : ('A -> aset<'B>) -> set : aset<'A> -> aset<'B>
 
-    /// Adaptively maps over the given set and unions all resulting seqs.
+    /// Adaptively maps over the set and unions all resulting sequences.
+    /// Only changed elements are remapped on updates.
+    ///
+    /// Time complexity: O(k * m) where k = changed elements, m = avg sequence length
     val collect' : mapping : ('A -> seq<'B>) -> set : aset<'A> -> aset<'B>
 
-    /// Creates an aset for the given aval.
+    /// Creates an aset from an adaptive value containing a sequence.
+    /// When the aval changes, the entire set is recomputed.
+    ///
+    /// Example:
+    ///     let items = cval [1; 2; 3]
+    ///     let set = ASet.ofAVal items
     val ofAVal : value : aval<#seq<'A>> -> aset<'A>
 
-    /// Adaptively maps over the given aval and returns the resulting set.
+    /// Adaptively maps over an aval and returns the resulting set.
+    /// When the value changes, the mapping is recomputed.
+    ///
+    /// Example:
+    ///     let mode = cval "evens"
+    ///     let numbers = mode |> ASet.bind (fun m ->
+    ///         if m = "evens" then cset [2; 4; 6]
+    ///         else cset [1; 3; 5])
     val bind : mapping : ('A -> aset<'B>) -> value : aval<'A> -> aset<'B>
     
     /// Adaptively maps over the given avals and returns the resulting set.
