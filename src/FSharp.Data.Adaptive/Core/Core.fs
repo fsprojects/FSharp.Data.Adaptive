@@ -33,19 +33,30 @@ type IAdaptiveObject =
     abstract member Weak: WeakReference<IAdaptiveObject>
 
     /// The maximal distance from an input cell in the dependency graph.
-    /// Used during transaction-based evaluation to ensure topological order.
-    /// Higher levels are evaluated after lower levels to maintain consistency.
+    /// Used to determine the ORDER in which objects are marked during change propagation.
+    /// Objects are marked in order of increasing level (level 0 first, then 1, then 2, etc.).
+    /// This ensures outputs are marked after their inputs, maintaining topological order.
     /// Input cells (cval, clist, etc.) have level 0.
+    /// The level does NOT influence evaluation order - only marking order during transactions.
     abstract member Level: int with get, set
 
     ///// Used internally to ensure that AdaptiveObjects are not marked while their value
     ///// is still needed by an evaluation.
     //abstract member ReaderCount: int with get, set
 
-    /// Marks this object as out-of-date during change propagation.
-    /// Returns true if the object was previously up-to-date and is now marked.
-    /// Returns false if the object was already marked or is constant.
-    /// This method is called during transaction processing when inputs change.
+    /// Called during change propagation to mark this object as out-of-date.
+    /// This is where you can realize callbacks when the object becomes dirty.
+    ///
+    /// Return value controls propagation:
+    /// - Return TRUE to continue propagating changes to outputs (normal behavior)
+    /// - Return FALSE to stop propagation (prevents outputs from being marked)
+    ///
+    /// Common uses:
+    /// - Constant objects return false (no outputs should be marked)
+    /// - Objects with callbacks execute them here before returning true
+    /// - Custom objects can conditionally stop propagation based on logic
+    ///
+    /// Called with the object locked, after AllInputsProcessed, before outputs are consumed.
     abstract member Mark: unit -> bool
 
     /// Indicates whether the object's cached value is out-of-date.
