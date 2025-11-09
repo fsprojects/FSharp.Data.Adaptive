@@ -6,4 +6,5 @@ open FSharp.Data.Traceable
 //ABag.run()
 //Observable.run()
 //LookupAll.example()
-AListSub.run()
+//AListSub.run()
+ChangeableModelListList.run()
