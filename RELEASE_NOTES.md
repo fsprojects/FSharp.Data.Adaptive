@@ -1,3 +1,6 @@
+### 1.2.26
+- added ChangeableModelList(Generic|List|Array|Seq) for better handling of collections in Adaptify
+
 ### 1.2.25
 - Cache.Revoke -> Cache.TryRevoke 
 
