@@ -17,7 +17,7 @@
       "rollForward": false
     },
     "aardpack": {
-      "version": "2.0.3",
+      "version": "2.0.6",
       "commands": [
         "aardpack"
       ],
