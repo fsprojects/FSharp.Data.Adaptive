@@ -624,12 +624,16 @@ type IndexList< [<EqualityConditionalOn>] 'T> internal(l : Index, h : Index, con
     /// Tries to find the position for the given Index or -1 if the Index does not exist. O(log N)
     member x.IndexOf(index : Index) =
         MapExt.getIndex index content
-        
+
+    /// Returns true if the item is found in the collection.
+    member x.Contains(item : 'T) =
+        content |> MapExt.exists (fun _ vi -> DefaultEquality.equals vi item)
+
     interface ICollection<'T> with 
         member x.Add(v) = raise (NotSupportedException("IndexList cannot be mutated"))
         member x.Clear() = raise (NotSupportedException("IndexList cannot be mutated"))
         member x.Remove(v) = raise (NotSupportedException("IndexList cannot be mutated"))
-        member x.Contains(v) = content |> MapExt.exists (fun _ vi -> DefaultEquality.equals vi v)
+        member x.Contains(v) = x.Contains(v)
         member x.CopyTo(arr,i) = x.CopyTo(arr, i)
         member x.IsReadOnly = true
         member x.Count = x.Count

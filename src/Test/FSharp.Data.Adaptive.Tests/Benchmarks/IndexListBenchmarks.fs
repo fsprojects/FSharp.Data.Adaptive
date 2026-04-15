@@ -241,3 +241,68 @@ type IndexListBenchmarks() =
         res
 
 
+//| Method       | Count | Mean        | Error     | StdDev    | Gen0     | Allocated  |
+//|------------- |------ |------------:|----------:|----------:|---------:|-----------:|
+//| MapExtExists | 100   |   288.51 us |  4.098 us |  3.633 us |  71.7773 |  440.74 KB |
+//| SeqContains  | 100   |    57.60 us |  0.835 us |  0.781 us |  11.9019 |   73.03 KB |
+//| EnumContains | 100   |   282.88 us |  5.443 us |  6.884 us |  81.5430 |  501.34 KB |
+//| MapExtExists | 1000  | 2,034.85 us | 39.085 us | 38.387 us | 492.1875 |  3032.6 KB |
+//| SeqContains  | 1000  |   405.40 us |  4.611 us |  4.313 us |  66.8945 |  411.19 KB |
+//| EnumContains | 1000  | 2,024.88 us | 29.268 us | 27.377 us | 558.5938 | 3431.82 KB |
+//| MapExtExists | 10000 | 3,495.86 us | 64.921 us | 60.727 us | 812.5000 | 4985.28 KB |
+//| SeqContains  | 10000 |   690.07 us | 11.743 us | 10.984 us | 112.3047 |  690.75 KB |
+//| EnumContains | 10000 | 3,353.69 us | 66.409 us | 93.097 us | 921.8750 | 5664.15 KB |
+// 
+// Insights: Seq.contains is fasted, but only if used in non-generic way, which mean that this need to be done by the application itself
+//           and not be abstracted byhind a method on IndexList because 'T there is not restricted to "equality".
+//           MapExt.exists (as currently used) uses slightly less memory as a search via a generic Seq.contains with a struct enumerator.
+//            -> keep IndexList.Contains implementation as is
+
+[<MemoryDiagnoser; InProcess>]
+[<CategoriesColumn; GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)>]
+type IndexListContainsBenchmarks() =
+
+    [<Params(100, 1000, 10000); DefaultValue>]
+    val mutable public Count : int
+
+    let mutable list = IndexList.empty<_>
+
+    [<GlobalSetup>]
+    member x.Setup() =
+        let rnd = Random(101)
+        let stuff = Array.init x.Count (fun i -> rnd.Next(1000))
+        list <- IndexList.ofArray stuff
+
+
+    [<Benchmark>]
+    member x.MapExtExists() =
+        let mutable res = 0
+        for i in 0..100 do
+            if list |> IndexList.exists (fun _ vi -> DefaultEquality.equals vi i) then
+                res <- res ^^^ i
+        res
+
+    [<Benchmark>]
+    member x.SeqContains() =
+        let mutable res = 0
+        for i in 0..100 do
+            if list |> Seq.contains i then // NOTE: this uses LanguagePrimitives.HashCompare.GenericEqualityIntrinsic (inlined equality) while if generic DefaultEquality.equals (equality comparer) would be used
+                res <- res ^^^ i
+        res
+
+    let containsEnum (item : 'T) (list : IndexList<'T>) = // NOTE: would only match Seq.contains performance if int is used instead of 'T
+        let mutable e = list.GetEnumerator()
+        let mutable found = false
+        while e.MoveNext() && not found do
+            if DefaultEquality.equals e.Current item then
+            //if e.Current = item then // -> gives same performance as DefaultEquality.equals if function is generic
+                found <- true
+        found
+
+    [<Benchmark>]
+    member x.EnumContains() =
+        let mutable res = 0
+        for i in 0..100 do
+            if list |> containsEnum i then
+                res <- res ^^^ i
+        res
