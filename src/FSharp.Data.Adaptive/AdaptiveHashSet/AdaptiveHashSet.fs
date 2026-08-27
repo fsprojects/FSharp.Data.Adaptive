@@ -381,6 +381,28 @@ module AdaptiveHashSetImplementation =
             member x.Content = x.Content
             member x.History = None
 
+    /// Constant set whose content is already in hand (single/ofHashSet/ofArray/...):
+    /// no Lazy, no closure. The Lazy in ConstantSet exists only to defer constant-FOLDS
+    /// (map/choose) and the bind/collect exceptions; a given value has nothing to defer.
+    [<Sealed>]
+    type ConstantSetEager<'T>(content : HashSet<'T>) =
+        let value = AVal.constant content
+
+        member x.Content = value
+
+        member x.GetReader() =
+            History.Readers.ConstantReaderEager<_,_>(
+                CountingHashSet.trace,
+                HashSet.addAll content,
+                CountingHashSet.ofHashSet content
+            ) :> IHashSetReader<_>
+
+        interface IAdaptiveHashSet<'T> with
+            member x.IsConstant = true
+            member x.GetReader() = x.GetReader()
+            member x.Content = x.Content
+            member x.History = None
+
     /// Efficient implementation for a constant adaptive set.
     [<Sealed>]
     type ConstantSet<'T>(content : Lazy<HashSet<'T>>) =
@@ -1268,23 +1290,23 @@ module ASet =
 
     /// A constant aset holding a single value.
     let single (value : 'T) =
-        constant (fun () -> HashSet.single value)
-        
+        ConstantSetEager(HashSet.single value) :> aset<_>
+
     /// Creates an aset holding the given values.
     let ofSeq (elements : seq<'T>) =
-        constant (fun () -> HashSet.ofSeq elements)
-        
+        ConstantSetEager(HashSet.ofSeq elements) :> aset<_>
+
     /// Creates an aset holding the given values.
     let ofList (elements : list<'T>) =
-        constant (fun () -> HashSet.ofList elements)
-        
+        ConstantSetEager(HashSet.ofList elements) :> aset<_>
+
     /// Creates an aset holding the given values.
     let ofArray (elements : 'T[]) =
-        constant (fun () -> HashSet.ofArray elements)
-        
+        ConstantSetEager(HashSet.ofArray elements) :> aset<_>
+
     /// Creates an aset holding the given values. `O(1)`
     let ofHashSet (elements : HashSet<'T>) =
-        constant (fun () -> elements)
+        ConstantSetEager(elements) :> aset<_>
 
     /// Creates an aval providing access to the current content of the set.
     let toAVal (set : aset<'T>) =

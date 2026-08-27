@@ -521,6 +521,30 @@ module History =
                 member x.Trace = t
                 member x.State = t.tempty
 
+        /// Like ConstantReader but the initial ops/state are already known — no Lazy wrap.
+        /// For constants built from a value the user already handed us (single/ofHashSet/...),
+        /// where there is no constant-fold to defer.
+        type ConstantReaderEager<'State, 'Delta>(t: Traceable<'State, 'Delta>, ops: 'Delta, finalState: 'State) =
+            inherit ConstantObject()
+
+            let mutable state = t.tempty
+            let mutable initial = true
+
+            interface IOpReader<'Delta> with
+                member x.GetChanges(caller) =
+                    lock x (fun () ->
+                        if initial then
+                            initial <- false
+                            state <- finalState
+                            ops
+                        else
+                            t.tmonoid.mempty
+                    )
+
+            interface IOpReader<'State, 'Delta> with
+                member x.Trace = t
+                member x.State = state
+
         /// A constant reader.
         type ConstantReader<'State, 'Delta>(t: Traceable<'State, 'Delta>, ops: Lazy<'Delta>, finalState: Lazy<'State>) =
             inherit ConstantObject()
