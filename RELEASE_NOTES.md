@@ -1,3 +1,5 @@
+- added Difference to C# ASet extensions
+
 ### 1.2.26
 - added ChangeableModelList(Generic|List|Array|Seq) for better handling of collections in Adaptify
 

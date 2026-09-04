@@ -123,6 +123,9 @@ type AdaptiveHashSet private() =
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Union(set: aset<aset<'T>>) = ASet.unionMany set
 
+    [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
+    static member Difference(a: aset<'T>, b: aset<'T>) = ASet.difference a b
+
     
     [<Extension; MethodImpl(MethodImplOptions.AggressiveInlining)>]
     static member Collect(this: aset<'T1>, selector: Func<'T1, aset<'T2>>) = ASet.collect selector.Invoke this
