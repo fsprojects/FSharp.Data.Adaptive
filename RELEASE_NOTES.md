@@ -1,4 +1,6 @@
 - added Difference to C# ASet extensions
+- added IndexList.Contains member in addition to explicit interface implementation
+- improved ASet.single/ofSeq/ofList/ofArray/ofHashSet: eager constants, no Lazy/closure wrap
 
 ### 1.2.26
 - added ChangeableModelList(Generic|List|Array|Seq) for better handling of collections in Adaptify
