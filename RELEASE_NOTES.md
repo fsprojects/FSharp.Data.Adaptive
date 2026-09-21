@@ -1,3 +1,5 @@
+### 1.2.27
+- fixed AddCallback deadlock under concurrent transactions (#120)
 - added Difference to C# ASet extensions
 - added IndexList.Contains member in addition to explicit interface implementation
 - improved ASet.single/ofSeq/ofList/ofArray/ofHashSet: eager constants, no Lazy/closure wrap
