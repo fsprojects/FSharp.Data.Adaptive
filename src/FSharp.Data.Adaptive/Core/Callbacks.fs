@@ -67,7 +67,7 @@ type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, 
             // deciding to release this object before setMultiCallback can fetch this instance for a callback
             // the Count must be checked after the lock since we need to be sure no one is add a subscription
             // while we are in here.
-            lock table (fun _ ->                 
+            let release () =
                 #if !FABLE_COMPILER
                 if cbs.Count = 0 then // since there are not more live callbacks we'd like to release this object
                 #else
@@ -85,7 +85,19 @@ type internal MultiCallbackObject(table : ConditionalWeakTable<IAdaptiveObject, 
                     false
                 else
                     true
-            )
+            #if FABLE_COMPILER
+            lock table release
+            #else
+            // We are called with the monitor of x held (Mark runs under Transaction's EnterWrite, remove
+            // under lock x) while setMultiCallback holds the table lock and then enters x in Subscribe.
+            // Blocking on the table here closes that cycle (issue #120), so only release when the table
+            // is uncontended; otherwise stay alive and let the next Mark/remove retry the release.
+            if Monitor.TryEnter table then
+                try release ()
+                finally Monitor.Exit table
+            else
+                true
+            #endif
 
     let remove (x : MultiCallbackObject) (id : int) =
         lock x (fun () ->
