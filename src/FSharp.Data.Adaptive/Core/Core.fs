@@ -75,6 +75,15 @@ and IWeakOutputSet =
     /// Clears the set.
     abstract member Clear : unit -> unit
 
+/// Implemented by adaptive objects that strongly retain the inputs they read while
+/// they are up-to-date. Dependency edges are weak (Outputs only), so a node that reads
+/// something it created during its own evaluation (e.g. inside AVal.custom) would
+/// otherwise lose that input to the GC and silently stop being marked.
+/// AddInput is called by the input from within EvaluateAlways; the caller's monitor
+/// is held there by convention, so implementations need no locking.
+and IInputHoldingObject =
+    abstract member AddInput : IAdaptiveObject -> unit
+
 #if FABLE_COMPILER
 
 /// Represents a set of outputs for an AdaptiveObject. The references to all

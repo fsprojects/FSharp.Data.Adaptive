@@ -174,6 +174,9 @@ module AdadptiveObjectExtensions =
                 if not (Unchecked.isNull caller) then
                     x.Outputs.Add caller |> ignore
                     caller.Level <- max caller.Level (x.Level + 1)
+                    match caller with
+                    | :? IInputHoldingObject as r -> r.AddInput x
+                    | _ -> ()
 
             with _ ->
                 AdaptiveObject.UnsafeEvaluationDepth <- depth

@@ -1343,10 +1343,7 @@ module AList =
     /// Creates an alist using the given compute function
     let custom (compute : AdaptiveToken -> IndexList<'a> -> IndexListDelta<'a>) : alist<'a> = 
         ofReader (fun () -> 
-            { new AbstractReader<IndexList<'a>,IndexListDelta<'a>>(IndexList.trace) with
-                override x.Compute(t) = 
-                    compute t x.State
-            }
+            CustomReader<IndexList<'a>,IndexListDelta<'a>>(IndexList.trace, compute) :> IOpReader<_>
         )
 
 

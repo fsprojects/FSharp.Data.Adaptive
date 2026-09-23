@@ -404,8 +404,19 @@ module AVal =
     type CustomVal<'T>(compute: AdaptiveToken -> 'T) =
         inherit AbstractVal<'T>()
 
+        // inputs read by the last evaluation, held strongly until we are marked again.
+        let inputs = System.Collections.Generic.List<IAdaptiveObject>()
+
         override x.Compute(token: AdaptiveToken) =
+            inputs.Clear()
             compute token
+
+        override x.MarkObject() =
+            inputs.Clear()
+            true
+
+        interface IInputHoldingObject with
+            member x.AddInput i = inputs.Add i
 
     let inline force (value: aval<'T>) =
         value.GetValue AdaptiveToken.Top
