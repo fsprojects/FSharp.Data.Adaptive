@@ -408,7 +408,6 @@ module AVal =
         let inputs = System.Collections.Generic.List<IAdaptiveObject>()
 
         override x.Compute(token: AdaptiveToken) =
-            inputs.Clear()
             compute token
 
         override x.MarkObject() =

@@ -76,7 +76,6 @@ type internal CustomReader<'State, 'Delta>(trace: Traceable<'State, 'Delta>, com
     let inputs = System.Collections.Generic.List<IAdaptiveObject>()
 
     override x.Compute(token) =
-        inputs.Clear()
         compute token x.State
 
     override x.MarkObject() =
