@@ -67,6 +67,24 @@ type AbstractReader<'State, 'Delta>(trace: Traceable<'State, 'Delta>) =
         member x.Trace = trace
         member x.State = state
 
+/// Reader for user-supplied compute functions (ASet/AMap/AList.custom): strongly retains
+/// the inputs read by the last Compute until the reader is marked again (see IInputHoldingObject).
+[<Sealed>]
+type internal CustomReader<'State, 'Delta>(trace: Traceable<'State, 'Delta>, compute : AdaptiveToken -> 'State -> 'Delta) =
+    inherit AbstractReader<'State, 'Delta>(trace)
+
+    let inputs = System.Collections.Generic.List<IAdaptiveObject>()
+
+    override x.Compute(token) =
+        compute token x.State
+
+    override x.MarkObject() =
+        inputs.Clear()
+        true
+
+    interface IInputHoldingObject with
+        member x.AddInput i = inputs.Add i
+
 /// Abstract base class for implementing IOpReader<_> when dirty inputs are needed on evaluation.
 [<AbstractClass>]
 type AbstractDirtyReader<'T, 'Delta when 'T :> IAdaptiveObject>(t: Monoid<'Delta>, take : obj -> bool) =

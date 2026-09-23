@@ -1277,10 +1277,7 @@ module ASet =
     /// Creates an aset using the given compute function
     let custom (compute : AdaptiveToken -> CountingHashSet<'a> -> HashSetDelta<'a>) : aset<'a> = 
         ofReader (fun () -> 
-            { new AbstractReader<CountingHashSet<'a>,HashSetDelta<'a>>(CountingHashSet.trace) with
-                override x.Compute(t) = 
-                    compute t x.State
-            }
+            CustomReader<CountingHashSet<'a>,HashSetDelta<'a>>(CountingHashSet.trace, compute) :> IOpReader<_>
         )
 
     /// The empty aset.

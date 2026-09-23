@@ -1280,10 +1280,7 @@ module AMap =
     /// Creates an amap using the given compute function
     let custom (compute : AdaptiveToken -> HashMap<'Key, 'Value> -> HashMapDelta<'Key, 'Value>) : amap<'Key, 'Value> = 
         ofReader (fun () -> 
-            { new AbstractReader<HashMap<'Key, 'Value>,HashMapDelta<'Key, 'Value>>(HashMap.trace) with
-                override x.Compute(t) = 
-                    compute t x.State
-            }
+            CustomReader<HashMap<'Key, 'Value>,HashMapDelta<'Key, 'Value>>(HashMap.trace, compute) :> IOpReader<_>
         )
 
     /// Creates an aval providing access to the current content of the map.

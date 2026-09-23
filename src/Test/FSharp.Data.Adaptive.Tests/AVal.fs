@@ -315,3 +315,47 @@ let ``[AVal] multi map non-adaptive and bind``() =
 
     transact (fun () -> v.Value <- false)
     output |> AVal.force |> should equal 1
+
+
+// https://github.com/fsprojects/FSharp.Data.Adaptive/issues/122
+// a custom node reading a node it created during its own evaluation must keep
+// that node alive (inputs are only referenced weakly via Outputs).
+let private collect() =
+    System.GC.Collect(3)
+    System.GC.WaitForFullGCComplete() |> ignore
+    System.GC.WaitForPendingFinalizers()
+    System.GC.Collect(3)
+
+[<Test>]
+let ``[AVal] custom retains nodes created during evaluation``() =
+    let source = cval 1
+    let nestedMap = AVal.custom (fun t -> (source |> AVal.map (fun v -> v * 10)).GetValue t)
+    let nestedCustom = AVal.custom (fun t -> (AVal.custom (fun t -> source.GetValue t * 10)).GetValue t)
+    let nestedSet = AVal.custom (fun t -> (source |> AVal.map (fun v -> v * 10) |> ASet.bind ASet.single).Content.GetValue t |> HashSet.toList |> List.head)
+    let nestedList = AVal.custom (fun t -> (source |> AVal.map (fun v -> v * 10) |> AList.bind AList.single).Content.GetValue t |> IndexList.toList |> List.head)
+    let nestedMapCustom =
+        AMap.custom (fun t _ -> (source |> AVal.map (fun v -> v * 10)).GetValue t |> fun v -> HashMapDelta.ofList [1, Set v])
+        |> AMap.tryFind 1 |> AVal.map Option.get
+    let nestedSetCustom =
+        ASet.custom (fun t (s : CountingHashSet<int>) ->
+            let v = (source |> AVal.map (fun v -> v * 10)).GetValue t
+            HashSetDelta.combine (CountingHashSet.removeAll s) (HashSetDelta.single (Add v)))
+        |> ASet.toAVal |> AVal.map (HashSet.toList >> List.head)
+    let nestedListCustom =
+        AList.custom (fun t (l : IndexList<int>) ->
+            let v = (source |> AVal.map (fun v -> v * 10)).GetValue t
+            IndexListDelta.combine (IndexList.computeDelta l IndexList.empty) (IndexListDelta.single Index.zero (Set v)))
+        |> AList.toAVal |> AVal.map (IndexList.toList >> List.head)
+
+    let all = [ "map in custom", nestedMap; "custom in custom", nestedCustom; "aset in custom", nestedSet; "alist in custom", nestedList
+                "aval in AMap.custom", nestedMapCustom; "aval in ASet.custom", nestedSetCustom; "aval in AList.custom", nestedListCustom ]
+
+    for (_, a) in all do AVal.force a |> should equal 10
+    collect()
+    transact (fun () -> source.Value <- 2)
+    for (name, a) in all do
+        a.OutOfDate |> should be True
+        (name, AVal.force a) |> should equal (name, 20)
+    collect()
+    transact (fun () -> source.Value <- 3)
+    for (name, a) in all do (name, AVal.force a) |> should equal (name, 30)
