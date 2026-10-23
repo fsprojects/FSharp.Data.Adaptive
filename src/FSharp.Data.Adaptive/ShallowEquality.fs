@@ -224,6 +224,10 @@ type ShallowEqualityComparer<'a> private() =
                 jumpTable.[cases.[i].Tag] <- l
 
 
+            // null (a case represented as null, or an unset field as in ValueNone) hashes to 0
+            il.Emit(OpCodes.Ldarg_0)
+            il.Emit(OpCodes.Brfalse, zero)
+
             il.Emit(OpCodes.Ldarg_0)
             getTag il typ
             il.Emit(OpCodes.Switch, jumpTable)
@@ -340,6 +344,12 @@ type ShallowEqualityComparer<'a> private() =
             il.Emit(OpCodes.Ldarg_0)
             il.Emit(OpCodes.Ldarg_1)
             il.Emit(OpCodes.Beq, t)
+
+            // null (a case represented as null, or an unset field as in ValueNone) only equals null
+            il.Emit(OpCodes.Ldarg_0)
+            il.Emit(OpCodes.Brfalse, f)
+            il.Emit(OpCodes.Ldarg_1)
+            il.Emit(OpCodes.Brfalse, f)
 
             let t0 = il.DeclareLocal(typeof<int>)
             let t1 = il.DeclareLocal(typeof<int>)

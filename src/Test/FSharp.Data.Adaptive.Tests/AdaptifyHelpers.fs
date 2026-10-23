@@ -16,6 +16,15 @@ type Enum =
 type Bla(a : obj) = member x.A = a
 type Del = delegate of unit -> unit
 
+type Kind =
+    | Plain
+    | Named of string
+
+[<Struct>]
+type Slot =
+    | First of first : Kind
+    | Second of second : Kind
+
 [<Test>]
 let ``[ShallowEquals] special types``() =
     let bla = Bla (obj())
@@ -29,6 +38,44 @@ let ``[ShallowEquals] special types``() =
 
     ShallowEqualityComparer.Instance.Equals(bla, bla) |> should be True
     ShallowEqualityComparer.Instance.Equals(del, del) |> should be True
+
+[<Test>]
+let ``[ShallowEquals] unions and null``() =
+    let named = Named "a"
+
+    // A ValueNone holds a null union, which a ValueSome's union was compared with.
+    ShallowEqualityComparer.Instance.Equals(ValueNone, ValueSome named) |> should be False
+    ShallowEqualityComparer.Instance.Equals(ValueSome named, ValueNone) |> should be False
+    ShallowEqualityComparer.Instance.Equals(ValueSome named, ValueSome named) |> should be True
+    ShallowEqualityComparer.Instance.Equals((ValueNone : voption<Kind>), ValueNone) |> should be True
+    ShallowEqualityComparer<voption<Kind>>.ShallowHashCode ValueNone |> ignore
+
+    ShallowEqualityComparer.Instance.Equals(Unchecked.defaultof<Kind>, Plain) |> should be False
+    ShallowEqualityComparer.Instance.Equals(Plain, Unchecked.defaultof<Kind>) |> should be False
+
+    // A struct union holds the other cases' fields as null.
+    ShallowEqualityComparer.Instance.Equals(First Plain, Second Plain) |> should be False
+    ShallowEqualityComparer.Instance.Equals(First named, First named) |> should be True
+
+    // option represents None as null.
+    ShallowEqualityComparer.Instance.Equals(None, Some named) |> should be False
+    ShallowEqualityComparer.Instance.Equals(Some named, Some named) |> should be True
+    ShallowEqualityComparer<option<Kind>>.ShallowHashCode None |> should equal 0
+
+[<Test>]
+let ``[ShallowEquals] AList.bind over a voption of a union``() =
+    let state = cval ValueNone
+    let list = state |> AList.bind (function ValueSome kind -> AList.single kind | ValueNone -> AList.empty)
+    let r = list.GetReader()
+    r.GetChanges AdaptiveToken.Top |> ignore
+
+    transact (fun () -> state.Value <- ValueSome (Named "a"))
+    r.GetChanges AdaptiveToken.Top |> ignore
+    r.State |> IndexList.toList |> should equal [Named "a"]
+
+    transact (fun () -> state.Value <- ValueNone)
+    r.GetChanges AdaptiveToken.Top |> ignore
+    r.State |> IndexList.toList |> should equal List.empty<Kind>
 
 
 [<Property(EndSize = 10000)>]
