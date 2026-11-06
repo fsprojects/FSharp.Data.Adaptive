@@ -246,6 +246,13 @@ module internal MapReductions =
             | None ->
                 ()
 
+        let addTarget (m : aval<'b>) (k : 'k) =
+            #if FABLE_COMPILER
+            targets <- MultiSetMap.add m k targets
+            #else
+            lock dirtyLock (fun () -> targets <- MultiSetMap.add m k targets)
+            #endif
+
         override x.InputChangedObject(t, o) =
             if isNull o.Tag then
                 #if FABLE_COMPILER
@@ -278,13 +285,13 @@ module internal MapReductions =
                             reader.State |> HashMap.map (fun k a ->
                                 match HashMap.tryFindV k state with
                                 | ValueSome(oa, m,_) when DefaultEquality.equals oa a ->
+                                    addTarget m k
                                     let v = m.GetValue t
-                                    targets <- MultiSetMap.add m k targets
                                     (a, m, v)
                                 | _ ->
                                     let m = mapping k a
+                                    addTarget m k
                                     let v = m.GetValue t
-                                    targets <- MultiSetMap.add m k targets
                                     (a, m, v)
                             )
                         state <- newState
@@ -300,8 +307,8 @@ module internal MapReductions =
                                 removeIndex x i
 
                                 let r = mapping i v
+                                addTarget r i
                                 let n = r.GetValue(t)
-                                targets <- MultiSetMap.add r i targets
                                 state <- HashMap.add i (v, r, n) state
                                 sum <- add sum n
 
@@ -739,8 +746,8 @@ module AdaptiveHashMapImplementation =
                             ()
 
                         let k = cache.Invoke(i,v)
+                        lock cache (fun () -> targets <- MultiSetMap.add k i targets)
                         let v = k.GetValue t
-                        targets <- MultiSetMap.add k i targets
                         Some (Set v)
                     | Remove ->
                         match HashMap.tryFind i old with
@@ -823,8 +830,8 @@ module AdaptiveHashMapImplementation =
                             ()
 
                         let k = cache.Invoke(i,v)
+                        lock cache (fun () -> targets <- MultiSetMap.add k i targets)
                         let v = k.GetValue t
-                        targets <- MultiSetMap.add k i targets
                         match v with
                         | Some v -> 
                             keys.Add i |> ignore
