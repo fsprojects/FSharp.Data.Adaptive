@@ -1,3 +1,6 @@
+### 1.2.28
+- fixed mapA/chooseA race
+
 ### 1.2.27
 - fixed AddCallback deadlock under concurrent transactions (#120)
 - added Difference to C# ASet extensions
