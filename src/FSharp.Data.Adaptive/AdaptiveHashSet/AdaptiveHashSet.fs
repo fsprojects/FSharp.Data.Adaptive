@@ -236,6 +236,13 @@ module SetReductions =
             | None ->
                 ()
 
+        let addTarget (m : aval<'b>) (k : 'a) =
+            #if FABLE_COMPILER
+            targets <- MultiSetMap.add m k targets
+            #else
+            lock dirtyLock (fun () -> targets <- MultiSetMap.add m k targets)
+            #endif
+
         override x.InputChangedObject(_t, o) =
             if isNull o.Tag then
                 #if FABLE_COMPILER
@@ -269,13 +276,13 @@ module SetReductions =
                             reader.State.Store |> HashMap.map (fun k _ ->
                                 match HashMap.tryFindV k state with
                                 | ValueSome(m,_) ->
+                                    addTarget m k
                                     let v = m.GetValue t
-                                    targets <- MultiSetMap.add m k targets
                                     (m, v)
                                 | _ ->
                                     let m = mapping k
+                                    addTarget m k
                                     let v = m.GetValue t
-                                    targets <- MultiSetMap.add m k targets
                                     (m, v)
                             )
                         state <- newState
@@ -292,8 +299,8 @@ module SetReductions =
                                 removeIndex x v
 
                                 let r = mapping v
+                                addTarget r v
                                 let n = r.GetValue(t)
-                                targets <- MultiSetMap.add r v targets
                                 state <- HashMap.add v (r, n) state
                                 sum <- add sum n
 
